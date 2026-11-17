@@ -65,15 +65,6 @@ export function daysBetween(from: DayKey, to: DayKey): number {
   return mustEpochDay(to) - mustEpochDay(from);
 }
 
-/** Every key from `from` to `to`, both included, oldest first. Empty when `to` is earlier. */
-export function dayRange(from: DayKey, to: DayKey): DayKey[] {
-  const start = mustEpochDay(from);
-  const end = mustEpochDay(to);
-  const out: DayKey[] = [];
-  for (let n = start; n <= end; n += 1) out.push(fromEpochDay(n));
-  return out;
-}
-
 /** 0 for Monday through 6 for Sunday. */
 export function weekdayIndex(key: DayKey): number {
   // 1970-01-01 was a Thursday, index 3 in a Monday-first week.

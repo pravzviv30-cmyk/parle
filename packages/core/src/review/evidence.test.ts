@@ -11,7 +11,6 @@ import {
   isSettled,
   presentationOf,
   raiseEvidenceTo,
-  EVIDENCE_STATES,
   MASTERY_USES,
   NO_EVIDENCE,
   SETTLED_DAYS,
@@ -127,8 +126,6 @@ describe('the phrase evidence record', () => {
   });
 
   test('a phrase sits at the highest rung it has evidence for', () => {
-    assert.deepEqual([...EVIDENCE_STATES], ['introduced', 'recalled', 'used', 'transferred']);
-
     const fresh = card('vocab:alors');
     assert.equal(evidenceStateOf(fresh, NOW), 'introduced');
     assert.equal(evidenceStateOf(addEvidence(fresh, { retrievals: 1 }), NOW), 'recalled');

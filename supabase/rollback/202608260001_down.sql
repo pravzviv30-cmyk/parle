@@ -9,9 +9,9 @@
 -- column that no longer exists with 42703 rather than with rows. So the failure is
 -- loud, immediate and fails **closed** — nothing is silently overwritten, nothing is
 -- merged wrongly, and no learner's state is lost. Devices queue their changes and retry
--- with backoff until the column is back. That is why this script has no interlock while
--- the three function-body rollbacks in this directory do: those restore a defect that
--- does the wrong thing quietly, and this one only stops a feature working.
+-- with backoff until the column is back. It still stops every synced write and drops a
+-- column re-applying cannot refill, so since F1081 it runs in one transaction and refuses
+-- unless `luvani.remove_state_revision` is set to `yes` in the same session.
 --
 -- What is lost: the revision counters themselves. They are derived bookkeeping — how
 -- many times each row has been written — and hold no learner content, so dropping them
@@ -33,9 +33,16 @@
 -- calls, then the column both maintain — so nothing is left calling something that has
 -- already gone.
 
+begin;
+do $$ begin
+  if current_setting('luvani.remove_state_revision', true) is distinct from 'yes' then
+    raise exception 'refusing to remove the learner state revision without explicit interlock';
+  end if;
+end $$;
 drop trigger if exists learner_state_revision_bump on public.learner_state;
 
 drop function if exists public.learner_state_bump_revision();
 
 alter table public.learner_state
   drop column if exists revision;
+commit;

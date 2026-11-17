@@ -24,10 +24,10 @@ export function conversationTextCursor(value: unknown): { savedAt: string; sessi
     return { savedAt: v.savedAt, sessionId: v.sessionId };
   } catch { return null; }
 }
-export const CONVERSATION_TEXT_BYTES = 192 * 1024;
+const CONVERSATION_TEXT_BYTES = 192 * 1024;
 const keys = (value: Record<string, unknown>, allowed: string[]) => Object.keys(value).every(key => allowed.includes(key));
 const text = (value: unknown, limit: number): value is string => typeof value === 'string' && value.trim().length > 0 && value.length <= limit;
-export function isConversationTextLine(value: unknown): value is ConversationTextLine {
+function isConversationTextLine(value: unknown): value is ConversationTextLine {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   return keys(v, ['id', 'who', 'fr', 'frWritten', 'en']) && text(v.id, 80) &&
@@ -59,7 +59,6 @@ export class ConversationTextBuffer {
     this.lines.push({ ...line });
     if (this.lines.length > 500 || new TextEncoder().encode(JSON.stringify(this.lines)).byteLength > CONVERSATION_TEXT_BYTES - 1024) this.lines = null;
   }
-  remove(id: string): void { if (this.lines !== null) this.lines = this.lines.filter(line => line.id !== id); }
   clear(): void { this.lines = []; }
   invalidate(): void { this.lines = null; }
   snapshot(): readonly ConversationTextLine[] | null { return this.lines?.map(line => ({ ...line })) ?? null; }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ConversationTextBuffer, ConversationTextRecorder, isConversationText, isSavedConversationText } from './conversationText.ts';
 import type { ConvoView, ServerMessage } from './protocol/protocol.ts';
+import * as core from './index.ts';
 const id = '11111111-1111-4111-8111-111111111111';
 const line = { id: 't1', who: 'learner' as const, fr: 'Bonjour', frWritten: null, en: null };
 test('optional saved text retains repeated real lines and all older turns without silent truncation', () => {
@@ -13,7 +14,6 @@ test('optional saved text retains repeated real lines and all older turns withou
   const copy = buffer.snapshot()!;
   copy[0]!.fr = 'changed copy';
   assert.equal(buffer.snapshot()![0]!.fr, 'Bonjour');
-  buffer.remove('t0'); assert.equal(buffer.snapshot()?.length, 79);
   buffer.clear(); assert.deepEqual(buffer.snapshot(), []);
   for (let i = 0; i <= 500; i++) buffer.append({ ...line, id: `t${i}` });
   assert.equal(buffer.snapshot(), null, 'overflow cannot be sold as a full transcript');
@@ -60,4 +60,10 @@ test('saved text distinguishes repeated real replies from ready replay and suppo
   assert.deepEqual(recorder.snapshot()?.map(line => line.who), ['tutor', 'coach', 'coach']);
   assert.match(recorder.snapshot()![2]!.fr, /une café.*un café/);
   assert.match(recorder.snapshot()![2]!.fr, /Café is masculine/);
+});
+// F1079. Names nothing imports stay private, and the buffer has no unused remove.
+test('core exports none of the five names nothing imports, and the text buffer has no remove', () => {
+  for (const name of ['SERVICE_FAILURES', 'MAX_CAN_DO_SOURCES', 'MAX_CAN_DO_QUOTE_CHARS', 'CONVERSATION_TEXT_BYTES', 'isConversationTextLine'])
+    assert.equal(name in core, false, name);
+  assert.equal('remove' in ConversationTextBuffer.prototype, false);
 });

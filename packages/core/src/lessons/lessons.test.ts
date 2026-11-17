@@ -2,9 +2,12 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { CAFE_LESSON, LESSONS, getLesson } from './index.ts';
-import { isAcceptable, matchAcceptable, normalise, phonemeCoverage } from './types.ts';
+import { matchAcceptable, normalise, type Lesson, type LessonTurn } from './types.ts';
 import { getPhoneme } from '../phonemes/inventory.ts';
 import { drillsFor } from '../phonemes/drills.ts';
+
+const isAcceptable = (turn: LessonTurn, spoken: string) => matchAcceptable(turn, spoken).accepted;
+const phonemeCoverage = (lesson: Lesson) => [...new Set(lesson.turns.flatMap((t) => t.focusPhonemes))];
 
 describe('lesson structure', () => {
   test('lesson ids are unique and resolvable', () => {
@@ -160,6 +163,65 @@ describe('answer matching', () => {
     assert.equal(isAcceptable(t, 'je ne sais pas'), false);
     assert.equal(isAcceptable(t, 'où sont les toilettes'), false);
     assert.equal(isAcceptable(CAFE_LESSON.turns[0]!, 'bonsoir'), false, 'the deliberately-wrong option stays wrong');
+  });
+
+  test('a negated line is not accepted as the line', () => {
+    const turn = (id: string) => CAFE_LESSON.turns.find((x) => x.id === id)!;
+    // Saying the opposite is a different sentence, however many words it shares.
+    assert.equal(isAcceptable(CAFE_LESSON.turns[1]!, 'je ne voudrais pas un café'), false);
+    assert.equal(isAcceptable(turn('t6-thats-all'), "non c'est pas tout merci"), false);
+    assert.equal(isAcceptable(turn('t5-croissant'), 'pas un croissant'), false);
+    assert.equal(isAcceptable(CAFE_LESSON.turns[1]!, "jamais un café s'il vous plaît"), false);
+  });
+
+  test('a line that carries its own negation is still accepted as written', () => {
+    const base = CAFE_LESSON.turns[1]!;
+    const t = { ...base, target: "Pas de problème, un café s'il vous plaît", accepts: [], options: [] };
+    assert.ok(isAcceptable(t, "Pas de problème, un café s'il vous plaît"));
+    assert.equal(matchAcceptable(t, "bonjour, pas de problème, un café s'il vous plaît").via, 'content');
+    // "un" and "une" are protected in the repair but are not negations here.
+    assert.ok(isAcceptable(base, "bonjour un café s'il vous plaît"));
+  });
+
+  test('a formal ne added to a line that already carries pas is still the line', () => {
+    const base = CAFE_LESSON.turns[1]!;
+    const line = (target: string) => ({ ...base, target, accepts: [], options: [] });
+    // Spoken French drops the ne; putting it back is the same sentence, said formally.
+    assert.ok(isAcceptable(line('Je sais pas'), 'Je ne sais pas'));
+    assert.ok(isAcceptable(line('Je bois jamais de café'), 'Je ne bois jamais de café'));
+    assert.ok(isAcceptable(line('Il y a rien'), 'Il ne y a rien'));
+    // Turning a positive line negative is still refused.
+    assert.equal(isAcceptable(line('Je sais'), 'Je ne sais pas'), false);
+    assert.equal(isAcceptable(line('Je veux plus de café'), 'Je ne veux plus de café'), false, 'plus may mean more, so ne is not forgiven there');
+  });
+
+  test('a decline that adds "pas de croissant" to "non merci" is still the line', () => {
+    const t = CAFE_LESSON.turns.find((x) => x.id === 't5-croissant')!;
+    // An added negation that agrees with a line already saying no cannot flip it.
+    assert.ok(isAcceptable(t, 'Non merci, pas de croissant'));
+    assert.equal(isAcceptable(t, 'pas un croissant'), false, 'a positive order made negative is still refused');
+  });
+
+  test('an added negation is not graded as carrying the meaning', () => {
+    // "That lands. The meaning is there." must never answer the opposite sentence.
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns[0]!, 'pas bonjour'), { accepted: false, via: 'none' });
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns[1]!, 'je ne voudrais pas un café'), { accepted: false, via: 'none' });
+    const croissant = CAFE_LESSON.turns.find((x) => x.id === 't5-croissant')!;
+    assert.ok(isAcceptable(croissant, 'Non merci, pas de croissant'), 'a decline that agrees with the line is still the line');
+  });
+
+  test('a self-correcting non on a right line is not graded a miss', () => {
+    const near = { accepted: false, via: 'near' };
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns[1]!, "Un thé, non, un café, s'il vous plaît"), near);
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns[1]!, "Euh, non, un café s'il vous plaît"), near);
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns.find((x) => x.id === 't3-sur-place')!, 'À emporter, non, sur place'), near);
+  });
+
+  test('a polite "pas de problème" before the right line is still the line', () => {
+    const t = CAFE_LESSON.turns.find((x) => x.id === 't2-order')!;
+    // Founder, 2026-11-17: a set phrase, like a filler, not a negation of the order.
+    assert.ok(isAcceptable(t, "Pas de problème, un café s'il vous plaît"));
+    assert.deepEqual(matchAcceptable(t, 'pas un café'), { accepted: false, via: 'none' });
   });
 
   test('a half-said line is a near miss, not an unrelated answer', () => {

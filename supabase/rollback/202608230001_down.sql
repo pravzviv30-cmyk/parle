@@ -19,6 +19,12 @@
 -- Order is the reverse of creation, and each object 202608230001 created is named.
 
 -- the product-event validation trigger and its function
+begin;
+do $$ begin
+  if current_setting('luvani.remove_session_ledger', true) is distinct from 'yes' then
+    raise exception 'refusing to remove the session usage ledger without explicit interlock';
+  end if;
+end $$;
 drop trigger if exists product_events_validate on public.product_events;
 drop function if exists public.validate_product_event();
 
@@ -78,3 +84,4 @@ $$;
 
 revoke all on function public.consume_entitlement(uuid, integer) from public, anon, authenticated;
 grant execute on function public.consume_entitlement(uuid, integer) to service_role;
+commit;

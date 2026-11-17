@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { starterTasks, checkStarter, STARTER_GOALS } from './onboarding.ts';
+import { LEARNER_GOALS } from './firstPractice.ts';
 test('every concrete goal has a distinct real starter, and length changes task count', () => {
   assert.equal(
     new Set(STARTER_GOALS.filter((g) => g !== 'because').map((g) => starterTasks(g)[0]!.id)).size,
@@ -50,4 +51,38 @@ test('a reply that only echoes the greeting and the question is not accepted', (
   for (const goal of STARTER_GOALS)
     for (const each of starterTasks(goal, 'tea', 15))
       assert.equal(checkStarter(each, each.prompt, 'typed').accepted, false, each.id);
+});
+// F1079. Pins what each task accepts, so deleting the unread `accepts` field cannot move it.
+const listedVariants: Readonly<Record<string, readonly string[]>> = {
+  drink: ['un café', 'un thé', 'je voudrais un café', 'je voudrais un thé', 'je prends un café', 'je prends un thé'],
+  food: ['un croissant', 'je voudrais un croissant'],
+  pay: ['l’addition', 'je peux payer', 'je voudrais payer'],
+  'family-hello': ['ça va', 'ça va bien', 'je vais bien', 'bien merci', 'ça va bien merci et toi'],
+  'family-day': ['qu’est-ce que tu as fait', 'comment était ta journée'],
+  'family-see': ['demain', 'samedi', 'dimanche', 'demain si tu veux'],
+  directions: ['où est la gare', 'je cherche la gare'],
+  ticket: ['un billet pour Paris', 'je voudrais un billet pour Paris', 'je vais à Paris'],
+  hotel: ['oui j’ai une réservation', 'j’ai une réservation'],
+  introduce: ['oui je viens d’arriver', 'je viens d’arriver', 'je suis nouveau', 'je suis nouvelle', 'oui j’habite ici'],
+  errand: ['à quelle heure fermez-vous', 'à quelle heure vous fermez', 'vous fermez à quelle heure'],
+  bag: ['oui un sac', 'un sac', 'oui'],
+  colleague: ['bonjour', 'bonjour oui enchanté', 'bonjour oui enchantée', 'oui enchanté', 'oui enchantée', 'enchanté', 'enchantée'],
+  team: ['je travaille dans cette équipe', 'je travaille dans votre équipe'],
+  'work-help': ['vous pouvez m’aider', 'pouvez-vous m’aider', 'aidez-moi', 'tu peux m’aider'],
+};
+test('every starter task accepts its own model and each listed variant, for every goal and both drinks', () => {
+  for (const goal of STARTER_GOALS)
+    for (const drink of ['coffee', 'tea'] as const)
+      for (const minutes of [5, 10, 15, 'none', null] as const)
+        for (const task of starterTasks(goal, drink, minutes)) {
+          const listed = listedVariants[task.id];
+          assert.ok(listed, task.id);
+          const item = drink === 'tea' ? 'thé' : 'café';
+          const forms = [task.model, ...(task.id === 'drink' ? listed.filter((form) => form.includes(item)) : listed)];
+          for (const form of forms) assert.equal(checkStarter(task, form, 'typed').accepted, true, `${task.id} ${form}`);
+        }
+});
+// F1195. One list of goals, not two that can drift.
+test('starter goals and learner goals are one list', () => {
+  assert.equal(STARTER_GOALS, LEARNER_GOALS);
 });

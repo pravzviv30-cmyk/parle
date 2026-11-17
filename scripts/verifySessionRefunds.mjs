@@ -56,6 +56,7 @@ try {
  assert.equal(Object.keys(archive).length,16);assert.equal(archive.session_grants.length,5);
  for(const role of ['anon','authenticated']) {await db.exec(`set role ${role}`);await assert.rejects(refund(sid(1)),/permission denied/);await assert.rejects(db.query('select * from session_grants'),/permission denied/);await db.exec('reset role');}
  await db.exec('set role service_role');assert.equal((await refund(sid(1))).kind,'historical-reversal');await db.exec('reset role');
+ await db.exec("set luvani.remove_session_grants = 'yes'");
  await db.exec(await readFile(new URL('../supabase/rollback/20261002233520_down.sql',import.meta.url),'utf8'));
  assert.equal(Object.keys((await db.query('select export_account_data($1) as value',[user])).rows[0].value).length,15);
  await db.exec(await sql(migration));await assert.rejects(consume(sid(100)),/grant owner/);

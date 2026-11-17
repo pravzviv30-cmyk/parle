@@ -86,6 +86,7 @@ try {
  await db.exec(approvedSql);assert.deepEqual((await db.query('select * from phrase_audio_budgets where user_id=$1',[user])).rows[0],budgetBefore);
  assert.equal((await db.query('select global_spent_micro_usd as n from phrase_audio_policy')).rows[0].n,policyBefore.global_spent_micro_usd);
  await db.query('delete from auth.users where id=$1',[user]); assert.equal((await db.query('select count(*)::integer as n from phrase_audio_budgets')).rows[0].n,0); assert.equal((await spent()).global,cost,'global aggregate survives without owner identifiers');
+ await db.exec("set luvani.remove_phrase_audio_budget = 'yes'");
  await db.exec(await readFile(new URL('../supabase/rollback/20261002212536_down.sql',import.meta.url),'utf8'));
  assert.equal(Object.keys((await db.query('select export_account_data($1) as value',[other])).rows[0].value).length,14);
  await db.exec(await readFile(new URL(`../supabase/migrations/${migration}`,import.meta.url),'utf8')); assert.equal(await reserve(other),null,'reapply stays dark');
