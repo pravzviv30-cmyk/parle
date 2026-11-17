@@ -2011,10 +2011,13 @@ describe('client table grants (F1080)', () => {
     const db = await replayedBefore();
     try {
       // A grant to PUBLIC: both client roles inherit it, and revoking from them leaves it.
-      await db.exec('grant select on public.product_events to public');
-      await assert.rejects(db.exec(sqlOf(GRANTS)), /refusing to finish/, 'a PUBLIC grant survived the migration silently');
-      await db.exec('rollback');
-      await db.exec('revoke select on public.product_events from public');
+      // Each of the eight privileges in turn; anon holds none of them after the migration.
+      for (const privilege of PRIVILEGES) {
+        await db.exec(`grant ${privilege} on public.product_events to public`);
+        await assert.rejects(db.exec(sqlOf(GRANTS)), /refusing to finish/, `a PUBLIC ${privilege} grant survived the migration silently`);
+        await db.exec('rollback');
+        await db.exec(`revoke ${privilege} on public.product_events from public`);
+      }
 
       // A grant recorded under another grantor: the owner's revoke removes only its own grants.
       await db.exec(`create role other_grantor; grant truncate on public.entitlements to other_grantor with grant option;
