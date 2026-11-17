@@ -12797,14 +12797,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1196 — A formal "ne" added to a line that already carries "pas" is refused as a negation
 - severity: P2
 - status: [x]
-- where: packages/core/src/lessons/types.ts:222
+- where: packages/core/src/lessons/types.ts:225
 - note: The C1-4 guard refused any negation word the candidate lacked, one word at a time. Target "Je sais pas", learner says "Je ne sais pas": same meaning, graded near (accepted before C1-4). The guard now applies only to a candidate that does not already say no: one carrying a negation word (non, pas, ne, jamais) or rien forgives any added negation word, which in practice means a spaced ne or pas. An elided n' does nothing here: normalise joins it to the verb ("n'est" becomes "nest"), so the n in negationWords never reaches matchAcceptable; so "Non merci, pas de croissant" stays t5-croissant's "non merci" (push-check, 2026-11-17). Plus does not count, because it can mean more. The judge's first example, "Ce n'est pas grave" for "C'est pas grave", was near before C1-4 too: normalise joins n'est into nest and "cest" is under the five-letter typo floor, so it is an elision gap, not this guard. No scripted lesson has a dropped-ne target today. Found by work-judge (Fable 5.2), C1 round 1, 2026-11-17.
 - verified-by: `a formal ne added to a line that already carries pas is still the line`
 
 ### F1199 — The added-negation guard cannot see an elided n' or a negator outside its word list
 - severity: P2
 - status: [ ]
-- where: packages/core/src/lessons/types.ts:222
+- where: packages/core/src/lessons/types.ts:225
 - note: Deferred, not built in C1. normalise joins n' to the verb ("n'aime" becomes "naime"), so the guard never sees it. Harmful direction: target "J'aime ça", said "Je n'aime plus ça", accepted via content, because naime is one edit from jaime and plus is not a guard word. Also accepted: "Je vois rien" for "Je vois" (rien, personne, aucun and plus are outside negationWords), and "Si tu ne viens jamais" for "Si jamais tu viens" (F1196 forgives ne beside a positive jamais). Harmless direction: "Ce n'est pas grave" for "C'est pas grave" grades near, because cest is under the five-letter typo floor. Separately, the typo route accepts "C'est non" for "C'est bon": the whole line is one edit away. It is a swapped word, not an added negation, and it happens on main too. No scripted line triggers any of these today. Founder to decide whether jamais stays in the F1196 exception. Found by work-judge (Fable 5.2), C1 follow-up, 2026-11-17.
 - verified-by: `an elided or unlisted negation added to a positive line is not the line, and an elided ne restored to a negated line is`
 
@@ -12825,14 +12825,15 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1219 — A right line with a self-correcting "non" is graded a miss
 - severity: P1
 - status: [x]
-- where: packages/core/src/lessons/types.ts:228
-- note: 6bf689ff drops every negated candidate from the near-miss score, and "non" is a negation word. On t2-order, "Un thé, non, un café, s'il vous plaît" and "Euh, non, un café s'il vous plaît" grade poor, drop rung 3 to 2, hold the turn and say "Almost. Listen once more." On t3-sur-place, "À emporter, non, sur place" does the same. Before 6bf689ff these were partial; on main they were good. Only a clause negation (ne, pas, jamais) should leave the near-miss score. "Pas de problème, un café s'il vous plaît" still grades poor after this fix; the founder decides that one.
+- where: packages/core/src/lessons/types.ts:231
+- note: 6bf689ff drops every negated candidate from the near-miss score, and "non" is a negation word. On t2-order, "Un thé, non, un café, s'il vous plaît" and "Euh, non, un café s'il vous plaît" grade poor, drop rung 3 to 2, hold the turn and say "Almost. Listen once more." On t3-sur-place, "À emporter, non, sur place" does the same. Before 6bf689ff these were partial; on main they were good. Only a clause negation (ne, pas, jamais) should leave the near-miss score. "Pas de problème, un café s'il vous plaît" still graded poor after this fix. Founder, 2026-11-17: accept it. "Pas de problème" is now dropped like a filler unless the line itself carries it, so a right line after it is the line.
 - verified-by: `a self-correcting non on a right line is not graded a miss`
 - verified-by: `an added negation is not graded as carrying the meaning`
+- verified-by: `a polite "pas de problème" before the right line is still the line`
 
 ### F1220 — A line that opens with "Non" and then states a positive accepts its opposite
 - severity: P2
 - status: [ ]
-- where: packages/core/src/lessons/types.ts:221
+- where: packages/core/src/lessons/types.ts:224
 - note: Deferred, not built in C1. bc8abaec treats any candidate holding non, pas, ne, jamais or rien as negative and forgives added negation words. Target "Non, je voudrais un café", said "Non, je ne voudrais pas un café": accepted via content. No scripted line has this shape today; the only negative candidates are "je ne comprends pas" and "non merci". Found by the work-judge, C1 push-check, 2026-11-17.
 - verified-by: `a line that opens with non and states a positive does not accept its negation`

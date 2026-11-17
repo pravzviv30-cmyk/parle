@@ -163,7 +163,10 @@ function contentWords(list: readonly string[]): string[] {
 }
 
 function withoutFillers(said: readonly string[], candidate: ReadonlySet<string>): string[] {
-  return said.filter((w) => !FILLERS.has(w) || candidate.has(w));
+  // "Pas de problème" is a set phrase of politeness, not a negation of the line
+  // (founder, 2026-11-17), so it goes the way a filler does.
+  const polite = candidate.has('probleme') ? said : ` ${said.join(' ')} `.replace(/ pas de probleme(?= )/g, '').split(' ').filter(Boolean);
+  return polite.filter((w) => !FILLERS.has(w) || candidate.has(w));
 }
 
 /** Every line this turn will take, in matching form. */

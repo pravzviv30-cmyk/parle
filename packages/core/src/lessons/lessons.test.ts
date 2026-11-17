@@ -217,6 +217,13 @@ describe('answer matching', () => {
     assert.deepEqual(matchAcceptable(CAFE_LESSON.turns.find((x) => x.id === 't3-sur-place')!, 'À emporter, non, sur place'), near);
   });
 
+  test('a polite "pas de problème" before the right line is still the line', () => {
+    const t = CAFE_LESSON.turns.find((x) => x.id === 't2-order')!;
+    // Founder, 2026-11-17: a set phrase, like a filler, not a negation of the order.
+    assert.ok(isAcceptable(t, "Pas de problème, un café s'il vous plaît"));
+    assert.deepEqual(matchAcceptable(t, 'pas un café'), { accepted: false, via: 'none' });
+  });
+
   test('a half-said line is a near miss, not an unrelated answer', () => {
     const t = CAFE_LESSON.turns[1]!;
     const match = matchAcceptable(t, 'un café');

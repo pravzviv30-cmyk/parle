@@ -125,7 +125,8 @@ acceptable options:
 
 1. **exact** — after `normalise` (case, accents, apostrophes, punctuation).
 2. **filler** — the same line with hesitation stripped (`euh`, `bah`, `alors`…),
-   and only when the candidate does not itself contain that word.
+   and only when the candidate does not itself contain that word. The polite
+   set phrase "pas de problème" goes the same way (F1219, founder 2026-11-17).
 3. **typo** — one Damerau-Levenshtein edit across the line, the same window the
    typed drills use (`packages/core/src/text/distance.ts` — one implementation,
    shared, because forgiving a typed answer and failing the identical spoken one
