@@ -1951,6 +1951,40 @@ describe('erasure record retention (F1084)', () => {
     } finally { await db.close(); }
   });
 
+  const RETENTION = '20261117122000_erasure_job_retention.sql';
+  /** A fresh database with the migrations replayed, all of them or only those before `before`. */
+  const replay = async (before?: string): Promise<PGlite> => {
+    const db = new PGlite();
+    await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+      create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+      create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+      create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+      grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`);
+    for (const name of migrationFiles.filter((file) => before === undefined || file < before)) await db.exec(sqlOf(name));
+    return db;
+  };
+  type Row = Record<string, unknown>;
+  const retentionDefinition = async (db: PGlite): Promise<Row[]> => (await db.query<Row>(
+    `select md5(prosrc) src,proacl::text acl,proconfig::text config,prosecdef definer from pg_proc where proname='run_data_retention_v1'`)).rows;
+
+  test('the retention rollback refuses without its interlock and restores the earlier body', async () => {
+    assert.ok(migrationFiles.includes(RETENTION), `supabase/migrations is missing ${RETENTION}`);
+    const down = readFileSync(path.join(ROLLBACKS, `${RETENTION.split('_')[0]}_down.sql`), 'utf8');
+    const earlier = await replay(RETENTION);
+    const db = await replay();
+    try {
+      const prior = await retentionDefinition(earlier);
+      const current = await retentionDefinition(db);
+      assert.notDeepEqual(current, prior, 'migration 49 did not change run_data_retention_v1');
+      await assert.rejects(db.exec(down), /refusing/, 'the retention rollback ran without luvani.rollback_erasure_retention');
+      await db.exec('rollback'); // the refused file leaves its own transaction open and aborted
+      assert.deepEqual(await retentionDefinition(db), current, 'the refused rollback changed run_data_retention_v1');
+      await db.exec("set luvani.rollback_erasure_retention='yes'");
+      await db.exec(down);
+      assert.deepEqual(await retentionDefinition(db), prior, 'the rollback did not restore migration 28\'s run_data_retention_v1 exactly');
+    } finally { await db.close(); await earlier.close(); }
+  });
+
   test('the maintenance worker logs how many erasure records retention removed', () => {
     // The worker runs on import, so its retention log line is read as source (as renewals.test.ts does).
     const worker = readFileSync(path.join(import.meta.dirname, 'maintenanceWorker.ts'), 'utf8');

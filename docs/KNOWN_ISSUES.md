@@ -12873,3 +12873,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/migrations/20261003234853_privacy_maintenance_workflows.sql:3
 - note: PRODUCT, founder Q3 (2026-11-17): 30 days. (b), `privacy-safety-engineer`. Extend `run_data_retention_v1`; tombstones are documented, not expired. 2026-11-17: fixed in migration 49 (`supabase/migrations/20261117122000_erasure_job_retention.sql`), which adds one bounded batch removing finished `account_erasure_jobs` rows 30 days after `completed_at`; its rollback sits behind `luvani.rollback_erasure_retention`. No reader treats a finished job as evidence: the deletion endpoint answers `completed` and `gone` the same way, and journal replay accepts both. `conversation_practice_tombstones` stay, with the reason in docs/PRIVACY_AND_SAFETY.md. NOT applied to staging; that needs a founder yes. The learner-facing notice names no period for erasure records; adding one is the founder's call.
 - verified-by: `a finished erasure job is removed once its keep period has passed`
+
+### F1244 — The interlock and restored body on the migration 49 rollback are not pinned by a test
+- severity: P2
+- status: [x]
+- where: supabase/rollback/20261117122000_down.sql:9
+- note: Found by push-reviewer, D1 PR D, 2026-11-17. Deleting the interlock block left databaseContract.test.ts at 43 of 43. 2026-11-17: fixed; the named test replays through 49, sees the rollback refuse without `luvani.rollback_erasure_retention` and leave 49's body, then with it compares `md5(prosrc)`, grants, settings and security definer to a replay that stops before 49. Deleting the interlock block in place turns it red.
+- verified-by: `the retention rollback refuses without its interlock and restores the earlier body`
