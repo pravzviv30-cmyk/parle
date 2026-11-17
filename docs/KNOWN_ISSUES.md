@@ -12720,3 +12720,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/freshInstall.ts:55
 - note: After a failed clear on a fresh iOS launch, two writes to the same key that overlap (A then B) let B's failure delete the handled entry A had settled, so the next read clears again and removes A's session. Root fix: operations on one key run one at a time (a per-key promise chain), so no clear can interleave with a write. Found by /code-review (high) at push-check, 2026-11-17.
 - verified-by: `overlapping writes after a failed removal keep the write that succeeded`
+
+### F1023 — A failed chunk delete reports before the other deletes finish, so a late delete can land after the next write
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/secureSessionStorage.ts:68
+- note: `removeAllGenerations` uses `Promise.all`, which rejects on the first failed delete while the other chunk deletes are still running. On a fresh-install clear that failed, the next write can start before those deletes land, and a late delete can remove part of the new session. Losing a sign-in is the worst case; the previous person is never restored. Fix: wait for every delete to settle (`Promise.allSettled`) and then report failure if any failed. Found by /code-review (high) at push-check, 2026-11-17.
+- verified-by: `removing a session waits for every chunk delete before it reports a failure`
