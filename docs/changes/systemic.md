@@ -70,8 +70,8 @@ Contract approval, 2026-11-17: Today's hero buttons move from `BButton` to
 | 5 | frontend-engineer | `0231a334` | The radius sweep and `OutlineButton` callers in the tabs and main screens; `radiusSweep.test.ts` |
 | 6 | practice-ux-engineer | `0231a334` | `DrillFrame` loses `eyebrow`; `taskLine` puts the task on the meta line; Listen and type takes the tag as its header prompt; Sound check and the focus drill drop their labels; Review and the drill bank's nothing-to-review cards on butter; the empty phrasebook keeps one headline; the centre stage title is `bandTitle` 28; the sweep in practice, recap, conversation packs and My French |
 | 7 | onboarding-ux-engineer | `0231a334` | Six `BoldChoice` uses become `Choice` (the interests list as `role="checkbox"`); `BoldChoice.tsx` deleted; the sweep in `auth/` and `AccountDeletedNotice`'s `OutlineButton` |
-| 8 | design-system-engineer | pending | Delete `OutlineButton`, the deprecated aliases and `MorphButton`; delete the dead card and button exports; the GhostButton link list; final baseline |
-| 9 | design-system-engineer | uncommitted | DESIGN.md, DECISIONS.md UI-023, DESIGN_PARTNERSHIP.md rows and taste log, this file |
+| 8 | design-system-engineer | `a427e31e` | Delete `OutlineButton`, the deprecated aliases and `MorphButton`; delete the dead card and button exports; the GhostButton link list; final baseline |
+| 9 | design-system-engineer | `a427e31e` | DESIGN.md, DECISIONS.md UI-023, DESIGN_PARTNERSHIP.md rows and taste log, this file |
 
 ## Deviations from the contract (round log)
 
@@ -147,15 +147,26 @@ reach except F999's: Card/Tile/Hero 60 or fewer, Button/Pill 21.
 |---|---|---|---|
 | 2026-11-17 / steps 1 to 7 | See the table above and the round log | Recorded in the contract's round log | Step 8 |
 | 2026-11-17 / step 9 | `DESIGN.md`, `DECISIONS.md`, `docs/DESIGN_PARTNERSHIP.md`, this file | Docs only; no test run | Orchestrator fills the after counts once step 8 is committed, then runs the gate |
+| 2026-11-17 / step 8 and the orchestrator | Deletions, ghostLinks ceiling 93, ratchet; the `feature` alias; DESIGN.md's MorphButton and TutorCard entries; F601, F582 and F992 ledger fixes (`a427e31e`) | Mobile suite 4199 of 4199 at step 8; theme test red then green for `feature` | Merge main, tick, gate |
+| 2026-11-17 / merge and ticks | origin/main `bbddec45` merged (`35515730`, ledger kept both sides); F954, F957, F990 to F999 ticked and the after counts filled (`62c7536d`) | All 31 named tests exist | Gate, judge |
+| 2026-11-17 / work-judge round 1 | `git diff origin/main...HEAD` against the contract | SHIP, conditional on the gate; its 16 ledger test files 265 of 265, scan tests 15 of 15 | Gate, the founder's OK, push-check |
 
 ## Integrated verification and handoff
 
-- Focused checks: not run by step 9.
-- Full gate: not run by step 9.
+- Focused checks: the ledger's 16 mobile test files 265 of 265 and `scripts/unslop-scan.test.mjs` 15 of 15 (work-judge, on `62c7536d`); the scan is clean against its baseline.
+- Full gate: run by the orchestrator before push-check (see the push-check stamp).
 - UI / hosted / device / paid checks: web shots at 375 and 320, light and dark, of
   every Today preview, one drill per family, `quiet-phrasebook`, Review empty,
-  sign-in, `reason`, `plan` and `live-error`: not yet recorded here.
+  sign-in, `reason`, `plan` and `live-error`: 76 captured on the preview build during
+  step 8 with no console errors; the founder's after page is on the board
+  (https://claude.ai/artifact/5ckVkiWUqifAc9pq31pbd9, "After: as built"); push-check
+  reshoots the touched screens on the final head.
 - Documentation and decisions: DESIGN.md, DECISIONS.md UI-023, DESIGN_PARTNERSHIP.md.
-- Landing disposition: HOLD until step 8, the gate, push-check and the founder's OK
-  on the after shots.
-- Next task: step 8, then the after counts.
+- Landing disposition: HOLD until the gate, the founder's OK on the after shots and
+  `/push-check --main`; then `/land` by PR.
+- Next task: the gate, then the founder's OK, push-check and the PR.
+- Noted by the judge, not sent back: if the first next-task read fails and the learner
+  taps Retry, the hero is briefly an empty white card (`practice/NextTaskCard.tsx:150`
+  returns null while `heroReview` is already false); `sceneEyebrow`
+  (`home/todayView.ts`) and `TODAY_COPY.phrase` have no production caller left. Both
+  are follow-ups.
