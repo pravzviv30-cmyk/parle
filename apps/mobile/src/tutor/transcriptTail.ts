@@ -38,6 +38,6 @@ export function nextReplyAnnouncement(turn: TurnLine | null, tutorName: string, 
  * Whether a bubble is read with a French voice. The spoken coach line (F988,
  * `coach:<id>` from roleLine.ts) is English said aloud; every other line is French.
  */
-export function readsAsFrench(turn: TurnLine): boolean {
+export function readsAsFrench(turn: Pick<TurnLine, 'id'>): boolean {
   return !turn.id.startsWith('coach:');
 }

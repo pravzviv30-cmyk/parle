@@ -12775,7 +12775,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P1
 - status: [x]
 - where: services/tutor-agent/src/turnHandling.ts:47; packages/core/src/protocol/protocol.ts
-- note: The SDK drops a turn committed while an uninterruptible line plays ("skipping user input", 2026-11-10: "Here we go."), and the comment wrongly said the words were buffered. Behind LUVANI_LEARNER_CAPTIONS, dropped finals pass the safety check and are published as their own `overheard` frame before the next committed turn (founder, 2026-11-17, Q4: shown, not answered). They are never sent to the brain or counted as a reply, and an old app's decoder drops the new frame. The comment is corrected.
+- note: The SDK drops a turn committed while an uninterruptible line plays ("skipping user input", 2026-11-10: "Here we go."), and the comment wrongly said the words were buffered. Behind LUVANI_LEARNER_CAPTIONS, dropped finals pass the safety check and are published as their own `overheard` frame before the next committed turn (founder, 2026-11-17, Q4: shown, not answered). They are never sent to the brain or counted as a reply, and an old app's decoder drops the new frame. The comment is corrected. Echo risk: on a speakerphone an overheard line may be the tutor's own voice shown as the learner's; the founder judges it with LUVANI_LEARNER_CAPTIONS on at the device session (2026-11-17).
 - fixed: 2026-11-17 on claude/voice-latency (/forge round 1, work-judge SHIP).
 - verified-by: `finals the SDK dropped are published as an overheard line before the next turn's line`
 - verified-by: `an overheard line is not sent to the brain and does not count as a learner turn`
@@ -12801,6 +12801,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a tutor-line with no view after it is never journalled or counted`
 - verified-by: `the spoken coach line is read as English, other tutor lines as French`
 - verified-by: `an English-reach early tutor-line carries its coach line, and a plain turn's carries none`
+- verified-by: `the notebook reads the spoken coach line as English`
+- verified-by: `the notebook announces an early tutor line's English once it arrives`
 
 ### F989 — Conversations give Flux no keyterms
 - severity: P2

@@ -45,3 +45,19 @@ test('an early tutor line is announced with its English once the English arrives
  const source=readSource(new URL('./Transcript.tsx',import.meta.url),'utf8');
  assert.match(source,/nextReplyAnnouncement\(latest\.tutor, tutorName, announcedTutor\.current\)/,'the transcript asks the helper');
 });
+test('the notebook reads the spoken coach line as English',()=>{
+ // F988: the live room's notebook draws the same coach line; only French lines take frenchText.
+ const notebook=readSource(new URL('../live/NotebookParts.tsx',import.meta.url),'utf8');
+ const tutor=notebook.slice(notebook.indexOf("if (item.kind === 'tutor')"),notebook.indexOf('const big ='));
+ assert.ok(tutor.length>0);
+ assert.equal(tutor.match(/\{\.\.\.\(readsAsFrench\(item\) \? frenchText : \{\}\)\}/g)?.length,2,'both tutor branches ask readsAsFrench');
+ assert.doesNotMatch(tutor,/<Text \{\.\.\.frenchText\}/,'no tutor line is tagged French unconditionally');
+ assert.equal(readsAsFrench({id:'coach:c1'}),false);
+});
+test('the notebook announces an early tutor line\'s English once it arrives',()=>{
+ // F988: the notebook remembers whether the English was said, as the transcript does.
+ const notebook=readSource(new URL('../live/NotebookParts.tsx',import.meta.url),'utf8');
+ assert.match(notebook,/useRef<ReplyAnnounced \| null>\(null\)/);
+ assert.match(notebook,/nextReplyAnnouncement\(latest\.tutor, tutorName, announcedTutor\.current\)/);
+ assert.match(notebook,/\}, \[lastTutorId, latest\.tutor\?\.en, announceReply, tutorName\]\);/);
+});
