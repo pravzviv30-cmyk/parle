@@ -79,7 +79,7 @@ export function StreakScreen() {
               <IconAction layout="inline" icon="refresh" label={copy.retry} onPress={refresh} />
             </View>
           ) : (
-            <Skeleton blocks={[{ height: space(60), radius: radius.feature }, { height: space(20), radius: radius.card }, { height: space(80), radius: radius.card }]} />
+            <Skeleton blocks={[{ height: space(60), radius: radius.card }, { height: space(20), radius: radius.card }, { height: space(80), radius: radius.card }]} />
           )}
         </View>
       </ScrollScreen>

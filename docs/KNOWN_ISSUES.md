@@ -8805,7 +8805,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/practice/madeFrom.ts:1
 - note: revamp A. "Listen and try again" is the tutor's voice reading the better line, then the drill;
   no recording and no transcript are ever kept, by the existing privacy contract.
-- verified-by: `replay speaks the better line and stops it when the tab goes`
+- verified-by: `a voice started on practice stops when the tab goes`
 - verified-by: `nothing on practice listens, records or scores`
 
 ### F583 — The tab bar keeps every whole word at the largest reading size
@@ -9027,7 +9027,6 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Stage 3, area 1 of revamp B. `Screen` stops drawing a paper hairline over a colour ground's footer and lights the status bar on blue, coral and ink; `Field`'s error sits beside the alert mark; `TutorCard` is restyled; `SceneMark` and `canDoSentence` are appended. Hear it and First line are blue with white and ink bubbles, the round next and the Highlight beside a mint tick; the one-tap answers are option rows; the plan is the sun page with the hero minutes, the scenes in French, the tutor and how it works, and no picture or pickers; the save page's pill reads "I am 13 or older, create account" and the under-13 refusal is its own page with the frame drawing. FirstScene is the blue brief with a white Start, and a refusal turns to paper with the microphone drawing and typing first. The age check and the auth screens are working titles on paper, with Apple above Google at the top of the form and one ink pill in the footer. Two files leave the punctuation allowlist, and two state drawings leave the not-yet-drawn list. The recovery route's `OnboardingFlow.tsx` was left unchanged, because swapping its `OptionCard` for `OptionRow` would take the voice samples off; that deferral is F634.
 - verified-by: `a colour ground draws no paper hairline over its footer, and lights the status bar on blue, coral and ink`
 - verified-by: `a field error sits beside the alert mark in ink, and is still announced`
-- verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
 - verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
 - verified-by: `a can-do reads as one sentence after "You'll be able to"`
 - verified-by: `welcome and recap share cream progress chrome with a readable bottom action`
@@ -12698,7 +12697,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P1
 - status: [ ]
 - where: apps/mobile/src/components.tsx:2561
-- note: Q2, revisiting D7. White face, 2pt line border, 4pt paper lip; chosen blue on the blue lip; radio and checkbox both say checked.
+- note: Q2, revisiting D7. White face with the field ring (F921's 3:1), 4pt paper lip; chosen blue on the blue lip; radio and checkbox both say checked.
 - verified-by: `a choice is the raised tile and still says checked`
 - verified-by: `onboarding's plan editor draws Choice and BoldChoice is gone`
 

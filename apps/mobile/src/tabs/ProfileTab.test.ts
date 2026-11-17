@@ -39,7 +39,6 @@ const TAB = stripComments(read('./ProfileTab.tsx'));
  */
 // 2026-10-20 UI-008: from the screen's own return (a hook below it also returns).
 const BODY = TAB.slice(TAB.indexOf('<SettingsAppearance b>'));
-const CARD = stripComments(read('../profile/TutorMemoryCard.tsx'));
 const SETTINGS = stripComments(read('../settings/SettingsScreen.tsx'));
 
 /**

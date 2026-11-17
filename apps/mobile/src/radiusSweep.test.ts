@@ -50,3 +50,9 @@ test('literal radii remain only in onboarding and the tab bar', () => {
   }
   assert.deepEqual(offenders, [], `Literal radii outside onboarding and the tab bar:\n${offenders.join('\n')}`);
 });
+
+test("the account field's Show button nests 3 in from the inset corner", () => {
+  // Rule 3, tight nesting: the field is corner.inset and the button sits 3 in.
+  const field = readFileSync(join(SRC, 'auth/AccountField.tsx'), 'utf8');
+  assert.match(field, /show: \{[^}]*margin: 3, borderRadius: Math\.max\(radius\.nib, radius\.inset - 3\),/, 'the Show button does not take the inset corner less its 3pt margin');
+});

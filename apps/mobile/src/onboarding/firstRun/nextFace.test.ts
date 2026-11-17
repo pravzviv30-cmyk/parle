@@ -13,7 +13,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { evidence } from '../../../test/evidence.ts';
-import { accent, colour, onColour, paper } from '../../palette.ts';
+import { colour, onColour, paper } from '../../palette.ts';
 import { NEXT_LABEL, NEXT_OFF, NEXT_OFF_HINT, NEXT_ON } from './nextFace.ts';
 import { contrast } from '../../testing/contrast.ts';
 
@@ -74,40 +74,11 @@ describe('a disabled control says it is off — F758', () => {
 
     // PillButton, which every first-run pill is.
     const components = evidence('apps/mobile/src/components.tsx');
-    const pill = components.slice(components.indexOf('export function PillButton('), components.indexOf('export function OutlineButton('));
+    const pill = components.slice(components.indexOf('export function PillButton('), components.indexOf('export function GhostButton('));
     assert.match(pill, /disabled && \(tone === 'white' \? s\.pillDisabledOnColour : s\.pillDisabled\)/, 'an off white pill takes the ink pill\'s sand on blue or coral');
     // 2026-10-20, UI-008: shared parts read the theme (useB); b.light equals these paper values (palette.test.ts).
     assert.match(pill, /color: disabled \? \(tone === 'white' \? paper\.inkSoft : t\.muted\) :/, 'an off pill keeps live words');
     assert.match(components, /pillDisabled: \{ backgroundColor: t\.skeleton \}/);
     assert.match(components, /pillDisabledOnColour: \{ backgroundColor: onColour\.blue \}/);
-  });
-
-  test('a disabled MorphButton never draws the live face', () => {
-    // MorphButton is the first run's Start practice and Send reply. Read as
-    // source, because it draws with Reanimated and there is no renderer here.
-    const morph = evidence('apps/mobile/src/motion/MorphButton.tsx');
-    // Off is decided before tone: the fill and the words both ask `disabled` first.
-    assert.match(morph, /const fill = disabled \? \(tone === 'white' \? st\.offOnColour : st\.off\) : tone === 'white' \? st\.white : st\.ink;/, 'a disabled MorphButton is filled like a live one');
-    assert.match(morph, /const ink = disabled \? paper\.inkSoft : tone === 'white' \? paper\.ink : paper\.onInk;/, 'a disabled MorphButton has the live button\'s words');
-    // The off fills are PillButton's, which the test above holds on every ground.
-    const fills = Object.fromEntries([...morph.matchAll(/(\w+): \{ backgroundColor: ([\w.]+) \}/g)].map((m) => [m[1]!, m[2]!]));
-    const value = (name: string): string => {
-      const [group, key] = name.split('.');
-      const table = { paper, onColour, accent } as unknown as Record<string, Record<string, string>>;
-      const found = table[group!]?.[key!];
-      assert.ok(found, `${name} is not a colour this test knows`);
-      return found;
-    };
-    assert.equal(value(fills.off!), paper.skeleton, 'the off ink MorphButton is not the sand skeleton');
-    assert.equal(value(fills.offOnColour!), onColour.blue, 'the off white MorphButton is not blue\'s pale secondary');
-    for (const [off, live] of [[fills.off!, fills.ink!], [fills.offOnColour!, fills.white!]] as const) {
-      assert.notEqual(value(off), value(live), `${off} is the live fill ${live}`);
-      assert.ok(contrast(value(off), value(live)) > 1.05, `${off} is a shade of the live ${live}`);
-      assert.ok(contrast(paper.inkSoft, value(off)) >= WORDS, `the off words are ${contrast(paper.inkSoft, value(off)).toFixed(2)} on ${off}`);
-    }
-    assert.doesNotMatch(morph, /off: \{ backgroundColor: paper\.inkFaint \}/, 'the slate off face is back');
-    // Off cannot be pressed, and says so.
-    assert.match(morph, /const locked = disabled \|\| state === 'busy' \|\| state === 'done';/);
-    assert.match(morph, /accessibilityState=\{\{ busy: state === 'busy', disabled: locked \}\}/);
   });
 });

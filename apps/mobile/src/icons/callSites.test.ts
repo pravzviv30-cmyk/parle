@@ -7,7 +7,8 @@ import ts from 'typescript';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const allowed = JSON.parse(readFileSync(new URL('./ghostLinks.json', import.meta.url), 'utf8')) as { file: string; label: string }[];
 const key = (file: string, label: string) => `${file}:${label}`;
-const GHOST_CEILING = 60;
+// 60 to 93 in the systemic pass (F993, UI-023): OutlineButton folded into GhostButton, the founder's Q4 pick, so its word-only quiet actions are listed in ghostLinks.json.
+const GHOST_CEILING = 93;
 function files(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(path.join(dir, entry.name)) : entry.name.endsWith('.tsx') ? [path.join(dir, entry.name)] : []);
 }

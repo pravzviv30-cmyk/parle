@@ -127,7 +127,7 @@ const st = StyleSheet.create({
   focused: { borderColor: c.violet },
   focusRing: { ...corner.inset, borderColor: c.violet, borderWidth: 2 },
   disabled: { opacity: 0.65 },
-  show: { position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 64, minHeight: HIT, paddingHorizontal: 12, paddingVertical: 10, margin: 3, borderRadius: radius.field - 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
+  show: { position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 64, minHeight: HIT, paddingHorizontal: 12, paddingVertical: 10, margin: 3, borderRadius: Math.max(radius.nib, radius.inset - 3), justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
   showActive: { borderColor: paper.inkSoft, backgroundColor: paper.ground },
   showLabel: { color: paper.ink, fontFamily: font.semiBold },
   error: { flexDirection: 'row', gap: space(2), alignItems: 'flex-start' },

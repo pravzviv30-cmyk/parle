@@ -42,7 +42,8 @@ model names. Compress decorative art first, keep every target at least 44
 points, and let reading and action regions scroll at large text or in
 landscape. Frames have 24-point gutters and a reading column at most 560 points
 wide; on the web the app is a 460pt centred column. The full billed amount and
-period stay near a purchase action, and large text is never capped to fit.
+period stay near a purchase action, and large text is never capped to fit,
+save Today's greeting, which stops where its hour word fills its column (F957).
 Page gaps between separate things come from `RHYTHM` in `theme.ts`: 12 between
 list items and stacked tiles, 20 between separate cards, 32 between sections.
 Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
@@ -80,32 +81,58 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   sees says "Included in Max" (`access/includedInMax.ts`). A scene's length is
   an estimate said as "about n min".
 - Today, top to bottom (UI-015): the sky band, full bleed, in the hour's
-  ground, with "Bonjour, Name" (or "Bonsoir, Name" from 18:00, no full stop: founder, 2026-11-06) on one line when the name fits (drawn over the clouds) and with the name under the word when it does not,
+  ground, with "Bonjour, Name" (or "Bonsoir, Name" from 18:00, no full stop: founder, 2026-11-06) on one line when the name fits (drawn over the clouds) and with the name under the word when it does not, growing at large text only as far as the hour word fits its column (F957),
   the profile button on the sky's chip, three chunky stat tiles (streak days or
   "Start" over "today"; minutes against the goal, "<1" under a minute; the XP
-  level number over "level"; never a nought) and the nudge line. Then one hero
-  card overlapping the sky, the first stop of Today's path (UI-012 order,
-  `todayStops`): "One fix to try" (only with a fix: English only before the
-  try, and only when the drill would open on an exercise that hides the
-  French; "Your line from {day}" when the conversation's day is known), or
-  else the lead: the next scene ("Next scene, 2 of 3", the title, its own
-  minutes, a "Uses" chip only when the last conversation's phrase is one of
-  the scene's lines, Start speaking and Type instead), or the plans words when
-  a trial cannot start, "Your paid plan has ended." when lapsed, a paid plan's
-  out-of-time words with the starter card or local practice under them (past
-  Starter, with Review due, the words' one action is a sage LipTile, "Review N
-  phrases", About 2 minutes, with the watering plant and a chevron; the path
-  then drops its own Review row, by `heroCarriesReview`, UI-019 4A), the
-  starter card, "Something you can do now" with "You're offline. Here's
-  something you can do without a connection." only when the device is offline
-  and "We can't reach your tutor right now. Here's something you can do while
-  we try again." when the tutor is out of reach, or Explore when there is no
-  next scene; held on the loading frame until billing answers. Then "Today's
-  path", the stops after the hero as flat rows on the route rail
-  (`home/RoutePath.tsx` `RouteRow`): the scene (when the fix is the hero),
-  "Today's phrase" with the French and its English and "Say it", on lavender,
-  and "Review N phrases", About 2 minutes, only when Review would deal cards
-  and the hero is not already carrying it (the row waits while the hero decides).
+  level number over "level"; never a nought) and the nudge line. Then the hero,
+  the first stop of Today's path (UI-012 order, `todayStops`), on one white
+  hero card overlapping the sky at the card radius. No eyebrow sits over any
+  title on Today (UI-023): the title stands alone and one meta line sits under
+  it. The hero is one of these:
+  - **The fix** (only with a fix, and only when the drill would open on an
+    exercise that hides the French): the lock when locked, the English line as
+    the header that leads, "One fix: how would you say this in French?", the
+    inset panel saying what shows after the try ("Your line from {day} and
+    {tutor}'s version show after you try" when the day is known), and the
+    lipped "Say it better, then compare".
+  - **The next scene**: the butter drawing tile beside the title (sized to its
+    column by `fitTitle`, 28, 24 or 20), the meta line "About 3 minutes, scene
+    2 of 3" (the time alone for a bare next scene, the time then any other
+    label as it is, `sceneHeroLine`), a "Uses" chip only when the last
+    conversation's phrase is one of the scene's lines, the lipped Start
+    speaking (the mic, or the keyboard when typing) and "Type instead" as the
+    one quiet word under it.
+  - **Tutor unreachable** (the gate held a start back): "Something you can do
+    now" with "We can't reach your tutor right now. Here's something you can do
+    while we try again."; at Starter the café line with "Try this line", past
+    it the pointer to the phrase and review below; and one quiet "Check again",
+    which reruns the held start. Start speaking and Type instead are not drawn.
+    The device-offline lead is the same part, saying "You're offline. Here's
+    something you can do without a connection."
+  - **The plans** when a trial cannot start: the heading, the words, what the
+    learner keeps and "See the plans"; at Starter the inline café line, past
+    it a Review secondary on sage.
+  - **Held** (out of time, or "Your paid plan has ended." when lapsed; "See
+    the plans" only when lapsed). Past Starter with Review due there is no
+    card: the sky ends under the tiles, the held words sit on the paper 20pt
+    below it, and the sage `LipTile` "Review N phrases", About 2 minutes, with
+    the watering plant and a chevron is the focal point (`heroCarriesReview`,
+    UI-019 4A). Held at Starter, the hero card holds only the held words, and
+    the café line moves to the path's phrase row, so it is drawn once. With a
+    starter's typed line, the starter card follows the words.
+  - **The starter card**, or Explore when there is no next scene.
+  While the lead decides, the hero is one sand block, the same as the page's
+  loading block; "Finding your next task" is never drawn on it. The hero is
+  held on the loading frame until billing answers. Then "Today's path", the
+  stops after the hero as flat rows on the route rail (`home/RoutePath.tsx`
+  `RouteRow`). Every row is one press that ends in a chevron and names no
+  action (UI-023, F954): the scene (when the fix is the hero) with its meta
+  line; Today's phrase, its French as the title and its English as the line,
+  on lavender (held at Starter, the café line instead: the French, then its
+  English with "Free offline practice.", opening the shadowing practice); and
+  "Review N phrases", About 2 minutes, only when Review would deal cards and
+  the hero is not already carrying it (the row waits while the hero decides).
+  The review is named by `reviewRow` alone, on the row and on the hero's door.
   Under the path: today's three quests ("n of 3 done", XP chips in butter and
   sage), Coming up under its title (the latest life event the tutor
   remembers, "{when}, {tutor} remembers", the trial pill from the tutorMemory
@@ -120,8 +147,7 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   screen root stays a native container so the hidden setting reaches the
   scroll view (F959).
   At 320 the tiles stack their coin above the number, and at
-  accessibility sizes they become three full-width rows and each path row
-  puts its action under its words.
+  accessibility sizes they become three full-width rows.
   Rebuilt to the artboard in light and dark on 2026-10-20 (UI-008); the blue
   practice lead, "Where you're starting" and the friends card left Today, and
   review came back as the path's row on 2026-10-29 (UI-012). Loading never claims the learner has no history.
@@ -138,7 +164,7 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   from the Explore access labels. "free, offline" never appears on a live
   situation.
 - Scene preview: a full-bleed `heroGround` band at the top (sun in light,
-  plum in dark; under the status bar, radius 0 0 36 36, the back button and
+  plum in dark; under the status bar, its bottom corners at the card radius, the back button and
   the scene's topic drawing inside it, the café table where the canvas has
   none) with topic and stage, the English and French
   titles and minutes; what you'll practise; "{tutor} plays {part}." in muted
@@ -213,7 +239,7 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
 - Review (B-Review, B-ReviewReveal, UI-008, 2026-10-21, light and dark): the
   butter ground (M3 ochre in dark) and the 44pt close disc, with the header's
   centre left empty because the founder holds the "3 of 5" count back. The
-  white card (radius 28) carries the tag pill, "From {conversation}" when the
+  white card (the card radius) carries the tag pill, "From {conversation}" when the
   phrase came from a pack's correction, "How would you say this in French?",
   the prompt at 27 bold and the cafe-table drawing in its corner; I said it
   (56, mic glyph only, nothing records) and Type it (50, which opens the field)
@@ -225,14 +251,17 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
 - Drill (B v2, UI-016, 2026-10-31, light and dark; spec
   `docs/changes/drill-b.md`): every drill and practice surface stands in one
   frame, `drill/DrillFrame.tsx`. The header row holds the 44pt close disc and
-  the living bar. Under it the stage band (28 bottom radius) carries the
-  eyebrow (`bType.eyebrow800`), the prompt (`bType.prompt23`) and any English
-  line, on the family's band token from `drill/drillStage.ts`. The answer area
+  the living bar. Under it the stage band (its bottom corners at the card
+  radius) carries the prompt (`bType.prompt23`) and the meta line, on the
+  family's band token from `drill/drillStage.ts`. No stage draws an eyebrow
+  (UI-023): the kind's task joins the meta line (`taskLine`: the tag, a full
+  stop, then any English line), Listen and type takes its task as the header
+  prompt, say it aloud lets the French lead, Review's tag joins its meta line,
+  and Sound check draws no label over its title. The answer area
   sits on the `ground`, and the foot holds one primary pill with its lip
   (`PillButton lip`, `primaryLip`). The families are Choose (lavender), Build
   (butter), Write (sage), Speak (peach) and Review (butter). Fixes takes the
-  family of its answer: say it is Speak, type it is Write. The eyebrow is
-  `link` on every band except dark butter, where it is `text` for contrast.
+  family of its answer: say it is Speak, type it is Write.
   There is one tile, `LipTile` (options, word chips, slots, grades and Fixes),
   one field and one mic, `drill/SpeakMic.tsx`. Cloud appears at moments only:
   on the right sheet, listening on a speak drill, and at the ending. It is
@@ -243,7 +272,7 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   above the foot; without a mic, the muted mic picture sits there instead. The
   foot holds no picture, so it fits every phone (UI-019). Over the other speak
   drills' mic, Cloud listens in the slot's unchanged 77pt, so that mic never moves.
-- Empty states (B-Empty-States anatomy, `empty/EmptyStateCard.tsx`): radius 26,
+- Empty states (B-Empty-States anatomy, `empty/EmptyStateCard.tsx`): the card radius,
   padding 20/18, the drawing, a 19 bold title, a 15/1.45 body and one 46pt ink
   button. Review and the drill bank with nothing due draw the posed Cloud cheer
   (`figure`, limbs in the theme's ink) with Done; Speak's away card is lavender
@@ -252,7 +281,7 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   follow the device since 2026-10-21 (UI-008 step 12b).
   **Centre stage** (`stage`, UI-019 4A) is for a quiet moment that is the
   screen's whole content under its own header: no card, the mascot and the words
-  centred on the screen's own ground, the title at 26 extra bold. The phrasebook with nothing kept
+  centred on the screen's own ground, the title at `stageTitle`, 28 extra bold (UI-023). The phrasebook with nothing kept
   draws Cloud holding the book, "Your first kept phrase lands here.", "Keep a
   line in a conversation and it waits here, ready to hear again.", and Choose a
   scene pinned in the foot. Speak out of the free conversation (only on the
@@ -990,7 +1019,7 @@ one; where a value differs it still wins on the onboarding screens.
 | `hero` | Outfit ExtraBold 112/95, -4.5 | The one giant number on a story or colour card, at most one per screen |
 | `display` | Outfit ExtraBold 44/44, -1.3 | A headline on colour, or the centred Profile identity |
 | `title` | Outfit ExtraBold 34/38, -0.6 | The title of a working screen |
-| `eyebrow` | Outfit Bold 13/18 | A short label above a card title, such as "Next scene · 2 of 3". Sentence case |
+| `eyebrow` | Outfit Bold 13/18 | Retiring (UI-023): no new eyebrow. Retired on Today, every drill stage and the shared parts; the rest go with each screen's redesign |
 | `heading` | Outfit ExtraBold 20/25, -0.2 | Card titles and section heads |
 | `cardTitle` | Outfit ExtraBold 20/25, -0.2 | The title of a card, the same style as `heading` |
 | `frenchHero` | Outfit SemiBold 34/42, -0.3 | The French line that leads a screen (`fitHero()` steps 34, 30, 26 by length, from `heroFit`) |
@@ -1021,8 +1050,43 @@ name) and `run52` (ExtraBold 52/56, -1, the streak's run on its band).
 Today's sky (UI-015, 2026-10-31) added `stat24` (ExtraBold 24/26, the number
 on a chunky stat tile).
 Drill B v2 (UI-016, 2026-10-31) added `prompt23` (ExtraBold 23/29, the stage
-prompt), `eyebrow800` (ExtraBold 13/18, the stage eyebrow) and `sheet21`
-(ExtraBold 21/26, the answer sheet headline).
+prompt), `eyebrow800` (ExtraBold 13/18, the stage eyebrow, which no drill
+stage draws since UI-023) and `sheet21` (ExtraBold 21/26, the answer sheet
+headline).
+
+### Roles (UI-023)
+
+A screen picks what a line is, not a size. `theme.ts` `role` names each role
+by the existing token it draws, and `theme.test.ts` pins every one:
+
+| Role | Token | Size | What it is |
+|---|---|---|---|
+| `display` | `type.display` | 44 | A headline on colour, the Profile identity |
+| `screenTitle` | `type.title` | 34 | The title of a working screen |
+| `greeting` | `bType.greeting` | 34 | Today's "Bonjour, Name" in the sky |
+| `stageTitle` | `bType.bandTitle` | 28 | A band's or centre stage's title |
+| `section` | `bType.section21` | 21 | A tab's section head |
+| `cardHeading` | `type.cardTitle` | 20 | The title of a card |
+| `frenchLead` | `type.frenchLg` | 28 | The French line that leads a card or scene |
+| `body` | `type.body` | 17 | Sentences |
+| `meta` | `type.small` | 14 | The one meta line: time, place, the task, a gloss |
+| `label` | `type.label` | 16 | Buttons and row titles |
+
+- **The eyebrow rule.** A label above a heading either becomes the heading or
+  joins the meta line under it. No new eyebrow is drawn, and the unslop scan's
+  `eyebrow` rule holds the count so it cannot rise. The `eyebrow` row is
+  retired on Today and every drill stage: a drill's task joins its meta line
+  (`taskLine`, the tag, a full stop, then any line), and Today's scene place
+  joins its time (`sceneHeroLine`).
+- **Centre stage's title** is `stageTitle`, 28 (it was `title26`).
+- **The hero title fits its column.** `fitTitle(text, column)` takes the first
+  of 28, 24 and 20 whose estimated one-line width fits, else 20.
+- **The greeting is the one text on Today that stops growing** (F957). It
+  grows only as far as the hour word
+  and its comma ("Bonjour," or "Bonsoir,") still fit its column, the band less
+  its sides, the profile disc and the gap (`greetingColumn`, width minus 96),
+  through `greetingMaxScale(width)`, and never below its own size. The name may
+  still wrap under the word.
 
 ## Surfaces and controls
 
@@ -1031,8 +1095,10 @@ prompt), `eyebrow800` (ExtraBold 13/18, the stage eyebrow) and `sheet21`
 Built in A2 (UI-004, UI-005), all through `PillButton` in `components.tsx`.
 
 - **Primary**: the ink pill, `PILL_HEIGHT` 54pt, `radius.pill`, white `button`
-  label and an optional leading icon. One per door. `onboarding/BoldButton` is
-  a thin alias that adds only its come-alive glint; `onboarding/NextButton`
+  label and an optional leading icon, on its 3pt lip (UI-023). One per door.
+  `onboarding/BoldButton` stays on purpose (UI-023): it is the named alias of
+  `PillButton` whose one addition is the wake glint, so a page that wakes with
+  a glint says so by name; `onboarding/NextButton`
   keeps its own off face and hint but draws the same 54pt ink pill. The old
   `design="bold-rhythm"` prop is still accepted and does nothing.
 - **Secondary**: `variant="secondary"`, a `SECONDARY_HEIGHT` 46pt white pill
@@ -1040,12 +1106,50 @@ Built in A2 (UI-004, UI-005), all through `PillButton` in `components.tsx`.
 - **Chip**: 36pt visible, with a 1.5pt ink outline; its touch target still
   reaches 44pt. Not a shared part yet: the chips in use are local to the
   conversation screens and move with their screens.
-- The quiet text links (`OutlineButton`, `GhostButton`) are tertiary, not the
-  secondary pill, and are unchanged.
+- **Quiet action**: one style, `GhostButton`, the underlined word (UI-023).
+  It is tertiary, not the secondary pill. `OutlineButton` folded into it. At
+  most one underlined word sits under a primary on Today; other screens reach
+  that with their own redesigns.
+- **Rows** open with a chevron and carry no action word of their own (UI-023,
+  F954). The whole row is the one press.
 - The wall's own CTA (`wall/WallParts`) still draws its own pill until the
   wall is recomposed.
-- A pressed blue control darkens to `colour.bluePressed`. Radii stay card 24,
-  feature 28, tile 20, field 16, pill 999.
+- A pressed blue control darkens to `colour.bluePressed`. Corners follow the
+  radius rule below.
+
+### Radius rule (UI-023)
+
+One scale in `theme.ts` `radius`, the same on every screen outside onboarding
+and the tab bar, which keep their own sizes until their builds:
+
+| Token | Value | Use |
+|---|---|---|
+| `pill` | 999 | Actions, capsules, circles, tracks and dots |
+| `card` | 20 | Cards, bands, sheets and Today's hero |
+| `tile` | 18 | `LipTile`, `Choice` and stat tiles |
+| `field` | 14 | Inputs and small rounded squares (`chip`, `input` and `control` are its aliases) |
+| `inset` | 12 | A chip or mark inside a tile or card |
+| `mark` | 8 | A mark inside a field |
+| `nib` | 4 | The floor: bubble tails and anything smaller |
+
+- **Continuous corners.** A token corner is written `...corner.x`, which adds
+  `borderCurve: 'continuous'` on iOS and nothing elsewhere (`continuous`). A
+  partial corner, such as a band's bottom or a sheet's top, sets its own
+  corners and spreads `...continuous` in the same style. Pills and circles take
+  `radius.pill` with no curve.
+- **Nesting.** An element sitting directly inside a token corner whose padding
+  is 8 or less takes the outer radius minus the padding, never below `nib`
+  (`Math.max(radius.nib, radius.x - padding)`). A halo outside an element is the
+  reverse: the inner radius plus the margin. With more padding than 8 the inner
+  element takes its own step from the table.
+- **A literal radius is not drawn.** Zero, a square corner, is not a literal.
+  `radiusSweep.test.ts` and the unslop scan's baseline hold the rule.
+- **Lips.** A lip is a View under the face, never a shadow. The named colours
+  are `lip` in `palette.ts`: `paper` (`#EFE6D6`, the skeleton), `peach` and
+  `lilac` (the main art colours), `sun` (`#D0A43C`) and `blue`
+  (`colour.bluePressed`). The B theme carries `lipPaper` and `lipBlue` for both
+  modes, and `primaryLip` stays the ink primary's lip. The ink primary's lip is
+  3pt, a tile's 4pt and a chip's 3pt; each sinks 2pt while pressed.
 
 ### Parts
 
@@ -1062,6 +1166,17 @@ the new look, listed at the end, and they go with their call sites.
   `tone="feature"` is deprecated and draws white; `journal` keeps the ground
   for the phrase card. `lift` adds the one soft lift (`liftStyle`), for an
   illustrated Explore tile only.
+- **The card family (UI-023)** has two parts and one colour surface. A `Card`
+  groups related things: flat, never nested, and it never holds a `LipTile`.
+  A `LipTile` is anything pressed as a game button, a choice, an answer or a
+  stat, and it stands on the ground. `ColourCard` is the one colour surface.
+  A card is never the default container.
+- **LipTile**: the raised tile. A face in its tone at `corner.tile` (18) on a
+  4pt lip drawn as a View under it, never a shadow, sinking 2pt while pressed;
+  the chip size is `corner.field` (14) on a 3pt lip. The lip is `lipPaper` by
+  default and the caller may pass another named lip. Today's stat tiles, the
+  drill answers, word chips, slots, grades and the held hero's Review door are
+  `LipTile`s.
 - **Ledger / LedgerRow**: how a list is drawn. The ledger rules a hairline
   above its first row and is a list to assistive tech; each row rules the
   hairline under itself. A row is one `Press` at 56pt with an optional 24pt
@@ -1070,14 +1185,16 @@ the new look, listed at the end, and they go with their call sites.
   opens. It names itself once, says disabled in soft ink rather than opacity,
   and grows rather than clips at the largest reading size.
 - **PillButton**: the one button (see Buttons): the ink pill
-  (`accent.primary`) with white lettering, 54pt, fully rounded; `tone="white"`
+  (`accent.primary`) with white lettering, 54pt, fully rounded, on a 3pt
+  `primaryLip` lip by default (the `lip` prop overrides it; a disabled pill
+  keeps the space but draws no lip); `tone="white"
   is the white pill with ink lettering on a blue or coral ground. The returning
   sign-in form uses `tone="brand"` for its purple primary action; compact
   provider pills retain the touch floor and wrap their labels.
-- **OutlineButton / GhostButton**: the second action. `GhostButton` is
-  SNIPPETS' link-text, an underlined ink word at the touch floor (white on blue
-  and coral, which the caller passes), never a box, so nothing competes with the
-  one pill. `OutlineButton` is the older quiet link until Stage 6.
+- **GhostButton**: the one quiet action (UI-023). SNIPPETS' link-text, an
+  underlined ink word at the touch floor (white on blue and coral, which the
+  caller passes), never a box, so nothing competes with the one pill.
+  `OutlineButton` folded into it.
 - **OptionCard** is gone (UI-016, 2026-10-31). Drill answers are `LipTile`s.
 - **Field, TabBar, ProgressDots**: inputs are white, 56 tall, with a 1.5
   `paper.field` rule that turns ink on focus, and a secure field carries a 44pt
@@ -1136,9 +1253,6 @@ the new look, listed at the end, and they go with their call sites.
 - **LevelPath**: each level (A0, A1), its can-dos in order, and one "You are
   here" stop in the highlighter. A done stop is an ink dot, a stop ahead a
   hairline ring, and each stop is one sentence to a screen reader.
-- **TutorCard**: the orb, the tutor's name, the voice in words, the signature
-  line in French, a 44pt sample that says Stop while it sounds, and a quiet
-  "Change tutor" link. No face and no initial.
 - **SceneBrief**: the brief for one scene: an optional level and label as the
   one caps line, the French title as the fitted French hero, the title, "You'll
   be able to" and the can-do, two or three lines to say, minutes, support and
@@ -1196,7 +1310,7 @@ the new look, listed at the end, and they go with their call sites.
   because the design gives the learner's page a warmer mark than the header.
 - **Grouped list** (`settings/SettingsGroup.tsx`, P2): what Profile, Learning
   preferences, Settings and Subscription are built from. A quiet header in
-  `small` muted ink inset 16, a `surface` list at `radius.tile` (20), clipped, a
+  `small` muted ink inset 16, a `surface` list at `corner.tile` (18), clipped, a
   footer in the same ink, and 28 between groups. Rows (`SettingsRow`,
   `SwitchRow`, `ChoiceRow`) take 16 across and 13 down with a 52 floor; the
   label is `body` in text ink, a long answer is a muted subtitle under it, a
@@ -1213,7 +1327,7 @@ More shared parts:
   set's back or close icon; next is a 64 disc (sun on blue or coral, ink on
   sun) with its word beside it.
 - **ColourCard**: the feature card: one colour ground, or a pastel one
-  (`ground="pastel.sage"` and so on), at the feature radius 28 with no hairline
+  (`ground="pastel.sage"` and so on), at `corner.card` (20) with no hairline
   or shadow, words in `textOn`, the secondary in `onColour`. `lift` is for an
   illustrated Explore tile only. The whole card
   is a target only when it holds no pill of its own.
@@ -1286,15 +1400,22 @@ sound of its own:
   turning refresh and says busy. Off is the sand tile with soft ink.
 - **Choice**: the one choice, for every option, plan, voice, level, goal and
   time: a 72pt row with the tile at its head, the title, a line under it and a
-  28pt disc, or a tile for a grid of two. Not chosen, it is white with a 2pt
-  hairline (the paper on a white sheet), so it never matches its ground.
-  Chosen, it is the brand blue with white words and a white disc holding the
-  blue check, or the sun with ink on a blue ground; the tile inside turns white
-  with a brand mark, and it pops once and lights the ring layer. It is a radio
-  by default, said on a device and on the web. A Hear is its own speaker button
-  beside it, so hearing never chooses. `OptionRow` and the first run's `Choice`
-  are thin names for it, and `ChoiceArt` draws an `IconTile`. Answers in a
-  drill are `LipTile`s, not `Choice` (UI-016).
+  28pt disc, or a tile for a grid of two. It is the raised tile (UI-023,
+  revisiting D7's "no 3D lip"): the face at `corner.tile` (18) on a 4pt lip
+  drawn as a View under it, never a shadow, sinking 2pt while pressed. Not
+  chosen, the face is white with its 2pt field ring on the `lipPaper` lip; the
+  ring stays `field`, not the line hairline, because an unchosen option's edge
+  must reach 3:1 (F921). On a white card the face is the paper instead, so a
+  choice never matches its ground. Chosen, it is the brand blue on the
+  `lipBlue` lip with white words and a white disc holding the blue check, or
+  the sun on the sun lip with ink words on a blue ground; the tile inside turns
+  white with a brand mark, and it pops once and lights the ring layer. It is a
+  radio by default, and `role="checkbox"` serves a multi-select list; both say
+  checked on a device and on the web. A Hear is its own speaker button beside
+  it, so hearing never chooses. `OptionRow` and the first run's `Choice` are
+  thin names for it, onboarding's old `BoldChoice` folded into it, and
+  `ChoiceArt` draws an `IconTile`. Answers in a drill are `LipTile`s, not
+  `Choice` (UI-016).
 
 The deprecated TintRow, TintPanel, TintDisc, IconRowCard and HeroCard wrappers
 are deleted. Callers use LedgerRow, Card and SceneBrief directly. No tint or
@@ -1524,8 +1645,8 @@ Settings (B-Settings, 2026-10-21) is seven groups in this order: Account,
 Plan, Practice, Phone, Appearance and sound, Data and privacy, Help and about,
 then Delete account alone in a card with no heading at the foot, standing apart
 from every routine row. Rows are the B row: 16/600 label, the answer stacked
-under it at 15, a longer line at 13, the 18pt chevron, in a white list at radius
-22. Plan adds Free speaking time (the D24 band in words) on the free plan.
+under it at 15, a longer line at 13, the 18pt chevron, in a white list at the card
+radius (20). Plan adds Free speaking time (the D24 band in words) on the free plan.
 Practice has Speaking target and the correction style (into Learning
 preferences) and the two switches over the same stores. Phone holds the daily
 reminder, its time, the trial-ending reminder, and a refused notification or
@@ -1686,7 +1807,7 @@ nothing due still says "Nothing waiting." and plays nothing, and a safety stop
 has no end scene.
 
 **The answer sheet** (`drill/AnswerSheet.tsx`, UI-016) is one bottom sheet
-that rises from the foot of a drill after each answer (radius 26 at the top,
+that rises from the foot of a drill after each answer (the card radius at the top,
 a `bType.sheet21` headline). It has four tones, all from the theme. Right is
 `mintWash` with `mintWords`, Cloud in its cheer pose beside the headline (80
 wide, it pops in and hops once), the French, its English and Hear it,
@@ -1786,8 +1907,7 @@ holds its queue. No daily chest or extra completion reward is drawn.
   the live answer, and every call through `motion/drive.ts` passes the same
   answer explicitly. In development Reanimated logs one warning when the bridge
   mounts; that warning is the bridge working.
-- Transform, opacity and dash offsets only. Layout props never animate, except
-  the busy `MorphButton` closing to a circle.
+- Transform, opacity and dash offsets only. Layout props never animate.
 
 ### Engine and tokens
 
@@ -1870,9 +1990,6 @@ primitive's own numbers are named groups in `motion/tokens.ts`.
   once, drawn by the one `FlightLayer` at the root. It lands at once, with
   nothing drawn, whenever it cannot fly.
 - `Glint`: one pass of light across a pill that has just become available.
-- `MorphButton`: a button that shows it is busy, and done only from a real
-  result; an error opens it back with no shake. Under reduced motion only its
-  words change.
 - `Enter`, `Reflow`, `Exit`: entrances, reflows and exits in a layout.
 - `BubbleIn`: a transcript line added after the transcript opened arrives.
 - `Drift`: something drifts in once from 14pt to its left as it fades in, on
@@ -1958,7 +2075,7 @@ land, and every number it shows comes from the moment's own data. The queue
 
 ### Loops
 
-The live orb, a busy `MorphButton` and a held icon state such as a playing
+The live orb and a held icon state such as a playing
 speaker have their scoped loops. C2 adds the shared illustration loops and
 welcome logo ring defined above, including continuous gentle Home flame
 movement. Each loop listens for focus, app state, reduced motion and its own
@@ -2044,8 +2161,8 @@ play while a microphone is open, the tutor is speaking or a live room is open.
 4. A loop runs only where it can be paused.
 5. The engine's animation calls (`withTiming`, `withSpring` and the rest) live
    only in `motion/drive.ts`, and every spring is a named token.
-6. Only dash offsets and opacity animate through props, and only `MorphButton`
-   animates a layout prop.
+6. Only dash offsets and opacity animate through props, and no layout prop
+   animates. A busy pill shows it is busy through `PillButton`'s waiting mark.
 7. No test imports a module that imports the engine, `expo-audio` or
    `expo-haptics`, because a suite that cannot load disappears.
 

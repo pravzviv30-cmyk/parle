@@ -39,7 +39,6 @@ const PRIMITIVES: Record<string, string[]> = {
   'TokenFlight.tsx': ['useTokenFlight', 'FlightToken'],
   'FlightLayer.tsx': ['FlightLayer'],
   'Glint.tsx': ['Glint'],
-  'MorphButton.tsx': ['MorphButton'],
   'layout.tsx': ['Enter', 'Reflow', 'Exit'],
   'BubbleIn.tsx': ['BubbleIn'],
   'LevelRing.tsx': ['LevelRing'],
@@ -126,9 +125,6 @@ describe('the motion primitives keep one contract', () => {
     assert.match(code('LivingBar.tsx'), /if \(reduced\) \{\s*still\(\);[\s\S]*?setTimeout\(settle, 0\);/, 'the bar under reduced motion is not full at once, or never says it filled');
     // A held glow stays; a passing one is gone.
     assert.match(code('DiscBloom.tsx'), /if \(reduced === null \|\| \(reduced && !hold\)\) return null;/, 'a passing glow draws under reduced motion');
-    // The waiting pill keeps its shape and swaps its words.
-    assert.match(code('MorphButton.tsx'), /const closed = !calm && \(now === 'busy' \|\| now === 'done'\);/, 'the pill changes shape under reduced motion');
-    assert.match(code('MorphButton.tsx'), /reduced \? \(state === 'busy' \? busyLabel : state === 'done' \? doneLabel : label\) : label/, 'the pill does not swap its words under reduced motion');
     // A token under reduced motion lands at once, and so does everything in the air when it is turned on.
     assert.match(code('TokenFlight.tsx'), /if \(still\.current \|\| !flights\.canFly\(\)\) \{\s*onLand\(\);\s*return;\s*\}/, 'a token flies under reduced motion, or waits when it cannot fly');
     assert.match(code('FlightLayer.tsx'), /if \(reduced\) flights\.landAll\(\);/, 'tokens in the air keep flying when reduced motion is turned on');
@@ -159,25 +155,6 @@ describe('the motion primitives keep one contract', () => {
     assert.match(body, /COUNT_FRAME_MS/, 'the count redraws faster than 30 times a second');
   });
 
-  test('the waiting pill is reported busy, draws its check only when done, and answers an error with nothing', () => {
-    const body = code('MorphButton.tsx');
-    assert.match(body, /<Press\b/, 'the pill does not press through the one Press');
-    assert.match(body, /accessibilityState=\{\{ busy: state === 'busy', disabled: locked \}\}/, 'a waiting pill is not reported busy');
-    assert.match(body, /const locked = disabled \|\| state === 'busy' \|\| state === 'done';/, 'a waiting or finished pill can be pressed again');
-    assert.match(body, /announceForAccessibility\(latest\.current\.busyLabel\)/, 'waiting is not announced');
-    assert.match(body, /announceForAccessibility\(latest\.current\.doneLabel\)/, 'finishing is not announced');
-    // The success haptic and the caller's continue belong to done alone.
-    const done = body.slice(body.indexOf("if (state !== 'done') return undefined;"));
-    assert.ok(body.includes("if (state !== 'done') return undefined;"), 'the success answer is not held to done');
-    assert.equal((body.match(/\barrived\(\)/g) ?? []).length, 1, 'the success haptic is played somewhere else too');
-    assert.ok(done.includes('arrived()'), 'the success haptic is not inside the done branch');
-    // No shake and no other haptic anywhere: an error says nothing physical.
-    assert.doesNotMatch(body, /\b(?:pressed|soft|thump|tick|celebrate|tapSettled)\(\)|translateX/, 'the pill shakes or answers an error physically');
-    // Only width, height and the corner animate, and the spinner stops.
-    assert.match(body, /useAnimatedStyle\(\(\) => \(\{ width: wide\.value, height: tall\.value, borderRadius: round\.value \}\)\)/);
-    assert.match(body, /setTimeout\(\(\) => cancel\(turn\), MORPH\.spinMax\)/, 'the spinner can turn for ever');
-  });
-
   test('the progress ring draws on the web from state, at most 30 times a second', () => {
     const native = code('ProgressRing.tsx');
     const web = code('ProgressRing.web.tsx');
@@ -204,21 +181,6 @@ describe('the motion primitives keep one contract', () => {
     const enter = code('layout.tsx');
     assert.match(enter, /const reduced = useAnswered\(useReduceMotion\(true\)\);/, 'Enter does not wait for the OS answer');
     assert.match(enter, /translateY: \(1 - shown\.value\) \* rise \}, \{ scale: scaleFrom \+ \(1 - scaleFrom\) \* shown\.value \}/, 'Enter at rest keeps some rise or growth');
-  });
-
-  test('the waiting pill takes its measured shape before the render that first draws it', () => {
-    // The shape style is used from the render after the first measure, and the
-    // effect that shapes the pill runs only once that render is on screen: left
-    // to it, the pill is drawn for one frame at 0 by 0.
-    const body = code('MorphButton.tsx');
-    const measure = body.slice(body.indexOf('const measure = '), body.indexOf('const locked = '));
-    assert.ok(measure.includes('setBox('), 'the measure no longer stores the box, so this check reads nothing');
-    const shaped = measure.indexOf('still(state, reduced, { width, height });');
-    assert.notEqual(shaped, -1, 'the measure does not shape the pill to the box it measured');
-    assert.ok(shaped < measure.indexOf('setBox('), 'the pill is shaped only after the render that first draws it');
-    assert.match(body, /\(now: MorphState, calm: boolean, size: \{ width: number; height: number \} \| null = latest\.current\.box\) => \{/, 'still cannot be handed a box that is not stored yet');
-    assert.match(body, /wide\.value = closed \? MORPH\.size : size\?\.width \?\? 0;/, 'the width is not the box handed in');
-    assert.match(body, /tall\.value = closed \? MORPH\.size : size\?\.height \?\? 0;/, 'the height is not the box handed in');
   });
 
   test('a next-tick answer is cleared when the ring or the bar goes, and a remount is on screen again', () => {

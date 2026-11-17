@@ -42,14 +42,16 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
   test('the radius scale is card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill', () => {
     // F990, the systemic pass (Q1, Q6): one scale, each step a nesting step
     // (a tile's inset is 18 minus 6, a field's mark 14 minus 6). Chip, input and
-    // control stay aliases of field for onboarding and auth; feature, stat and
-    // row stay as deprecated aliases until the sweep deletes them.
+    // control stay aliases of field for onboarding and auth. Step 8 deleted the
+    // deprecated stat, row and feature aliases (the last two Skeletons read card).
     const radius = block(themeSource(), 'export const radius = {', '} as const;');
     for (const [name, value] of [
       ['pill', '999'], ['card', '20'], ['tile', '18'], ['field', '14'], ['inset', '12'], ['mark', '8'], ['nib', '4'],
-      ['feature', '20'], ['stat', '18'], ['row', '18'],
     ] as const) {
       assert.match(radius, new RegExp(`\\b${name}: ${value},`), `radius.${name} is not ${value}`);
+    }
+    for (const gone of ['stat', 'row', 'feature']) {
+      assert.doesNotMatch(radius, new RegExp(`\\b${gone}:`), `the deprecated radius.${gone} alias is back`);
     }
     for (const alias of ['chip', 'input', 'control']) {
       assert.match(radius, new RegExp(`\\b${alias}: 14,`), `radius.${alias} no longer points at the field corner`);

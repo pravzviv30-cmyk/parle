@@ -274,9 +274,6 @@ export const radius = {
   mark: 8,
   /** The floor: bubble tails, anything smaller. */
   nib: 4,
-  feature: 20, // deprecated alias of card
-  stat: 18, // deprecated alias of tile
-  row: 18, // deprecated alias of tile
   chip: 14, // alias of field
   input: 14, // alias of field
   control: 14, // alias of field

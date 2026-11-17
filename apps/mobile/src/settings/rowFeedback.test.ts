@@ -20,14 +20,11 @@ function stripComments(source: string): string {
 describe('profile and settings controls answer a tap', () => {
   test('action rows use a porcelain surface and haptic receipt without opacity-only feedback', () => {
     const settings = stripComments(read('./SettingsRow.tsx'));
-    const tutor = stripComments(read('../profile/TutorMemoryCard.tsx'));
     assert.match(settings, /<Press\s+haptic="selection"\s+onPress=\{onPress\}/);
     // P2 (2026-10-19): the floor is the grouped list's, written once in the
     // group primitive for every row kind, and above the 44 touch floor.
     assert.match(stripComments(read('./SettingsGroup.tsx')), /ROW_GROUPED = \{[^}]*minHeight: 52 \}/);
     assert.doesNotMatch(settings, /pressed[^\n]*opacity/);
-    assert.match(tutor, /tapSettled\(\);\s*onPress\(\);/);
-    assert.match(tutor, /pressed[^\n]*backgroundColor: paper.groundDeep/);
   });
 
   test('in-place choices give tactile receipt and switches explain their consequence', () => {

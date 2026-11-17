@@ -238,5 +238,141 @@
   {
     "file": "onboarding/FirstSessionResult.tsx",
     "label": "{busy ? 'Saving…' : 'Save your progress'}"
+  },
+  {
+    "file": "RecapScreen.tsx",
+    "label": "\"Done\""
+  },
+  {
+    "file": "RecapScreen.tsx",
+    "label": "\"See your journey\""
+  },
+  {
+    "file": "RecapScreen.tsx",
+    "label": "\"See your journey\""
+  },
+  {
+    "file": "RecapScreen.tsx",
+    "label": "\"Try saving again\""
+  },
+  {
+    "file": "SummaryScreen.tsx",
+    "label": "\"Review\""
+  },
+  {
+    "file": "SummaryScreen.tsx",
+    "label": "\"Practise the conversation again\""
+  },
+  {
+    "file": "auth/AccountDeletedNotice.tsx",
+    "label": "{ACCOUNT_DELETED_STORE}"
+  },
+  {
+    "file": "celebrate/EndScene.tsx",
+    "label": "{done.label}"
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Talk about this again\""
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "{busy ? 'Deleting…' : 'Delete conversation'}"
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Open conversation\""
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "{busy?'Opening…':'Open conversation'}"
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "{busy?'Deleting…':'Delete conversation'}"
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Older conversations\""
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "\"Retry loading conversations\""
+  },
+  {
+    "file": "conversationPacks/ConversationPackLibrary.tsx",
+    "label": "{busy ? 'Deleting…' : 'Delete all conversations'}"
+  },
+  {
+    "file": "conversationPacks/ConversationsScreen.tsx",
+    "label": "{MY_FRENCH_RETRY}"
+  },
+  {
+    "file": "conversationPacks/ConversationsScreen.tsx",
+    "label": "\"Older conversations\""
+  },
+  {
+    "file": "conversationPacks/ConversationsScreen.tsx",
+    "label": "\"Retry loading conversations\""
+  },
+  {
+    "file": "friends/InviteFriendsScreen.tsx",
+    "label": "{busy ? 'Setting up…' : 'Join Friends'}"
+  },
+  {
+    "file": "friends/InviteFriendsScreen.tsx",
+    "label": "{searching ? 'Searching…' : 'Find friend'}"
+  },
+  {
+    "file": "legal/TermsScreen.tsx",
+    "label": "{TERMS_LINK_LABEL}"
+  },
+  {
+    "file": "myfrench/OneLineCard.tsx",
+    "label": "{CHECK}"
+  },
+  {
+    "file": "myfrench/OneLineCard.tsx",
+    "label": "{GRADE_LABELS.good}"
+  },
+  {
+    "file": "practice/LocalPracticeCard.tsx",
+    "label": "{checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}"
+  },
+  {
+    "file": "recap/PrivatePractice.tsx",
+    "label": "{busy ? 'One moment…' : recording ? 'Finish recording' : uri ? 'Record another take' : 'Record my practice take'}"
+  },
+  {
+    "file": "tabs/ExploreTab.tsx",
+    "label": "{searching ? 'Clear search and filters' : 'Clear filters'}"
+  },
+  {
+    "file": "tabs/ExploreTab.tsx",
+    "label": "\"Show more situations\""
+  },
+  {
+    "file": "tabs/ExploreTab.tsx",
+    "label": "\"Show more phrases\""
+  },
+  {
+    "file": "tabs/FriendsTab.tsx",
+    "label": "\"Report and block\""
+  },
+  {
+    "file": "tabs/MyFrenchTab.tsx",
+    "label": "{checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}"
+  },
+  {
+    "file": "today/TodayParts.tsx",
+    "label": "{other.label}"
+  },
+  {
+    "file": "tutor/RealMomentScreen.tsx",
+    "label": "{SEE_PLANS}"
+  },
+  {
+    "file": "tutor/RealMomentScreen.tsx",
+    "label": "{checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}"
   }
 ]

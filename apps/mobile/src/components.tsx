@@ -56,7 +56,6 @@ import {
   heroFit,
   highlight,
   onColour,
-  orb,
   paper,
   pastel,
   radius,
@@ -78,7 +77,6 @@ import Reanimated, { useAnimatedStyle, useSharedValue, type SharedValue } from '
 import { pressed, tapSettled } from './motion/haptics.ts';
 import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion } from './motion.ts';
 import { OrbGlyph } from './tutor/OrbGlyph.tsx';
-import { OrbSurface } from './tutor/OrbSurface.tsx';
 import { holdCelebrations } from './celebrate/queue.ts';
 import { READING, actionRowWraps } from './responsiveLayout.ts';
 import type { Rung } from '@luvani/core';
@@ -399,55 +397,6 @@ const pastelFill = pastel;
 
 
 /**
- * A secondary action: a quiet text link at the touch floor, ink words with no
- * box, so it never competes with the one ink pill.
- */
-export function OutlineButton({
-  label,
-  sub,
-  onPress,
-  disabled = false,
-  icon,
-  accessibilityLabel,
-}: {
-  label: string;
-  sub?: string;
-  onPress: () => void;
-  disabled?: boolean;
-  icon?: React.ReactNode;
-  /**
-   * What a screen reader hears, when the word alone names nothing.
-   *
-   * Home's Bookmark button is the case that needed it: "Bookmark" and "Saved"
-   * are states of a control sitting under a heading a blind learner passed
-   * several lines ago, so the button has to carry the situation with it the way
-   * `startLabel` already does for the next-situation pill.
-   */
-  accessibilityLabel?: string;
-}) {
-  const t = useB();
-  const s = useThemedStyles(makeS);
-  return (
-    <Pressable
-      onPress={() => {
-        tapSettled();
-        onPress();
-      }}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      style={({ pressed }) => [s.outline, pressed && !disabled && s.outlinePressed, disabled && { opacity: 0.45 }]}
-    >
-      <View style={s.outlineRow}>
-        {icon}
-        <Text style={[type.bodyStrong, { color: t.text }]}>{label}</Text>
-      </View>
-      {sub != null && <Text style={[type.small, { color: t.muted, marginTop: space(0.5) }]}>{sub}</Text>}
-    </Pressable>
-  );
-}
-
-/**
  * The second action (SNIPPETS link-text): an underlined word at the touch
  * floor, ink on paper, sun and mint, white on blue and coral (the caller passes
  * `color`). At most two per screen, never a box, so nothing competes with the
@@ -458,9 +407,8 @@ export function OutlineButton({
  * because a dead control drawn in the live colour is the bug this closes. A
  * disabled Press never presses, so it neither shrinks nor ticks.
  *
- * No `accessibilityState` here, and none in PillButton or OutlineButton
- * either: Pressable already folds its own `disabled` into that state, and the
- * prop wins over anything spelled out alongside it.
+ * No `accessibilityState` here, and none in PillButton either: Pressable
+ * already folds its own `disabled` into that state, and the prop wins over anything spelled out alongside it.
  */
 export function GhostButton({
   label,
@@ -1018,15 +966,6 @@ const makeS = (t: B) => StyleSheet.create({
   // A white pill sits on blue or coral, where the sand reads as one more live
   // fill; off there is the blue ground's pale secondary (F758).
   pillDisabledOnColour: { backgroundColor: onColour.blue },
-  outline: {
-    minHeight: HIT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: space(2),
-    paddingHorizontal: space(3),
-  },
-  outlinePressed: { opacity: 0.6 },
-  outlineRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   ghost: {
     minHeight: HIT,
     alignItems: 'center',
@@ -1310,66 +1249,6 @@ export function LevelPath({ levels }: { levels: readonly PathLevel[] }) {
   );
 }
 
-/**
- * A tutor, introduced: the orb, the name, the voice in words, the signature
- * line in French, a sample to hear, and a quiet link to change tutor. There is
- * no face and no initial: the orb is the tutor and the monogram is the
- * learner's. The sample says "Stop" while it sounds, like every replay ear.
- *
- * Revamp B (F601): a white card. The orb, then the name, the voice and the
- * change link as one column, then the sample as a 44 ink disc with the white
- * speaker mark, pressed through the one spring. The signature sits under the
- * row, marked as French so a screen reader reads it in a French voice. Come
- * alive: the speaker's arcs breathe while the sample really plays.
- */
-export function TutorCard({
-  name,
-  voice,
-  signature,
-  onHear,
-  playing,
-  onChange,
-  changeLabel = 'Change tutor',
-}: {
-  name: string;
-  /** The voice in words, for instance "Warm, unhurried Parisian". Speak (B2) leaves it out. */
-  voice?: string;
-  /** One line the tutor says, in French. */
-  signature: string;
-  onHear: () => void;
-  playing: boolean;
-  onChange: () => void;
-  changeLabel?: string;
-}) {
-  const t = useB();
-  const ls = useThemedStyles(makeLs);
-  return (
-    <Card style={ls.tutor}>
-      <View style={ls.tutorHead}>
-        <View {...decorative}>
-          <OrbSurface color={orb.ready} size={HIT + space(3)} />
-        </View>
-        <View style={ROW_WORDS}>
-          <Text style={[type.heading, { color: t.text }]}>{name}</Text>
-          {voice !== undefined ? <Text style={[type.small, { color: t.muted }]}>{voice}</Text> : null}
-          <View style={ls.tutorChange}>
-            <IconAction layout="inline" icon="edit" label={changeLabel} onPress={onChange}  />
-          </View>
-        </View>
-        <Press haptic="light" onPress={onHear} style={ls.hear}
-          accessibilityRole="button"
-          accessibilityLabel={playing ? `Stop ${name}` : `Hear ${name}`}
-        >
-          <AnimatedIcon kind="speaker-waves" size={22} active={playing} color={paper.onInk} />
-        </Press>
-      </View>
-      <Text {...frenchText} style={[type.french, { color: t.text }]}>
-        {signature}
-      </Text>
-    </Card>
-  );
-}
-
 const CAN_DO_LEAD = "You'll be able to";
 
 /**
@@ -1508,19 +1387,6 @@ const makeLs = (t: B) => StyleSheet.create({
     borderColor: t.field,
   },
   stopEarned: { backgroundColor: t.text, borderColor: t.text },
-  tutor: { gap: space(3) },
-  tutorHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
-  // The link's own side pad is pulled back so its word lines up under the
-  // name; its 44 target still reaches into the gap beside the orb, not onto it.
-  tutorChange: { alignSelf: 'flex-start', marginLeft: -space(3) },
-  hear: {
-    width: HIT,
-    height: HIT,
-    borderRadius: HIT / 2,
-    backgroundColor: t.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   // The board's rhythm inside the blue card: 12 between blocks, 4 between the
   // French name and its English, 2 between the line and its English.
   brief: { gap: space(3) },

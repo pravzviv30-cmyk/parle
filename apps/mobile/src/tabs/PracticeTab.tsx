@@ -240,7 +240,7 @@ export function PracticeTab() {
         )}
         {data === null && !library.failed && (
           <View accessibilityLabel="Loading your practice">
-            <Skeleton blocks={[{ height: space(30), radius: radius.feature }, { height: space(40), radius: radius.feature }]} />
+            <Skeleton blocks={[{ height: space(30), radius: radius.card }, { height: space(40), radius: radius.card }]} />
           </View>
         )}
 
