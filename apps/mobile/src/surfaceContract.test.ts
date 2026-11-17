@@ -1421,7 +1421,7 @@ describe('the tab bar shows a word, and it is a flat floating capsule — F313, 
     assert.match(tabbar, /accessibilityState=\{\{\s*selected/, 'a screen reader is not told which tab is selected');
     // 2026-10-20 UI-008: the heavier weight is Outfit Bold, 700, in the violet
     // cell, over the unselected words' Medium.
-    assert.match(tabbar, /focused \? font\.bold/, 'the active tab is not marked by the heavier weight, Outfit Bold');
+    assert.match(tabbar, /lit \? font\.bold/, 'the active tab is not marked by the heavier weight, Outfit Bold');
     assert.ok(!/\bst\.dot\b/.test(tabbar) && !tabbar.includes('dotActive'), 'the tab bar still marks the active cell with a dot');
   });
 
@@ -1454,10 +1454,10 @@ describe('the active tab wears the violet cell — F325, UI-008', () => {
   test('the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008', () => {
     // 2026-10-20 UI-008, Figma 292:1103. Replaces revamp B's brand blue word on
     // white. The same pins as nav/tabBar.test.ts, read here with the surface.
-    assert.match(tabbar, /color=\{focused \? t\.tabGlyphSelected : t\.tabLabel\}/, 'the selected glyph is not sun, or the others are not cream');
+    assert.match(tabbar, /color=\{lit \? t\.tabGlyphSelected : t\.tabLabel\}/, 'the selected glyph is not sun, or the others are not cream');
     // Item 7 (UI-018): the violet is the sliding pill under the selected cell.
     assert.match(named('nav/TabPill.tsx'), /backgroundColor: t\.tabSelected/, 'the selected cell is not violet');
-    assert.match(tabbar, /fontFamily: focused \? font\.bold : font\.medium/, 'the selected word is not Bold over the others\' Medium');
+    assert.match(tabbar, /fontFamily: lit \? font\.bold : font\.medium/, 'the selected word is not Bold over the others\' Medium');
   });
 });
 

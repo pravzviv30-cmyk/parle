@@ -964,8 +964,10 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   drag", no new packages, no glass blur). Reverses "the bar itself moves
   nothing" (F600) for the selection pill only.
 - Decision: the violet selected cell is one Reanimated pill (`nav/TabPill.tsx`)
-  behind the glyphs. A tap slides it; a sideways drag that starts on the open
-  tab moves it with the finger through RN's PanResponder, ticking as the drag
+  behind the glyphs. Pressing in on another tab springs it there with one
+  tick, the selected look moving with it, and lifting navigates; a press that
+  slides off puts it back (F981, founder 2026-11-10). A sideways drag from any
+  tab (F963) moves it with the finger through RN's PanResponder, ticking as the drag
   starts and at each cell crossed, and letting go navigates the way a tap does.
   A still long press is not claimed (F947's Large Content Viewer). Reduce
   Motion jumps it. Cells keep their roles, labels and the Practice dot.
