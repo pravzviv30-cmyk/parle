@@ -140,7 +140,7 @@ export const TUTOR_VOICES: Readonly<Record<TutorVoiceKey, TutorVoice>> = Object.
     ageBand: 'young',
   },
   // A learner reads the name; every path that stores or signs a choice carries
-  // the key. Here both are ASCII, which Émilie's are not.
+  // the key. Here both are ASCII; Émilie's key is too, but her name is not.
   sarah: {
     key: 'sarah',
     persona: { name: 'Sarah', pronoun: 'she' },
