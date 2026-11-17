@@ -1000,7 +1000,9 @@ that passed the device claim, or lapsed from paid (`lapsedEntitlement()`), carri
 `supabase/migrations/20261020140000_weekly_free_taste.sql`). Its first debit above zero
 sets `periodEnd` `TASTE_REFILL_HOURS` (44) out (`recordUsage`); a read at or after that instant refills it
 (`refillTaste`: `secondsUsed` back to 0, `periodEnd` cleared), so the window rolls from first
-use. A trial row without `weeklyTaste` never refills. The local stores apply
+use. A trial row without `weeklyTaste` never refills on its own; a purchase made before the
+first conversation leaves one, and its first device claim on a device that has not had a free
+allowance turns it into a fresh taste (F933, `20261117120000_claim_promotes_unclaimed_row.sql`). The local stores apply
 `refillTaste(rollPeriod(row, now), now)` on read; opening a taste's window keeps the usage
 epoch (a refund in it restores), while a refill starts a new one, as the SQL does. They do
 not copy the SQL rule that a refill waits while a claimed session is live. The file ledger
