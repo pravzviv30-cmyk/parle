@@ -12809,6 +12809,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: S1a-7. Three ticked lines under F600 and F602 are not checked today.
 - verified-by: `a verified-by line with text after the closing backtick fails the goal check`
 
+### F1061 — CI runs the full gate twice for every push to a pull request branch
+- severity: P2
+- status: [x]
+- where: .github/workflows/ci.yml:40
+- note: S1a-10. Founder approved 2026-11-17 ("Yes, PRs and main only"). The push trigger narrows to `main`, which `mobile-preview.yml` needs; pull requests still run the gate.
+- verified-by: `the gate workflow runs on pull requests and on pushes to main only`
+
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
 - severity: P2
 - status: [x]

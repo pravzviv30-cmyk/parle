@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { suiteProblems, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems, PROOF_FLOOR_KEY, workspaceKeys, belowFloor, trackedTestFiles } from './gateChecks.mjs';
@@ -134,5 +134,21 @@ describe('gate — only what git carries is judged as unrun', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('gate — CI runs the gate once per change', () => {
+  test('the gate workflow runs on pull requests and on pushes to main only', () => {
+    const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+    const lines = workflow.split('\n');
+    const start = lines.findIndex((line) => /^on:\s*$/.test(line));
+    assert.notEqual(start, -1, 'ci.yml declares its triggers in an on: block');
+    const block = [];
+    for (const line of lines.slice(start + 1)) {
+      if (/^\S/.test(line)) break;
+      if (line.trim() && !line.trim().startsWith('#')) block.push(line.trimEnd());
+    }
+    assert.deepEqual(block, ['  push:', '    branches: [main]', '  pull_request:'],
+      'a push to a pull request branch already runs the gate through pull_request; a second run on push is the same work twice. Main keeps its push run');
   });
 });
