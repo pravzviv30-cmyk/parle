@@ -12768,6 +12768,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [x]
 - where: packages/core/src/daily/words.ts:2700
 - note: C2-1. A Unicode regex runs against every scene line for every generated word at module load. The snapshot test is written and green before the change, and must still pass after it.
+- note: the snapshot pins the output, not the speed. The speed is measured, not pinned (a timing test would be flaky, F796). Import of `daily/words.ts` on the dev Mac, 2026-11-17: main 884-921 ms; with the substring prefilter 132-138 ms; with the regex also built only after a hit 83-88 ms (5 to 7 runs each).
 - verified-by: `the word pack's ids, examples and order match the pinned snapshot`
 
 ### F1073 — The shuffle primitive has no caller, and daily comments describe retired code
