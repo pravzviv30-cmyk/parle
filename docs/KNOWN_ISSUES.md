@@ -6869,12 +6869,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the card that dealt the permutation was retired with the Practice path and
   the primitive stayed in core, still exported and still tested, so both surface-level titles are
   re-pointed at the shuffle tests that hold the seeded order and the wrap.
-- verified-by: `the deal is a permutation: nothing added, nothing dropped, nothing repeated`
-- verified-by: `it actually shuffles, rather than handing back the pool in order`
-- verified-by: `walking the whole pool meets every item exactly once, then comes round`
-- verified-by: `it reads no clock and no global, so a test can hand it every input`
-- verified-by: `a position past the end wraps rather than falling off it`
-- verified-by: `the same seed deals the same order, and a different seed does not`
+- note: review C2 (2026-11-17, F1073): the shuffle primitive had no caller left and was removed
+  with its tests (it is in git history). The entry is re-pointed at the daily pick's clock test,
+  the surviving guard that the daily surface reads no clock of its own.
+- verified-by: `the pick never reads the wall clock, only the moment it was handed`
 
 ### F451 — A beginner could be shown a situation pitched at somebody two levels up
 - severity: P2
@@ -12773,7 +12771,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1073 — The shuffle primitive has no caller, and daily comments describe retired code
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/daily/shuffle.ts:1
 - note: C2-3 and the daily half of C2-7. Core floor drops by exactly 9 with F1074's one test. F450 is re-pointed in the same PR.
 - verified-by: `the pick never reads the wall clock, only the moment it was handed`
