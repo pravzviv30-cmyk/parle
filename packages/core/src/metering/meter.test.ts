@@ -266,6 +266,18 @@ describe('starting a session', () => {
     assert.match(decision.allowed === false ? decision.message : '', /0 min 40s left/);
   });
 
+  test('a free learner refused for a thin window is told when the next free conversation is ready', () => {
+    const periodEnd = new Date('2026-10-22T16:10:00Z');
+    const thin = canStartSession({ plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod - 40, weeklyTaste: true, periodEnd });
+    assert.equal(thin.allowed === false && thin.reason, 'insufficient-for-session');
+    assert.equal(thin.allowed === false ? thin.refillsAt?.getTime() : 0, periodEnd.getTime());
+    assert.equal(thin.allowed === false ? thin.message : '', 'Only 0 min 40s left. Not quite enough for a full session.');
+
+    // A paid thin window names no refill, matching paid out-of-time.
+    const paid = canStartSession({ plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod - 40, periodEnd });
+    assert.equal(paid.allowed === false ? paid.refillsAt : 'x', undefined);
+  });
+
   test('exactly the minimum viable session is allowed', () => {
     const e: Entitlement = { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod - MIN_VIABLE_SESSION_SEC };
     assert.equal(canStartSession(e).allowed, true);

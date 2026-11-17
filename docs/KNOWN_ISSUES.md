@@ -12766,9 +12766,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1076 — A refused thin free window does not say when time comes back
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/metering/meter.ts:378
-- note: C3-1. Production is patched by the token server's copy of the rule; core should be the one home. The builder confirms the unreserved path is dev-only first.
+- note: C3-1. Production is patched by the token server's copy of the rule; core should be the one home. The builder confirmed the unreserved path is dev-only first: server.ts returns 503 without admission in production, and the guest grants pass a fixed fresh trial, so they are never refused. `tokens.test.ts` "a refusal with no known refill omits refillsAt" pinned the old gap for a thin trial window; that case now asserts the refill time.
 - verified-by: `a free learner refused for a thin window is told when the next free conversation is ready`
 
 ### F1077 — Metering and core barrels re-export names nothing imports, and voice comments describe an old roster
