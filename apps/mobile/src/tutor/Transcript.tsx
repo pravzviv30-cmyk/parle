@@ -19,7 +19,7 @@ import type { CorrectionReasonId } from '@luvani/core';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, AccessibilityInfo, Platform } from 'react-native';
-import { accent, frenchText, paper, space, type, radius, HAIRLINE, HIT } from '../theme.ts';
+import { accent, frenchText, paper, space, type, radius, HAIRLINE, HIT, corner } from '../theme.ts';
 import { EarGlyph, Highlight, Label } from '../components.tsx';
 import type { TurnLine } from '../live/turns.ts';
 import { useReduceMotion } from '../motion.ts';
@@ -279,7 +279,7 @@ export function Transcript({
 }
 
 const st = StyleSheet.create({
-  latest: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(4), backgroundColor: c.lavender, borderRadius: 22 },
+  latest: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(4), backgroundColor: c.lavender, borderRadius: radius.pill },
   // The wrapper carries the same flex the scroll does, so it moves nothing:
   // minHeight 0 is what stops a flex child from refusing to shrink and pushing
   // the controls off the bottom of the screen.
@@ -305,8 +305,8 @@ const st = StyleSheet.create({
   // dissolving into the ground. Same bargain `components.tsx` states for Card.
   tutorBubble: {
     backgroundColor: c.lavender,
-    borderRadius: 20,
-    borderBottomLeftRadius: 5,
+    ...corner.card,
+    borderBottomLeftRadius: radius.nib,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
@@ -314,8 +314,8 @@ const st = StyleSheet.create({
   // a shade deeper, rather than an object sitting on it.
   learnerBubble: {
     backgroundColor: c.violet,
-    borderRadius: 20,
-    borderBottomRightRadius: 5,
+    ...corner.card,
+    borderBottomRightRadius: radius.nib,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },

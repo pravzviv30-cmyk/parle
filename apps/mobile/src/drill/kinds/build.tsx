@@ -13,7 +13,7 @@ import { useB, useThemedStyles } from '../../main/bTheme.tsx';
 import { LipTile, PillButton, Press } from '../../components.tsx';
 import { useTokenFlight } from '../../motion/TokenFlight.tsx';
 import { DrillFrame, type DrillShell } from '../DrillFrame.tsx';
-import { drillStage } from '../drillStage.ts';
+import { drillStage, taskLine } from '../drillStage.ts';
 import { SEND_BACK_LINE, blankLine, flightMayLand, sendBackLabel, splitBlank } from '../tileLook.ts';
 import { CheckPill, DrillClock, TAP_LINE, TypedAnswer, kindTag } from './shared.tsx';
 import { makeDs } from './styles.ts';
@@ -143,7 +143,7 @@ export function FillBlankView({
   );
 
   return (
-    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={prompt} english={exercise.en}
+    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} prompt={prompt} english={taskLine(kindTag(exercise), exercise.en)}
       primary={<CheckPill typed={typed} locked={locked || flying !== null} onSubmit={() => onAnswer(typed)} />}>
       {options ? (
         <View style={ds.build}>
@@ -195,9 +195,9 @@ export function TapTranslateView({
   const answerText = assembled.map((i) => exercise.tokens[i]).join(' ');
   const canCheck = assembled.length > 0 && !locked;
   return (
-    // Drill B v2 (UI-016): the eyebrow, the English as the stage's header,
-    // and the one instruction, on the build's butter stage.
-    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={exercise.en} promptIsHeader english={TAP_LINE}
+    // Drill B v2 (UI-016): the English as the stage's header, then the task
+    // and the one instruction on the meta line (F995), on the butter stage.
+    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} prompt={exercise.en} promptIsHeader english={taskLine(kindTag(exercise), TAP_LINE)}
       primary={
         <PillButton
           label="Check"

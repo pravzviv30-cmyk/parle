@@ -31,6 +31,8 @@ import { dealForTier, offeredReview, reviewOffer } from '../review/freeTier.ts';
 import { latestReadyPack } from '../conversationPacks/model.ts';
 import { goalPickLine } from '../onboarding/goalLine.ts';
 import { dayWord } from '../journey/journeyView.ts';
+import type { DailyItem } from '../daily/catalogue.ts';
+import { SCENE_TILE } from '../responsiveLayout.ts';
 import type { Replay } from '../practice/madeFrom.ts';
 import type { Reflection } from '../progress/reflection.ts';
 import type { HomeMission } from './homeMission.ts';
@@ -157,14 +159,10 @@ export const TODAY_COPY = {
   path: "Today's path",
   three: "Today's three",
   fix: 'One fix to try',
-  fixAsk: 'How would you say this in French?',
+  fixAsk: 'One fix: how would you say this in French?',
   fixAction: 'Say it better, then compare',
   phrase: "Today's phrase",
   sayIt: 'Say it yourself',
-  /** The phrase row's action on Today's path (UI-015). */
-  sayRow: 'Say it',
-  /** The review row's action on Today's path (UI-015). */
-  practise: 'Practise',
   week: 'Your week in French',
   seeWeek: 'See your week',
   todayScene: "Today's scene",
@@ -183,21 +181,27 @@ export const TODAY_ROUTES = {
 } as const;
 
 /**
- * The hero's eyebrow: "Next scene, 2 of 3", the scene's place among the spine
- * scenes of its own stage (A0 is Starter, A1 is Basics). A scene the learner
- * walked out of keeps its own label, and the day's scene after the spine says
- * so plainly, because it has no place to count. A scene the learner's goal
- * chose says so instead ("Picked for your move"): it may sit outside the
- * stage's count, so a number would mislead.
+ * The scene's place: its spine number in its own stage (A0 is Starter, A1 is
+ * Basics), a label said verbatim, or null for a bare next scene. A scene the
+ * learner walked out of keeps its own label, and the day's scene after the
+ * spine says so plainly, because it has no place to count. A scene the
+ * learner's goal chose says so instead ("Picked for your move"): it may sit
+ * outside the stage's count, so a number would mislead.
  */
-export function sceneEyebrow(hero: HomeMission): string {
+function scenePlace(hero: HomeMission): { at: number; of: number } | string | null {
   if (hero.kind === 'today') return TODAY_COPY.todayScene;
   if (hero.label !== null) return hero.label;
   const goalLine = hero.picked === 'goal' ? goalPickLine(hero.pickedFor) : null;
   if (goalLine !== null) return goalLine;
   const stage = SCENE_SPINE.map((id) => getMission(id)).filter((m): m is Mission => m !== undefined && m.cefr === hero.mission.cefr);
   const at = stage.findIndex((m) => m.id === hero.mission.id);
-  return at === -1 ? 'Next scene' : `Next scene, ${at + 1} of ${stage.length}`;
+  return at === -1 ? null : { at: at + 1, of: stage.length };
+}
+
+/** The scene's place as words: "Next scene, 2 of 3", the label, or "Next scene". */
+export function sceneEyebrow(hero: HomeMission): string {
+  const place = scenePlace(hero);
+  return place === null ? 'Next scene' : typeof place === 'string' ? place : `Next scene, ${place.at} of ${place.of}`;
 }
 
 /** Under the title on Today's card, only the scene's length: "About 3 minutes" (founder, 2026-10-29). */
@@ -205,9 +209,44 @@ export function sceneTime(hero: Pick<HomeMission, 'minutes'>): string {
   return aboutMinutes(hero.minutes);
 }
 
-/** The scene as a row on Today's path (UI-015, when the fix is the hero): its place, then its length. */
+/**
+ * The scene hero's one meta line (F995, F996): the place joins the time, so no
+ * eyebrow sits over the title. "About 3 minutes, scene 2 of 3" when the place
+ * is numbered, the time alone for a bare next scene, and the time then any
+ * other label verbatim.
+ */
+export function sceneHeroLine(hero: HomeMission): string {
+  const time = sceneTime(hero);
+  const place = scenePlace(hero);
+  if (place === null) return time;
+  return typeof place === 'string' ? `${time}. ${place}` : `${time}, scene ${place.at} of ${place.of}`;
+}
+
+/** The scene as a row on Today's path (UI-015, when the fix is the hero): the hero's own meta line. */
 export function sceneRowLine(hero: HomeMission): string {
-  return `${sceneEyebrow(hero)}. ${sceneTime(hero)}`;
+  return sceneHeroLine(hero);
+}
+
+/** The scene hero's title column (F997): the card less the art tile and its gap when they sit side by side. */
+export function sceneTitleColumn(inner: number, side: boolean): number {
+  return side ? inner - SCENE_TILE.width - SCENE_TILE.gap : inner;
+}
+
+/** A line Today's phrase row can carry: the daily phrase, or the Starter café line. */
+export type PhraseItem = Pick<DailyItem, 'id' | 'fr' | 'en'>;
+
+/**
+ * Today's phrase row (F996). Held at Starter the café line leaves the hero and
+ * the row carries it instead, so it is drawn once: its French as the title,
+ * its English with "Free offline practice." as the line, opened in shadowing.
+ * Otherwise the day's phrase, its French read in French when there is one.
+ */
+export function phraseRow({ daily, cafe }: { daily: PhraseItem; cafe: PhraseItem | null }): { title: string; titleLang: 'fr' | undefined; line: string | null; route: { screen: typeof TODAY_ROUTES.phrase; params: { id: string; mode?: 'shadowing' } } } {
+  if (cafe !== null) {
+    const en = cafe.en.trim();
+    return { title: cafe.fr, titleLang: 'fr', line: `${/[.!?]$/.test(en) ? en : `${en}.`} Free offline practice.`, route: { screen: TODAY_ROUTES.phrase, params: { id: cafe.id, mode: 'shadowing' } } };
+  }
+  return { title: daily.fr || daily.en, titleLang: daily.fr ? 'fr' : undefined, line: daily.fr ? daily.en : null, route: { screen: TODAY_ROUTES.phrase, params: { id: daily.id } } };
 }
 
 /** Each row's stop mark: the ink end dot on the last row, a ring before it. */

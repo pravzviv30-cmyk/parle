@@ -171,3 +171,12 @@ test('saved phrases and search results never draw the first-phrase empty prompt'
   assert.match(FLAT, /const empty = visibleBook !== null && !hasPhrases\(visibleBook\) && !hasSaved\(visibleBook\) && query.trim\(\) === '';/);
   assert.match(FLAT, /\{empty && <PhrasebookEmpty /);
 });
+
+// F998 (systemic pass): while nothing is kept, the stage title is the only headline.
+test('an empty phrasebook has one headline', () => {
+  assert.match(FLAT, /\{!empty && <View style=\{st\.head\}> <Text accessibilityRole="header" style=\{st\.title\}> \{PHRASEBOOK_TITLE\} <\/Text> <\/View>\}/, 'the page title still shows over the empty stage');
+  const preview = stripComments(read('../dev/OnboardingPreview.tsx')).replace(/\s+/g, ' ');
+  const quiet = preview.slice(preview.indexOf("{screen === 'quiet-phrasebook'"), preview.indexOf("{screen === 'quiet-speak'"));
+  assert.match(quiet, /<PhrasebookEmpty /);
+  assert.doesNotMatch(quiet, /PHRASEBOOK_TITLE|accessibilityRole="header"/, 'the quiet-phrasebook preview still draws the page title');
+});

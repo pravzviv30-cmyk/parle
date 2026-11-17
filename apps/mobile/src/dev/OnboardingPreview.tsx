@@ -1,6 +1,7 @@
 import { BoldVoiceOrb } from '../onboarding/BoldVoiceOrb.tsx';
 import type { OrbState } from '../tutor/VoiceOrb.tsx';
 import { C2LiveRoom } from '../live/C2LiveRoom.tsx';
+import { LiveErrorView } from '../live/LiveErrorView.tsx';
 import { useQuietVoice } from '../live/useQuietVoice.ts';
 import type { TurnLine } from '../live/turns.ts';
 import type { HeldTurnState } from '@luvani/core';
@@ -39,7 +40,6 @@ import { DRILL_PREVIEWS, DrillPreview, type DrillPreviewKey } from './DrillPrevi
 import { RECAP_PREVIEW_KEYS, RecapPreview, type RecapPreviewKey } from './RecapPreview.tsx';
 import { ToastPill } from '../celebrate/Toast.tsx';
 import { PHRASEBOOK_EMPTY, PhrasebookEmpty } from '../phrases/PhrasebookScreen.tsx';
-import { PHRASEBOOK_TITLE } from '../phrases/phrasebookView.ts';
 import { OutOfTimeMoment } from '../tabs/TutorTab.tsx';
 import { OUT_OF_TIME } from '../empty/emptyStates.ts';
 
@@ -64,7 +64,9 @@ const previewFirstLive: FirstLiveRecord = {
 };
 /** Speak's out-of-time words on a fixture refill, as `outOfTimeCard` builds them. */
 const QUIET_OUT_OF_TIME = { title: OUT_OF_TIME.title, body: `Your next free conversation is ready on Monday at 4:10 pm. ${OUT_OF_TIME.still}`, action: OUT_OF_TIME.action };
-const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'how-its-going-both', 'how-its-going-better', 'how-its-going-again', 'how-its-going-free', 'quiet-toast', 'quiet-phrasebook', 'quiet-speak', ...DRILL_PREVIEWS, ...RECAP_PREVIEW_KEYS, ...TODAY_PREVIEW_KEYS, 'select'] as const;
+/** The support details' line on the live error preview (F998): synthetic, no microphone was asked for. */
+const LIVE_ERROR_PREVIEW_MESSAGE = 'Screen preview. No microphone was asked for.';
+const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'how-its-going-both', 'how-its-going-better', 'how-its-going-again', 'how-its-going-free', 'quiet-toast', 'quiet-phrasebook', 'quiet-speak', 'live-error', ...DRILL_PREVIEWS, ...RECAP_PREVIEW_KEYS, ...TODAY_PREVIEW_KEYS, 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'live-speaking': 'Live speaking layout', 'live-typing': 'Live typing layout',
@@ -77,6 +79,7 @@ const LABELS: Record<Preview, string> = {
   'how-its-going-again': 'How it’s going, another go only', 'how-its-going-free': 'How it’s going, free plan',
   'quiet-toast': 'Phrase saved toast',
   'quiet-phrasebook': 'Phrasebook, nothing kept yet', 'quiet-speak': 'Speak, out of the free conversation',
+  'live-error': 'Live error, microphone refused',
   ...TODAY_PREVIEW_LABELS,
   ...Object.fromEntries(DRILL_PREVIEWS.map((key) => [key, `Practice, ${key.slice('drill-'.length).replace(/-/g, ' ')}`])) as Record<DrillPreviewKey, string>,
   ...Object.fromEntries(RECAP_PREVIEW_KEYS.map((key) => [key, `Recap, ${key.slice('recap-'.length).replace(/-/g, ' ')}`])) as Record<RecapPreviewKey, string>,
@@ -181,6 +184,7 @@ export function OnboardingPreview() {
       </ScrollScreen> : yourFrench !== null ? <YourFrenchPreview state={yourFrench} mode={yourFrenchMode} onBack={controlsVisible ? () => go('select') : undefined} /> : going !== null ? <HowItsGoingPreview state={going} mode={yourFrenchMode} onBack={controlsVisible ? () => go('select') : undefined} /> : today !== null ? <TodayPreview state={today} mode={yourFrenchMode} onBack={controlsVisible ? () => go('select') : undefined} />
       : drill !== null ? <ModeScope mode={yourFrenchMode}><DrillPreview key={drill} preview={drill} /></ModeScope>
       : recap !== null ? <RecapPreview key={recap} preview={recap} mode={yourFrenchMode} />
+      : screen === 'live-error' ? <ModeScope mode={yourFrenchMode}><LiveErrorView failure="mic-denied" message={LIVE_ERROR_PREVIEW_MESSAGE} onBack={() => go('select')} onType={() => go('select')} /></ModeScope>
       : <OnboardingFrame initialProgress={onboardingProgress({ page: screen === 'tutor' ? 'choose-tutor' : screen.startsWith('streak') ? 'remind' : screen })}>
         <Animated.View style={[st.root, transition.style]}>
           {screen === 'orb' && <ScrollScreen><View style={[readingColumn, { gap: 24, alignItems: 'center' }]}><Text accessibilityRole="header" style={[type.title, st.heading]}>Fluid voice orb</Text><Text style={[type.body, st.caption]}>Synthetic state preview. No microphone or live audio.</Text><BoldVoiceOrb state={orbState} size={280} active={orbActive} /><Text accessibilityLiveRegion="polite" style={[type.bodyStrong, st.ink]}>{orbState}</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{(['ready', 'connecting', 'listening', 'thinking', 'speaking', 'error'] as const).map(value => <PillButton key={value} label={value} onPress={() => setOrbState(value)} />)}</View><PillButton label={orbActive ? 'Pause motion' : 'Resume motion'} onPress={() => setOrbActive(!orbActive)} /></View></ScrollScreen>}
@@ -201,7 +205,7 @@ export function OnboardingPreview() {
           {screen === 'journey' && <PreAccountOnboarding previewOnly initialDraft={null} onDraftChange={() => {}} onCreateAccount={() => { go('signup'); return Promise.resolve(true); }} onSignIn={() => go('signin')} />}
           {screen === 'account' && <AccountWelcome onDone={() => go('select')} />}
           {screen === 'quiet-toast' && <ModeScope mode={yourFrenchMode}><View style={[st.toast, { backgroundColor: b[yourFrenchMode].ground }]}><ToastPill /></View></ModeScope>}
-          {screen === 'quiet-phrasebook' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: () => go('select') }} />} footer={<PillButton label={PHRASEBOOK_EMPTY.action} onPress={() => go('select')} lip />}><Text accessibilityRole="header" style={[type.display, { color: b[yourFrenchMode].text, marginTop: space(2) }]}>{PHRASEBOOK_TITLE}</Text><PhrasebookEmpty title={PHRASEBOOK_EMPTY.title} body={PHRASEBOOK_EMPTY.body} /></ScrollScreen></ModeScope>}
+          {screen === 'quiet-phrasebook' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: () => go('select') }} />} footer={<PillButton label={PHRASEBOOK_EMPTY.action} onPress={() => go('select')} lip />}><PhrasebookEmpty title={PHRASEBOOK_EMPTY.title} body={PHRASEBOOK_EMPTY.body} /></ScrollScreen></ModeScope>}
           {screen === 'quiet-speak' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset"><OutOfTimeMoment card={QUIET_OUT_OF_TIME} onPlans={() => go('select')} /></ScrollScreen></ModeScope>}
           {(screen === 'live-speaking' || screen === 'live-typing' || screen === 'live-tap-to-send' || screen === 'live-wrap-up') && <ModeScope mode={yourFrenchMode}><LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} tapToSend={screen === 'live-tap-to-send'} wrappingUp={screen === 'live-wrap-up'} controls={controlsVisible} onEnd={() => go('celebration')} /></ModeScope>}
           {(titles[screen] !== undefined || screen === 'interests') && <PreAccountOnboarding key={screen} previewOnly
@@ -210,7 +214,7 @@ export function OnboardingPreview() {
 
         </Animated.View>
       </OnboardingFrame>}
-      {(controlsVisible || requestPending) && screen !== 'select' && !screen.startsWith('streak') && yourFrench === null && drill === null && recap === null && going === null && today === null && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
+      {(controlsVisible || requestPending) && screen !== 'select' && !screen.startsWith('streak') && screen !== 'live-error' && yourFrench === null && drill === null && recap === null && going === null && today === null && <View style={[st.badgeFrame, { top: insets.top + space(2) }]}>
         <Press accessibilityRole="button" accessibilityLabel="Screen preview. Choose another synthetic screen" onPress={() => go('select')} style={st.badge}>
           <Text style={[type.small, st.ink]}>{requestPending ? 'Preview' : 'Screen preview'}</Text>
         </Press>

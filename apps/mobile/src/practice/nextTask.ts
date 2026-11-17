@@ -79,6 +79,9 @@ export function heldWords(billing: HomeBilling, now: number): { title: string; m
   return { title: words.title, message: words.message, plans: false };
 }
 
+/** The offline lead's headline, and its row's title: offline or the tutor out of reach, true in both. */
+export const OFFLINE_LEAD_TITLE = 'Something you can do now';
+
 /** The path stop's words for each lead: the scene's own minutes, or what the lead honestly is. */
 export function leadStop(lead: TodayLead | 'explore', minutes: number | null): { title: string; line: string | null } {
   // The scene's time is on its card only (founder, 2026-10-29).
@@ -89,7 +92,7 @@ export function leadStop(lead: TodayLead | 'explore', minutes: number | null): {
   if (lead === 'explore') return { title: 'Something new', line: 'Pick a scene or a topic' };
   if (lead === 'starter') return { title: 'Continue your practice', line: 'Typed, no connection needed' };
   // Offline or the tutor out of reach: true in both (fix-verifier round 2).
-  if (lead === 'local') return { title: 'Something you can do now', line: 'No connection needed' };
+  if (lead === 'local') return { title: OFFLINE_LEAD_TITLE, line: 'No connection needed' };
   return { title: 'The next scene', line: 'Finding your next task' };
 }
 

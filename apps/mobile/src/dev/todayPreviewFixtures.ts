@@ -107,11 +107,10 @@ export function todayPreviewGame(open: boolean): TodayPreviewGame {
 export const todayPreviewOpen = (state: TodayPreviewState): boolean => state === 'evening';
 
 export const TODAY_PREVIEW_SCENE = {
-  eyebrow: 'Next scene, 2 of 3',
   title: 'Order at a café',
   time: 'About 3 minutes',
-  /** As `sceneRowLine` joins them. */
-  rowLine: 'Next scene, 2 of 3. About 3 minutes',
+  /** As `sceneHeroLine` joins them, on the hero and its row alike. */
+  line: 'About 3 minutes, scene 2 of 3',
 } as const;
 
 export const TODAY_PREVIEW_FIX = {
@@ -120,7 +119,9 @@ export const TODAY_PREVIEW_FIX = {
   locked: false,
 } as const;
 
-export const TODAY_PREVIEW_PHRASE = { fr: 'Je voudrais un café, s’il vous plaît.', en: 'I would like a coffee, please.' } as const;
+export const TODAY_PREVIEW_PHRASE = { id: 'preview-phrase', fr: 'Je voudrais un café, s’il vous plaît.', en: 'I would like a coffee, please.' } as const;
+/** The Starter café line a held lead at Starter hands to the phrase row (F996). */
+export const TODAY_PREVIEW_CAFE = { id: 'preview-cafe', fr: 'Un café, s’il vous plaît.', en: 'A coffee, please.' } as const;
 export const TODAY_PREVIEW_REVIEW = { title: 'Review 4 phrases', line: 'About 2 minutes' } as const;
 export const TODAY_PREVIEW_COMING_UP: ComingUpCardView = { title: 'Your trip to Lyon', when: 'Émilie remembers it is on Saturday', locked: false, feature: 'realMoment' };
 /** A paying learner past Starter whose minutes are spent, for the held hero (F946). */

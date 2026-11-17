@@ -30,15 +30,13 @@ import { Screen, readingColumn, useCompactPhone, useFontScale, useLayoutClass } 
 import { paper, radius, space } from '../theme.ts';
 import { boldType as type, c } from './boldRhythm.ts';
 import { BoldButton } from './BoldButton.tsx';
-import { BoldChoice } from './BoldChoice.tsx';
-import { BOLD_QUESTIONS, BOLD_GOALS, INTERESTS, boldChoiceTone } from './boldChoices.ts';
+import { BOLD_QUESTIONS, BOLD_GOALS, INTERESTS } from './boldChoices.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
 import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
 import { voiceSample } from '../tutor/voiceSamples.ts';
 
 import { soft, tapSettled } from '../motion/haptics.ts';
 import { Glint } from '../motion/Glint.tsx';
-import { MorphButton } from '../motion/MorphButton.tsx';
 
 import { IconTile } from '../icons/IconTile.tsx';
 
@@ -820,12 +818,12 @@ export function PreAccountOnboarding({
               </>
             ) : (
               <>
-                {planField === 'reason' && BOLD_GOALS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.detail} selected={edit.reason === v.key} onPress={() => setEdit({ ...edit, reason: v.key })} />)}
-                {planField === 'interests' && INTERESTS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} multiple selected={edit.interests?.includes(v.key) ?? false} onPress={() => setEdit({ ...edit, interests: edit.interests?.includes(v.key) ? edit.interests.filter(i => i !== v.key) : [...(edit.interests ?? []), v.key] })} />)}
-                {planField === 'start-level' && START_LEVELS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={edit.startLevel === v.key} onPress={() => setEdit({ ...edit, startLevel: v.key })} />)}
-                {planField === 'confidence' && CONFIDENCE_OPTIONS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={edit.speakingConfidence === v.key} onPress={() => setEdit({ ...edit, speakingConfidence: v.key })} />)}
-                {planField === 'focus' && FOCUS_OPTIONS.map((v, index) => <BoldChoice key={v.key} tone={boldChoiceTone(index)} title={v.title} detail={v.gloss} selected={edit.practiceFocus === v.key} onPress={() => setEdit({ ...edit, practiceFocus: v.key })} />)}
-                {planField === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes, index) => <BoldChoice key={minutes} tone={boldChoiceTone(index)} title={minutes === 'none' ? FIRST_RUN_COPY.chooseEachTime : `${minutes} minutes a day`} selected={edit.minutes === minutes} onPress={() => setEdit({ ...edit, minutes })} />)}
+                {planField === 'reason' && BOLD_GOALS.map((v) => <Choice key={v.key} title={v.title} detail={v.detail} selected={edit.reason === v.key} onPress={() => setEdit({ ...edit, reason: v.key })} />)}
+                {planField === 'interests' && INTERESTS.map((v) => <Choice key={v.key} role="checkbox" title={v.title} selected={edit.interests?.includes(v.key) ?? false} onPress={() => setEdit({ ...edit, interests: edit.interests?.includes(v.key) ? edit.interests.filter(i => i !== v.key) : [...(edit.interests ?? []), v.key] })} />)}
+                {planField === 'start-level' && START_LEVELS.map((v) => <Choice key={v.key} title={v.title} detail={v.gloss} selected={edit.startLevel === v.key} onPress={() => setEdit({ ...edit, startLevel: v.key })} />)}
+                {planField === 'confidence' && CONFIDENCE_OPTIONS.map((v) => <Choice key={v.key} title={v.title} detail={v.gloss} selected={edit.speakingConfidence === v.key} onPress={() => setEdit({ ...edit, speakingConfidence: v.key })} />)}
+                {planField === 'focus' && FOCUS_OPTIONS.map((v) => <Choice key={v.key} title={v.title} detail={v.gloss} selected={edit.practiceFocus === v.key} onPress={() => setEdit({ ...edit, practiceFocus: v.key })} />)}
+                {planField === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes) => <Choice key={minutes} title={minutes === 'none' ? FIRST_RUN_COPY.chooseEachTime : `${minutes} minutes a day`} selected={edit.minutes === minutes} onPress={() => setEdit({ ...edit, minutes })} />)}
 
               </>
             )}

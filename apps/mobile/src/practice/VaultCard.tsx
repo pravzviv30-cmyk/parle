@@ -15,7 +15,7 @@
 
 import { View, Text, StyleSheet } from 'react-native';
 import { Card, MicGlyph, Stat } from '../components.tsx';
-import { radius, space, type } from '../theme.ts';
+import { corner, radius, space, type } from '../theme.ts';
 import type { Vault } from './archive.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
@@ -58,7 +58,7 @@ function makeSt(t: B) {
   well: {
     width: WELL,
     height: WELL,
-    borderRadius: radius.chip,
+    ...corner.field,
     backgroundColor: t.skeleton,
     alignItems: 'center',
     justifyContent: 'center',
@@ -73,7 +73,7 @@ function makeSt(t: B) {
     gap: space(3),
     marginTop: space(4),
     backgroundColor: t.ground,
-    borderRadius: radius.input,
+    ...corner.field,
     padding: space(3),
   },
 });

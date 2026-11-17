@@ -29,11 +29,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useLive } from '../app/LiveContext.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
 import { scopeGeneration } from '../storage/scope.ts';
-import { IconAction, Card, Field, GhostButton, Label, OutlineButton, PillButton, TabBar, OptionRow } from '../components.tsx';
+import { IconAction, Card, Field, GhostButton, Label, PillButton, TabBar, OptionRow } from '../components.tsx';
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
-import { radius, space, type, HIT } from '../theme.ts';
+import { space, type, HIT, corner } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from './gate.ts';
 import { loadMoments, saveMoment, type RealMoment } from './momentsStore.ts';
 import {
@@ -202,7 +202,7 @@ export function RealMomentScreen({
         {allowed === false && (
           <View style={st.gate}>
             <Text style={st.gateLine}>{MAX_ONLY_LINE}</Text>
-            <OutlineButton label={SEE_PLANS} onPress={onSeePlans} />
+            <GhostButton label={SEE_PLANS} onPress={onSeePlans} />
             <GhostButton label="Not now" onPress={onBack} />
           </View>
         )}
@@ -264,7 +264,7 @@ export function RealMomentScreen({
       {heldBack !== null && (
         <View style={st.offline}>
           <Text style={st.offlineBody}>{TUTOR_OFFLINE.body}</Text>
-          <OutlineButton
+          <GhostButton
             label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}
             disabled={checking}
             onPress={open}
@@ -312,7 +312,7 @@ function makeSt(t: B) {
   cell: { flexGrow: 1, flexBasis: 150, minHeight: HIT },
   moment: {
     backgroundColor: t.card,
-    borderRadius: radius.row,
+    ...corner.tile,
     padding: space(4),
     minHeight: HIT,
     // The ring is drawn whatever the state, so a chosen card does not grow by

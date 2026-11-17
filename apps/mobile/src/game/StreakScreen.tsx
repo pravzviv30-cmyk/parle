@@ -46,7 +46,7 @@ import { LivingBar } from '../motion/LivingBar.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { useBackToHome } from '../nav/useBackToHome.ts';
 import { BButton } from '../today/TodayParts.tsx';
-import { bType, radius, space } from '../theme.ts';
+import { bType, radius, space, corner, continuous } from '../theme.ts';
 import { GAME_COPY } from './copy.ts';
 import { useGame } from './GameProvider.tsx';
 import { FreezeCard, HowCard, MilestoneRow, MonthArrow, MonthGrid, NudgeRow, StreakHead, WeekStrip } from './StreakParts.tsx';
@@ -165,7 +165,7 @@ export function StreakScreen() {
 const makeStyles = (t: B) =>
   StyleSheet.create({
     page: { paddingHorizontal: 22, gap: 22 },
-    band: { backgroundColor: t.butter, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, paddingHorizontal: 22, paddingBottom: 22, gap: 6 },
+    band: { backgroundColor: t.butter, borderBottomLeftRadius: radius.card, borderBottomRightRadius: radius.card, ...continuous, paddingHorizontal: 22, paddingBottom: 22, gap: 6 },
     headRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     heroRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
     heroWords: { flex: 1, minWidth: 0, gap: 2 },
@@ -174,7 +174,7 @@ const makeStyles = (t: B) =>
     centred: { textAlign: 'center' },
     today: { marginTop: 4 },
     body: { paddingTop: 22, paddingHorizontal: 22, paddingBottom: 40, gap: 22 },
-    card: { backgroundColor: t.card, borderRadius: 24, padding: 16, gap: 12 },
+    card: { backgroundColor: t.card, ...corner.card, padding: 16, gap: 12 },
     group: { gap: space(2) },
     section: { gap: 10 },
     arrows: { flexDirection: 'row', gap: 6 },

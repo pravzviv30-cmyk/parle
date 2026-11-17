@@ -116,20 +116,59 @@ describe('the status bar over Today, and path rows at large text — fix round 2
     assert.match(home, /scrolledPast=\{scrolledPast\} onMeasure=\{setSkySize\}/);
   });
 
-  test('at accessibility text sizes a row puts its action under the words, inside the one press', async () => {
-    const { routeRowStacked } = await import('./skyView.ts');
-    const { ROWS_FONT_SCALE } = await import('../game/todayHeroView.ts');
-    assert.equal(routeRowStacked(1.0), false);
-    assert.equal(routeRowStacked(1.59), false);
-    assert.equal(routeRowStacked(ROWS_FONT_SCALE), true);
-    assert.equal(routeRowStacked(2.2), true);
-    assert.equal(routeRowStacked(Number.NaN), false);
-    const row = readFileSync(new URL('./RoutePath.tsx', import.meta.url), 'utf8');
-    assert.match(row, /const stacked = routeRowStacked\(useWindowDimensions\(\)\.fontScale\);/);
-    const words = row.slice(row.indexOf('<View style={st.rowWords}>'), row.indexOf('{action !== null'));
-    assert.match(words, /\{stacked && action !== null && <Text[^>]*>\{action\.label\}<\/Text>\}/, 'the action is not under the words');
-    assert.match(row, /\? stacked \? null : <Text/, 'the action is drawn twice at large text');
-    assert.equal((row.match(/<Press\b/g) ?? []).length, 1, 'the row is no longer one press');
+  test("the greeting's longest hour word fits its column at the largest text size", async () => {
+    // F957: the advance widths of "Bonjour," and "Bonsoir," read from the font itself (cmap and hmtx).
+    const { GREETING_WORD_EM, greetingColumn, greetingMaxScale } = await import('./skyView.ts');
+    const font = readFileSync(new URL('../../assets/fonts/Outfit-ExtraBold.ttf', import.meta.url));
+    const view = new DataView(font.buffer, font.byteOffset, font.byteLength);
+    const tables = new Map<string, number>();
+    for (let i = 0; i < view.getUint16(4); i += 1) tables.set(font.toString('latin1', 12 + i * 16, 16 + i * 16), view.getUint32(20 + i * 16));
+    const at = (tag: string): number => { const offset = tables.get(tag); assert.ok(offset !== undefined, `the font has no ${tag} table`); return offset; };
+    const unitsPerEm = view.getUint16(at('head') + 18);
+    const metrics = view.getUint16(at('hhea') + 34);
+    const cmap = at('cmap');
+    let unicode = -1;
+    for (let i = 0; i < view.getUint16(cmap + 2); i += 1) {
+      const sub = cmap + view.getUint32(cmap + 8 + i * 8);
+      if (view.getUint16(sub) === 4) unicode = sub;
+    }
+    assert.ok(unicode !== -1, 'the font has no format 4 cmap');
+    const glyph = (code: number): number => {
+      const segments = view.getUint16(unicode + 6) / 2;
+      const ends = unicode + 14, starts = ends + segments * 2 + 2, deltas = starts + segments * 2, ranges = deltas + segments * 2;
+      for (let s = 0; s < segments; s += 1) {
+        if (code > view.getUint16(ends + s * 2)) continue;
+        const start = view.getUint16(starts + s * 2);
+        if (code < start) return 0;
+        const range = view.getUint16(ranges + s * 2);
+        if (range === 0) return (code + view.getInt16(deltas + s * 2)) & 0xffff;
+        const id = view.getUint16(ranges + s * 2 + range + (code - start) * 2);
+        return id === 0 ? 0 : (id + view.getInt16(deltas + s * 2)) & 0xffff;
+      }
+      return 0;
+    };
+    const advance = (word: string): number => [...word].reduce((sum, ch) => {
+      const id = glyph(ch.codePointAt(0)!);
+      assert.notEqual(id, 0, `the font has no glyph for ${ch}`);
+      return sum + view.getUint16(at('hmtx') + 4 * Math.min(id, metrics - 1));
+    }, 0) / unitsPerEm;
+    const SIZE = 34;
+    assert.match(readFileSync(new URL('../theme.ts', import.meta.url), 'utf8'), /greeting: \{ fontFamily: font\.extraBold, fontSize: 34,/, 'the greeting is no longer 34pt Outfit ExtraBold, so the cap is sized for another type');
+    for (const word of ['Bonjour,', 'Bonsoir,']) {
+      const em = advance(word);
+      assert.ok(GREETING_WORD_EM >= em, `${word} is ${em} em, wider than GREETING_WORD_EM`);
+      for (const width of [320, 375, 402, 430]) {
+        assert.equal(greetingColumn(width), width - 96);
+        const cap = greetingMaxScale(width);
+        assert.ok(cap >= 1, 'the greeting is capped below its own size');
+        for (const scale of [1, 1.35, 2, 3.12, 4]) {
+          assert.ok(em * SIZE * Math.min(scale, cap) <= greetingColumn(width), `${word} breaks at ${width}pt and ${scale}x`);
+        }
+      }
+    }
+    const band = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8');
+    assert.match(band, /maxFontSizeMultiplier=\{greetingMaxScale\(width\)\}/, 'the greeting is not capped by its column');
+    assert.equal((band.match(/maxFontSizeMultiplier/g) ?? []).length, 1, 'something beside the greeting is capped');
   });
 });
 

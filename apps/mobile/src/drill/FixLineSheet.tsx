@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Text, TextInput, View } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { GhostButton, PillButton, Sheet } from '../components.tsx';
-import { bType, frenchText, space, type, radius, HAIRLINE } from '../theme.ts';
+import { bType, corner, frenchText, space, type, HAIRLINE } from '../theme.ts';
 import { drillStage } from './drillStage.ts';
 import { arrived } from '../motion/haptics.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
@@ -63,7 +63,7 @@ export function FixLineSheet({ repair, onClose }: { repair: ClosureRepair; onClo
       <Text style={[bType.bold12, { color: t.muted }]}>You said</Text>
       <Text {...frenchText} style={[bType.bold16, { color: t.text }]}>{repair.quote}</Text>
     </View>
-    <View style={{ backgroundColor: t[stage.band], borderRadius: 18, paddingVertical: 12, paddingHorizontal: 14, gap: 2 }}>
+    <View style={{ backgroundColor: t[stage.band], ...corner.tile, paddingVertical: 12, paddingHorizontal: 14, gap: 2 }}>
       <Text style={[bType.bold12, { color: t[stage.eyebrow] }]}>Try this</Text>
       <Text {...frenchText} style={[bType.title17, { color: t.text }]}>{repair.better}</Text>
       <Text style={[type.small, { color: t.muted }]}>{repair.betterEn}</Text>
@@ -77,13 +77,13 @@ export function FixLineSheet({ repair, onClose }: { repair: ClosureRepair; onClo
         <Text style={[type.small, { color: t.muted }]}>Check the transcript, then tap Check.</Text>
         <TextInput accessibilityLabel="Your French retry" placeholder="e.g. Je voudrais un café, s’il vous plaît." placeholderTextColor={t.muted}
           value={state.attempt} onChangeText={value => session.edit(value)} editable={!busy} multiline maxLength={600}
-          style={[type.body, { color: t.text, borderColor: t.field, borderWidth: HAIRLINE, borderRadius: radius.card, padding: space(3), minHeight: 96 }]} />
+          style={[type.body, { color: t.text, borderColor: t.field, borderWidth: HAIRLINE, ...corner.card, padding: space(3), minHeight: 96 }]} />
         <PillButton label={state.phase === 'checking' ? 'Checking…' : 'Check'} disabled={busy || state.attempt.trim() === ''} onPress={() => { void session.check(); }} />
       </>}
     </>}
     {state.phase === 'retry' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>{state.hint ?? 'Try the corrected part once more.'}</Text>}
     {state.phase === 'unavailable' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.muted }]}>The tutor couldn’t check this time. Keep the corrected line, or try again.</Text>}
-    {state.phase === 'success' && <View style={{ backgroundColor: t.mint, borderRadius: radius.card, padding: space(4) }}><Text accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: t.onMint }]}>That fixes the part we practised.</Text></View>}
+    {state.phase === 'success' && <View style={{ backgroundColor: t.mint, ...corner.card, padding: space(4) }}><Text accessibilityLiveRegion="polite" style={[type.bodyStrong, { color: t.onMint }]}>That fixes the part we practised.</Text></View>}
     {state.phase === 'finished' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>Practice ended.</Text>}
     <Text style={[bType.note, { color: t.muted }]}>Text check only. This retry is not saved.</Text>
   </Sheet>;

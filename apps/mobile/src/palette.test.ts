@@ -1099,7 +1099,7 @@ describe('the saved-report mark in the live room', () => {
   }
   test('the room draws it from those tokens', () => {
     const room = readFileSync(fileURLToPath(new URL('./live/C2LiveRoom.tsx', import.meta.url)), 'utf8');
-    assert.match(room, /reportPending: \{ position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: t\.sun \}/);
-    assert.match(room, /menu: \{ width: 44, height: 44, borderRadius: 22, backgroundColor: t\.violetDeep/);
+    assert.match(room, /reportPending: \{ position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: radius\.pill, backgroundColor: t\.sun \}/);
+    assert.match(room, /menu: \{ width: 44, height: 44, borderRadius: radius\.pill, backgroundColor: t\.violetDeep/);
   });
 });

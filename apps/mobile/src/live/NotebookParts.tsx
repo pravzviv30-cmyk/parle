@@ -21,7 +21,7 @@ import { Press, fitDisplay } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BubbleIn } from '../motion/BubbleIn.tsx';
 import { useReduceMotion } from '../motion.ts';
-import { HIT, bType, decorative, frenchText, type } from '../theme.ts';
+import { HIT, bType, decorative, frenchText, type, corner, radius } from '../theme.ts';
 import { BSpeaker } from '../today/TodayParts.tsx';
 import { recastView } from '../tutor/recastLabel.ts';
 import { replayEar } from '../tutor/replayEar.ts';
@@ -213,9 +213,9 @@ function makeStyles(t: B) {
     hearSounding: { backgroundColor: t.lavender },
     learner: { alignItems: 'flex-end', gap: 8 },
     learnerText: { textAlign: 'right' },
-    mark: { borderRadius: 6, paddingVertical: 1, paddingHorizontal: 6, maxWidth: 300 },
+    mark: { ...corner.mark, paddingVertical: 1, paddingHorizontal: 6, maxWidth: 300 },
     fixRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: 310 },
-    fix: { flexShrink: 1, backgroundColor: t.lavender, borderRadius: 16, borderBottomRightRadius: 5, paddingVertical: 8, paddingHorizontal: 12, gap: 2 },
+    fix: { flexShrink: 1, backgroundColor: t.lavender, ...corner.field, borderBottomRightRadius: radius.nib, paddingVertical: 8, paddingHorizontal: 12, gap: 2 },
     why: { minHeight: HIT, minWidth: HIT, justifyContent: 'center', alignSelf: 'flex-start' },
     underline: { textDecorationLine: 'underline' },
     toast: { width: 34, flexShrink: 0 },

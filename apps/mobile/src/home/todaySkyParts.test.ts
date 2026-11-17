@@ -10,6 +10,7 @@ import { describe, test } from 'node:test';
 import { STAT_GAP, statCoins, statRowTileWidth, statTileLayout } from '../game/todayHeroView.ts';
 import { flamePops } from './homeDraw.ts';
 import { routeRowLabel } from './routeRow.ts';
+import { TODAY_COPY } from './todayView.ts';
 import { greetingText } from './skyView.ts';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
@@ -63,20 +64,45 @@ describe('the stat tiles choose their layout from the measured row', () => {
 });
 
 describe("Today's path row and greeting", () => {
-  test('a row says its title, its line and what the press does, once', () => {
-    // Fix round 3: an English row is one label, eyebrow first.
-    assert.deepEqual(routeRowLabel({ title: 'Review 4 phrases', line: 'About 2 minutes', action: { label: 'Practise' } }), { label: 'Review 4 phrases, About 2 minutes, Practise', hint: undefined, language: undefined });
-    assert.deepEqual(routeRowLabel({ eyebrow: 'Next scene', title: 'Order at a café', line: ' ' }), { label: 'Next scene, Order at a café', hint: undefined, language: undefined });
-    // A French title is the label alone, in French; the eyebrow, line and action are the hint.
+  test('a row says its title and its line, once', () => {
+    // An English row is one label; a French title is the label alone, in French, and its line the hint.
+    assert.deepEqual(routeRowLabel({ title: 'Review 4 phrases', line: 'About 2 minutes' }), { label: 'Review 4 phrases, About 2 minutes', hint: undefined, language: undefined });
+    assert.deepEqual(routeRowLabel({ title: 'Order at a café', line: ' ' }), { label: 'Order at a café', hint: undefined, language: undefined });
     assert.deepEqual(
-      routeRowLabel({ eyebrow: "Today's phrase", title: 'Je voudrais un café.', titleLang: 'fr', line: 'I would like a coffee, please.', action: { label: 'Say it' } }),
-      { label: 'Je voudrais un café.', hint: "Today's phrase. I would like a coffee, please. Say it", language: 'fr' },
+      routeRowLabel({ title: 'Je voudrais un café.', titleLang: 'fr', line: 'I would like a coffee, please.' }),
+      { label: 'Je voudrais un café.', hint: 'I would like a coffee, please.', language: 'fr' },
     );
     assert.deepEqual(routeRowLabel({ title: 'Salut', titleLang: 'fr' }), { label: 'Salut', hint: undefined, language: 'fr' });
     const route = strip(read('./RoutePath.tsx'));
-    assert.match(route, /const said = routeRowLabel\(\{ eyebrow, title, titleLang, line, action \}\);/, 'the eyebrow or the language is dropped from what is said');
+    assert.match(route, /const said = routeRowLabel\(\{ title, titleLang, line \}\);/, 'the language is dropped from what is said');
     assert.match(route, /accessibilityLabel=\{said\.label\} accessibilityHint=\{said\.hint\} accessibilityLanguage=\{said\.language\}/);
     assert.match(route, /row: \{ minHeight: HIT,/);
+  });
+
+  test('Today names the review action once', () => {
+    // F954: no row carries an action word, so the review's only words are reviewRow().title.
+    const said = routeRowLabel({ title: 'Review 4 phrases', line: 'About 2 minutes', action: { label: 'Practise' } } as never);
+    assert.equal(said.label, 'Review 4 phrases, About 2 minutes', 'a row still says an action word');
+    const route = strip(read('./RoutePath.tsx'));
+    assert.doesNotMatch(route, /\baction\b/, 'RouteRow still takes an action');
+    assert.doesNotMatch(strip(read('./routeRow.ts')), /\baction\b|\beyebrow\b/, 'routeRowLabel still reads an action or an eyebrow');
+    assert.match(route, /<Icon name="chevron-right"/, 'a row does not end in a chevron');
+    assert.ok(!('practise' in TODAY_COPY) && !('sayRow' in TODAY_COPY), 'Today keeps an inline action word');
+    const home = strip(read('../tabs/HomeTab.tsx')).replace(/\s+/g, ' ');
+    assert.match(home, /<RouteRow key="review" [^]*?title=\{review\.title\} line=\{review\.line\} onPress=/, "the review row is not named by reviewRow's title");
+    assert.match(home, /const review = reviewDeck === null \? null : reviewRow\(/);
+    const task = strip(read('../practice/NextTaskCard.tsx')).replace(/\s+/g, ' ');
+    assert.match(task, /const reviewDoor = value === null \? null : reviewRow\(/);
+    assert.equal((task.match(/reviewLabel=\{reviewDoor\?\.title\}/g) ?? []).length, 2, "the hero's review door is not named by reviewRow's title");
+  });
+
+  test('Today and the drill stages draw no eyebrow', () => {
+    // F995, Today's half: the scan's own rule, over every file Today's hero and path draw from.
+    const eyebrow = /\.eyebrow\w*|\beyebrow\s*[=:]/;
+    for (const path of ['../tabs/HomeTab.tsx', './TodayHeroes.tsx', './TodayHeroCard.tsx', './RoutePath.tsx', './routeRow.ts', './MissionHero.tsx', './SkyBand.tsx', './TodayLayout.tsx', '../today/TodayParts.tsx', '../practice/NextTaskCard.tsx', '../practice/LocalPracticeCard.tsx', '../dev/TodayPreview.tsx']) {
+      const body = strip(read(path));
+      body.split('\n').forEach((line, i) => assert.doesNotMatch(line, eyebrow, `${path}:${i + 1} draws an eyebrow`));
+    }
   });
 
   test('the greeting is one string the text engine wraps after the comma, with a name and without', () => {

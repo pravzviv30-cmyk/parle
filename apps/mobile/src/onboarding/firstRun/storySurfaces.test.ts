@@ -42,7 +42,7 @@ describe('the personal onboarding journey', () => {
     assert.ok(START_LEVELS.every(level => level.title.trim().length > 0));
     const levels = screen.slice(screen.indexOf("{page === 'start-level' && START_LEVELS.map"), screen.indexOf("{(page === 'confidence' || page === 'focus')"));
     assert.ok(levels.length > 0, 'this check must read the actual level choice group');
-    assert.match(levels, /<BoldChoice/);
+    assert.match(levels, /<BOption/);
     assert.match(levels, /detail=\{v\.gloss\}/);
     assert.match(levels, /title=\{v\.title\}/);
     assert.match(levels, /choose\(startLevelChange\(draftRef\.current, v\.key\)\)/); // F917, 2026-10-29: a level change clears Skip ahead.

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Press } from '../components.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
-import { HIT, space, type } from '../theme.ts';
+import { HIT, space, type, corner, continuous, radius } from '../theme.ts';
 import { billedPrice, PLAN_MONTHLY, PLAN_WEEKLY, PLAN_YEARLY } from './wallCopy.ts';
 import type { WallPlanOffer } from './wallPlans.ts';
 
@@ -44,10 +44,10 @@ export function WallPeriodSwitch({ offers, name, selected, onSelect, disabled = 
 }
 
 const styles = StyleSheet.create({
-  group: { alignSelf: 'center', width: '100%', maxWidth: 260, flexDirection: 'row', padding: space(1), borderRadius: 22, gap: space(1) },
-  stacked: { flexDirection: 'column', borderRadius: 22 },
+  group: { alignSelf: 'center', width: '100%', maxWidth: 260, flexDirection: 'row', padding: space(1), ...corner.card, gap: space(1) },
+  stacked: { flexDirection: 'column', ...corner.card },
   share: { flex: 1, minWidth: 0, minHeight: HIT },
   full: { alignSelf: 'stretch', minHeight: HIT },
-  segment: { minHeight: HIT, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(3), paddingVertical: space(2) },
+  segment: { minHeight: HIT, borderRadius: Math.max(radius.nib, radius.card - space(1)), ...continuous, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(3), paddingVertical: space(2) },
   label: { ...type.bodyStrong, textAlign: 'center', flexShrink: 1 },
 });

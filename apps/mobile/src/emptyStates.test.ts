@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 
 // 2026-10-21 UI-008, B-Empty-States anatomy: every empty list is the one B
-// empty-state card (radius 26, the canvas drawing, a 19 bold title, one 46 ink
+// empty-state card (the card radius, the canvas drawing, a 19 bold title, one 46 ink
 // button). The drawing and one first action stay the rule; they now arrive as
 // the card's props rather than an Illustration and a pill beside it.
 test('every empty list shows its drawing and one first action', () => {
@@ -21,7 +21,7 @@ test('every empty list shows its drawing and one first action', () => {
 
 test('the empty-state card is the artboard anatomy, from the theme', () => {
   const card = readFileSync(new URL('empty/EmptyStateCard.tsx', import.meta.url), 'utf8');
-  assert.match(card, /card: \{ borderRadius: 26, paddingVertical: 20, paddingHorizontal: 18, gap: 8, alignItems: 'center'/);
+  assert.match(card, /card: \{ \.\.\.corner\.card, paddingVertical: 20, paddingHorizontal: 18, gap: 8, alignItems: 'center'/);
   assert.match(card, /<BArt name=\{art\.name\} width=\{art\.width\} height=\{art\.height\} \/>/);
   assert.match(card, /bType\.bold19/);
   assert.match(card, /bType\.para15/);

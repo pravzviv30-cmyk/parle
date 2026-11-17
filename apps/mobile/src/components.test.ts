@@ -1125,10 +1125,6 @@ describe('the icon controls keep their promises', () => {
     // 2026-10-20, UI-008: the parts read the theme (useB); b.light equals the old paper values (palette.test.ts).
     assert.match(choice, /const fill = filled \? \(sunny \? colour\.sun : t\.brandMark\)/);
     const screen = stripComments(readFileSync(join(SRC, 'onboarding', 'PreAccountOnboarding.tsx'), 'utf8'));
-    const boldChoice = readFileSync(join(SRC, 'onboarding', 'BoldChoice.tsx'), 'utf8');
-    assert.match(boldChoice, /const fill = tone \? \(selected \? c\.violet : c\[tone\]\) : selected \? c\.lavender : c\.paper/);
-    assert.match(boldChoice, /const ink = colourful && selected \? c\.white : c\.ink/);
-    assert.match(boldChoice, /color: colourful \? ink : c\.muted/);
     assert.match(screen, /draft\.practiceFocus === v\.key/);
     const welcome = region(screen, '{blue && ', '{question && ');
     assert.doesNotMatch(welcome, /<Choice\b/, 'the retired coffee preference must not reappear before the personal plan');
@@ -1185,6 +1181,19 @@ describe('the systemic pass parts keep their promises — F991, F992, F997', () 
     assert.doesNotMatch(styles, /borderRadius: radius\.tile/, 'a choice turns a corner without the continuous curve');
     // OptionRow still draws through it.
     assert.match(part('OptionRow'), /return <Choice role="button"/, 'OptionRow no longer draws through Choice');
+  });
+
+  test("onboarding's plan editor draws Choice and BoldChoice is gone", () => {
+    const screen = stripComments(readFileSync(join(SRC, 'onboarding', 'PreAccountOnboarding.tsx'), 'utf8'));
+    assert.doesNotMatch(screen, /BoldChoice|boldChoiceTone|MorphButton/, 'the first run still reaches for BoldChoice, its tone or MorphButton');
+    assert.throws(() => readFileSync(join(SRC, 'onboarding', 'BoldChoice.tsx'), 'utf8'), /ENOENT/, 'BoldChoice.tsx is still on disk');
+    const editor = screen.split('\n').filter((line) => /\{planField === '/.test(line) && /\.map\(/.test(line));
+    assert.equal(editor.length, 6, 'the plan editor no longer has its six pickers');
+    for (const line of editor) assert.match(line, /<Choice key=/, `a plan picker does not draw Choice: ${line.trim().slice(0, 60)}`);
+    // Interests is many of many and says so; every other picker is one of a set, the radio default.
+    const interests = editor.find((line) => line.includes("planField === 'interests'"));
+    assert.match(interests ?? '', /<Choice key=\{v\.key\} role="checkbox"/, 'the interests picker is not a checkbox list');
+    for (const line of editor.filter((l) => l !== interests)) assert.doesNotMatch(line, /role=/, 'a single pick is not left as a radio');
   });
 
   test('the hero title steps 28, 24, 20 to fit its column', () => {

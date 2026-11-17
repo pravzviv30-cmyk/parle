@@ -61,7 +61,6 @@ function styleKeyAt(source: string, index: number): string {
 const CONTROL_BORDERS: { file: string; what: string; pattern: RegExp }[] = [
   { file: 'auth/AccountField.tsx', what: 'the account input', pattern: /inputWrap:[^\n]*borderColor: (\w+\.\w+)/ },
   { file: 'auth/ProviderButtonBase.tsx', what: 'the Google button', pattern: /borderWidth: apple \? 0 : 1, borderColor: (\w+\.\w+)/ },
-  { file: 'onboarding/BoldChoice.tsx', what: 'an unchosen quiet choice', pattern: /colourful \? 'transparent' : (\w+\.\w+)/ },
   { file: 'wall/WallPlansPage.tsx', what: 'an unchosen plan card', pattern: /: \{ borderWidth: 1, borderColor: (\w+\.\w+) \}\]\}>/ },
   { file: 'wall/WallPlansPage.tsx', what: 'an unchosen plan radio', pattern: /: \{ borderWidth: 1\.5, borderColor: (\w+\.\w+) \}\]\}>\s*\{checked/ },
   { file: 'explore/ExploreParts.tsx', what: 'the Explore field', pattern: /fieldInput: \{[^\n]*borderColor: (\w+\.\w+)/ },
@@ -235,7 +234,6 @@ describe('F927: Space and the focus ring', () => {
     const chip = components.slice(components.indexOf('export function Chip('), components.indexOf('export function Chip(') + 3000);
     assert.match(chip, /spaceActivator\(role/, 'a filter chip does not answer Space');
     for (const [file, start] of [
-      ['onboarding/BoldChoice.tsx', 'export function BoldChoice'],
       ['onboarding/BOnboardingParts.tsx', 'export function BOption'],
       ['onboarding/TutorSelection.tsx', 'export function TutorSelection'],
     ] as const) {

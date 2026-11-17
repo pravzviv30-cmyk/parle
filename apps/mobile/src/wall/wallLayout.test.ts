@@ -79,7 +79,7 @@ test('the paywall sets type at the approved sizes and never clips it', () => {
   // Every size is a theme token (the surface contract refuses raw sizes).
   assert.match(parts, /headline: \{ \.\.\.type.title, textAlign: 'center' \}/);
   // 2026-10-21 UI-008: the CTA's blue and white come from b.brand / b.onBrand, equal to colour.blue / paper.onInk in light (palette.test.ts).
-  assert.match(parts, /cta: \{ minHeight: 56, borderRadius: 28, flexDirection/);
+  assert.match(parts, /cta: \{ minHeight: 56, borderRadius: radius\.pill, flexDirection/);
   assert.match(parts, /style=\{\[st.cta, \{ backgroundColor: b.brand, opacity: dim \}\]\}/);
   assert.match(parts, /ctaLabel: \{ \.\.\.type.button, textAlign/);
   assert.match(parts, /style=\{\[st.ctaLabel, \{ color: b.onBrand \}\]\}/);

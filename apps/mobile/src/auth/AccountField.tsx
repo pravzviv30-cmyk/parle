@@ -1,7 +1,7 @@
 import { forwardRef, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View, type TextInputProps } from 'react-native';
 import { AlertGlyph } from '../components.tsx';
-import { HIT, decorative, font, paper, radius, space, type } from '../theme.ts';
+import { HIT, corner, decorative, font, paper, radius, space, type } from '../theme.ts';
 import { boldType, c } from '../onboarding/boldRhythm.ts';
 
 /** Auth fields expose native focus without changing the behaviour of unrelated forms. */
@@ -120,12 +120,12 @@ AccountField.displayName = 'AccountField';
 const st = StyleSheet.create({
   group: { gap: 6 },
   label: { color: c.ink, fontFamily: font.medium },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 48, borderRadius: 12, backgroundColor: c.white, borderWidth: 1, borderColor: c.field },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 48, ...corner.inset, backgroundColor: c.white, borderWidth: 1, borderColor: c.field },
   // UITextField positions entered/secure text using its font's native metrics;
   // a paragraph line height shifts its baseline below the field's centre.
-  input: { ...boldType.body, lineHeight: Platform.OS === 'ios' ? undefined : boldType.body.lineHeight, flex: 1, minWidth: 0, minHeight: 46, paddingVertical: 11, paddingHorizontal: 14, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, borderRadius: 12, color: c.ink, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
+  input: { ...boldType.body, lineHeight: Platform.OS === 'ios' ? undefined : boldType.body.lineHeight, flex: 1, minWidth: 0, minHeight: 46, paddingVertical: 11, paddingHorizontal: 14, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, ...corner.inset, color: c.ink, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
   focused: { borderColor: c.violet },
-  focusRing: { borderRadius: 12, borderColor: c.violet, borderWidth: 2 },
+  focusRing: { ...corner.inset, borderColor: c.violet, borderWidth: 2 },
   disabled: { opacity: 0.65 },
   show: { position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 64, minHeight: HIT, paddingHorizontal: 12, paddingVertical: 10, margin: 3, borderRadius: radius.field - 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
   showActive: { borderColor: paper.inkSoft, backgroundColor: paper.ground },
