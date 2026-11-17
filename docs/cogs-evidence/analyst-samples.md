@@ -17,6 +17,8 @@ Both runs used the same café mission and the same 9 learner turns (`scripts/mea
 
 "Clean" means every exercise passes core's deterministic `validateExercise`. Every batch was also varied: at least three formats, with both recognition and production. The raw output is in `drill-eval-2026-10-22.txt`, and every exercise from both sessions is in `session-llm-*.json`.
 
+Note, 2026-11-17: the drill figures were measured with the basic check only; the eval now also reports the production filter (F1124, 2026-11-17).
+
 ## Three side by side samples (same session phrases)
 
 **1. Recognition, "what can I get you"**

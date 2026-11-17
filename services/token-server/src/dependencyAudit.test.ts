@@ -37,3 +37,22 @@ test('a recorded fix cannot cover a new advisory and unknown moderate findings r
   (shifted.lock.packages as Record<string,{version:string}>)['nested/node_modules/fixture']={version:'0.9.0'};
   assert.ok(check(shifted).some(item=>item.includes('outside the reviewed exact version')));
 });
+test('an accepted advisory can name each exact version installed', () => {
+  const both = fixture();(both.record.advisories[0] as { lockedAt: unknown }).lockedAt = ['1.0.0', '0.9.0'];
+  (both.report.vulnerabilities.fixture.nodes as string[]).push('nested/node_modules/fixture');
+  (both.lock.packages as Record<string,{version:string}>)['nested/node_modules/fixture'] = { version: '0.9.0' };
+  assert.deepEqual(check(both), []);
+  const third = fixture();(third.record.advisories[0] as { lockedAt: unknown }).lockedAt = ['1.0.0', '0.9.0'];
+  (third.report.vulnerabilities.fixture.nodes as string[]).push('nested/node_modules/fixture');
+  (third.lock.packages as Record<string,{version:string}>)['nested/node_modules/fixture'] = { version: '0.8.0' };
+  assert.ok(check(third).some(item => item.includes('outside the reviewed exact version')));
+  for (const bad of [[], ['1.0.0', 1], '']) {const f = fixture();(f.record.advisories[0] as { lockedAt: unknown }).lockedAt = bad;assert.ok(check(f).length);}
+  assert.deepEqual(check(fixture()), []);
+});
+test('a listed lockedAt is unique, accepted-only and fully installed', () => {
+  for (const bad of [['1.0.0', '1.0.0'], ['1.0.0', '']]) {const f = fixture();(f.record.advisories[0] as { lockedAt: unknown }).lockedAt = bad;assert.ok(check(f).some(item => item.includes('malformed')), `accepts ${JSON.stringify(bad)}`);}
+  const fixed = fixture();fixed.record.advisories[0]!.decision = 'fixed';(fixed.record.advisories[0] as { lockedAt: unknown }).lockedAt = ['1.0.0', '0.9.0'];fixed.report.vulnerabilities.fixture.via = [];
+  assert.ok(check(fixed).some(item => item.includes('malformed')));
+  const absent = fixture();(absent.record.advisories[0] as { lockedAt: unknown }).lockedAt = ['1.0.0', '9.9.9'];
+  assert.ok(check(absent).includes('fixture: listed version 9.9.9 is not installed'));
+});
