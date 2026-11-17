@@ -914,3 +914,49 @@ test('an alias that only mentions push or merges locally is allowed', () => {
     assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} publishes nothing when run, so it must not wedge the session`);
   }
 });
+
+test('a push or merge the guard cannot read is denied even when the command never spells the word', () => {
+  for (const cmd of [
+    'git pu${E}sh origin main',
+    'A=pu; B=sh; git $A$B',
+    'X=$(printf pu)sh; git $X',
+    'git "$(echo pu)sh"',
+    "git pu$'s'h",
+    "git $'\\x70ush'",
+    'git p\\\nush',
+    'gh pr mer${E}ge 5',
+    'M=merge; gh pr $M 5',
+    'gh pr "$(echo merge)" 5',
+    'git -c "$K" p',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${JSON.stringify(cmd)} can run a push or a merge the guard cannot read, so it must deny`);
+  }
+  assert.notEqual(reasonOf('git push $(echo origin) main'), null,
+    'the substitution cuts the push short, so the guard would judge the wrong remote and branch; even a passing stamp must not let it through');
+});
+
+test('a command name the guard cannot read is denied when its arguments say push or merge', () => {
+  for (const cmd of ['G=git; $G push origin main', '$(which git) push', '`which git` push', 'g${E}it push', 'sudo $(which git) push']) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} may be git push under another spelling, so it must deny`);
+  }
+  for (const cmd of ['"$EDITOR" notes.md', 'echo $(date) push', '$(npm bin)/tsc --noEmit', '$HOME/bin/deploy push']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} is not git or gh in any spelling the guard can see, so it must not wedge the session`);
+  }
+});
+
+test('git and gh commands with a readable subcommand are still allowed', () => {
+  for (const cmd of [
+    'git status',
+    'git commit -m "$MSG"',
+    'git -c user.name="$N" commit -m x',
+    'git checkout "$BRANCH"',
+    'git diff $(git merge-base HEAD origin/main)',
+    'gh pr view $N',
+    'gh pr list',
+  ]) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} names what it runs, so a variable in its arguments must not wedge the session`);
+  }
+  const reason = reasonOf('for c in status log; do git $c; done');
+  assert.match(reason ?? '', /could not read/, 'a variable subcommand is denied with a reason that says to write it out');
+  assert.doesNotMatch(reason ?? '', /Push blocked/, 'nothing was pushed, so the reason must not say a push was blocked');
+});

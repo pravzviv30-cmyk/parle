@@ -331,8 +331,12 @@ export function parseMergeArgs(args) {
 
 const baseName = (word) => word.split('/').pop();
 
+// Returned by findMerge when the word where `pr` or `merge` belongs is built by the shell.
+const UNREADABLE_MERGE = Symbol('unreadable merge');
+
 // `gh [flags] pr [flags] merge <args>` -> the merge args, with any repo flag
-// seen before `merge` put in front; null when the command is not a merge.
+// seen before `merge` put in front; null when the command is not a merge, and
+// UNREADABLE_MERGE when the shell decides whether it is.
 function findMerge(rest) {
   const repo = [];
   let i = 0;
@@ -341,7 +345,8 @@ function findMerge(rest) {
       if (rest[i] === '-R' || rest[i] === '--repo') repo.push('-R', rest[++i] ?? '');
       else if (rest[i].startsWith('--repo=')) repo.push(rest[i]);
     }
-    if (rest[i++] !== sub) return null;
+    if (rest[i] !== sub) return SHELL_EXPANDS.test(rest[i] ?? '') ? UNREADABLE_MERGE : null;
+    i++;
   }
   return [...repo, ...rest.slice(i)];
 }
@@ -379,6 +384,9 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     moved: parent ? parent.moved : false,
   };
   const scopes = [];
+  // Depth of a command that was only `$(` or a backtick: the next command at
+  // that depth is the argument list of whatever the substitution prints.
+  let substAt = null;
 
   for (const item of tokenize(command)) {
     if (!Array.isArray(item)) {
@@ -425,10 +433,19 @@ export function analyzeCommand(command, baseCwd, parent = null) {
         break;
       }
     }
+    if (substAt !== null && scopes.length === substAt) {
+      substAt = null;
+      if (words.includes('push') || words.includes('merge')) events.push({ kind: 'opaque', unreadable: true });
+    }
+    if (words.length === 1 && (words[0] === '$' || words[0] === '`')) substAt = scopes.length;
     if (!words.length) continue;
 
     const [head, ...rest] = words;
     const name = baseName(head);
+    // `$G push`, `g${E}it push`: a command name the shell builds may be git.
+    if (SHELL_EXPANDS.test(name) && (rest.includes('push') || rest.includes('merge'))) {
+      events.push({ kind: 'opaque', unreadable: true });
+    }
     if (head === 'cd' || head === 'pushd') {
       const next = afterCd(state.dir, state.known, rest);
       state.dir = next.dir;
@@ -449,7 +466,9 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     } else if (name === 'gh') {
       if (rest[0] === 'api' && apiWrites(rest.slice(1))) events.push({ kind: 'opaque' });
       const merge = findMerge(rest);
-      if (merge) {
+      if (merge === UNREADABLE_MERGE) {
+        events.push({ kind: 'opaque', unreadable: true });
+      } else if (merge) {
         events.push({ kind: 'merge', dir: state.dir, dirKnown: state.known, ...parseMergeArgs(merge) });
       }
     } else if (name === 'git') {
@@ -463,6 +482,9 @@ export function analyzeCommand(command, baseCwd, parent = null) {
         const alias = /^alias\./i.test(rest[i + 1] ?? '');
         if (alias && (flag === '--config-env' || (flag === '-c' && aliasPublishes(rest[i + 1].slice(rest[i + 1].indexOf('=') + 1 || rest[i + 1].length), gitDir)))) aliased = true;
         if (/^--config-env=alias\./i.test(flag)) aliased = true;
+        // A config key the shell builds may be an alias.
+        const configKey = flag === '-c' || flag === '--config-env' ? (rest[i + 1] ?? '') : flag.startsWith('--config-env=') ? flag.slice(13) : '';
+        if (SHELL_EXPANDS.test(configKey.split('=')[0])) aliased = true;
         if (flag === '-C') {
           if (rest[i + 1] !== undefined) {
             const next = afterCd(gitDir, gitKnown, [rest[++i]]);
@@ -478,7 +500,10 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       const aliasAt = sub === 'config' ? args.findIndex((a) => /^alias\./i.test(a)) : -1;
       if (aliased || (sub && SHELL_EXPANDS.test(sub)) || (aliasAt !== -1 && aliasPublishes(args.slice(aliasAt + 1).join(' '), gitDir))) {
         // An alias or a shell expansion can turn into `push`; the guard cannot read which.
-        events.push({ kind: 'opaque' });
+        events.push({ kind: 'opaque', unreadable: true });
+      } else if (sub === 'push' && /[$`]$/.test(rest[rest.length - 1])) {
+        // `git push $(echo origin) main`: the substitution cuts the arguments short.
+        events.push({ kind: 'opaque', unreadable: true });
       } else if (sub === 'push') {
         events.push({
           kind: 'push',
@@ -586,6 +611,9 @@ export function denyReason({ kind, failed = [] }, sha, branch) {
 const MOVED_REASON =
   'Push blocked. Run the push as its own command, after the commit or branch change, ' +
   'so the guard can check the exact commit being pushed.';
+const UNREADABLE_REASON =
+  'Blocked: the guard could not read what this git or gh command runs. ' +
+  'Write it as a plain command, such as git push or gh pr merge 12, with nothing built by the shell.';
 const UNKNOWN_REASON =
   'Push blocked: the guard could not tell which commit this push publishes. ' +
   'Run git push as a plain command from the checkout.';
@@ -617,7 +645,8 @@ export function hookDecision(input, git) {
   if (!input || input.tool_name !== 'Bash') return null;
   const command = input.tool_input?.command;
   // Quotes and backslashes are gone by the time the shell runs it: `pu""sh` is `push`.
-  if (typeof command !== 'string' || !/\b(push|gh|merge)\b/.test(command.replace(/["'\\]/g, ''))) return null;
+  // A line continuation joins its two halves: `git p\<newline>ush` is `git push`.
+  if (typeof command !== 'string' || !/\b(git|gh|push|merge)\b/.test(command.replace(/\\\n/g, '').replace(/["'\\]/g, ''))) return null;
 
   const cwd = input.cwd || process.cwd();
   let denial = null;
@@ -627,7 +656,7 @@ export function hookDecision(input, git) {
 
   for (const ev of analyzeCommand(command, cwd)) {
     if (ev.kind === 'opaque') {
-      deny(MOVED_REASON);
+      deny(ev.unreadable ? UNREADABLE_REASON : MOVED_REASON);
       continue;
     }
     if (ev.kind === 'merge') {
