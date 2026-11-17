@@ -12846,3 +12846,26 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/migrations/20261116120000_tutor_unjoined_release.sql:78
 - note: Deferred, not built in this PR. Settling an unjoined start locks that day's tutor_session_budget_days row until the transaction ends, and every reserve queues on it. The production reconciler passes p_limit 5 (services/token-server/src/maintenance.ts:9). In disposable PGlite a 5-candidate unjoined batch took about 5 ms and one reserve about 5 ms. Measure on staging after the apply, and again before anyone raises the batch size. If it matters, sort claimed candidates ahead of unjoined ones in the reconciler.
 - verified-by: `a reconciler batch of five holds the service-wide day row for under 50 ms on staging (measured)`
+
+### F1079 — Core root files carry a field, a method and five exports nothing reads
+- severity: P2
+- status: [ ]
+- where: packages/core/src/onboarding.ts:14
+- note: `StarterTask.accepts` has no reader and disagrees with `checkStarter`; `ConversationTextBuffer.remove` (conversationText.ts:62) is called only by a test; `SERVICE_FAILURES`, `MAX_CAN_DO_SOURCES`, `MAX_CAN_DO_QUOTE_CHARS`, `CONVERSATION_TEXT_BYTES` and `isConversationTextLine` are exported with no importer. Zero tests deleted, floor unchanged.
+- verified-by: `every starter task accepts its own model and each listed variant, for every goal and both drinks`
+- verified-by: `core exports none of the five names nothing imports, and the text buffer has no remove`
+
+### F1195 — The six goals and the three plan names each have a second home in core
+- severity: P2
+- status: [ ]
+- where: packages/core/src/sessionSettlement.ts:30
+- note: `STARTER_GOALS` (onboarding.ts:3) repeats `LEARNER_GOALS` in another order, and `readSessionSettlement` types the plan names twice beside `PLANS`, with a redundant global bound. Make each one list; settlement results must not change for any input.
+- verified-by: `starter goals and learner goals are one list`
+- verified-by: `settlement accepts each plan up to its own allowance and refuses a name that is not a plan`
+- verified-by: `settlement rejects invented credit and impossible per-plan balances`
+
+**Test notes for the builder:**
+- **T1** loops over every goal, both drinks and every minutes value, and asserts `checkStarter(task, form, 'typed').accepted` for the model and each variant. The drink task follows its existing café or thé filter.
+- **T2** is `assert.equal(STARTER_GOALS, LEARNER_GOALS)`, by identity.
+- **T3** checks each plan at its cap (valid) and at cap plus one (null), and that plan names `constructor`, `toString`, `__proto__` and `''` all return null.
+- **T4** imports `* as core` from `./index.ts`, asserts the five names are absent, and asserts `'remove' in ConversationTextBuffer.prototype` is false.
