@@ -7,6 +7,12 @@
 -- copy, so a learner who never changes phone loses nothing they can see. A learner who
 -- does, loses both. Take the backup named in supabase/README.md first.
 
+begin;
+do $$ begin
+  if current_setting('luvani.remove_daily_namespaces', true) is distinct from 'yes' then
+    raise exception 'refusing to delete the daily learner state namespaces without explicit interlock';
+  end if;
+end $$;
 delete from public.learner_state
   where namespace in ('bookmarks', 'scenarioProgress');
 
@@ -18,3 +24,4 @@ alter table public.learner_state
     'profile', 'history', 'review', 'drills', 'tutorIntro', 'activity',
     'friends', 'topics', 'journal', 'missions', 'coachMarks', 'soundChecks'
   ));
+commit;

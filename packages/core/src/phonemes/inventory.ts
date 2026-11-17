@@ -347,19 +347,5 @@ export function getPhoneme(ipa: string): Phoneme | undefined {
   return BY_IPA.get(ipa);
 }
 
-/** Phonemes with no English equivalent — where practice time actually pays off. */
-export function novelPhonemes(): Phoneme[] {
-  return FRENCH_PHONEMES.filter((p) => !p.existsInEnglish);
-}
-
-/**
- * Phonemes where getting it wrong produces a different real word.
- * These are ranked first when choosing what to drill: an accent is cosmetic,
- * but saying "tout" when you meant "tu" is a failure to communicate.
- */
-export function meaningBearingPhonemes(): Phoneme[] {
-  return FRENCH_PHONEMES.filter((p) => p.meaningBearing === true);
-}
-
-/** Total inventory size — asserted in tests so accidental deletions are caught. */
+/** Total inventory size. The mobile acoustic test loops over it; core asserts `FRENCH_PHONEMES.length` directly. */
 export const PHONEME_COUNT = FRENCH_PHONEMES.length;

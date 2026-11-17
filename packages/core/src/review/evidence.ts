@@ -69,9 +69,6 @@ export const NO_EVIDENCE: PhraseEvidence = Object.freeze({ retrievals: 0, convoU
 
 export type EvidenceState = 'introduced' | 'recalled' | 'used' | 'transferred';
 
-/** The states in climbing order, so a caller can compare two without a switch. */
-export const EVIDENCE_STATES = ['introduced', 'recalled', 'used', 'transferred'] as const;
-
 /**
  * Correct natural uses before the brain projects a phrase as mastered.
  *
