@@ -12949,3 +12949,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/migrations/20261116120000_tutor_unjoined_release.sql:78
 - note: Deferred, not built in this PR. Settling an unjoined start locks that day's tutor_session_budget_days row until the transaction ends, and every reserve queues on it. The production reconciler passes p_limit 5 (services/token-server/src/maintenance.ts:9). In disposable PGlite a 5-candidate unjoined batch took about 5 ms and one reserve about 5 ms. Measure on staging after the apply, and again before anyone raises the batch size. If it matters, sort claimed candidates ahead of unjoined ones in the reconciler.
 - verified-by: `a reconciler batch of five holds the service-wide day row for under 50 ms on staging (measured)`
+
+### F1240 — Audit exception: picomatch ReDoS accepted to 2026-12-17, no patched release exists
+- severity: P3
+- status: [x]
+- where: package.json:131 (the picomatch record)
+- note: founder, 2026-11-17. GHSA-fc5q-39xc-vjpf ("ReDoS through single-branch repeated extglobs", CVSS 7.5) was widened on 2026-11-17 to <= 4.0.7, every release, with no first patched version, and turned every PR's GitHub gate red at audit:ci. picomatch is build-time only (Expo CLI, Metro, React Native's CLI, Jest) on patterns authored in this repo; no source file or service imports it. Two exact copies are installed (4.0.5, and 2.3.2 under micromatch and jest-util, which need ^2), so scripts/dependencyAudit.mjs now lets an accepted record list each exact version. Accepted inside audit:ci's 30-day window; revisit when picomatch ships a fix or at the next Expo or React Native upgrade.
+- verified-by: `an accepted advisory can name each exact version installed`
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
