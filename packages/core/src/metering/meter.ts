@@ -344,7 +344,7 @@ export type StartDecision =
        * `refillsAt` on the device and use this only when it cannot.
        */
       message: string;
-      /** When a spent free allowance comes back, if its window has started. */
+      /** When a spent or thin free allowance comes back, if its window has started. */
       refillsAt?: Date;
     };
 
@@ -357,9 +357,9 @@ export type StartDecision =
  */
 export function canStartSession(e: Entitlement, minSessionSec: number = MIN_VIABLE_SESSION_SEC): StartDecision {
   const remaining = secondsRemaining(e);
+  const refillsAt = e.plan === 'trial' && e.periodEnd ? new Date(e.periodEnd.getTime()) : undefined;
 
   if (remaining <= 0) {
-    const refillsAt = e.plan === 'trial' && e.periodEnd ? new Date(e.periodEnd.getTime()) : undefined;
     const used = refillsAt ? `Your next free conversation is ready ${refillWhen(refillsAt)}.` : 'Your free conversation is used.';
     return {
       allowed: false,
@@ -381,6 +381,7 @@ export function canStartSession(e: Entitlement, minSessionSec: number = MIN_VIAB
       reason: 'insufficient-for-session',
       secondsRemaining: remaining,
       message: `Only ${Math.floor(remaining / 60)} min ${remaining % 60}s left. Not quite enough for a full session.`,
+      ...(refillsAt ? { refillsAt } : {}),
     };
   }
 
