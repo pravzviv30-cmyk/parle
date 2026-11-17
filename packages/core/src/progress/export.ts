@@ -71,16 +71,6 @@ export function buildEntries(words: readonly string[], lessons: readonly Lesson[
   });
 }
 
-function csvField(s: string): string {
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-/** CSV with a UTF-8 BOM so Excel renders the accents. */
-export function toCsv(entries: readonly ExportEntry[]): string {
-  const rows = ['word,meaning,pronunciation', ...entries.map((e) => [e.word, e.gloss, e.ipa].map(csvField).join(','))];
-  return '﻿' + rows.join('\n') + '\n';
-}
-
 /** Tab-separated, front tab back, the shape Anki imports without any settings. */
 export function toAnkiTsv(entries: readonly ExportEntry[]): string {
   return entries.map((e) => `${e.word}\t${e.gloss}${e.ipa ? ` /${e.ipa}/` : ''}`).join('\n') + '\n';

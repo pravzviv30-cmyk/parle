@@ -6869,12 +6869,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the card that dealt the permutation was retired with the Practice path and
   the primitive stayed in core, still exported and still tested, so both surface-level titles are
   re-pointed at the shuffle tests that hold the seeded order and the wrap.
-- verified-by: `the deal is a permutation: nothing added, nothing dropped, nothing repeated`
-- verified-by: `it actually shuffles, rather than handing back the pool in order`
-- verified-by: `walking the whole pool meets every item exactly once, then comes round`
-- verified-by: `it reads no clock and no global, so a test can hand it every input`
-- verified-by: `a position past the end wraps rather than falling off it`
-- verified-by: `the same seed deals the same order, and a different seed does not`
+- note: review C2 (2026-11-17, F1073): the shuffle primitive had no caller left and was removed
+  with its tests (it is in git history), so this claim is retired with it: there is no suggestion
+  card left to walk the pool in any order. The entry now points at the test that keeps the card
+  from coming back.
+- verified-by: `the path, the archive and the suggestion card stay gone from the sound-led page — F442`
 
 ### F451 — A beginner could be shown a situation pitched at somebody two levels up
 - severity: P2
@@ -9014,7 +9013,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
 - verified-by: `the bar is an ink capsule, radius 32, and never a floating shadow — UI-008, UI-017`
 - verified-by: `the selected cell is violet with a sun Linear glyph and a bold cream word; the rest are cream on ink — UI-008`
-- verified-by: `the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route` (renamed 2026-10-20 when direction B A3 moved the bar to five tabs; the route names it guards are unchanged)
+- verified-by: `the five words are Today, Explore, Speak, Practice and Journey over Codex's Iconsax drawings — UI-008`
+- note: that line was renamed 2026-10-20 when direction B A3 moved the bar to five tabs (the route names it guards are unchanged), then renamed again in place by e6c3bcc0 (2026-10-21) from `the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route`. Its trailing text hid the stale title from the goal check until F1060.
 - verified-by: `a tab cell presses through Press with no haptic of its own, and only the selection pill moves`
 - superseded: 2026-11-02, the founder floated the tab bar (UI-017: only the capsule covers content) and let the selection pill be dragged (UI-018); the test that guards this entry was renamed with it.
 - verified-by: `the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008`
@@ -9059,9 +9059,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
 - verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 - verified-by: `Today leads with one colour card: the next scene, the recall card, or the plans card when the free minutes are used`
-- verified-by: `day one lists where the learner starts with a sun dot on the first scene, and the page reads in the artboard order` (renamed 2026-10-20 when direction B B5 redrew Today to B-Today: the week sentences and the lifetime count left Today for the week card and the streak tile)
+- verified-by: `day one draws no block of its own, and the page reads in the artboard order`
+- note: that line was renamed 2026-10-20 when direction B B5 redrew Today to B-Today (the week sentences and the lifetime count left Today for the week card and the streak tile), then renamed again in place by e6c3bcc0 (2026-10-21) from `day one lists where the learner starts with a sun dot on the first scene, and the page reads in the artboard order`. Its trailing text hid the stale title from the goal check until F1060.
 - verified-by: `a Home that has not read its storage yet draws still sand blocks shaped like the page`
-- verified-by: `today's phrase is the lavender card: the French with a play disc, the English, and Say it yourself` (renamed 2026-10-20 when direction B B5 redrew today's phrase as B-Today's lavender card)
+- verified-by: `today's phrase is a row on Today, and the one daily card keeps the tutor's audio`
+- note: that line was renamed 2026-10-20 when direction B B5 redrew today's phrase as B-Today's lavender card, then renamed again in place by c5ce4861 (2026-10-31) from `today's phrase is the lavender card: the French with a play disc, the English, and Say it yourself`. Its trailing text hid the stale title from the goal check until F1060.
 - verified-by: `Home names no weekday, counts no days this week, shows no rate and draws no tag`
 - verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
 
@@ -11746,8 +11748,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F933 — A trial row created by a purchase before any device claim is spent and never refills
 - severity: P2
-- status: [ ]
-- where: supabase/migrations/20261023220000_daily_free_allowance.sql:91
+- status: [x]
+- where: supabase/migrations/20261117120000_claim_promotes_unclaimed_row.sql:58 (and :108)
 - note: Found 2026-10-29 while fixing F911 (Stream B). `begin_billing_refresh` creates a trial row
   for an account that starts a purchase before any device claim. The row is already spent, with
   `weekly_taste=false` and no `period_end`, so the free conversation never refills and
@@ -11755,7 +11757,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   conversation is used for now. Practice and review still work offline.", `purchases/outOfTime.ts`),
   but the learner silently loses the every-other-day taste (REV-001). Not fixed here: it needs a
   migration and the pinned billing files, so it waits for its own change with founder approval.
-- verified-by: `a trial row begun by a purchase still refills its free conversation every other day`
+  2026-11-17 (D1 PR B, founder Q1 yes): the spent row itself is by design (D24, and
+  `scripts/verifyTutorSessions.mjs` still pins that it never refills on its own); the defect was
+  the early return in `claim_trial` and `claim_trial_with_evidence`, which never promoted it.
+  Migration 47 replaces both: an unclaimed row on a newly recorded device becomes a fresh free
+  conversation, and on a device that already had one it stays spent while the claim still
+  returns true. No row can hold a live reservation before the reset (it is created spent at the
+  cap and admission refuses under 120 s). Not applied to staging; that needs its own founder yes.
+  Closed here, no new id.
+- verified-by: `a trial row begun by a purchase becomes a refilling free conversation at its first device claim`
+- verified-by: `a purchase-first row on a device that already had a free conversation stays spent`
+- verified-by: `a claim from a new device on a weekly-taste or paid row changes nothing`
 
 ### F915 — Onboarding has no Back, and a new account cannot leave the first scene without starting it
 - severity: P2
@@ -12773,6 +12785,85 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: `removeGeneration` uses `Promise.all`, and `writeSecure` swallows its failure, so `setItem` returns while deletes of the previous generation are still running. The next write reuses that generation. Inputs: write A (generation a, 3 chunks), write B with the delete of chunk a-0 rejecting and the deletes of a-1 and a-2 taking 30 ms, then write C straight away (generation a again). The late deletes remove C's chunks and `getItem` returns null, so the learner signs in again. Nobody else's session is restored. Same fix as F1023: wait with `Promise.allSettled`. Found by work-judge (Fable 5.2), F960 round 3, 2026-11-17.
 - verified-by: `a write waits for every old chunk delete before it returns`
 
+### F1056 — The gate passes a workspace whose suite cancelled a test or exited non-zero
+- severity: P2
+- status: [x]
+- where: scripts/gate.mjs:181
+- note: the loop reads only `tests` and `fail`. A timed-out test reports `fail 0`, `cancelled 1`, exit 1, and the gate records nothing. Reproduced at 1620d172.
+- verified-by: `a suite that cancelled a test or exited non-zero fails the gate even with zero failures`
+
+### F1057 — The push guard allows a push it cannot read as the literal word
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:553
+- note: S1a-2, 3 and 4. Quoted, variable and aliased subcommands, `env -u VAR`, and a spaced shift in arithmetic all returned ALLOW against a git that would refuse the plain push.
+- verified-by: `a quoted, variable or aliased push subcommand is denied`
+- verified-by: `a wrapper flag that takes a value does not hide the push behind it`
+- verified-by: `a shift inside arithmetic does not hide the next command`
+- verified-by: `git commands that only mention push are still allowed`
+
+### F1058 — A test file outside the scripts folder can go unrun, and a skipped test goes unseen
+- severity: P2
+- status: [x]
+- where: scripts/gate.mjs:258
+- note: S1a-5. The scan reads `*.test.ts` only, the unrun check reads `scripts/` only, and an option-form skip is never matched.
+- verified-by: `a test file that no workspace and no proof list runs fails the gate`
+- verified-by: `a suite that skipped a test fails the gate`
+- verified-by: `a focused or skipped test is caught in every test extension`
+- verified-by: `an untracked test file in the checkout does not fail the gate`
+
+### F1059 — The release and provider proofs have no count floor
+- severity: P2
+- status: [x]
+- where: scripts/gate.mjs:241
+- note: S1a-6. 37 files run with only "more than zero tests" checked. Approval 3 then governs this floor like the others.
+- verified-by: `the release and provider proofs fail below their recorded floor`
+- verified-by: `a floors key that is not a workspace is not run as one`
+
+### F1060 — A verified-by line with trailing text is silently ignored
+- severity: P2
+- status: [x]
+- where: scripts/gate.mjs:464
+- note: S1a-7. Three ticked lines under F600 and F602 are not checked today.
+- verified-by: `a verified-by line with text after the closing backtick fails the goal check`
+
+### F1061 — CI runs the full gate twice for every push to a pull request branch
+- severity: P2
+- status: [x]
+- where: .github/workflows/ci.yml:40
+- note: S1a-10. Founder approved 2026-11-17 ("Yes, PRs and main only"). The push trigger narrows to `main`, which `mobile-preview.yml` needs; pull requests still run the gate.
+- verified-by: `the gate workflow runs on pull requests and on pushes to main only`
+
+### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
+- severity: P2
+- status: [x]
+- where: scripts/gate.mjs:439
+- note: S1a-8 (Phase 4, confirmed). The gate requires the forge, bug-sweep, ship and backend-review commands but not push-check or land, and no gate check or test reads `.claude/settings.json`. Deleting the `push-check-guard.mjs hook` entry leaves the gate green. Reserve id, coordinator.
+- verified-by: `the gate fails when the push-check hook or the push-check and land commands go missing`
+
+### F1194 — The push guard missed env -S and aliases whose value merges
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:363
+- note: Found while building F1057 (Phase 4 S1a, 2026-11-17). `env -S "git push ..."` hid a whole command in one value, and `git config alias.* '!gh pr merge N'` hid a merge. Fixed in cb028124, which also carries F1060 because two builders shared a worktree; `--config-env alias.*` is always treated as hidden because its value names an environment variable.
+- verified-by: `env -S with a push inside is judged as a push`
+- verified-by: `an alias whose value merges a pull request is denied`
+
+### F1197 — The push guard misses env -S with an attached value and the --config-env= form
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:396
+- note: Found by work-judge (Fable 5.2), S1a round 1, 2026-11-17. With no stamp, `env -S"git push origin main"`, `env -iS "git push origin main"` and `A=push git --config-env=alias.p=A p` all return ALLOW, and all three run on macOS env and git 2.54. F1194 handles only a bare `-S` word and the two-word `--config-env alias.*`.
+- verified-by: `env -S attached to its value or inside a flag cluster is judged as a push`
+- verified-by: `a config-env alias in the equals form is denied`
+
+### F1198 — The push guard denies an alias for a plain local merge
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:217
+- note: Found by work-judge (Fable 5.2), S1a round 1, 2026-11-17. `git config alias.m "merge --no-ff"` is denied with "Run the push as its own command", though `git merge` typed directly is allowed. `ALIAS_PUBLISHES` matches any value containing `merge`; only a shell alias (a value with `!`) can reach `gh pr merge`.
+- verified-by: `an alias for a plain git merge is still allowed`
+
 ### F1000 — An unjoined tutor start gives back its daily seconds and its session count
 - severity: P1
 - status: [x]
@@ -12852,6 +12943,403 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Deferred, not built in this PR. Settling an unjoined start locks that day's tutor_session_budget_days row until the transaction ends, and every reserve queues on it. The production reconciler passes p_limit 5 (services/token-server/src/maintenance.ts:9). In disposable PGlite a 5-candidate unjoined batch took about 5 ms and one reserve about 5 ms. Measure on staging after the apply, and again before anyone raises the batch size. If it matters, sort claimed candidates ahead of unjoined ones in the reconciler.
 - verified-by: `a reconciler batch of five holds the service-wide day row for under 50 ms on staging (measured)`
 
+### F1240 — Audit exception: picomatch ReDoS accepted to 2026-12-17, no patched release exists
+- severity: P3
+- status: [x]
+- where: package.json:131 (the picomatch record)
+- note: founder, 2026-11-17. GHSA-fc5q-39xc-vjpf ("ReDoS through single-branch repeated extglobs", CVSS 7.5) was widened on 2026-11-17 to <= 4.0.7, every release, with no first patched version, and turned every PR's GitHub gate red at audit:ci. picomatch is build-time only (Expo CLI, Metro, React Native's CLI, Jest) on patterns authored in this repo; no source file or service imports it. Two exact copies are installed (4.0.5, and 2.3.2 under micromatch and jest-util, which need ^2), so scripts/dependencyAudit.mjs now lets an accepted record list each exact version. Accepted inside audit:ci's 30-day window; revisit when picomatch ships a fix or at the next Expo or React Native upgrade.
+- verified-by: `an accepted advisory can name each exact version installed`
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+
+### F1122 — The chat meter prices turns and frames on models the client does not use
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/chat.ts:50
+- note: B5-1. OpenAI turns and frames go to the live model but are priced on the two default constants; Anthropic frames go to sonnet and are priced as opus.
+- verified-by: `a turn is priced on the model stamped on its usage, and the label model only fills a missing stamp`
+- verified-by: `the chat label and fallback models come from the routing the client uses`
+- verified-by: `chat takes its cost models from chatCostModels, not the default constants`
+
+### F1123 — Evals print a confident dollar figure for a model with no price row
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/usage.ts:46
+- note: B5-2. A Groq run prints the fallback rate as if it were real.
+- verified-by: `an eval cost line says when the model has no price row`
+- verified-by: `every eval cost line says when its model has no price row`
+
+### F1124 — The drill eval counts exercises production would drop
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/eval/drillEval.ts:88
+- note: B5-3. Class (b): file only on a founder yes. The eval applies `validateExercise` alone; production applies `groundedDrills`.
+- verified-by: `drill eval counts an ungrounded exercise as rejected`
+- verified-by: `the production drill count applies the learner's answer-length cap`
+
+### F1125 — The provider choice is hand-copied across the playground tools
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/eval/runEval.ts:56
+- note: B5-4. One pure picker, with each tool's present precedence passed in.
+- verified-by: `each playground tool picks the same provider as before for every key combination`
+
+### F1126 — Unused names in the playground
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/eval/replayEval.ts:110
+- note: B5-6. Confirm the `hardRules` parameter with `tsc --noUnusedParameters` before removing it.
+- verified-by: `the playground no longer re-exports the unused usage helpers`
+
+### F1207 — The push guard skips a git or gh command that never spells push or merge as a plain word
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:617
+- note: Found by push-check, judged by work-judge (Fable 5.2), S1a round 3, 2026-11-17. The pre-filter returns before analysis unless the text holds a literal push, gh or merge, so `git pu${E}sh origin main`, `A=pu; B=sh; git $A$B`, `git pu$'s'h` and a push split by a line continuation are allowed with no stamp. Past the pre-filter, `gh pr $M 5`, `G=git; $G push` and `$(which git) push` are allowed because only the git subcommand is checked for expansion, and `git push $(echo origin) main` is judged as a push of the current branch. All of these are also allowed on origin/main. This narrows the limit the S1a contract accepted; a command with no readable git or gh word stays a limit, written in the guard's header.
+- verified-by: `a push or merge the guard cannot read is denied even when the command never spells the word`
+- verified-by: `a command name the guard cannot read is denied when its arguments say push or merge`
+- verified-by: `git and gh commands with a readable subcommand are still allowed`
+- verified-by: `a merge behind an unreadable command name is denied, and a name split across lines is joined`
+
+### F1208 — Alias values are searched as raw text, so a quoted push slips through and harmless aliases are denied
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:218
+- note: S1a round 3. `git -c alias.p='!git pu""sh' p` and `git config alias.p '!git pu""sh'` are allowed. `git config alias.sync '!git fetch && git merge --ff-only @{u}'`, `git -c alias.x='!git merge main' x`, `git config alias.lg 'log --grep=push --oneline'` and `git config alias.nopush '!echo no push'` are denied with "Push blocked", and origin/main allows all four. The value is now read as the command line it is.
+- verified-by: `an alias whose value pushes behind quotes is denied`
+- verified-by: `an alias that only mentions push or merges locally is allowed`
+
+### F1209 — Git config passed in the environment defines an alias the guard never reads
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:392
+- note: S1a round 3, F1197's sibling. `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push git p` and `GIT_CONFIG_PARAMETERS="'alias.p=push'" git p` are allowed, because leading assignments are dropped unread. A prefix assignment makes its own command unreadable; see F1224 for what carries to later commands, and F1226 for the forms not read.
+- verified-by: `a git command with alias config in its environment is denied`
+
+### F1210 — A wrapper named by its path, or carrying a flag the tables do not know, hides the push behind it
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:394
+- note: S1a round 3. `/usr/bin/env git push`, `/usr/bin/env -S "git push"`, `sudo -nu me git push`, `exec -a foo git push` and `command time -o /dev/null git push` are allowed. `git send-pack origin main` and `git subtree push --prefix=x origin main` publish without the word in the subcommand place and are allowed too. The forward scan this added was narrowed in F1223; the commands named here are still denied by the same tests.
+- verified-by: `a wrapper named by its path does not hide the push behind it`
+- verified-by: `a wrapper flag the tables do not know does not hide the push behind it`
+- verified-by: `git send-pack and git subtree push are denied`
+
+### F1211 — A failing todo test passes the gate
+- severity: P2
+- status: [x]
+- where: scripts/gateChecks.mjs:39
+- note: S1a round 3. `suiteSummary` never reads the `todo` count, so a failing `{ todo: true }` test leaves `fail 0` and the gate green. No tracked test uses todo today. Same class as F1058's skipped count.
+- verified-by: `a suite with a todo test fails the gate`
+
+### F1212 — Nothing fails when gate.mjs stops calling its own checks
+- severity: P2
+- status: [x]
+- where: scripts/gate.mjs:183
+- note: S1a round 3. `gateChecks.test.mjs` covers the pure helpers only. Reverting the F1056 loop, or dropping the `guardWiringProblems` or `unrunTestFiles` call, leaves all 83 tests green. The contract rejected spawning the gate, so the pin reads `gate.mjs` as text.
+- verified-by: `gate.mjs still calls each check that gateChecks exports`
+
+### F1213 — A gh alias for pr merge is not read
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:333
+- note: S1a round 3, filed as a limit. `gh alias set mm 'pr merge' && gh mm 5` is allowed, because `findMerge` needs the literal `pr merge`. Needs its own small design for `--shell` and `gh alias import`.
+- verified-by: `a gh alias that merges a pull request is denied`
+
+### F1214 — An attached chdir flag on env or sudo leaves the wrong directory known
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:213
+- note: S1a round 3, filed as a limit. GNU only: `env --chdir=/x git push` and `sudo -D/x git push` judge the push in the session's directory. macOS env and sudo do not take these forms.
+- verified-by: `an attached chdir flag on env or sudo makes the push directory unknown`
+
+### F1215 — Two opening parentheses are always read as arithmetic
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:149
+- note: S1a round 3, filed as a limit. `((cd x; cat <<EOF ... EOF) )` is two subshells, but the here-document body is read as commands, so a body that says git push is denied. It fails closed.
+- verified-by: `a here-document inside two opening parentheses is still data`
+
+### F1216 — The CI contract test still says the gate runs on every push
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/ciContract.test.ts:295
+- note: S1a round 3, for B2, which owns this file. The title and comment argue for every push; F1061 narrowed the trigger to pull requests and main. The assertion (a `push:` key exists) still holds. The ticked line at docs/KNOWN_ISSUES.md:1711 names the old title and must be re-pointed in the same change.
+- verified-by: `ci runs the gate, the dependency audit and the secret scan on pull requests and on pushes to main`
+
+### F1221 — A push or merge inside a double-quoted substitution or an expanding here-document is never read
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:110
+- note: Found by security-review, judged by work-judge (Fable 5.2), S1a round 4, 2026-11-17. `out="$(git push origin HEAD:main 2>&1)"; echo "$out"`, `echo "$(gh pr merge 12 --merge)"`, a backtick form inside double quotes, and `cat <<EOF` with `$(git push origin main)` in the body are allowed with no stamp, because quoted text and here-document bodies are copied unread. The shell runs all of them. A quoted delimiter (`<<'EOF'`) and an escaped `\$(` stay data. Also allowed on origin/main.
+- verified-by: `a push or merge inside a quoted command substitution is judged`
+- verified-by: `a here-document body with an unquoted delimiter is read for command substitutions`
+- verified-by: `quoted substitutions that publish nothing are still allowed`
+
+### F1222 — A push whose destination the shell builds passes on a branch stamp
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:536
+- note: S1a round 4. `git push origin HEAD:$B` and `git push origin "HEAD:$(echo main)"` are judged as pushes to the branch they spell, so a passing branch stamp lets them land on main and the docs-only rule never fires. A refspec with `$` or a backtick is now denied once the stamp passes. `"$(git branch --show-current)"` and `"$(git rev-parse --abbrev-ref HEAD)"` are read as HEAD when git runs in the same directory. Deletes, dry runs and tag pushes with a variable stay allowed. Limit: the unquoted `git push origin $(git branch --show-current)` is still denied as unreadable.
+- verified-by: `a push whose branch the shell builds is denied even with a passing stamp`
+- verified-by: `a push that asks git for the current branch is judged as a push of HEAD`
+
+### F1223 — The wrapper scan misses a shell or eval, and denies harmless commands that mention git push
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:450
+- note: S1a round 4, F1210's sibling. `sudo -nu me sh -c "git push"`, `exec -a foo sh -c "git push"`, `sudo -nu me eval "git push"` and `sudo -nu git git push` are allowed, because the forward scan only jumps to a bare git or gh word. The same scan denies `env FOO=bar echo git push`, `time grep -rn git push scripts` and `sudo mv git push`, which origin/main allows. The scan now runs only after a wrapper flag the tables give no value, and goes to the next git, gh, shell, eval or xargs word. Limits: `sudo -n grep -rn git push scripts` is still denied, and an unknown value flag followed by a known value flag (`sudo -nu me -g staff git push`) is read correctly only because the scan goes forward.
+- verified-by: `a shell or eval behind a wrapper flag the tables do not know is still read`
+- verified-by: `a harmless command behind a wrapper that only mentions git push is allowed`
+
+### F1224 — Git config set by readonly or local is missed, and config given to another command sticks to later ones
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:415
+- note: S1a round 4, F1209's sibling. `readonly GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push; git p` and the `local` form are allowed. `GIT_CONFIG_COUNT=0 npm test && git status` is denied, though the prefix reaches npm only and origin/main allows it. A prefix now counts for its own command and any shell it starts; a bare assignment and a declaring builtin count for the rest of the call.
+- verified-by: `git config set by any declaring builtin, or inherited by a nested shell, is denied`
+- verified-by: `git config handed to another command does not make a later git command unreadable`
+
+### F1225 — gh api merges with a variable PR number, and three more GraphQL writes, are allowed
+- severity: P2
+- status: [x]
+- where: scripts/push-check-guard.mjs:369
+- note: S1a round 4. `gh api -X PUT repos/o/r/pulls/$N/merge` is allowed because the path check needs digits. The GraphQL mutations `createCommitOnBranch`, `mergeBranch`, `enablePullRequestAutoMerge` and `createRef` are allowed because only `mergePullRequest` and `updateRef` are named. Limit: a query read from a file (`-F query=@file`) is not seen.
+- verified-by: `gh api merges and branch writes under other names are denied`
+
+### F1226 — Git config exported through eval, or under a name the shell builds, is not read
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:470
+- note: S1a round 4, filed as a limit. `eval 'export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push'; git p` and `P=GIT_CONFIG_; export ${P}COUNT=1 ${P}KEY_0=alias.p ${P}VALUE_0=push; git p` are allowed. Reading eval's text as a command line changes the reason existing eval tests pin, so it needs its own design.
+- verified-by: `git config exported through eval or a built variable name is denied`
+
+### F1227 — Commands that run another command are read only when they are in the wrapper table
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:203
+- note: S1a round 4, filed as a limit. `noglob git push`, `nocorrect git push`, `xcrun git push`, `arch -arm64 git push`, `coproc git push`, `repeat 1 git push`, `find . -exec git push \;`, `script -q /dev/null git push` and `trap 'git push' EXIT` are allowed. Each needs its own argument rules; the pre-push hook still runs the gate on all of them.
+- verified-by: `a push run by a command runner outside the wrapper table is denied`
+
+### F1228 — xargs running a search tool is denied when its pattern says git push or gh pr merge
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:503
+- note: Found by work-judge (Fable 5.2), S1a round 5, 2026-11-17. `git ls-files -z | xargs -0 grep -l "git push"` and `find . -name '*.md' | xargs grep -n "gh pr merge"` are denied with the "its own command" reason, though xargs runs grep. Also denied on origin/main, so not a regression. Workaround: `grep -rn "git push" .` or `rg`, both allowed.
+- verified-by: `xargs running a search tool whose pattern mentions git push is allowed`
+
+### F1229 — A shell-built remote word can carry the refspec, so a branch stamp lands code on main
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:586
+- note: Found by /security-review, S1a round 5, 2026-11-17 (confidence 9). F1222 checks only the parsed source and destination for `$`, but `"$@"` or `"${A[@]}"` lands in the remote slot: with a branch stamp, `set -- origin HEAD:main; git push "$@"`, `A=(origin HEAD:main); git push "${A[@]}"` and `bash -c 'git push "$@"' _ origin HEAD:main` are allowed and push to main. Also allowed on origin/main. The founder accepted landing S1a with this open on 2026-11-17; the fix belongs to F1239.
+- verified-by: `a push whose remote word the shell builds is denied once the stamp passes`
+
+### F1230 — exec -a with a value the scan reads, or a sudo user named git, hides the push behind it
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:490
+- note: Found by /security-review and push-reviewer, S1a round 5, 2026-11-17. `exec -a git -l git push origin main`, `exec -a sh -l git push …` and `exec -a gh -c git push …` are allowed with no stamp, because the `-a` value ends the wrapper loop and the forward scan does not move past a word it reads. `sudo -nu git env git push` and `sudo -nu git nice git push` are allowed the same way. Also allowed on origin/main. Accepted by the founder for landing; fix with F1239.
+- verified-by: `exec -a and a sudo user named git do not hide the push behind them`
+
+### F1231 — gh api writes slip past through -X=PUT, a /graphql path, a query in a variable or a query file
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:413
+- note: Found by /security-review and push-reviewer, S1a round 5, 2026-11-17. With no stamp, `gh api -X=PUT repos/o/r/pulls/12/merge`, `gh api /graphql -f query='mutation{mergePullRequest(...)}'`, `Q='mutation{…}'; gh api graphql -f query="$Q"` and `gh api graphql --input q.json` are allowed: `-X=` is read as the method `=PUT`, GraphQL is checked only when an argument is exactly `graphql`, and a query from a variable or file is never seen. Also allowed on origin/main. Accepted for landing; fix with F1239 and GitHub-side protection.
+- verified-by: `gh api merges through -X=, a graphql URL, a variable or a file are denied`
+
+### F1232 — The tokenizer falls out of step with the shell, so the commands after it are never read
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:112
+- note: Found by /security-review, S1a round 5, 2026-11-17. With no stamp, each of these is allowed and both shells run the push: `echo "$(case x in x) git push origin main;; esac)"` (a case pattern's `)` ends the quoted substitution early), `echo $(true)#; git push origin main`, ``echo `true`#; git push origin main``, `echo ${x:- #}; git push origin main`, `echo $'\'' ; git push origin main ; echo 'x'`, `cat <<$'EOF'` and `cat <<'E F'` here-documents, `echo $[ 1 <<2 ]` and `echo ${x:- <<EOF}` followed by a push on the next line. Also allowed on origin/main. Accepted for landing; F1239 removes the need to read shell text.
+- verified-by: `a push after a comment, an ANSI-C quote, a case pattern or an odd here-document delimiter is still read`
+
+### F1233 — Negated push flags make a real push look like a dry run, a delete or a tag push
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:332
+- note: Found by /security-review, S1a round 5, 2026-11-17 (confidence 9). `dryRun`, `delete` and `tags` are only ever set, but git honours `--no-<flag>` and the last one wins. `git push -n --no-dry-run origin HEAD:main` and `git push -d --no-delete origin HEAD:main` are allowed with no stamp and land on main; `git push --tags --no-tags origin` publishes the current branch. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `a negated dry-run, delete or tags flag is judged as a real push`
+
+### F1234 — A refspec whose source is a tag and whose destination is a branch is skipped
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:638
+- note: Found by /security-review, S1a round 5, 2026-11-17 (confidence 9). `pushTargets` skips any source under `refs/tags/`, so `git tag v1 && git push origin refs/tags/v1:refs/heads/main` is allowed with no stamp and pushes the tagged commit to main. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `a tag pushed to a branch is judged as a push to that branch`
+
+### F1235 — An abbreviated --all or --mirror is read as a push of the current branch
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:335
+- note: Found by /security-review, S1a round 5, 2026-11-17. git accepts any unique prefix of a long option, so with a branch stamp `git push --al origin` and `git push --mi origin` are allowed and publish every local branch, main included, or force-mirror them. Even the full `--all` is judged on HEAD alone. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `a push of every branch or a mirror is judged on each branch it publishes`
+
+### F1236 — In-command -c remote config changes where a push goes
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:558
+- note: Found by /security-review, S1a round 5, 2026-11-17. `-c` is checked only for `alias.*`, so with a branch stamp `git -c remote.origin.push=HEAD:refs/heads/main push origin` lands on main and `git -c remote.origin.mirror=true push origin` mirrors. The environment form is already denied for any key. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `in-command remote, push or branch config on a push is denied`
+
+### F1237 — eval text is not re-read, and xargs's stdin and config prefix are ignored
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:539
+- note: Found by /security-review and push-reviewer, S1a round 5, 2026-11-17 (confidence 9). With no stamp, `eval 'git pu""sh origin main'`, `eval "git pu\sh origin main"`, `eval git -c alias.p=push p origin main`, `echo push origin main | xargs git`, `echo push | xargs -I{} git {} origin main`, and a `GIT_CONFIG_*` prefix on `xargs git p` or `eval 'git p'` are allowed. F1226 covers only config exported through eval. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `eval and xargs that run git push are denied however the push is spelled`
+
+### F1238 — --git-dir or GIT_DIR lets the stamp on this checkout vouch for another repository's commit
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:464
+- note: Found by /security-review, S1a round 5, 2026-11-17. `--git-dir` is skipped as a plain value flag and a `GIT_DIR=` prefix is dropped, so HEAD and the stamp are read in the session's checkout while git pushes from the other gitdir: `git --git-dir=<another worktree's gitdir> push origin HEAD:claude/x` publishes that worktree's unchecked HEAD. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `a push from another git directory makes the push directory unknown`
+
+### F1239 — Move the push check into git's pre-push hook, which sees the exact refs being pushed
+- severity: P2
+- status: [ ]
+- where: .githooks/pre-push:1
+- note: Founder, 2026-11-17, after S1a reached the 5-round limit: land S1a, then move the stamp check into the pre-push hook. git hands that hook the local ref, local commit, remote ref and remote commit of every update on stdin, so the stamp, the security review for main and the docs-only rule can be checked on exactly what is pushed, whatever the shell spelling. The PreToolUse guard stays as a thin first line (it still has to stop `--no-verify`, `core.hooksPath` overrides and gh merges, which no git hook sees). F1229 to F1238 close through it. Fable route (security).
+- verified-by: `the pre-push hook refuses an unstamped commit and a code push to main whatever the command spelling`
+
+### F1242 — The fast gate accepts a ledger that still holds merge conflict markers
+- severity: P2
+- status: [ ]
+- where: scripts/gate.mjs:1
+- note: Found by the coordinator, 2026-11-17. While landing S1a, a merge commit was made with `<<<<<<<`, `=======` and `>>>>>>>` lines left in docs/KNOWN_ISSUES.md, and the pre-commit `gate:fast` printed "fast checks green". The commit was amended before any push. Whether the full gate refuses it is unchecked. The ledger check should refuse any conflict marker line, in fast and full mode alike.
+- verified-by: `the ledger check refuses a file that holds merge conflict markers`
+
+### F1076 — A refused thin free window does not say when time comes back
+- severity: P2
+- status: [x]
+- where: packages/core/src/metering/meter.ts:378
+- note: C3-1. Production is patched by the token server's copy of the rule; core should be the one home. The builder confirmed the unreserved path is dev-only first: server.ts returns 503 without admission in production, and the guest grants pass a fixed fresh trial, so they are never refused. `tokens.test.ts` "a refusal with no known refill omits refillsAt" pinned the old gap for a thin trial window; that case is now its own test, "a thin free window refusal carries when the next free conversation is ready". `refusalRefill.ts` no longer keeps its copy of the rule: it asks core, with no session floor when the database refused as thin.
+- verified-by: `a free learner refused for a thin window is told when the next free conversation is ready`
+
+### F1077 — Metering and core barrels re-export names nothing imports, and voice comments describe an old roster
+- severity: P2
+- status: [x]
+- where: packages/core/src/metering/index.ts:8
+- note: C3-2 and the metering and index.ts parts of C3-3. Eleven barrel lines and five comments; no function is deleted.
+- verified-by: `the core barrels no longer re-export the unused metering helpers`
+
+### F1068 — A hesitation is graded as a mistake, and a negated line as the line
+- severity: P2
+- status: [x]
+- where: packages/core/src/session/session.ts:259
+- note: C1-1 and C1-4, each built only on the founder's yes. A filler-only transcript goes to matching and grades poor; "ne" and "pas" fit inside the two-extra-word allowance at lessons/types.ts:215. Accepted limit: a filler word that is a near miss of the line ("Bon" on a line "Bon appétit") becomes a silence rescue and drops a rung. No scripted line in CAFE_LESSON or GUEST_CAFE_SCENE contains a filler word today, so no learner reaches it.
+- verified-by: `a transcript of only hesitation sounds is treated as silence, not a wrong answer`
+- verified-by: `a negated line is not accepted as the line`
+- verified-by: `a line that carries its own negation is still accepted as written`
+
+### F1069 — A turn answered from a rescue's full line counts as unassisted
+- severity: P2
+- status: [x]
+- where: packages/core/src/ladder/ladder.ts:117
+- note: C1-2, built only on the founder's yes. The inflated rate feeds the lesson XP bonus, the recap line and the unaided week. Lesson path only; the brain's call goes to B4.
+- verified-by: `a good turn answered from a rescue's full line is not counted as unassisted`
+
+### F1070 — The rung-2 instruction tells the tutor the learner must speak
+- severity: P2
+- status: [x]
+- where: packages/core/src/ladder/ladder.ts:178
+- note: C1-3, a product decision. PEDAGOGY.md line 15 and line 359 disagree; the founder's wording replaces both.
+- verified-by: `no rung instruction tells the tutor the learner must speak aloud`
+
+### F1071 — Pedagogy exports only tests call, a false merge comment and a copied dedupe key
+- severity: P2
+- status: [x]
+- where: packages/core/src/lessons/keyterms.ts:30
+- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Three tests were deleted and eleven added across C1 and its follow-ups (F1196, push-check, code review, F1219); core went from 1152 to 1160, and the floor was not lowered.
+- verified-by: `the keyterm list dedupes on the same key the recognition repair uses`
+
+### F1196 — A formal "ne" added to a line that already carries "pas" is refused as a negation
+- severity: P2
+- status: [x]
+- where: packages/core/src/lessons/types.ts:225
+- note: The C1-4 guard refused any negation word the candidate lacked, one word at a time. Target "Je sais pas", learner says "Je ne sais pas": same meaning, graded near (accepted before C1-4). The guard now applies only to a candidate that does not already say no: one carrying a negation word (non, pas, ne, jamais) or rien forgives any added negation word, which in practice means a spaced ne or pas. An elided n' does nothing here: normalise joins it to the verb ("n'est" becomes "nest"), so the n in negationWords never reaches matchAcceptable; so "Non merci, pas de croissant" stays t5-croissant's "non merci" (push-check, 2026-11-17). Plus does not count, because it can mean more. The judge's first example, "Ce n'est pas grave" for "C'est pas grave", was near before C1-4 too: normalise joins n'est into nest and "cest" is under the five-letter typo floor, so it is an elision gap, not this guard. No scripted lesson has a dropped-ne target today. Found by work-judge (Fable 5.2), C1 round 1, 2026-11-17.
+- verified-by: `a formal ne added to a line that already carries pas is still the line`
+
+### F1199 — The added-negation guard cannot see an elided n' or a negator outside its word list
+- severity: P2
+- status: [ ]
+- where: packages/core/src/lessons/types.ts:225
+- note: Deferred, not built in C1. normalise joins n' to the verb ("n'aime" becomes "naime"), so the guard never sees it. Harmful direction: target "J'aime ça", said "Je n'aime plus ça", accepted via content, because naime is one edit from jaime and plus is not a guard word. Also accepted: "Je vois rien" for "Je vois" (rien, personne, aucun and plus are outside negationWords), and "Si tu ne viens jamais" for "Si jamais tu viens" (F1196 forgives ne beside a positive jamais). Harmless direction: "Ce n'est pas grave" for "C'est pas grave" grades near, because cest is under the five-letter typo floor. Separately, the typo route accepts "C'est non" for "C'est bon": the whole line is one edit away. It is a swapped word, not an added negation, and it happens on main too. No scripted line triggers any of these today. Founder, 2026-11-17: take jamais out of the restored-ne forgiveness; fix it with this entry. Found by work-judge (Fable 5.2), C1 follow-up, 2026-11-17.
+- verified-by: `an elided or unlisted negation added to a positive line is not the line, and an elided ne restored to a negated line is`
+
+### F1217 — Merging decks drops an assisted review when the grade counts tie
+- severity: P2
+- status: [ ]
+- where: packages/core/src/review/merge.ts:24
+- note: A card with reps 3 and due in 5 days gets an assisted good on the phone. It still has 3 grades, now due in 1 day. mergeDecks with the untouched copy keeps the 5-day copy and drops the phone's review. The practice grade path in apps/mobile/src/review/store.ts has no due check, so it is reachable. Present on main. Found by /code-review, C1 push-check, 2026-11-17.
+- verified-by: `an assisted review survives a merge with an untouched copy`
+
+### F1218 — The tutor agent decides scene, billing and answered status on the input type, not on what core counted
+- severity: P3
+- status: [ ]
+- where: services/tutor-agent/src/tutor.ts:932
+- note: Core now treats a filler-only reply ("Euh...") as silence, but tutor.ts still treats input.type === 'spoke' as a learner turn. It skips the scene's silence rule, adds one to learnerTurns, and marks the turn answered. On the guest scene, main and the branch give the same results, so this is not a regression. For the tutor-agent slice (B4). Found by /code-review, C1 push-check, 2026-11-17.
+- verified-by: `a filler-only reply counts as silence in the tutor agent's scene and turn counts`
+
+### F1219 — A right line with a self-correcting "non" is graded a miss
+- severity: P1
+- status: [x]
+- where: packages/core/src/lessons/types.ts:231
+- note: 6bf689ff drops every negated candidate from the near-miss score, and "non" is a negation word. On t2-order, "Un thé, non, un café, s'il vous plaît" and "Euh, non, un café s'il vous plaît" grade poor, drop rung 3 to 2, hold the turn and say "Almost. Listen once more." On t3-sur-place, "À emporter, non, sur place" does the same. Before 6bf689ff these were partial; on main they were good. Only a clause negation (ne, pas, jamais) should leave the near-miss score. "Pas de problème, un café s'il vous plaît" still graded poor after this fix. Founder, 2026-11-17: accept it. "Pas de problème" is now dropped like a filler unless the line itself carries it, so a right line after it is the line.
+- verified-by: `a self-correcting non on a right line is not graded a miss`
+- verified-by: `an added negation is not graded as carrying the meaning`
+- verified-by: `a polite "pas de problème" before the right line is still the line`
+
+### F1220 — A line that opens with "Non" and then states a positive accepts its opposite
+- severity: P2
+- status: [ ]
+- where: packages/core/src/lessons/types.ts:224
+- note: Deferred, not built in C1. bc8abaec treats any candidate holding non, pas, ne, jamais or rien as negative and forgives added negation words. Target "Non, je voudrais un café", said "Non, je ne voudrais pas un café": accepted via content. No scripted line has this shape today; the only negative candidates are "je ne comprends pas" and "non merci". Found by the work-judge, C1 push-check, 2026-11-17.
+- verified-by: `a line that opens with non and states a positive does not accept its negation`
+
+### F1072 — Importing core spends about a second building the word pack
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/words.ts:2700
+- note: C2-1. A Unicode regex runs against every scene line for every generated word at module load. The snapshot test is written and green before the change, and must still pass after it.
+- note: the snapshot pins the output, not the speed. The speed is measured, not pinned (a timing test would be flaky, F796). Import of `daily/words.ts` on the dev Mac, 2026-11-17: main 884-921 ms; with the substring prefilter 132-138 ms; with the regex also built only after a hit 83-88 ms (5 to 7 runs each).
+- verified-by: `the word pack's ids, examples and order match the pinned snapshot`
+
+### F1073 — The shuffle primitive has no caller, and daily comments describe retired code
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/scenarios.ts:138
+- note: C2-3 and the daily half of C2-7. `shuffle.ts`, its tests and its barrel line are deleted; the line above is the comment that last named `shuffledPick`. Core floor drops by 6 net across C2 (1152 to 1146): 9 tests deleted (8 shuffle, 1 monthly count), 3 added (the word-pack snapshot, the dayIndex characterization and the impossible-date test). F450 is re-pointed in the same PR.
+- verified-by: `the pick never reads the wall clock, only the moment it was handed`
+
+### F1074 — Day-key and week rules have second homes, beside exports only tests call
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/pick.ts:43
+- note: C2-4, C2-5, C2-6, C2-8 and the missions comment. The dayIndex characterization test is written first.
+- verified-by: `a day key counts the same days from the epoch whichever module reads it`
+- verified-by: `the week strip runs Monday to Sunday with today in it`
+- verified-by: `weeks start on Monday`
+
+### F1079 — Core root files carry a field, a method and five exports nothing reads
+- severity: P2
+- status: [x]
+- where: packages/core/src/onboarding.ts:7
+- note: `StarterTask.accepts` has no reader and disagrees with `checkStarter`; `ConversationTextBuffer.remove` (conversationText.ts:62) is called only by a test; `SERVICE_FAILURES`, `MAX_CAN_DO_SOURCES`, `MAX_CAN_DO_QUOTE_CHARS`, `CONVERSATION_TEXT_BYTES` and `isConversationTextLine` are exported with no importer. Zero tests deleted, floor unchanged.
+- verified-by: `every starter task accepts its own model and each listed variant, for every goal and both drinks`
+- verified-by: `core exports none of the five names nothing imports, and the text buffer has no remove`
+
+### F1195 — The six goals and the three plan names each have a second home in core
+- severity: P2
+- status: [x]
+- where: packages/core/src/sessionSettlement.ts:28
+- note: `STARTER_GOALS` (onboarding.ts:3) repeats `LEARNER_GOALS` in another order, and `readSessionSettlement` types the plan names twice beside `PLANS`, with a redundant global bound. Make each one list; settlement results must not change for any input.
+- verified-by: `starter goals and learner goals are one list`
+- verified-by: `settlement accepts each plan up to its own allowance and refuses a name that is not a plan`
+- verified-by: `settlement rejects invented credit and impossible per-plan balances`
+
 ### F1081 — Ten destructive rollbacks run without an interlock
 - severity: P2
 - status: [x]
@@ -12867,6 +13355,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: (a), docs, `data-engineer`. Eight named, nine run; rows 40, 41, 43, 44, 45 and F970's note contradict the launch log. Re-confirm line numbers after f955 lands. 2026-11-17: fixed; the runbook names all nine suites by script, rows 40, 41, 43, 44, 45 and 46 say when they reached staging, and F970's note is corrected.
 - verified-by: `the Supabase runbook names every SQL suite the gate runs`
 
+### F1243 — The interlock and restored bodies on the migration 47 rollback are not pinned by a test
+- severity: P2
+- status: [x]
+- where: supabase/rollback/20261117120000_down.sql:11
+- note: Found by work-judge (Fable 5.2), D1 PR B, 2026-11-17. Deleting the interlock block from `20261117120000_down.sql`, or turning a restored early return into `if false then`, left `databaseContract.test.ts` fully green. Narrowed to migration 47 on the push-reviewer's ask; migration 49's rollback gets its own entry in PR D, and 48's is covered by the F1080 test. 2026-11-17: fixed. The test replays through 47, shows the rollback refuses twice without `luvani.reopen_f933` and leaves 47's bodies in place, then runs it twice with the setting and compares both claim functions' `pg_get_functiondef` and ACL with the replay stopped at 40. Both mutations now turn it red.
+- verified-by: `the claim rollback refuses without its interlock and restores the earlier bodies`
 ### F1080 — The app's database roles hold every table privilege on four client tables, TRUNCATE included
 - severity: P2
 - status: [x]

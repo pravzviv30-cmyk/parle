@@ -109,13 +109,3 @@ export function questsToClaim(input: {
 export function questMonthOf(day: string): string {
   return day.slice(0, 7);
 }
-
-/** Quests claimed in one calendar month (`YYYY-MM`), each day's quest once. */
-export function monthlyQuestCount(claims: readonly QuestClaim[], month: string): number {
-  const seen = new Set<string>();
-  for (const claim of claims) {
-    if (questMonthOf(claim.day) !== month) continue;
-    seen.add(`${claim.day}|${claim.questId}`);
-  }
-  return seen.size;
-}

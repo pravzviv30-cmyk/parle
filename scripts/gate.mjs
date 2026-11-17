@@ -48,6 +48,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { passingTestTitles } from './gateReporter.mjs';
 import { evaluateAudit } from './dependencyAudit.mjs';
+import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems, PROOF_FLOOR_KEY, workspaceKeys, belowFloor, trackedTestFiles } from './gateChecks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
@@ -176,30 +177,13 @@ const passed = new Set();
 /** @type {Record<string, {tests: number, pass: number, fail: number}>} */
 const counts = {};
 
-for (const pkg of fast ? [] : Object.keys(floors)) {
+for (const pkg of fast ? [] : workspaceKeys(floors)) {
   const result = run('npm', ['test', `--workspace=${pkg}`], { env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}` } });
-  const num = (label) => {
-    const m = result.out.match(new RegExp(`^ℹ ${label} (\\d+)$`, 'm'));
-    return m ? Number(m[1]) : null;
-  };
-  const tests = num('tests');
-  const pass = num('pass');
-  const failed = num('fail');
-
-  if (tests === null || failed === null) {
-    fail('tests', `${pkg}: could not read a test summary — the suite did not finish.\n${result.out.slice(-2000)}`);
-    continue;
-  }
+  const { tests, pass, fail: failed } = suiteSummary(result.out);
+  for (const problem of suiteProblems(pkg, result)) fail('tests', problem);
+  if (tests === null || failed === null) continue;
   counts[pkg] = { tests, pass: pass ?? 0, fail: failed };
 
-  if (failed > 0) {
-    const names = result.out
-      .split('\n')
-      .filter((l) => l.trim().startsWith('✖ '))
-      .slice(0, 15)
-      .map((l) => l.trim());
-    fail('tests', `${pkg}: ${failed} failing\n${names.join('\n')}`);
-  }
   // A suite that never loads takes its whole file with it and still exits 0. The count
   // floor is the only thing that notices — see CLAUDE.md on worktrees.
   if (tests < floors[pkg]) {
@@ -235,12 +219,18 @@ if (!fast) {
   }
 }
 
-const releaseProofTests=['services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','scripts/measureTtsFirstAudio.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs','scripts/measureFluxEot.test.mjs','scripts/daily-tutor-plan.test.mjs','scripts/ttsV4TurboCheck.test.mjs','scripts/unslop-scan.test.mjs','scripts/repoStructure.test.mjs','scripts/measureHalfCascade.test.mjs'];
+const releaseProofTests=['services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','scripts/measureTtsFirstAudio.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs','scripts/measureFluxEot.test.mjs','scripts/daily-tutor-plan.test.mjs','scripts/ttsV4TurboCheck.test.mjs','scripts/unslop-scan.test.mjs','scripts/repoStructure.test.mjs','scripts/measureHalfCascade.test.mjs','scripts/gateChecks.test.mjs'];
 if(!fast) {
   const result=run(process.execPath,['--test',`--test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}`,...releaseProofTests]);
-  const tested = Number(result.out.match(/[ℹ#] tests ([1-9][0-9]*)/)?.[1] ?? 0);
-  if(result.code!==0 || tested===0 || !/[ℹ#] fail 0/.test(result.out))fail('release/provider proofs',result.out.slice(-4000));
-  else {
+  const tested = suiteSummary(result.out).tests ?? 0;
+  const problems = suiteProblems('release/provider proofs', result);
+  if (tested === 0 && problems.length === 0) problems.push(`release/provider proofs: no test ran.\n${result.out.slice(-4000)}`);
+  for (const problem of problems) fail('release/provider proofs', problem);
+  // Blessing is what records a missing floor, so only a recorded floor is enforced there.
+  if (problems.length === 0 && !(bless && floors[PROOF_FLOOR_KEY] === undefined)) {
+    for (const problem of belowFloor(PROOF_FLOOR_KEY, tested, floors[PROOF_FLOOR_KEY])) fail('tests', problem);
+  }
+  if (problems.length === 0) {
     releaseProviderProofTests = tested;
     for (const title of passingTestTitles(result.out)) passed.add(title);
   }
@@ -255,27 +245,32 @@ function testFiles(dir, out = []) {
     // lstat, not stat: .claude/worktrees links to the other checkouts, which are not this
     // tree's tests and whose device builds delete files mid-walk (the gate crashed on one).
     if (lstatSync(full).isDirectory()) testFiles(full, out);
-    else if (entry.endsWith('.test.ts')) out.push(full);
+    else if (isTestFile(entry)) out.push(full);
   }
   return out;
 }
 
-for (const file of testFiles(ROOT)) {
-  const source = readFileSync(file, 'utf8');
-  const rel = path.relative(ROOT, file);
-  if (/\b(test|describe|it)\.only\s*\(/.test(source)) {
-    fail('hygiene', `${rel}: a focused .only() hides every other test in the file`);
-  }
-  if (/\b(test|describe|it)\.skip\s*\(/.test(source)) {
-    fail('hygiene', `${rel}: a skipped test is a test that is not defending anything`);
-  }
+const onDisk = testFiles(ROOT).map((file) => path.relative(ROOT, file).split(path.sep).join('/'));
+for (const rel of onDisk) {
+  for (const problem of focusProblems(rel, readFileSync(path.join(ROOT, rel), 'utf8'))) fail('hygiene', problem);
 }
 
-// Every scripts/*.test.mjs must be in the release/provider proof list, or it never runs.
-for (const entry of readdirSync(path.join(ROOT, 'scripts'))) {
-  if (entry.endsWith('.test.mjs') && !releaseProofTests.includes(`scripts/${entry}`)) {
-    fail('hygiene', `scripts/${entry}: not in the gate's release/provider proof list, so it never runs`);
+// Every tracked test file must be matched by a floored workspace's test glob or be in the
+// release/provider proof list, or it never runs.
+const workspaceDirs = {};
+for (const parent of ['packages', 'apps', 'services']) {
+  for (const entry of readdirSync(path.join(ROOT, parent))) {
+    let manifest;
+    try { manifest = JSON.parse(readFileSync(path.join(ROOT, parent, entry, 'package.json'), 'utf8')); } catch { continue; }
+    workspaceDirs[manifest.name] = { dir: `${parent}/${entry}`, script: manifest.scripts?.test ?? '' };
   }
+}
+const floored = Object.keys(floors)
+  .filter((name) => workspaceDirs[name])
+  .map((name) => ({ dir: workspaceDirs[name].dir, glob: workspaceDirs[name].script.match(/"([^"]*\.test\.[^"]*)"/)?.[1] ?? '' }))
+  .filter(({ glob }) => glob);
+for (const rel of unrunTestFiles(trackedTestFiles(ROOT), floored, releaseProofTests)) {
+  fail('hygiene', `${rel}: no floored workspace's test glob matches it and it is not in the gate's release/provider proof list, so it never runs`);
 }
 
 // ------------------------------------------------------------------ 4. secrets
@@ -436,11 +431,13 @@ for (const agent of agentFiles) {
   }
 }
 
-for (const command of ['forge', 'bug-sweep', 'ship', 'backend-review']) {
+for (const command of REQUIRED_COMMANDS) {
   if (readOrNull(path.join(ROOT, '.claude', 'commands', `${command}.md`)) === null) {
     fail('agents', `.claude/commands/${command}.md is missing — /${command} does not exist`);
   }
 }
+
+for (const problem of guardWiringProblems(readOrNull(path.join(ROOT, '.claude', 'settings.json')))) fail('agents', problem);
 
 // --------------------------------------------------------------------- 6. goal
 
@@ -461,11 +458,14 @@ for (const raw of ledger.split('\n')) {
   if (severity) current.severity = severity[1];
   const status = raw.match(/^-\s*status:\s*\[( |x)\]/);
   if (status) current.done = status[1] === 'x';
-  const verified = raw.match(/^-\s*verified-by:\s*`(.+)`\s*$/);
+  const verified = raw.match(VERIFIED_BY);
   if (verified) current.verifiedBy.push(verified[1]);
 }
 if (current) entries.push(current);
 
+for (const { line, text } of malformedVerifiedBy(ledger)) {
+  fail('goal', `docs/KNOWN_ISSUES.md:${line}: a verified-by line with text after the title is never checked — move the text to a note line\n  ${text}`);
+}
 if (entries.length === 0) fail('goal', 'docs/KNOWN_ISSUES.md has no entries — the goal file cannot be empty');
 
 for (const entry of entries) {
@@ -511,6 +511,7 @@ if (bless) {
   }
   const next = { ...floors };
   for (const [pkg, c] of Object.entries(counts)) next[pkg] = Math.max(floors[pkg] ?? 0, c.tests);
+  next[PROOF_FLOOR_KEY] = Math.max(floors[PROOF_FLOOR_KEY] ?? 0, releaseProviderProofTests);
   writeFileSync(FLOORS_PATH, `${JSON.stringify(next, null, 2)}\n`);
   console.log('floors raised to', next);
   process.exit(0);
@@ -527,7 +528,7 @@ if (asJson) {
     console.log('  fast: hygiene, secrets, agents and the ledger only. No suite ran and no tick was verified.');
   } else {
     console.log(`  total: ${total} tests`);
-    if(releaseProviderProofTests) console.log(`  ✔ shared release/provider proofs: ${releaseProviderProofTests} tests, 0 failing`);
+    if(releaseProviderProofTests) console.log(`  ✔ shared release/provider proofs: ${releaseProviderProofTests} tests, 0 failing (floor ${floors[PROOF_FLOOR_KEY]})`);
     for (const proof of databaseProofs) console.log(`  ✔ ${proof.script}: all ${proof.migrationCount} migrations replayed`);
   }
   if (ok) {

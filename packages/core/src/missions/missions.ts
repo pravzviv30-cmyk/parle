@@ -208,7 +208,8 @@ const INDEPENDENCE_BY_RUNG: Record<Rung, Independence> = {
  * Replaying a mission with more help on a tired evening is a good thing to do,
  * and a scale that walked backwards for it would turn practice into a risk. This
  * is the same instinct as the ladder's `partial` holding the rung rather than
- * dropping it, and the same one behind having no streak at all.
+ * dropping it, and the same one behind a streak that a missed day can be
+ * covered for rather than lost.
  */
 export function independenceFrom(completions: readonly MissionCompletion[]): Independence {
   let best: Rung | null = null;
@@ -376,11 +377,6 @@ export const FIRST_MISSION: MissionId = 'mission:premier-cafe';
 
 export function getMission(id: string): Mission | undefined {
   return MISSIONS.find((mission) => mission.id === id);
-}
-
-/** Every phrase every mission drills. Used to prove none is orphaned. */
-export function missionPhraseKeys(): string[] {
-  return MISSIONS.flatMap((mission) => [...mission.phraseKeys]);
 }
 
 /**

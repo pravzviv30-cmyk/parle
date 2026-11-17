@@ -21,6 +21,8 @@
 5. The replay memo makes "hear" and "english" taps free. That saving is not modelled, because we have no tap-rate data yet. The `[luvani:cost]` line will measure it in beta.
 6. Live scoring is off by default (`LUVANI_AUDIO_SCORING`). The vendor rate behind it is still unverified.
 
+Note, 2026-11-17: the drill figures in the table above were measured with the basic check only; the eval now also reports the production filter (F1124, 2026-11-17).
+
 ## A lesson minute (authored, scripted speech)
 
 | Component | Before | After (this branch) | Quality impact |

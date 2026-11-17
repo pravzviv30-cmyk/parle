@@ -19,7 +19,6 @@ export {
   questProgress,
   questsToClaim,
   questMonthOf,
-  monthlyQuestCount,
   type DayFacts,
   type QuestProgress,
   type QuestClaim,

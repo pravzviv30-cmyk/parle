@@ -266,6 +266,18 @@ describe('starting a session', () => {
     assert.match(decision.allowed === false ? decision.message : '', /0 min 40s left/);
   });
 
+  test('a free learner refused for a thin window is told when the next free conversation is ready', () => {
+    const periodEnd = new Date('2026-10-22T16:10:00Z');
+    const thin = canStartSession({ plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod - 40, weeklyTaste: true, periodEnd });
+    assert.equal(thin.allowed === false && thin.reason, 'insufficient-for-session');
+    assert.equal(thin.allowed === false ? thin.refillsAt?.getTime() : 0, periodEnd.getTime());
+    assert.equal(thin.allowed === false ? thin.message : '', 'Only 0 min 40s left. Not quite enough for a full session.');
+
+    // A paid thin window names no refill, matching paid out-of-time.
+    const paid = canStartSession({ plan: 'starter', secondsUsed: PLANS.starter.secondsPerPeriod - 40, periodEnd });
+    assert.equal(paid.allowed === false ? paid.refillsAt : 'x', undefined);
+  });
+
   test('exactly the minimum viable session is allowed', () => {
     const e: Entitlement = { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod - MIN_VIABLE_SESSION_SEC };
     assert.equal(canStartSession(e).allowed, true);
@@ -598,4 +610,16 @@ describe('a yearly window that ends is a refill owed, never a lapse (F733 review
     assert.equal(rollPeriod(spent, new Date(yearEnd.getTime() + LAPSE_GRACE_SEC * 1000)), spent);
     assert.equal(rollPeriod(spent, new Date(yearEnd.getTime() + LAPSE_GRACE_SEC * 1000 + 1)).lapsed, true);
   });
+});
+
+// F1077. The removed type re-exports leave nothing at runtime, so only the values are checked.
+test('the core barrels no longer re-export the unused metering helpers', async () => {
+  const metering: Record<string, unknown> = await import('./index.ts');
+  const core: Record<string, unknown> = await import('../index.ts');
+  for (const name of ['YEARLY_PLANS', 'allowanceWindowCount', 'planMargin', 'storeTrialCostUsd', 'yearlyPlanMargin']) {
+    assert.ok(!(name in metering), `metering/index.ts still exports ${name}`);
+    assert.ok(!(name in core), `index.ts still exports ${name}`);
+  }
+  assert.ok(!('shortGoalLabel' in core), 'index.ts still exports shortGoalLabel');
+  assert.ok('canStartSession' in core && 'SHORT_GOALS' in core, 'the barrels still carry what the app uses');
 });

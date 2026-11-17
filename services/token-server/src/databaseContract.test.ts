@@ -615,6 +615,9 @@ const REDEFINED_BY_DAILY = new Set(['luvani_private.tutor_cap_v1', 'luvani_priva
 /** The migration that nets reserve_tutor_session_v1's day caps of unjoined give-backs (F955); the rest of its body is D24's. */
 const UNJOINED_RELEASE = '20261116120000_tutor_unjoined_release.sql';
 
+/** The migration that promotes a purchase-first trial row at its first device claim (F933); both claim bodies are otherwise D24's. */
+const CLAIM_PROMOTES = '20261117120000_claim_promotes_unclaimed_row.sql';
+
 const FUNCTION_DEFINITION = /create (?:or replace )?function ((?:public|luvani_private)\.\w+)\s*\(/gi;
 
 /** Each allowance table in one file, with the function whose body holds it. */
@@ -904,16 +907,18 @@ describe('database security contract — SQL cannot drift quietly', () => {
     const laterClaimTrial = migrationFiles
       .slice(migrationFiles.indexOf('202608240001_claim_trial_null_fix.sql') + 1)
       .filter((name) => FUNCTION_HEADERS.claim_trial.test(sqlOf(name)));
-    // D24 re-defines it once, to mark the claimed row as a weekly taste. Everything above
-    // reads the effective body, so that one is read; any other re-definition is not.
-    assert.deepEqual(laterClaimTrial, [WEEKLY_TASTE], 'a later migration re-defines claim_trial without being read here');
+    // D24 re-defines it to mark the claimed row as a weekly taste, and F933 to promote a
+    // purchase-first row. Everything above reads the effective body, so those are read;
+    // any other re-definition is not.
+    assert.deepEqual(laterClaimTrial, [WEEKLY_TASTE, CLAIM_PROMOTES], 'a later migration re-defines claim_trial without being read here');
   });
 
   test('the weekly taste refills only a claimed trial, and every lapse lands on a fresh one (D24)', () => {
     const d24 = sqlOf(WEEKLY_TASTE);
     const code = stripComments(d24);
     const latestIn = (name: string): string => {
-      const owner = REDEFINED_BY_DAILY.has(name) ? DAILY_ALLOWANCE : name === 'public.reserve_tutor_session_v1' ? UNJOINED_RELEASE : WEEKLY_TASTE;
+      const owner = REDEFINED_BY_DAILY.has(name) ? DAILY_ALLOWANCE : name === 'public.reserve_tutor_session_v1' ? UNJOINED_RELEASE
+        : name.startsWith('public.claim_trial') ? CLAIM_PROMOTES : WEEKLY_TASTE;
       assert.equal(latestFunctionDefinitions().get(name)?.file, owner, `${name} is not defined last by ${owner}`);
       return stripComments(effectiveBody(new RegExp(`create or replace function ${name.replace('.', '\\.')}\\b`, 'i')));
     };
@@ -1429,6 +1434,9 @@ describe('database security contract — SQL cannot drift quietly', () => {
     for (const file of ['20261020140000_weekly_free_taste.sql', '20261004010327_whole_product_paid_admission.sql']) {
       assert.ok(row(`| \`${file}\` |`).includes('20261116120000'), `the ${file} rollback row does not warn that it undoes migration 46`);
     }
+    // Rolling 40 back also restores the pre-47 claim bodies and drops weekly_taste, which 47 reads.
+    assert.ok(row('| `20261020140000_weekly_free_taste.sql` |').includes('20261117120000'),
+      'the 20261020140000_weekly_free_taste.sql rollback row does not warn that it undoes migration 47');
   });
 
   test('learner state has own-row read, insert, update and delete policies', () => {
@@ -1525,7 +1533,7 @@ describe('destructive rollback interlocks (F1081)', () => {
     }
   });
 
-  /** All 47 migrations replayed, and a reader of every column the rollbacks could drop. */
+  /** All 48 migrations replayed, and a reader of every column the rollbacks could drop. */
   const replayed = async (): Promise<{ db: PGlite; columns: () => Promise<string[]> }> => {
     const db = new PGlite();
     await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
@@ -1939,6 +1947,145 @@ describe('unjoined tutor start release (F955)', () => {
       for (const [from, to] of reversals[name]!) text = swap(text, from, to, name);
       assert.equal(text, body(down, name), `migration 46 changes ${name} beyond its named lines`);
     }
+  });
+});
+
+// F933: a purchase before the first conversation leaves an unclaimed, spent trial row.
+// The first device claim promotes it to a fresh free conversation; a device that already
+// had one leaves it spent.
+describe('purchase-first trial row (F933)', () => {
+  const BOOT = `create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+    create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+    create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+    create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+    grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`;
+  const OPEN = `update public.tutor_session_admission_config set enabled=true,max_active_sessions=10,
+    max_daily_issued_seconds=100000,max_account_daily_sessions=50,max_account_daily_seconds=100000`;
+  const uid = (n: number): string => `30000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const hash = (tag: string, n: number): string => `${tag}${String(n).padStart(43 - tag.length, '0')}`;
+  type Json = Record<string, any>;
+  type Claim = 'claim_trial' | 'claim_trial_with_evidence';
+  const CLAIMS: Claim[] = ['claim_trial', 'claim_trial_with_evidence'];
+
+  let base: PGlite;
+  before(async () => {
+    base = new PGlite();
+    await base.exec(BOOT);
+    for (const name of migrationFiles) await base.exec(sqlOf(name));
+    await base.exec(OPEN);
+  });
+  after(async () => { await base.close(); });
+
+  const learner = async (db: PGlite, n: number): Promise<void> => {
+    await db.query('insert into auth.users(id) values($1)', [uid(n)]);
+    await db.query('insert into auth.sessions(id,user_id) values($1,$2)', [uid(1000 + n), uid(n)]);
+  };
+  const claim = async (db: PGlite, fn: Claim, n: number, device: number): Promise<boolean> => {
+    const args = fn === 'claim_trial' ? [uid(n), hash('i', device), hash('u', n)] : [uid(n), hash('i', device), hash('u', n), true];
+    return (await db.query<{ ok: boolean }>(`select public.${fn}(${args.map((_, i) => `$${i + 1}`).join(',')}) ok`, args)).rows[0]!.ok;
+  };
+  const row = async (db: PGlite, n: number): Promise<Json> =>
+    (await db.query<Json>('select plan,seconds_used,weekly_taste,period_end from public.entitlements where user_id=$1', [uid(n)])).rows[0]!;
+  const reserve = async (db: PGlite, n: number, id: number): Promise<Json> =>
+    (await db.query<{ v: Json }>('select public.reserve_tutor_session_v1($1,$2,$3,$4,$5,$6) v',
+      [uid(n), uid(2000 + id), `luvani-f933-${id}`, 'lesson', id.toString(16).padStart(64, '0'), uid(1000 + n)])).rows[0]!.v;
+
+  test('a trial row begun by a purchase becomes a refilling free conversation at its first device claim', async () => {
+    const db = (await base.clone()) as PGlite;
+    try {
+      for (const [i, fn] of CLAIMS.entries()) {
+        const n = i + 1;
+        await learner(db, n);
+        await db.query('select public.begin_billing_refresh($1)', [uid(n)]);
+        assert.deepEqual(await row(db, n), { plan: 'trial', seconds_used: 600, weekly_taste: false, period_end: null });
+        // Before the claim no reservation can exist on the spent row: admission refuses it.
+        assert.equal((await reserve(db, n, 10 * n)).reason, 'exhausted');
+        assert.equal(await claim(db, fn, n, n), true);
+        assert.deepEqual(await row(db, n), { plan: 'trial', seconds_used: 0, weekly_taste: true, period_end: null },
+          `${fn} left a purchase-first row spent on a device that never had a free conversation`);
+        const recorded = (await db.query('select 1 from public.trial_installations where installation_hash=$1', [hash('i', n)])).rows.length;
+        assert.equal(recorded, 1, `${fn} did not record the device that took the free conversation`);
+        assert.equal((await reserve(db, n, 10 * n + 1)).reservedSeconds, 600, `${fn}: the promoted row cannot start a free conversation`);
+      }
+    } finally { await db.close(); }
+  });
+
+  test('a purchase-first row on a device that already had a free conversation stays spent', async () => {
+    const db = (await base.clone()) as PGlite;
+    try {
+      for (const [i, fn] of CLAIMS.entries()) {
+        const first = 10 + 2 * i;
+        const second = first + 1;
+        await learner(db, first);
+        await learner(db, second);
+        assert.equal(await claim(db, fn, first, first), true);
+        await db.query('select public.begin_billing_refresh($1)', [uid(second)]);
+        assert.equal(await claim(db, fn, second, first), true, `${fn} refused a learner who had paid`);
+        assert.deepEqual(await row(db, second), { plan: 'trial', seconds_used: 600, weekly_taste: false, period_end: null },
+          `${fn} gave a second free conversation to a device that already had one`);
+        assert.equal((await reserve(db, second, 100 + i)).reason, 'exhausted');
+      }
+    } finally { await db.close(); }
+  });
+
+  test('a claim from a new device on a weekly-taste or paid row changes nothing', async () => {
+    const db = (await base.clone()) as PGlite;
+    const snapshot = async (n: number): Promise<Json> =>
+      (await db.query<{ e: Json }>('select to_jsonb(e) e from public.entitlements e where user_id=$1', [uid(n)])).rows[0]!.e;
+    const devices = async (): Promise<number> => (await db.query<{ n: number }>('select count(*)::int n from public.trial_installations')).rows[0]!.n;
+    try {
+      for (const [i, fn] of CLAIMS.entries()) {
+        const taste = 20 + 3 * i;
+        const paid = taste + 1;
+        const lapsed = taste + 2;
+        for (const n of [taste, paid, lapsed]) await learner(db, n);
+        // A weekly taste part-way through its window.
+        assert.equal(await claim(db, fn, taste, taste), true);
+        await db.query('update public.entitlements set seconds_used=100 where user_id=$1', [uid(taste)]);
+        // A paid row, and a paid row that lapsed to a fresh taste without any device claim.
+        await db.query("insert into public.entitlements(user_id,plan,seconds_used,period_end) values($1,'starter',500,clock_timestamp()+interval '10 days')", [uid(paid)]);
+        await db.query("insert into public.entitlements(user_id,plan,seconds_used,period_end) values($1,'starter',500,clock_timestamp()-interval '48 hours')", [uid(lapsed)]);
+        await db.query('select luvani_private.tutor_entitlement_v1($1)', [uid(lapsed)]);
+        await db.query('update public.entitlements set seconds_used=100 where user_id=$1', [uid(lapsed)]);
+
+        const lapsedRow = await snapshot(lapsed);
+        assert.deepEqual([lapsedRow.plan, lapsedRow.weekly_taste, lapsedRow.lapsed_from_paid, lapsedRow.seconds_used], ['trial', true, true, 100]);
+        assert.notEqual((await snapshot(taste)).period_end, null, 'the weekly taste is not part-way through a window');
+        for (const [n, what] of [[taste, 'weekly-taste'], [paid, 'paid'], [lapsed, 'lapsed paid']] as const) {
+          const before = await snapshot(n);
+          const recorded = await devices();
+          assert.equal(await claim(db, fn, n, 900 + n), true, `${fn} refused a ${what} row`);
+          assert.deepEqual(await snapshot(n), before, `${fn} changed a ${what} row on a claim from a new device`);
+          assert.equal(await devices(), recorded, `${fn} recorded a new device against a ${what} row`);
+        }
+      }
+    } finally { await db.close(); }
+  });
+
+  test('the claim rollback refuses without its interlock and restores the earlier bodies', async () => {
+    const down = readFileSync(path.join(ROLLBACKS, `${CLAIM_PROMOTES.split('_')[0]}_down.sql`), 'utf8');
+    const db = new PGlite();
+    const bodies = async (): Promise<Json[]> => (await db.query<Json>(`select p.proname name,pg_get_functiondef(p.oid) def,p.proacl::text acl
+      from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='public' and p.proname in ('claim_trial','claim_trial_with_evidence') order by 1`)).rows;
+    try {
+      await db.exec(BOOT);
+      let d24: Json[] = [];
+      for (const name of migrationFiles.filter((name) => name <= CLAIM_PROMOTES)) {
+        await db.exec(sqlOf(name));
+        if (name === WEEKLY_TASTE) d24 = await bodies();
+      }
+      const promoted = await bodies();
+      assert.equal(d24.length, 2, 'migration 40 did not define both claim functions');
+      assert.notDeepEqual(promoted, d24, 'migration 47 did not replace the claim bodies');
+      for (let i = 0; i < 2; i++) {
+        await assert.rejects(db.exec(down), /refusing/, 'the claim rollback ran without luvani.reopen_f933');
+        await db.exec('rollback'); // the refused file leaves its own transaction open and aborted
+        assert.deepEqual(await bodies(), promoted, 'a refused claim rollback changed the claim bodies');
+      }
+      for (let i = 0; i < 2; i++) await db.exec(`set luvani.reopen_f933 = 'yes';\n${down}`);
+      assert.deepEqual(await bodies(), d24, 'the claim rollback did not restore the migration 40 bodies and grants exactly');
+    } finally { await db.close(); }
   });
 });
 
