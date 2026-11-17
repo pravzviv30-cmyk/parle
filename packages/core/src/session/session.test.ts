@@ -228,6 +228,17 @@ describe('the stuck learner — the behaviour the whole product rests on', () =>
     assert.equal(currentPrompt(lesson, next.state).support.kind, 'hint', 'rung 3 support, as the drop intended');
   });
 
+  test("a good turn answered from a rescue's full line is not counted as unassisted", () => {
+    const rescued = step(createSession(lesson, RUNGS.FREE), stuck);
+    assert.equal(currentPrompt(lesson, rescued.state).support.kind, 'full-line', 'the rescue hands over the line');
+    const echoed = step(rescued.state, said('Bonjour'));
+    assert.equal(echoed.feedback.quality, 'good');
+    assert.equal(echoed.state.ladder.unassistedTurns, 0, 'repeating the handed line is not composing it');
+    // The next turn, with the line no longer handed over, earns the credit again.
+    const own = step(echoed.state, said("Un café, s'il vous plaît"));
+    assert.equal(own.state.ladder.unassistedTurns, 1);
+  });
+
   test('the rescue message offers help without ever naming the struggle', () => {
     const { feedback } = step(createSession(lesson, RUNGS.PROMPTED), stuck);
     assert.equal(feedback.message, "Let's take that one together.");

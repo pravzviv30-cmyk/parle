@@ -287,7 +287,7 @@ export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerIn
       nearMiss = match.via === 'near';
       pronunciation = meanScore(input.phonemes);
       const quality = grade(wordsCorrect, pronunciation, nearMiss);
-      event = { type: 'spoke', quality };
+      event = { type: 'spoke', quality, assisted: state.directive.rescued };
 
       next.observations.push(...input.phonemes);
       next.learnerSpeakingSec += input.durationSec;
