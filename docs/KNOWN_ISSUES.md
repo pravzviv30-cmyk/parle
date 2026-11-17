@@ -12518,15 +12518,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F968 — The tutor logs "signed lesson differs from the worker catalogue" on staging starts
 - severity: P3
 - status: [ ]
-- where: services/tutor-agent/src/agent.ts:186-188 (`sceneLesson(scene)` or `CAFE_LESSON` against
-  `meta.lessonId`); services/token-server/src/tokens.ts:324 (the signed `lessonId`)
-- note: Open observation, 2026-11-06. Both founder starts at 16:37 and 16:38 UTC (deployment
-  `6016fd6d`) logged it. The token server signs the app's `lessonId` (default `cafe-01`), and the
-  worker runs `sceneLesson(scene)` for a scene or `CAFE_LESSON` otherwise; on a mismatch it only
-  warns and runs its own choice. Not yet known which lesson the app asked for, so whether a learner
-  ever hears a different lesson from the one they picked is unproven. Raise the severity if it is.
+- where: services/tutor-agent/src/agent.ts:186; services/tutor-agent/src/guestSceneGate.ts (`roomLesson`); services/token-server/src/server.ts:683
+- note: Open observation, 2026-11-06; cause found 2026-11-17. Every conversation signs `convo-01` (ConvoScreen.tsx:312, FirstLivePractice.tsx:62, server.ts:513) and the worker compared it with `cafe-01`, so every conversation start warned. A conversation never reads the lesson and the catalogue holds one lesson, so nobody heard a different lesson. Fix (founder, 2026-11-17, Q7): `roomLesson` ignores the label for a conversation, runs the signed lesson for a lesson room and refuses an unknown one after the session exit exists (class start); the token server refuses an unknown lesson id in a lesson mode before reserving.
 - verified-by: `the tutor runs the lesson the token server signed, or refuses the room`
-
+- verified-by: `a conversation's signed lesson label is not compared with the lesson catalogue`
+- verified-by: `the token server refuses an unknown lesson id in a lesson mode before reserving`
+- verified-by: `a room refused for an unknown lesson logs session-exit start`
 ### F969 — Council review of the nine-problem lanes: ten defects in the code already on main
 - severity: P2
 - status: [x]
@@ -12691,3 +12688,97 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `on the bar with no open tab a press ticks once and lights nothing (F981, push-check)`
 - verified-by: `a drag that starts on a closed tab ticks once at the grab; from the open tab the grab still ticks (F981, push-check)`
 - verified-by: `the drop handler gives back the live hold but keeps the audio session when the session had already ended or failed`
+
+### F982 — A hook that throws lets the pipeline LLM answer unseen
+- severity: P1
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:2829; services/tutor-agent/src/tutor.ts:809
+- note: SDK 1.9 calls generateReply when onUserTurnCompleted throws anything but StopResponse. The F970 checkpoint failure did exactly that on 2026-11-10, so a second reply could be spoken that the screen never showed. Both tutors now end every hook exit in StopResponse and log `[luvani:hook-failure]`. A conversation still live (lifecycle signal not aborted, never assertActive) says the existing recovery line unless the turn already spoke, and a second failure in a row ends the session as brain-turn. The lesson tutor re-arms its rescue clock.
+- verified-by: `a conversation hook that throws still ends in StopResponse, so the pipeline model never answers`
+- verified-by: `a hook failure in a live conversation says the recovery line once and a finished one stays quiet`
+- verified-by: `a lesson hook that throws still ends in StopResponse`
+- verified-by: `a hook failure after the turn already spoke says no recovery line`
+- verified-by: `a second hook failure in a row ends the session as brain-turn`
+- verified-by: `a lesson hook failure re-arms the rescue clock`
+
+### F983 — Under reply-first, a turn that reached for English waits for the whole turn
+- severity: P1
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:3215; packages/brain/src/llm/spokenFields.ts
+- note: The early hand-over fires when the reply closes, before the coach, so English-reach turns lose the whole head start. The watcher now hands over again when coach closes and the tutor speaks then, hand-back first; the callback never overwrites an early line already spoken, including on the F965 retry. The rung expression and the request body are unchanged, so no quote moves.
+- verified-by: `reply-first: the watcher hands over again when coach closes, carrying the coach`
+- verified-by: `a reply-first stream calls onSpokenFields at the reply and at the coach, and the request body is unchanged`
+- verified-by: `reply-first: a turn that reached for English speaks once its coach has streamed, hand-back first`
+- verified-by: `reply-first English reach at rung 2: the early line with its coach is uninterruptible`
+- verified-by: `reply-first English reach at rung 4: the early line with its coach stays interruptible`
+- verified-by: `reply-first English reach at rung 3 with a blocking error: the early line is uninterruptible`
+- verified-by: `the coach hand-over never speaks a second early line, including on the retried attempt`
+
+### F984 — The first reply pays for a cold brain cache and a cold voice connection
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:2305; services/tutor-agent/src/paidVoiceProxy.ts
+- note: 2026-11-10 staging: 7,364 input tokens with 0 cached, and an opening TTS first byte of 1,312 ms against 385 to 505 ms after. A keyless, headerless HEAD with no redirect and a short timeout preconnects the ElevenLabs origin at join, at most once per proxy, spending no effect. Behind LUVANI_BRAIN_WARMUP=1 (default off; founder yes 2026-11-17, Q2) the scene opening fires one discarded turn-shaped call with the session's own body shape, under the session signal, skipped when closing for time, logged as `[luvani:brain-warmup]`: identity unchanged, 1 of 66 turn effects (2 after a 429).
+- verified-by: `the proxy preconnect sends one keyless HEAD outside the gate and swallows its failure`
+- verified-by: `the worker preconnects the voice vendor after the proxy is built in a spoken session`
+- verified-by: `with the warm-up flag on, opening a scene sends one discarded turn request and never delays the opening line`
+- verified-by: `the warm-up request has the same paid identity as the session's own turns`
+- verified-by: `a failed warm-up is metered and changes nothing the learner sees or hears`
+- verified-by: `with the warm-up flag unset no warm-up request is sent`
+- verified-by: `the warm-up is aborted with the session and is skipped when closing for time`
+- verified-by: `the preconnect is a constant headerless HEAD with no redirect, a short timeout, at most once per proxy`
+
+### F985 — The learner sees nothing of their own words until the turn is committed
+- severity: P1
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:2802; services/tutor-agent/src/learnerCaptions.ts
+- note: Only final:true was published, so the app's partial line never showed. Behind LUVANI_LEARNER_CAPTIONS (default off, on at the device session), the sttNode observer publishes the uncommitted finals plus the current interim as final:false when the text changes, at most four frames a second and 500 bytes, from a bounded buffer cleared at every hook exit, with a per-turn frame count logged. Every hook exit publishes the final line or clears the caption. No Deepgram parameter changes.
+- verified-by: `interim and final segments publish a growing caption, only when the text changes`
+- verified-by: `every exit from the hook either publishes the final line or clears the caption`
+- verified-by: `a typed session and an ended session publish no caption`
+- verified-by: `captions publish at most four frames a second and are capped in size`
+- verified-by: `with the captions flag unset nothing changes`
+
+### F986 — Flux split finals are glued with mid-sentence capitals and dashes
+- severity: P1
+- status: [ ]
+- where: services/tutor-agent/src/learnerCaptions.ts:1
+- note: docs/live-latency-evidence/2026-11-07-flux-eot.md: "On échange -- Nos numéros?", "en échange, Nos numéros". Behind LUVANI_LEARNER_CAPTIONS, joinHeard rebuilds the committed text from the captured segments, used only when their plain join equals the SDK's text; the same text goes to the screen and the brain. Known cost: a proper noun that starts a segment is lowercased.
+- verified-by: `split finals join without a mid-sentence capital, a dash or a stray ellipsis`
+- verified-by: `a segment after a full stop keeps its capital`
+- verified-by: `when the captured segments do not match the committed text, the committed text is kept and only dashes go`
+- verified-by: `the joined text is what the screen shows and what the brain is sent`
+
+### F987 — Words said over an uninterruptible tutor line vanish
+- severity: P1
+- status: [ ]
+- where: services/tutor-agent/src/turnHandling.ts:47; packages/core/src/protocol/protocol.ts
+- note: The SDK drops a turn committed while an uninterruptible line plays ("skipping user input", 2026-11-10: "Here we go."), and the comment wrongly said the words were buffered. Behind LUVANI_LEARNER_CAPTIONS, dropped finals pass the safety check and are published as their own `overheard` frame before the next committed turn (founder, 2026-11-17, Q4: shown, not answered). They are never sent to the brain or counted as a reply, and an old app's decoder drops the new frame. The comment is corrected.
+- verified-by: `finals the SDK dropped are published as an overheard line before the next turn's line`
+- verified-by: `an overheard line is not sent to the brain and does not count as a learner turn`
+- verified-by: `an overheard line is its own frame that an old decoder ignores`
+- verified-by: `overheard words pass the safety check before they are shown`
+- verified-by: `an overheard line is added to the turns without counting a scene reply or starting the thinking state`
+
+### F988 — The tutor's text arrives after its voice, and the spoken coach line never appears
+- severity: P1
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:3210; apps/mobile/src/live/roleLine.ts; apps/mobile/src/live/turns.ts
+- note: The view is published after the full turn and the checkpoint, seconds after early speech began, and a coach line spoken on an English reach or a way back is not a tutor line. speakEarly now publishes a tutor-line frame with the turn id the view will reuse (founder, 2026-11-17, Q1); the view carries coachSpoken (Q5: the coach note stays). The app adds the lines once, never changes French already shown, and never journals or counts a tutor-line no view followed. The view still waits for the checkpoint.
+- verified-by: `an early-spoken reply publishes its tutor-line with the say, under the id its view later carries`
+- verified-by: `a refused checkpoint after an early line publishes no view`
+- verified-by: `a view marks its coach line as spoken on an English reach and on a way back, and not otherwise`
+- verified-by: `the tutor-line frame and coachSpoken pass the decoder`
+- verified-by: `a spoken coach line is a tutor line before the reply`
+- verified-by: `a view never changes the French of a line already shown, and fills in its English`
+- verified-by: `a tutor-line ends the thinking state`
+- verified-by: `a tutor-line with no view after it is never journalled or counted`
+
+### F989 — Conversations give Flux no keyterms
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/agent.ts:297; services/tutor-agent/src/recognitionPlan.ts; scripts/paidQuotes.mjs
+- note: Founder yes 2026-11-17 (Q3) to the quote change. A mission conversation passes up to 16 fixed keyterms from its phrase keys at construction (VOICE-017), and the conversation quote gains the keyterm stream components beside the plain ones. Until that quote is bound at the next renewal, the proxy strips them.
+- verified-by: `a mission's keyterms are at most 16 terms and 400 bytes, full phrases first`
+- verified-by: `a conversation with a mission passes its keyterms to Flux and a free topic passes none`
+- verified-by: `the conversation quote carries both the keyterm and the plain Flux stream`
