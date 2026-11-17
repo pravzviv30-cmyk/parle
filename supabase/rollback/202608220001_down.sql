@@ -13,6 +13,7 @@
 -- the inventory of what that migration owns.
 
 -- function created by the migration
+begin;
 do $$ begin
   if current_setting('luvani.remove_learning_tables', true) is distinct from 'yes' then
     raise exception 'refusing to drop every learner table without explicit interlock';
@@ -35,6 +36,7 @@ drop policy if exists "learners update their own state" on public.learner_state;
 drop policy if exists "learners insert their own state" on public.learner_state;
 drop policy if exists "learners read their own state" on public.learner_state;
 drop table if exists public.learner_state;
+commit;
 
 -- Nothing here touches auth.users. Accounts are Supabase's, not Luvani's, and a schema
 -- rollback that deleted accounts would be a data-loss incident wearing a migration's

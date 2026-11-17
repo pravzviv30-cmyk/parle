@@ -21,6 +21,7 @@
 -- inventory of what that migration owns.
 
 -- function created by the migration
+begin;
 do $$ begin
   if current_setting('luvani.remove_billing_events', true) is distinct from 'yes' then
     raise exception 'refusing to remove the billing event ledger without explicit interlock';
@@ -32,3 +33,4 @@ drop function if exists public.record_billing_event(text, uuid);
 -- deliberately created none, which is what made the table private in the first place.
 drop index if exists public.billing_events_user_time_idx;
 drop table if exists public.billing_events;
+commit;

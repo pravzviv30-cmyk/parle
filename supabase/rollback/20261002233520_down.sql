@@ -1,4 +1,5 @@
 -- Drain new writers before rollback; never run mixed settlement versions.
+begin;
 do $$ begin
   if current_setting('luvani.remove_session_grants', true) is distinct from 'yes' then
     raise exception 'refusing to remove session grants and refund history without explicit interlock';
@@ -165,3 +166,4 @@ end;
 $$;
 revoke all on function public.export_account_data(uuid) from public, anon, authenticated;
 grant execute on function public.export_account_data(uuid) to service_role;
+commit;

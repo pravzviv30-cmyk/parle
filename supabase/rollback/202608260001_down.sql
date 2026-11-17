@@ -33,6 +33,7 @@
 -- calls, then the column both maintain — so nothing is left calling something that has
 -- already gone.
 
+begin;
 do $$ begin
   if current_setting('luvani.remove_state_revision', true) is distinct from 'yes' then
     raise exception 'refusing to remove the learner state revision without explicit interlock';
@@ -44,3 +45,4 @@ drop function if exists public.learner_state_bump_revision();
 
 alter table public.learner_state
   drop column if exists revision;
+commit;
