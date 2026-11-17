@@ -12807,3 +12807,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: packages/core/src/lessons/types.ts:222
 - note: Deferred, not built in C1. normalise joins n' to the verb ("n'aime" becomes "naime"), so the guard never sees it. Harmful direction: target "J'aime ça", said "Je n'aime plus ça", accepted via content, because naime is one edit from jaime and plus is not a guard word. Also accepted: "Je vois rien" for "Je vois" (rien, personne, aucun and plus are outside negationWords), and "Si tu ne viens jamais" for "Si jamais tu viens" (F1196 forgives ne beside a positive jamais). Harmless direction: "Ce n'est pas grave" for "C'est pas grave" grades near, because cest is under the five-letter typo floor. Separately, the typo route accepts "C'est non" for "C'est bon": the whole line is one edit away. It is a swapped word, not an added negation, and it happens on main too. No scripted line triggers any of these today. Founder to decide whether jamais stays in the F1196 exception. Found by work-judge (Fable 5.2), C1 follow-up, 2026-11-17.
 - verified-by: `an elided or unlisted negation added to a positive line is not the line, and an elided ne restored to a negated line is`
+
+### F1217 — Merging decks drops an assisted review when the grade counts tie
+- severity: P2
+- status: [ ]
+- where: packages/core/src/review/merge.ts:24
+- note: A card with reps 3 and due in 5 days gets an assisted good on the phone. It still has 3 grades, now due in 1 day. mergeDecks with the untouched copy keeps the 5-day copy and drops the phone's review. The practice grade path in apps/mobile/src/review/store.ts has no due check, so it is reachable. Present on main. Found by /code-review, C1 push-check, 2026-11-17.
+- verified-by: `an assisted review survives a merge with an untouched copy`
+
+### F1218 — The tutor agent decides scene, billing and answered status on the input type, not on what core counted
+- severity: P3
+- status: [ ]
+- where: services/tutor-agent/src/tutor.ts:932
+- note: Core now treats a filler-only reply ("Euh...") as silence, but tutor.ts still treats input.type === 'spoke' as a learner turn. It skips the scene's silence rule, adds one to learnerTurns, and marks the turn answered. On the guest scene, main and the branch give the same results, so this is not a regression. For the tutor-agent slice (B4). Found by /code-review, C1 push-check, 2026-11-17.
+- verified-by: `a filler-only reply counts as silence in the tutor agent's scene and turn counts`
