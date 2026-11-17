@@ -12721,6 +12721,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `reply-first English reach at rung 4: the early line with its coach stays interruptible`
 - verified-by: `reply-first English reach at rung 3 with a blocking error: the early line keeps the rung the full turn keeps`
 - verified-by: `the coach hand-over never speaks a second early line, including on the retried attempt`
+- verified-by: `the early line's interruptibility equals the full turn's for the same rung`
 
 ### F984 — The first reply pays for a cold brain cache and a cold voice connection
 - severity: P2
@@ -12748,6 +12749,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a typed session and an ended session publish no caption`
 - verified-by: `captions publish at most four frames a second and are capped in size`
 - verified-by: `with the captions flag unset nothing changes`
+- verified-by: `a hook exit with no final line does not blank a caption the learner has started since`
+- verified-by: `a capped caption never splits a character`
+- verified-by: `with audio scoring on, the learner's captions still publish`
+- verified-by: `an exit after an overheard line with no final line still clears the caption`
 
 ### F986 — Flux split finals are glued with mid-sentence capitals and dashes
 - severity: P1
@@ -12785,8 +12790,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a spoken coach line is a tutor line before the reply`
 - verified-by: `a view never changes the French of a line already shown, and fills in its English`
 - verified-by: `a tutor-line ends the thinking state`
+- verified-by: `the keepsake leaves out lines said over the tutor`
+- verified-by: `an early tutor line is announced with its English once the English arrives, and only once`
 - verified-by: `a tutor-line with no view after it is never journalled or counted`
 - verified-by: `the spoken coach line is read as English, other tutor lines as French`
+- verified-by: `an English-reach early tutor-line carries its coach line, and a plain turn's carries none`
 
 ### F989 — Conversations give Flux no keyterms
 - severity: P2

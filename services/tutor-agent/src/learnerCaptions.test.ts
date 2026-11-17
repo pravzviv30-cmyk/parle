@@ -81,3 +81,14 @@ test('the captions switch is off unless LUVANI_LEARNER_CAPTIONS=1', () => {
   assert.equal(learnerCaptionsEnabled({ LUVANI_LEARNER_CAPTIONS: '0' }), false);
   assert.equal(learnerCaptionsEnabled({ LUVANI_LEARNER_CAPTIONS: '1' }), true);
 });
+
+test('a capped caption never splits a character', () => {
+  const shown: string[] = [];
+  const captions = new LearnerCaptions((text) => shown.push(text), clock());
+  // One astral character, then just enough to cross the cap: a code-unit trim
+  // would leave its low surrogate at the front.
+  captions.observe(interim(`😀${'a'.repeat(CAPTION_MAX_BYTES - 3)}`));
+  assert.equal(shown.length, 1);
+  assert.doesNotMatch(shown[0]!, /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u, 'no lone surrogate');
+  assert.ok(Buffer.byteLength(shown[0]!) <= CAPTION_MAX_BYTES);
+});

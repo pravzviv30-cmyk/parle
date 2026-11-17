@@ -4806,6 +4806,31 @@ describe('a streamed turn speaks before the rest of it arrives', () => {
     await built.convo.settled();
   });
 
+  test('the early line\'s interruptibility equals the full turn\'s for the same rung', async (t) => {
+    const blocking = sampleCoachItem({ kind: 'blocking-error', quote: 'Je veux café', better: 'Je voudrais un café', betterEn: 'I would like a coffee', weight: 'matters-now' });
+    const turn = () => sampleTurn({ coach: [blocking], sceneReply: reply, scene: { beat: 'greet', beatDone: false, sceneDone: false } });
+    async function sayOptions(client: MockLlmClient, finish: () => void) {
+      const built = buildConvo(t, { client, missionId: 'mission:premier-cafe', startRung: 3 });
+      built.convo.open(built.session);
+      await built.convo.settled();
+      assert.equal(built.convo.conversationState.ladder.rung, 3);
+      const options: unknown[] = [];
+      Object.defineProperty(built.session, 'say', { value: (_text: string, opts?: unknown) => { options.push(opts); } });
+      const answered = built.convo.handleClientMessage(built.session, tapped({ t: 'say', text: 'Je veux café' }));
+      for (let i = 0; i < 20; i += 1) await Promise.resolve();
+      finish();
+      await answered;
+      await built.convo.settled();
+      return options;
+    }
+    const streaming = new StreamingBrain(turn(), false, true);
+    const early = await sayOptions(streaming, () => streaming.finish());
+    const full = await sayOptions(new MockLlmClient({ turns: [turn()] }), () => {});
+    assert.equal(early.length, 1);
+    assert.equal(full.length, 1);
+    assert.deepEqual(early[0], full[0], 'the early line is as interruptible as the full turn would have been');
+  });
+
   test('reply-first: a turn that reached for English waits for the full turn, so the French hand-back is still spoken', async (t) => {
     const reach = sampleCoachItem({ kind: 'english-to-french', quote: 'how do I say milk', better: 'du lait', betterEn: 'some milk', weight: 'matters-now' });
     const turn = sampleTurn({
@@ -6723,6 +6748,52 @@ describe('the learner sees their own words as they speak (F985 to F987)', () => 
     assert.deepEqual(lastLine(published), { t: 'transcript', text: '', final: false }, 'a turn refused while closing clears it too');
   });
 
+  test('a hook exit with no final line does not blank a caption the learner has started since', async (t) => {
+    withCaptions(t, '1');
+    t.mock.method(console, 'info', () => {});
+    const { convo, published } = await inScene(t);
+    const feed = await recogniser(t, convo);
+    await feed(interim('euh'));
+    // The learner starts again while the hook is still running.
+    const inner = convo as never as { userTurnCompleted: (...args: unknown[]) => Promise<void> };
+    const original = inner.userTurnCompleted.bind(convo);
+    inner.userTurnCompleted = async (...args: unknown[]) => { await feed(interim('Encore')); return original(...args); };
+    await spoken(convo, '');
+    assert.deepEqual(lastLine(published), { t: 'transcript', text: 'Encore', final: false }, 'the new words stay on screen');
+  });
+
+  test('an exit after an overheard line with no final line still clears the caption', async (t) => {
+    withCaptions(t, '1');
+    t.mock.method(console, 'info', () => {});
+    const { convo, published } = await inScene(t);
+    const feed = await recogniser(t, convo);
+    await feed(final('Here we go.'), final('Encore un café.'));
+    (convo as never as { closingForTime: boolean }).closingForTime = true;
+    const before = published.length;
+    await spoken(convo, 'Encore un café.');
+    assert.equal(published.slice(before).filter((m) => m.t === 'overheard').length, 1, 'the overheard line was shown');
+    assert.deepEqual(lastLine(published), { t: 'transcript', text: '', final: false }, 'and the caption still comes down');
+  });
+
+  test('with audio scoring on, the learner\'s captions still publish', async (t) => {
+    withCaptions(t, '1');
+    const saved = process.env.LUVANI_AUDIO_SCORING;
+    process.env.LUVANI_AUDIO_SCORING = '1';
+    t.after(() => { if (saved === undefined) delete process.env.LUVANI_AUDIO_SCORING; else process.env.LUVANI_AUDIO_SCORING = saved; });
+    t.mock.method(console, 'info', () => {});
+    const { convo, published, client } = await inScene(t);
+    const feed = await recogniser(t, convo);
+    await feed(interim('On'));
+    assert.deepEqual(captions(published).at(-1), { t: 'transcript', text: 'On', final: false }, 'live words publish');
+    await feed(final('Here we go.'), final('On échange --'), final('Nos numéros?'));
+    const before = published.length;
+    await spoken(convo, 'On échange -- Nos numéros?');
+    const after = published.slice(before);
+    assert.deepEqual({ ...after.find((m) => m.t === 'overheard'), turnId: undefined }, { t: 'overheard', text: 'Here we go.', turnId: undefined }, 'overheard words split off');
+    assert.equal((lastLine(published) as { text: string }).text, 'On échange nos numéros?', 'the joined line is shown');
+    assert.equal(client.turnRequests.at(-1)!.messages.filter((m) => m.role === 'user').at(-1)!.text, 'On échange nos numéros?');
+  });
+
   test('a typed session and an ended session publish no caption', async (t) => {
     withCaptions(t, '1');
     t.mock.method(console, 'info', () => {});
@@ -6840,6 +6911,33 @@ describe('the tutor\'s words arrive with its voice (F988)', () => {
     await convo.settled();
     assert.equal(views(published).at(-1)!.view.textTurnId, line.textTurnId, 'the view reuses the id');
     assert.equal(published.filter((m) => m.t === 'tutor-line').length, 1);
+  });
+
+  test('an English-reach early tutor-line carries its coach line, and a plain turn\'s carries none', async (t) => {
+    const english = { understood: true, taskAchieved: false, comprehensibility: 'clear' as const, language: 'english' as const, cefrEvidence: 'A1' as const };
+    const reach = sampleCoachItem({ kind: 'english-to-french', quote: 'how do I say milk', better: 'du lait', betterEn: 'some milk', weight: 'matters-now' });
+    const narration = { speaker: 'narration', fr: 'Le serveur attend.', frWritten: null, en: 'The waiter waits.' };
+    const coachLine = 'You are asking for milk; say « du lait ».';
+    const scene = { beat: 'greet', beatDone: false, sceneDone: false };
+    async function earlyLine(turn: ReturnType<typeof sampleTurn>, text: string) {
+      const client = new CoachHandOverBrain(turn);
+      const { convo, session, published } = await inScene(t, { client });
+      const before = published.length;
+      const answered = convo.handleClientMessage(session, tapped({ t: 'say', text }));
+      await flush();
+      const line = published.slice(before).find((m) => m.t === 'tutor-line');
+      client.finish();
+      await answered;
+      await convo.settled();
+      assert.ok(line && line.t === 'tutor-line', 'an early line was published');
+      return { line, view: views(published).at(-1)!.view };
+    }
+    const reached = await earlyLine(sampleTurn({ assessment: english, coach: [reach], coachLine, narration, sceneReply: reply, scene }), 'how do I say milk');
+    assert.equal(reached.line.coach, coachLine, 'the hand-back goes with the voice');
+    assert.ok(reached.line.narration, 'and the narration with it');
+    assert.deepEqual(reached.line.narration, reached.view.narration);
+    const plain = await earlyLine(sampleTurn({ coachLine, sceneReply: reply, scene }), 'Un café, s’il vous plaît');
+    assert.equal(plain.line.coach, null, 'a plain turn speaks no coach line');
   });
 
   test('a refused checkpoint after an early line publishes no view', async (t) => {

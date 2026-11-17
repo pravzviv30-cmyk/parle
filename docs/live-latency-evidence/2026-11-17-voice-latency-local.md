@@ -67,3 +67,4 @@ about 7,200 input tokens cached. That is one cold sample, and it also paid the c
 connection to OpenAI, so it bounds the warm-up's gain from above rather than measuring it.
 With `LUVANI_BRAIN_WARMUP=1` the warm-up spends this cold call at the scene opening instead
 of on the learner's first reply.
+With `LUVANI_BRAIN_WARMUP` on, `[luvani:brain] turn` totals include the warm-up call; subtract the `[luvani:brain-warmup]` call when comparing first-turn cache numbers.

@@ -2874,8 +2874,8 @@ export class LuvaniConversation extends voice.Agent {
     } finally {
       if (heard) {
         console.info(`[luvani:captions] frames=${heard.frames}`);
-        // No final line from this exit: take the caption down.
-        if (this.inputSequence - linesBefore <= (this.overheardThisTurn ? 1 : 0) && !this.ended && !this.voiceless) {
+        // No final line from this exit: take the caption down, unless the learner has started again since.
+        if (this.inputSequence - linesBefore <= (this.overheardThisTurn ? 1 : 0) && this.captions?.idle && !this.ended && !this.voiceless) {
           this.publish({ t: 'transcript', text: '', final: false });
         }
       }

@@ -76,7 +76,7 @@ const realClock: Clock = {
 /** The tail of a caption that fits the byte cap: the newest words matter most. */
 function capped(text: string): string {
   let out = text;
-  while (Buffer.byteLength(out) > CAPTION_MAX_BYTES) out = out.slice(out.indexOf(' ') > 0 ? out.indexOf(' ') + 1 : 1);
+  while (Buffer.byteLength(out) > CAPTION_MAX_BYTES) out = out.slice(out.indexOf(' ') > 0 ? out.indexOf(' ') + 1 : out.codePointAt(0)! > 0xffff ? 2 : 1);
   return out;
 }
 
@@ -118,6 +118,9 @@ export class LearnerCaptions {
     this.frames += 1;
     this.publish(caption);
   }
+
+  /** Nothing heard since the last `take`. */
+  get idle(): boolean { return this.finals.length === 0 && this.interim === ''; }
 
   /** At a hook exit: split the committed text, then forget every segment. */
   take(committed: string): SplitHeard & { frames: number; segments: number } {
