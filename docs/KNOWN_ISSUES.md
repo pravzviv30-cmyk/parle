@@ -12830,3 +12830,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found while building F1057 (Phase 4 S1a, 2026-11-17). `env -S "git push ..."` hid a whole command in one value, and `git config alias.* '!gh pr merge N'` hid a merge. Fixed in cb028124, which also carries F1060 because two builders shared a worktree; `--config-env alias.*` is always treated as hidden because its value names an environment variable.
 - verified-by: `env -S with a push inside is judged as a push`
 - verified-by: `an alias whose value merges a pull request is denied`
+
+### F1197 — The push guard misses env -S with an attached value and the --config-env= form
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:396
+- note: Found by work-judge (Fable 5.2), S1a round 1, 2026-11-17. With no stamp, `env -S"git push origin main"`, `env -iS "git push origin main"` and `A=push git --config-env=alias.p=A p` all return ALLOW, and all three run on macOS env and git 2.54. F1194 handles only a bare `-S` word and the two-word `--config-env alias.*`.
+- verified-by: `env -S attached to its value or inside a flag cluster is judged as a push`
+- verified-by: `a config-env alias in the equals form is denied`
+
+### F1198 — The push guard denies an alias for a plain local merge
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:217
+- note: Found by work-judge (Fable 5.2), S1a round 1, 2026-11-17. `git config alias.m "merge --no-ff"` is denied with "Run the push as its own command", though `git merge` typed directly is allowed. `ALIAS_PUBLISHES` matches any value containing `merge`; only a shell alias (a value with `!`) can reach `gh pr merge`.
+- verified-by: `an alias for a plain git merge is still allowed`
