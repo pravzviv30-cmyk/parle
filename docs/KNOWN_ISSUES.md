@@ -12773,7 +12773,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1057 — The push guard allows a push it cannot read as the literal word
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:553
 - note: S1a-2, 3 and 4. Quoted, variable and aliased subcommands, `env -u VAR`, and a spaced shift in arithmetic all returned ALLOW against a git that would refuse the plain push.
 - verified-by: `a quoted, variable or aliased push subcommand is denied`
