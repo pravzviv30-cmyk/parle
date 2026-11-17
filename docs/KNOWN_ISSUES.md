@@ -12849,7 +12849,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1079 — Core root files carry a field, a method and five exports nothing reads
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/onboarding.ts:14
 - note: `StarterTask.accepts` has no reader and disagrees with `checkStarter`; `ConversationTextBuffer.remove` (conversationText.ts:62) is called only by a test; `SERVICE_FAILURES`, `MAX_CAN_DO_SOURCES`, `MAX_CAN_DO_QUOTE_CHARS`, `CONVERSATION_TEXT_BYTES` and `isConversationTextLine` are exported with no importer. Zero tests deleted, floor unchanged.
 - verified-by: `every starter task accepts its own model and each listed variant, for every goal and both drinks`
@@ -12857,7 +12857,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1195 — The six goals and the three plan names each have a second home in core
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/sessionSettlement.ts:30
 - note: `STARTER_GOALS` (onboarding.ts:3) repeats `LEARNER_GOALS` in another order, and `readSessionSettlement` types the plan names twice beside `PLANS`, with a redundant global bound. Make each one list; settlement results must not change for any input.
 - verified-by: `starter goals and learner goals are one list`
