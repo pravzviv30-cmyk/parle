@@ -12771,6 +12771,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: B5-1. OpenAI turns and frames go to the live model but are priced on the two default constants; Anthropic frames go to sonnet and are priced as opus.
 - verified-by: `a turn is priced on the model stamped on its usage, and the label model only fills a missing stamp`
 - verified-by: `the chat label and fallback models come from the routing the client uses`
+- verified-by: `chat takes its cost models from chatCostModels, not the default constants`
 
 ### F1123 — Evals print a confident dollar figure for a model with no price row
 - severity: P2

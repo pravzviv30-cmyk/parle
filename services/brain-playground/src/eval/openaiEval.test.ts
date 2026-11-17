@@ -6,6 +6,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, test } from 'node:test';
 
 import { costUsd, type LlmUsage } from '@luvani/brain';
@@ -87,6 +88,17 @@ describe('eval model label and price', () => {
     );
     assert.deepEqual(chatCostModels('anthropic', {}), { turn: 'claude-sonnet-5', frame: 'claude-sonnet-5' }, 'Anthropic frames go to sonnet, not opus');
     assert.deepEqual(chatCostModels('groq', { GROQ_MODEL: 'some-llama' }), { turn: 'some-llama', frame: 'some-llama' });
+  });
+
+  test('chat takes its cost models from chatCostModels, not the default constants', () => {
+    // chat.ts runs its REPL on import, so its wiring is pinned by source: the
+    // F1122 bug was this file pricing on the two default constants.
+    const chat = readFileSync(new URL('../chat.ts', import.meta.url), 'utf8');
+    assert.match(chat, /import \{[^}]*\bchatCostModels\b[^}]*\} from '\.\/usage\.ts';/, 'the chat imports the routing-backed models');
+    for (const provider of ['openai', 'anthropic', 'groq']) {
+      assert.match(chat, new RegExp(`chatCostModels\\('${provider}'\\)`), `the ${provider} branch prices through chatCostModels`);
+    }
+    assert.doesNotMatch(chat, /DEFAULT_OPENAI_TURN_MODEL|DEFAULT_OPENAI_ANALYST_MODEL/, 'the default constants are not what the client answers with');
   });
 
   test('an eval cost line says when the model has no price row', () => {
