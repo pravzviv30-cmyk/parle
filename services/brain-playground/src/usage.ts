@@ -18,7 +18,9 @@
  *     forgotten. `addUsage` is that function under its old name.
  */
 
-import { addLlmUsage, costUsd, priceUsage, USD_PER_MTOK, ZERO_USAGE, type LlmUsage } from '@luvani/brain';
+import { addLlmUsage, costUsd, defaultModel, priceUsage, resolveRouting, USD_PER_MTOK, ZERO_USAGE, type LlmUsage } from '@luvani/brain';
+
+import { openAiEvalModel } from './eval/openaiEval.ts';
 
 export { addLlmUsage, addLlmUsage as addUsage, costUsd, USD_PER_MTOK, ZERO_USAGE };
 
@@ -32,7 +34,7 @@ function k(n: number): string {
  * one, not to explain itself there.
  */
 function pricedNote(usage: LlmUsage, model?: string): string {
-  const priced = priceUsage(usage, model);
+  const priced = priceUsage(usage, pricedModel(usage, model));
   if (priced.exact) return '';
   return ` (unpriced ${priced.unknownModel ?? 'model'}, shown at ${priced.pricedAs} rates)`;
 }
@@ -44,8 +46,26 @@ function pricedNote(usage: LlmUsage, model?: string): string {
  * across two models or a mock client, or a stamp with no row in the price table.
  */
 export function evalCostUsd(usage: LlmUsage, costModel: string): number {
+  return costUsd(usage, pricedModel(usage, costModel));
+}
+
+/** The stamp when it has a price row, else the label model, else whatever the stamp says. */
+function pricedModel(usage: LlmUsage, model?: string): string | undefined {
   const stamped = usage.model !== undefined && USD_PER_MTOK[usage.model] !== undefined;
-  return stamped ? costUsd(usage) : costUsd(usage, costModel);
+  return stamped ? usage.model : (model ?? usage.model);
+}
+
+/** The models the chat labels its turns and scenes with, from the routing its client uses. */
+export function chatCostModels(
+  provider: 'openai' | 'anthropic' | 'groq' | 'mock',
+  env: Record<string, string | undefined> = process.env,
+): { turn: string; frame: string } {
+  if (provider === 'anthropic') {
+    const routing = resolveRouting(env);
+    return { turn: routing.turn.model, frame: routing.frame.model };
+  }
+  if (provider === 'groq') return { turn: defaultModel(env), frame: defaultModel(env) };
+  return { turn: openAiEvalModel('turn', env), frame: openAiEvalModel('frame', env) };
 }
 
 export function formatTurnUsage(usage: LlmUsage, elapsedMs: number, model?: string): string {
@@ -56,10 +76,10 @@ export function formatTurnUsage(usage: LlmUsage, elapsedMs: number, model?: stri
   const thought = usage.reasoningTokens === undefined ? '' : ` (${k(usage.reasoningTokens)} thinking)`;
   return (
     `${k(input)} in (${k(cached)} cached) · ${k(usage.outputTokens)} out${thought} · ` +
-    `~$${costUsd(usage, model).toFixed(3)}${pricedNote(usage, model)} · ${(elapsedMs / 1000).toFixed(1)}s`
+    `~$${costUsd(usage, pricedModel(usage, model)).toFixed(3)}${pricedNote(usage, model)} · ${(elapsedMs / 1000).toFixed(1)}s`
   );
 }
 
 export function formatSessionUsage(total: LlmUsage, turns: number, model?: string): string {
-  return `${turns} model calls · ~$${costUsd(total, model).toFixed(3)}${pricedNote(total, model)} this session`;
+  return `${turns} model calls · ~$${costUsd(total, pricedModel(total, model)).toFixed(3)}${pricedNote(total, model)} this session`;
 }

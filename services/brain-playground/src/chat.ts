@@ -16,9 +16,8 @@ import {
   MockLlmClient,
   OpenAiCompatBrainClient,
   OpenAiResponsesBrainClient,
-  DEFAULT_OPENAI_ANALYST_MODEL,
-  DEFAULT_OPENAI_TURN_MODEL,
   defaultModel,
+  openAiModelFor,
   type BrainEffort,
   type LlmClient,
   type ScenarioFrame,
@@ -26,12 +25,12 @@ import {
 
 import { COMMAND_HELP, parseCommand } from './commands.ts';
 import { loadProfile, resetProfile, saveProfile } from './profileStore.ts';
-import { formatSessionUsage, formatTurnUsage } from './usage.ts';
+import { chatCostModels, formatSessionUsage, formatTurnUsage } from './usage.ts';
 import { meta, renderProfile, renderRecap, title, warm } from './render.ts';
 import { parseRecordFlag, recordPathFor, timestampSlug, toSessionRecord, writeDevRecord } from './eval/devRecord.ts';
 import { beginSession, buildScenario, endSession, runInput, silenceInput, type Session } from './sessionLoop.ts';
 
-function pickClient(): { client: LlmClient; label: string; turnCostModel: string; analystCostModel: string } {
+function pickClient(): { client: LlmClient; label: string; turnCostModel: string; frameCostModel: string } {
   const choice = (process.env.BRAIN_LLM ?? '').toLowerCase();
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
@@ -45,17 +44,18 @@ function pickClient(): { client: LlmClient; label: string; turnCostModel: string
     return {
       client: new MockLlmClient(),
       label: 'mock (offline, scripted answers)',
-      turnCostModel: DEFAULT_OPENAI_TURN_MODEL,
-      analystCostModel: DEFAULT_OPENAI_ANALYST_MODEL,
+      turnCostModel: chatCostModels('mock').turn,
+      frameCostModel: chatCostModels('mock').frame,
     };
   }
 
   if ((choice === 'openai' || (choice === '' && !anthropicKey)) && openaiKey) {
+    const { turn, frame } = chatCostModels('openai');
     return {
       client: new OpenAiResponsesBrainClient({ apiKey: openaiKey }),
-      label: `${DEFAULT_OPENAI_TURN_MODEL} talker · ${DEFAULT_OPENAI_ANALYST_MODEL} analyst`,
-      turnCostModel: DEFAULT_OPENAI_TURN_MODEL,
-      analystCostModel: DEFAULT_OPENAI_ANALYST_MODEL,
+      label: `${turn} talker · ${openAiModelFor('extract')} analyst`,
+      turnCostModel: turn,
+      frameCostModel: frame,
     };
   }
 
@@ -66,8 +66,8 @@ function pickClient(): { client: LlmClient; label: string; turnCostModel: string
     return {
       client: new AnthropicBrainClient(effort ? { effort } : {}),
       label: `routed: sonnet talker · opus analyst${effort ? ` · ${effort} effort` : ''}`,
-      turnCostModel: 'claude-sonnet-5',
-      analystCostModel: 'claude-opus-5',
+      turnCostModel: chatCostModels('anthropic').turn,
+      frameCostModel: chatCostModels('anthropic').frame,
     };
   }
   if ((choice === 'groq' || choice === '' || choice === 'anthropic') && groqKey) {
@@ -75,8 +75,8 @@ function pickClient(): { client: LlmClient; label: string; turnCostModel: string
     return {
       client: new OpenAiCompatBrainClient({ apiKey: groqKey }),
       label: `${defaultModel()} · groq free tier`,
-      turnCostModel: defaultModel(),
-      analystCostModel: defaultModel(),
+      turnCostModel: chatCostModels('groq').turn,
+      frameCostModel: chatCostModels('groq').frame,
     };
   }
   if (choice === 'anthropic' || choice === 'openai' || choice === 'groq') {
@@ -85,13 +85,13 @@ function pickClient(): { client: LlmClient; label: string; turnCostModel: string
   return {
     client: new MockLlmClient(),
     label: 'mock (offline, scripted answers)',
-    turnCostModel: DEFAULT_OPENAI_TURN_MODEL,
-    analystCostModel: DEFAULT_OPENAI_ANALYST_MODEL,
+    turnCostModel: chatCostModels('mock').turn,
+    frameCostModel: chatCostModels('mock').frame,
   };
 }
 
 async function main(): Promise<void> {
-  const { client, label, turnCostModel, analystCostModel } = pickClient();
+  const { client, label, turnCostModel, frameCostModel } = pickClient();
   let frame: ScenarioFrame = CAFE_FRAME;
 
   // --record [file]: write each session as a dev SessionRecord when it ends.
@@ -191,7 +191,7 @@ async function main(): Promise<void> {
           console.log(meta('Building the scene…'));
           const started = Date.now();
           const result = await buildScenario(client, current.profile, command.request);
-          console.log(meta(formatTurnUsage(result.usage, Date.now() - started, analystCostModel)));
+          console.log(meta(formatTurnUsage(result.usage, Date.now() - started, frameCostModel)));
           if (current.state.turnCount > 0) wrapUp();
           restart(result.frame);
           break;

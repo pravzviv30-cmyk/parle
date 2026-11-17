@@ -12766,7 +12766,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1122 — The chat meter prices turns and frames on models the client does not use
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/brain-playground/src/chat.ts:50
 - note: B5-1. OpenAI turns and frames go to the live model but are priced on the two default constants; Anthropic frames go to sonnet and are priced as opus.
 - verified-by: `a turn is priced on the model stamped on its usage, and the label model only fills a missing stamp`

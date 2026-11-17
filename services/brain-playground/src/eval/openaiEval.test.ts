@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, test } from 'node:test';
 
 import { costUsd, type LlmUsage } from '@luvani/brain';
 
-import { evalCostUsd } from '../usage.ts';
+import { chatCostModels, evalCostUsd, formatSessionUsage, formatTurnUsage } from '../usage.ts';
 import { curationCostModel } from './curationEval.ts';
 import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
 
@@ -67,5 +67,25 @@ describe('eval model label and price', () => {
     assert.equal(evalCostUsd(usage, 'gpt-6-luna'), 0.6);
     // A stamp with no price row falls back to the label model rather than the opus fallback.
     assert.equal(evalCostUsd({ ...usage, model: 'unlisted' }, 'gpt-6-luna'), 0.6);
+  });
+
+  test('a turn is priced on the model stamped on its usage, and the label model only fills a missing stamp', () => {
+    const stamped = { ...usage, model: 'gpt-6-luna' };
+    // The chat labelled OpenAI turns gpt-5.6-luna ($1.40) while gpt-6-luna ($0.60) answered them.
+    assert.match(formatTurnUsage(stamped, 0, 'gpt-5.6-luna'), /~\$0\.600 · /, 'the stamp names the model that answered, so it sets the price');
+    assert.match(formatSessionUsage(stamped, 1, 'gpt-5.6-luna'), /~\$0\.600 this session/, 'the session total follows the same stamp');
+    assert.match(formatTurnUsage(usage, 0, 'gpt-6-luna'), /~\$0\.600 · /, 'an unstamped usage is priced on the label model');
+    assert.doesNotMatch(formatTurnUsage(stamped, 0, 'gpt-5.6-luna'), /unpriced/, 'a stamp with a price row is an exact figure');
+  });
+
+  test('the chat label and fallback models come from the routing the client uses', () => {
+    assert.deepEqual(chatCostModels('openai', {}), { turn: 'gpt-6-luna', frame: 'gpt-6-luna' }, 'OpenAI turns and frames go to the live model');
+    assert.deepEqual(
+      chatCostModels('openai', { OPENAI_LIVE_MODEL: 'custom-live' }),
+      { turn: 'custom-live', frame: 'custom-live' },
+      'an override moves the label with the bill',
+    );
+    assert.deepEqual(chatCostModels('anthropic', {}), { turn: 'claude-sonnet-5', frame: 'claude-sonnet-5' }, 'Anthropic frames go to sonnet, not opus');
+    assert.deepEqual(chatCostModels('groq', { GROQ_MODEL: 'some-llama' }), { turn: 'some-llama', frame: 'some-llama' });
   });
 });
