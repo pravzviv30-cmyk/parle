@@ -6,6 +6,9 @@
 # at all. This workflow is the copy of the bar that nobody can turn off from their own
 # shell.
 #
+# It runs on pull requests and on pushes to main (founder, 2026-11-17, F1061), so a branch
+# is checked when its PR opens, and once per push after that, not twice.
+#
 # Three steps, in the order that makes a failure readable:
 #
 #   1. the gate         — typecheck, every suite, the count floors, the agent pins, the

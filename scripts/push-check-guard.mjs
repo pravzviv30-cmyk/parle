@@ -16,10 +16,18 @@
 // Contract for `hook`: it only ever denies for the known reasons (no
 // stamp, failed stamp, main without a passing security review, frontend
 // changes without passing Impeccable and unslop design reviews, code pushed
-// straight to main, a `gh pr merge` it cannot verify). Anything
+// straight to main, a `gh pr merge` it cannot verify, a git or gh command it
+// cannot read). Anything
 // unexpected (not a git repo, git missing, unparsable stdin) allows the call,
 // so a bug in this guard can never wedge a session. The stamp lives in the
 // git common dir, so every worktree of a repo shares one stamp folder.
+//
+// Limits. The guard reads the command text only, so it does not see:
+//   - a push made by a script or an interpreter (`node -e`, a Makefile);
+//   - an alias or config set outside the command: an edited config file,
+//     GIT_CONFIG_GLOBAL, or a gh alias (F1213);
+//   - a command with no readable git or gh word.
+// The pre-push hook still runs the gate on any spelling of git push.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
