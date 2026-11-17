@@ -2010,4 +2010,30 @@ describe('purchase-first trial row (F933)', () => {
       }
     } finally { await db.close(); }
   });
+
+  test('the claim rollback refuses without its interlock and restores the earlier bodies', async () => {
+    const down = readFileSync(path.join(ROLLBACKS, `${CLAIM_PROMOTES.split('_')[0]}_down.sql`), 'utf8');
+    const db = new PGlite();
+    const bodies = async (): Promise<Json[]> => (await db.query<Json>(`select p.proname name,pg_get_functiondef(p.oid) def,p.proacl::text acl
+      from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='public' and p.proname in ('claim_trial','claim_trial_with_evidence') order by 1`)).rows;
+    try {
+      await db.exec(BOOT);
+      let d24: Json[] = [];
+      for (const name of migrationFiles.filter((name) => name <= CLAIM_PROMOTES)) {
+        await db.exec(sqlOf(name));
+        if (name === WEEKLY_TASTE) d24 = await bodies();
+      }
+      const promoted = await bodies();
+      assert.equal(d24.length, 2, 'migration 40 did not define both claim functions');
+      assert.notDeepEqual(promoted, d24, 'migration 47 did not replace the claim bodies');
+      for (let i = 0; i < 2; i++) {
+        await assert.rejects(db.exec(down), /refusing/, 'the claim rollback ran without luvani.reopen_f933');
+        await db.exec('rollback'); // the refused file leaves its own transaction open and aborted
+        assert.deepEqual(await bodies(), promoted, 'a refused claim rollback changed the claim bodies');
+      }
+      for (let i = 0; i < 2; i++) await db.exec(`set luvani.reopen_f933 = 'yes';\n${down}`);
+      assert.deepEqual(await bodies(), d24, 'the claim rollback did not restore the migration 40 bodies and grants exactly');
+    } finally { await db.close(); }
+  });
 });
