@@ -162,8 +162,9 @@ reach except F999's: Card/Tile/Hero 60 or fewer, Button/Pill 21.
   (https://claude.ai/artifact/5ckVkiWUqifAc9pq31pbd9, "After: as built"); push-check
   reshoots the touched screens on the final head.
 - Documentation and decisions: DESIGN.md, DECISIONS.md UI-023, DESIGN_PARTNERSHIP.md.
-- Landing disposition: HOLD until the gate, the founder's OK on the after shots and
-  `/push-check --main`; then `/land` by PR.
+- The founder's OK on the after shots: "OK, land it" (2026-11-17, on the board's
+  "After: as built" page).
+- Landing disposition: LAND after the gate and `/push-check --main`, by PR.
 - Next task: the gate, then the founder's OK, push-check and the PR.
 - Noted by the judge, not sent back: if the first next-task read fails and the learner
   taps Retry, the hero is briefly an empty white card (`practice/NextTaskCard.tsx:150`
