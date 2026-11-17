@@ -48,7 +48,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { passingTestTitles } from './gateReporter.mjs';
 import { evaluateAudit } from './dependencyAudit.mjs';
-import { suiteSummary, suiteProblems } from './gateChecks.mjs';
+import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy } from './gateChecks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
@@ -445,11 +445,14 @@ for (const raw of ledger.split('\n')) {
   if (severity) current.severity = severity[1];
   const status = raw.match(/^-\s*status:\s*\[( |x)\]/);
   if (status) current.done = status[1] === 'x';
-  const verified = raw.match(/^-\s*verified-by:\s*`(.+)`\s*$/);
+  const verified = raw.match(VERIFIED_BY);
   if (verified) current.verifiedBy.push(verified[1]);
 }
 if (current) entries.push(current);
 
+for (const { line, text } of malformedVerifiedBy(ledger)) {
+  fail('goal', `docs/KNOWN_ISSUES.md:${line}: a verified-by line with text after the title is never checked — move the text to a note line\n  ${text}`);
+}
 if (entries.length === 0) fail('goal', 'docs/KNOWN_ISSUES.md has no entries — the goal file cannot be empty');
 
 for (const entry of entries) {

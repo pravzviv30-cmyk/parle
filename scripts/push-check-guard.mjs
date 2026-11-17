@@ -213,6 +213,8 @@ const WRAPPER_FLAG_WITH_VALUE = {
 const WRAPPER_CHDIR = { env: new Set(['-C', '--chdir']), sudo: new Set(['-D', '--chdir']) };
 // Something only a shell can turn into a word.
 const SHELL_EXPANDS = /[$`]/;
+// An alias value that can publish: a push or a pull request merge.
+const ALIAS_PUBLISHES = /push|merge/;
 const PUSH_FLAG_WITH_VALUE = new Set([
   '-o', '--push-option', '--repo', '--receive-pack', '--exec',
 ]);
@@ -391,6 +393,10 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       } else if (WRAPPERS.has(w)) {
         wrapper = w;
         words = words.slice(1);
+      } else if (wrapper === 'env' && (w === '-S' || w === '--split-string' || w.startsWith('--split-string='))) {
+        // `env -S "git push"`: the value is a command line of its own.
+        const line = w.includes('=') ? w.slice(w.indexOf('=') + 1) : (words[1] ?? '');
+        words = [...splitCommands(line).flat(), ...words.slice(w.includes('=') ? 1 : 2)];
       } else if (wrapper && (w.startsWith('-') || /^\d+(\.\d+)?[smhd]?$/.test(w))) {
         // flags of env/sudo/command/etc., and timeout's duration
         const takesValue = WRAPPER_FLAG_WITH_VALUE[wrapper]?.has(w);
@@ -434,7 +440,9 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       let i = 0;
       for (; i < rest.length && rest[i].startsWith('-'); i++) {
         const flag = rest[i];
-        if ((flag === '-c' || flag === '--config-env') && /^alias\./i.test(rest[i + 1] ?? '')) aliased = true;
+        // `--config-env` names a variable, so its alias value cannot be read at all.
+        const alias = /^alias\./i.test(rest[i + 1] ?? '');
+        if (alias && (flag === '--config-env' || (flag === '-c' && ALIAS_PUBLISHES.test(rest[i + 1])))) aliased = true;
         if (flag === '-C') {
           if (rest[i + 1] !== undefined) {
             const next = afterCd(gitDir, gitKnown, [rest[++i]]);
@@ -448,7 +456,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       const sub = rest[i];
       const args = rest.slice(i + 1);
       const aliasAt = sub === 'config' ? args.findIndex((a) => /^alias\./i.test(a)) : -1;
-      if (aliased || (sub && SHELL_EXPANDS.test(sub)) || (aliasAt !== -1 && args.slice(aliasAt + 1).some((a) => /push/.test(a)))) {
+      if (aliased || (sub && SHELL_EXPANDS.test(sub)) || (aliasAt !== -1 && args.slice(aliasAt + 1).some((a) => ALIAS_PUBLISHES.test(a)))) {
         // An alias or a shell expansion can turn into `push`; the guard cannot read which.
         events.push({ kind: 'opaque' });
       } else if (sub === 'push') {

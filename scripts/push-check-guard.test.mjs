@@ -838,7 +838,30 @@ test('git commands that only mention push are still allowed', () => {
     'git status && echo push',
     'git -c core.pager=cat log --grep push',
     'git config alias.lg "log --oneline" && echo push',
+    'git config alias.lg "log --graph"',
+    'git -c alias.lg=log lg && echo push',
   ]) {
     assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} never publishes a commit, so it must not wedge the session`);
+  }
+});
+
+test('env -S with a push inside is judged as a push', () => {
+  for (const cmd of ['env -S "git push origin main"', "env --split-string='git push origin main'", 'env -S "FOO=1 git push" origin main']) {
+    const d = hookDecision(bash(cmd), fakeGit());
+    assert.match(d?.reason ?? '', /no push check/, `${cmd} runs git push, so it is decided like the plain push`);
+  }
+  const [p] = findPushes('env -S "git push origin main"', '/work');
+  assert.equal(p?.remote, 'origin', 'the split string is read as the command line it is');
+  assert.deepEqual(p?.refspecs, ['main']);
+  assert.equal(hookDecision(bash('env -S "git push origin main"'), fakeGit({ stamp: stampOf({ security: 'pass' }) })), null, 'a checked push through env -S still goes');
+});
+
+test('an alias whose value merges a pull request is denied', () => {
+  for (const cmd of [
+    "git config alias.m '!gh pr merge 5' && git m",
+    "git -c alias.m='!gh pr merge 5' m",
+    'git config --global alias.land "!gh pr merge --merge" && git land',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} hides a merge the guard cannot read, so it must deny`);
   }
 });

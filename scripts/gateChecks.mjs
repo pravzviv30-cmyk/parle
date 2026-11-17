@@ -41,3 +41,17 @@ export function suiteProblems(name, { code, out }) {
   }
   return problems;
 }
+
+/** The only verified-by form the goal check reads: the title in backticks, nothing after. */
+export const VERIFIED_BY = /^-\s*verified-by:\s*`(.+)`\s*$/;
+
+/**
+ * Ledger lines that start `- verified-by:` but do not match the strict form the goal check
+ * reads. The strict parser skips them, so the test they name would never be checked.
+ */
+export function malformedVerifiedBy(ledger) {
+  return ledger
+    .split('\n')
+    .map((text, i) => ({ line: i + 1, text }))
+    .filter(({ text }) => /^-\s*verified-by:/.test(text) && !VERIFIED_BY.test(text));
+}

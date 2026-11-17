@@ -9014,7 +9014,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Stage 2d of revamp B. `LuvaniTabBar` becomes SNIPPETS' bar: white with the one top hairline, the selected glyph and word in `accent.brand` at Outfit Bold, the rest in soft ink at SemiBold, the words Home, Speak, Practice, Progress and Friends under the ICONS.md marks, and each cell pressing through `Press` with no haptic of its own so a tap on the current tab stays silent. Route names, `ICONS`, the badge, the wrapping rule and the safe-area padding do not change.
 - verified-by: `the bar is an ink capsule, radius 32, and never a floating shadow — UI-008, UI-017`
 - verified-by: `the selected cell is violet with a sun Linear glyph and a bold cream word; the rest are cream on ink — UI-008`
-- verified-by: `the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route` (renamed 2026-10-20 when direction B A3 moved the bar to five tabs; the route names it guards are unchanged)
+- verified-by: `the five words are Today, Explore, Speak, Practice and Journey over Codex's Iconsax drawings — UI-008`
+- note: that line was renamed 2026-10-20 when direction B A3 moved the bar to five tabs (the route names it guards are unchanged), then renamed again in place by e6c3bcc0 (2026-10-21) from `the five words are Today, Explore, Speak, Practice and Journey; Friends remains a stack route`. Its trailing text hid the stale title from the goal check until F1060.
 - verified-by: `a tab cell presses through Press with no haptic of its own, and only the selection pill moves`
 - superseded: 2026-11-02, the founder floated the tab bar (UI-017: only the capsule covers content) and let the selection pill be dragged (UI-018); the test that guards this entry was renamed with it.
 - verified-by: `the active tab is the violet cell with a sun glyph, and the rest cream on ink — UI-008`
@@ -9059,9 +9060,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the hero is the spine's next scene, drawn on the blue brief with the meta line the rule decides`
 - verified-by: `one Start speaking, white on the blue card, launching the scene directly, with the other mode as a quiet link`
 - verified-by: `Today leads with one colour card: the next scene, the recall card, or the plans card when the free minutes are used`
-- verified-by: `day one lists where the learner starts with a sun dot on the first scene, and the page reads in the artboard order` (renamed 2026-10-20 when direction B B5 redrew Today to B-Today: the week sentences and the lifetime count left Today for the week card and the streak tile)
+- verified-by: `day one draws no block of its own, and the page reads in the artboard order`
+- note: that line was renamed 2026-10-20 when direction B B5 redrew Today to B-Today (the week sentences and the lifetime count left Today for the week card and the streak tile), then renamed again in place by e6c3bcc0 (2026-10-21) from `day one lists where the learner starts with a sun dot on the first scene, and the page reads in the artboard order`. Its trailing text hid the stale title from the goal check until F1060.
 - verified-by: `a Home that has not read its storage yet draws still sand blocks shaped like the page`
-- verified-by: `today's phrase is the lavender card: the French with a play disc, the English, and Say it yourself` (renamed 2026-10-20 when direction B B5 redrew today's phrase as B-Today's lavender card)
+- verified-by: `today's phrase is a row on Today, and the one daily card keeps the tutor's audio`
+- note: that line was renamed 2026-10-20 when direction B B5 redrew today's phrase as B-Today's lavender card, then renamed again in place by c5ce4861 (2026-10-31) from `today's phrase is the lavender card: the French with a play disc, the English, and Say it yourself`. Its trailing text hid the stale title from the goal check until F1060.
 - verified-by: `Home names no weekday, counts no days this week, shows no rate and draws no tag`
 - verified-by: `no learner-facing string carries a middot, an em dash or an en dash, and the allowlist only shrinks`
 
@@ -12800,7 +12803,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1060 — A verified-by line with trailing text is silently ignored
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/gate.mjs:464
 - note: S1a-7. Three ticked lines under F600 and F602 are not checked today.
 - verified-by: `a verified-by line with text after the closing backtick fails the goal check`
