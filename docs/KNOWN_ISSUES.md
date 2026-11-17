@@ -12235,7 +12235,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F955 — A failed tutor start still uses up its daily seconds
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts (the tutor start's reservation) and
   supabase/migrations/20261020140000_weekly_free_taste.sql (~:235, :278-300)
 - note: Found on staging 2026-11-01 when the founder's account ran out of its 1,200 s daily
@@ -12247,6 +12247,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `account-daily-budget` maps to `daily-limit`; `daily-budget` (the service-wide ceiling) still
   shows the general "cannot reach" words, and the server could send when the allowance comes
   back (the next UTC day, in the learner's local time) so the app can say it.
+  2026-11-16: fixed by migration 46 (`supabase/migrations/20261116120000_tutor_unjoined_release.sql`,
+  F1000-F1003): a start no tutor ever claimed gives back its seconds and session once, issued
+  stays monotonic, and admission reads issued minus released. Not applied to staging until the
+  founder's yes. The `daily-budget` wording and `refillsAt` moved to F1008.
 - verified-by: `a tutor start that never joins gives back its reserved daily seconds`
 
 ### F956 — The Practice tab nests a button inside a button
@@ -12763,6 +12767,85 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/secureSessionStorage.ts:63
 - note: `removeGeneration` uses `Promise.all`, and `writeSecure` swallows its failure, so `setItem` returns while deletes of the previous generation are still running. The next write reuses that generation. Inputs: write A (generation a, 3 chunks), write B with the delete of chunk a-0 rejecting and the deletes of a-1 and a-2 taking 30 ms, then write C straight away (generation a again). The late deletes remove C's chunks and `getItem` returns null, so the learner signs in again. Nobody else's session is restored. Same fix as F1023: wait with `Promise.allSettled`. Found by work-judge (Fable 5.2), F960 round 3, 2026-11-17.
 - verified-by: `a write waits for every old chunk delete before it returns`
+
+### F1000 — An unjoined tutor start gives back its daily seconds and its session count
+- severity: P1
+- status: [x]
+- where: supabase/migrations/20261003231627_authoritative_tutor_sessions.sql:182
+- note: Migration 46 replaces tutor_finish_v1 and reserve_tutor_session_v1 (and reconcile_tutor_sessions_v1, whose batch now takes the oldest creation day first) so that abandon, expiry and retirement of a never-claimed grant return its seconds and session to both day counters, and admission reads issued minus released. Includes the verifyTutorSessions.mjs proof group and the doc lines named above. Closes F955's verified-by title.
+- verified-by: `a tutor start that never joins gives back its reserved daily seconds`
+- verified-by: `a tutor start that never joins gives back its daily session count`
+- verified-by: `an account refused for its daily budget can start again once its unjoined start expires`
+- verified-by: `an unjoined start reserved before midnight gives back to the day it counted on`
+- verified-by: `migration 46 keeps every function it replaces a security definer with an empty search path`
+- verified-by: `migration 46 sets a lock timeout in its up and its down file`
+- verified-by: `the reconciler settles unjoined starts from the oldest creation day first`
+
+### F1001 — A joined session never gives seconds back, and a give-back happens once
+- severity: P1
+- status: [x]
+- where: supabase/migrations/20261003231627_authoritative_tutor_sessions.sql:228
+- note: The give-back must be gated on claimed_at being null and on the first settlement only. Otherwise interrupted or failed live sessions, or a repeated abandon, would recycle real exposure.
+- verified-by: `a tutor start that was claimed keeps its daily seconds however it ends`
+- verified-by: `settling an unjoined start twice gives its seconds back once`
+- verified-by: `a claim that wins the race against an abandon keeps its daily seconds`
+
+### F1002 — Issued counters stay monotonic so the rollback proofs still hold
+- severity: P1
+- status: [x]
+- where: supabase/rollback/20261003231627_down.sql:13
+- note: Two earlier rollbacks use issued_seconds above zero as the proof that the schema was ever used. Giving back must move only the released columns, bounded by the issued ones.
+- verified-by: `issued daily seconds never fall when a reservation is given back`
+- verified-by: `released daily seconds can never exceed issued daily seconds`
+
+### F1003 — Migration 46 has a fail-closed rollback
+- severity: P2
+- status: [x]
+- where: supabase/rollback/20261110120000_down.sql:1
+- note: Same pattern as migration 45. The down file restores all three function bodies exactly and drops the three columns, after which unjoined starts count as spent again.
+- verified-by: `rolling back migration 46 restores reservations that are not given back`
+
+### F1007 — Failed starts' paid operations may still block a learner's restart
+- severity: P3
+- status: [ ]
+- where: scripts/paidQuotes.mjs:357
+- note: Follow-up to F955 (F1000). Measure on staging whether failed starts' paid operations (`accountDailyOperations`, never returned) can block a learner's restart. Founder, 2026-11-16: "Leave it, measure later".
+- verified-by: `a learner can restart after N failed starts on staging (measured)`
+
+### F1008 — A daily-budget refusal does not name the service-wide limit or when it returns
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/live/failure.ts
+- note: Design lane, split from F955 (its 2026-11-03 addition). Name the service-wide `daily-budget` refusal and say when the allowance comes back.
+- verified-by: `a daily-budget refusal names the service-wide limit and when it returns`
+
+### F1040 — Nothing proves a tutor start is stamped at the moment its day was counted
+- severity: P2
+- status: [x]
+- where: supabase/migrations/20261116120000_tutor_unjoined_release.sql:155
+- note: The reserve body sets the grant's created_at to v_now so the give-back day equals the counted day (database-security-architect change 1). The midnight test edits created_at by hand, so removing ",created_at" and ",v_now" from the insert leaves every F955 test passing. With the column default now(), a reserve that runs inside a transaction opened 50 ms earlier gets created_at 50 ms before the counted time.
+- verified-by: `a tutor start is stamped at the moment its day was counted`
+
+### F1041 — Migration 46's copied bodies are not pinned to the bodies the main proof exercises
+- severity: P2
+- status: [x]
+- where: scripts/verifyTutorSessions.mjs:72
+- note: After the lifecycle rollback the main verify database reapplies 45 but cannot reapply 46 (the rollback drops the admission config table, so 46's reserve fails with: record "cfg" has no field "max_account_daily_sessions"). Its groups therefore prove the lifecycle bodies of tutor_finish_v1 and reconcile_tutor_sessions_v1, not 46's copies. A drifted line in a copied body outside the give-back paths would pass. Pin the copies textually against the down file, which the rollback test already proves equal to the pre-46 definitions.
+- verified-by: `migration 46 changes only its named lines in the three bodies it replaces`
+
+### F1042 — The README does not say what migration 46 requires or what silently undoes it
+- severity: P2
+- status: [x]
+- where: supabase/README.md:114
+- note: Reapplying 20261004010327 or 20261020140000, or running either of their rollbacks, after 46 replaces reserve_tutor_session_v1 with a body that reads issued alone while tutor_finish_v1 keeps giving back. F955 reopens with no error. Row 43's rollout tells the operator to apply 40 in one sitting with 41 and 43. Row 46 also names no prerequisites, though its reserve body is 40's and reads 35's per-account caps.
+- verified-by: `the migration 46 notes name what it requires and what silently undoes it`
+
+### F1043 — Measure how long a reconciler batch holds the service-wide day row on staging
+- severity: P3
+- status: [ ]
+- where: supabase/migrations/20261116120000_tutor_unjoined_release.sql:78
+- note: Deferred, not built in this PR. Settling an unjoined start locks that day's tutor_session_budget_days row until the transaction ends, and every reserve queues on it. The production reconciler passes p_limit 5 (services/token-server/src/maintenance.ts:9). In disposable PGlite a 5-candidate unjoined batch took about 5 ms and one reserve about 5 ms. Measure on staging after the apply, and again before anyone raises the batch size. If it matters, sort claimed candidates ahead of unjoined ones in the reconciler.
+- verified-by: `a reconciler batch of five holds the service-wide day row for under 50 ms on staging (measured)`
 
 ### F1122 — The chat meter prices turns and frames on models the client does not use
 - severity: P2
