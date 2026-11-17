@@ -51,7 +51,12 @@ export function evalCostUsd(usage: LlmUsage, costModel: string): number {
 
 /** The cost an eval prints, with the note when the figure is a guess. */
 export function evalCostLine(usage: LlmUsage, costModel: string, digits = 3): string {
-  return `~$${evalCostUsd(usage, costModel).toFixed(digits)}${pricedNote(usage, costModel)}`;
+  return `~$${evalCostUsd(usage, costModel).toFixed(digits)}${evalCostNote(usage, costModel)}`;
+}
+
+/** Just the note, for an eval figure derived from the run's cost (a per-call or per-turn share). */
+export function evalCostNote(usage: LlmUsage, costModel: string): string {
+  return pricedNote(usage, costModel);
 }
 
 /** The stamp when it has a price row, else the label model when it has one, else the stamp, so a guess names what answered. */

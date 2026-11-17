@@ -99,7 +99,7 @@ import {
   type SupportView,
 } from '@luvani/brain';
 
-import { addUsage, evalCostLine, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostLine, evalCostNote, evalCostUsd, ZERO_USAGE } from '../usage.ts';
 import { safetyDecision } from '@luvani/tutor-agent/src/safety.ts';
 
 import { missingCredentials, pickProvider, CREDENTIAL_ENV, type Environment } from './curationEval.ts';
@@ -408,7 +408,7 @@ export function replayReportLines(report: ReplayReport): string[] {
     `cost: ${evalCostLine(report.usage, report.costModel, 4)} in total`,
     report.costPerAcceptedTurn === null
       ? 'cost per accepted turn: no accepted brain turns, so there is no figure to give'
-      : `cost per accepted turn: ${usd(report.costPerAcceptedTurn)}`,
+      : `cost per accepted turn: ${usd(report.costPerAcceptedTurn)}${evalCostNote(report.usage, report.costModel)}`,
     report.latency.count === 0
       ? 'brain latency: no model call was timed'
       : `brain latency over ${report.latency.count} model calls: p50 ${report.latency.p50}ms, p95 ${report.latency.p95}ms (measured, no budget set)`,

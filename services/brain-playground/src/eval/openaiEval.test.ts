@@ -14,6 +14,8 @@ import { costUsd, type LlmUsage } from '@luvani/brain';
 import { chatCostModels, evalCostLine, evalCostUsd, formatSessionUsage, formatTurnUsage } from '../usage.ts';
 import { curationCostModel } from './curationEval.ts';
 import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
+import { formatSummary, summariseExtraction } from './extractEval.ts';
+import { replayReportLines } from './replayEval.ts';
 
 const KEYS = ['OPENAI_LIVE_MODEL', 'OPENAI_TURN_MODEL', 'OPENAI_ANALYST_MODEL', 'OPENAI_DRILLS_MODEL', 'OPENAI_CURATION_MODEL', 'BRAIN_EFFORT'] as const;
 
@@ -107,5 +109,18 @@ describe('eval model label and price', () => {
     assert.match(line, /^~\$30\.000 /, 'the figure is still printed, at the fallback rate');
     assert.match(line, /unpriced some-llama, shown at claude-opus-5 rates/, 'and it says the figure is a guess');
     assert.equal(evalCostLine({ ...usage, model: 'gpt-6-luna' }, 'groq', 2), '~$0.60', 'a priced stamp carries no note');
+  });
+
+  test('every eval cost line says when its model has no price row', () => {
+    const unpriced = { ...usage, model: 'some-llama' };
+    const replay = replayReportLines({
+      label: 'groq', costModel: 'groq', records: 1, runs: 1, turns: 1, modelTurns: 1, acceptedModelTurns: 1, acceptance: 1,
+      checks: [], usage: unpriced, modelCalls: 1, quietRescues: 0, safetyTurns: 0, failedTurns: 0, unreplayedInputs: 0,
+      costUsd: 30, costPerAcceptedTurn: 30, latency: { count: 0, p50: null, p95: null }, notes: [],
+    });
+    const extract = formatSummary(summariseExtraction([], { model: 'some-llama', effort: 'low', trim: false, repeats: 1 }));
+    for (const line of [...replay, ...extract].filter((l) => l.includes('$'))) {
+      assert.match(line, /unpriced/, `a dollar figure for an unpriced model reads as real without the note: ${line}`);
+    }
   });
 });

@@ -12779,6 +12779,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: services/brain-playground/src/usage.ts:46
 - note: B5-2. A Groq run prints the fallback rate as if it were real.
 - verified-by: `an eval cost line says when the model has no price row`
+- verified-by: `every eval cost line says when its model has no price row`
 
 ### F1124 — The drill eval counts exercises production would drop
 - severity: P2
