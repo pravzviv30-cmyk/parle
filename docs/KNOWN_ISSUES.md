@@ -12763,3 +12763,51 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/secureSessionStorage.ts:63
 - note: `removeGeneration` uses `Promise.all`, and `writeSecure` swallows its failure, so `setItem` returns while deletes of the previous generation are still running. The next write reuses that generation. Inputs: write A (generation a, 3 chunks), write B with the delete of chunk a-0 rejecting and the deletes of a-1 and a-2 taking 30 ms, then write C straight away (generation a again). The late deletes remove C's chunks and `getItem` returns null, so the learner signs in again. Nobody else's session is restored. Same fix as F1023: wait with `Promise.allSettled`. Found by work-judge (Fable 5.2), F960 round 3, 2026-11-17.
 - verified-by: `a write waits for every old chunk delete before it returns`
+
+### F1056 — The gate passes a workspace whose suite cancelled a test or exited non-zero
+- severity: P2
+- status: [ ]
+- where: scripts/gate.mjs:181
+- note: the loop reads only `tests` and `fail`. A timed-out test reports `fail 0`, `cancelled 1`, exit 1, and the gate records nothing. Reproduced at 1620d172.
+- verified-by: `a suite that cancelled a test or exited non-zero fails the gate even with zero failures`
+
+### F1057 — The push guard allows a push it cannot read as the literal word
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:553
+- note: S1a-2, 3 and 4. Quoted, variable and aliased subcommands, `env -u VAR`, and a spaced shift in arithmetic all returned ALLOW against a git that would refuse the plain push.
+- verified-by: `a quoted, variable or aliased push subcommand is denied`
+- verified-by: `a wrapper flag that takes a value does not hide the push behind it`
+- verified-by: `a shift inside arithmetic does not hide the next command`
+- verified-by: `git commands that only mention push are still allowed`
+
+### F1058 — A test file outside the scripts folder can go unrun, and a skipped test goes unseen
+- severity: P2
+- status: [ ]
+- where: scripts/gate.mjs:258
+- note: S1a-5. The scan reads `*.test.ts` only, the unrun check reads `scripts/` only, and an option-form skip is never matched.
+- verified-by: `a test file that no workspace and no proof list runs fails the gate`
+- verified-by: `a suite that skipped a test fails the gate`
+- verified-by: `a focused or skipped test is caught in every test extension`
+
+### F1059 — The release and provider proofs have no count floor
+- severity: P2
+- status: [ ]
+- where: scripts/gate.mjs:241
+- note: S1a-6. 37 files run with only "more than zero tests" checked. Approval 3 then governs this floor like the others.
+- verified-by: `the release and provider proofs fail below their recorded floor`
+- verified-by: `a floors key that is not a workspace is not run as one`
+
+### F1060 — A verified-by line with trailing text is silently ignored
+- severity: P2
+- status: [ ]
+- where: scripts/gate.mjs:464
+- note: S1a-7. Three ticked lines under F600 and F602 are not checked today.
+- verified-by: `a verified-by line with text after the closing backtick fails the goal check`
+
+### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
+- severity: P2
+- status: [ ]
+- where: scripts/gate.mjs:439
+- note: S1a-8 (Phase 4, confirmed). The gate requires the forge, bug-sweep, ship and backend-review commands but not push-check or land, and no gate check or test reads `.claude/settings.json`. Deleting the `push-check-guard.mjs hook` entry leaves the gate green. Reserve id, coordinator.
+- verified-by: `the gate fails when the push-check hook or the push-check and land commands go missing`
