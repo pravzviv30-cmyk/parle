@@ -848,6 +848,12 @@ describe('the day decides, and nothing is stored', () => {
     }
   });
 
+  test('dayIndex refuses an impossible date such as 2026-02-30', () => {
+    // A well-formed key that is not a calendar day used to count as 2 March.
+    assert.throws(() => dayIndex('2026-02-30'), RangeError);
+    assert.throws(() => dayIndex('2026-13-01'), RangeError);
+  });
+
   test('every day of a year lands on a real entry, and the sequence walks the whole pool', () => {
     // The modulo is written the long way in `pick.ts` for a reason: a negative
     // index reads off the front of the array and returns undefined, which is a
