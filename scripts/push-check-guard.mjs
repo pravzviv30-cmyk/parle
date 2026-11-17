@@ -213,8 +213,9 @@ const WRAPPER_FLAG_WITH_VALUE = {
 const WRAPPER_CHDIR = { env: new Set(['-C', '--chdir']), sudo: new Set(['-D', '--chdir']) };
 // Something only a shell can turn into a word.
 const SHELL_EXPANDS = /[$`]/;
-// An alias value that can publish: a push or a pull request merge.
-const ALIAS_PUBLISHES = /push|merge/;
+// An alias value that can publish: a push, or a pull request merge, which only a shell
+// alias (`!`) can reach. A plain `merge` alias is as local as `git merge` typed directly.
+const aliasPublishes = (value) => /push/.test(value) || (/merge/.test(value) && value.includes('!'));
 const PUSH_FLAG_WITH_VALUE = new Set([
   '-o', '--push-option', '--repo', '--receive-pack', '--exec',
 ]);
@@ -457,7 +458,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
         const flag = rest[i];
         // `--config-env` names a variable, so its alias value cannot be read at all.
         const alias = /^alias\./i.test(rest[i + 1] ?? '');
-        if (alias && (flag === '--config-env' || (flag === '-c' && ALIAS_PUBLISHES.test(rest[i + 1])))) aliased = true;
+        if (alias && (flag === '--config-env' || (flag === '-c' && aliasPublishes(rest[i + 1])))) aliased = true;
         if (/^--config-env=alias\./i.test(flag)) aliased = true;
         if (flag === '-C') {
           if (rest[i + 1] !== undefined) {
@@ -472,7 +473,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       const sub = rest[i];
       const args = rest.slice(i + 1);
       const aliasAt = sub === 'config' ? args.findIndex((a) => /^alias\./i.test(a)) : -1;
-      if (aliased || (sub && SHELL_EXPANDS.test(sub)) || (aliasAt !== -1 && args.slice(aliasAt + 1).some((a) => ALIAS_PUBLISHES.test(a)))) {
+      if (aliased || (sub && SHELL_EXPANDS.test(sub)) || (aliasAt !== -1 && aliasPublishes(args.slice(aliasAt + 1).join(' ')))) {
         // An alias or a shell expansion can turn into `push`; the guard cannot read which.
         events.push({ kind: 'opaque' });
       } else if (sub === 'push') {

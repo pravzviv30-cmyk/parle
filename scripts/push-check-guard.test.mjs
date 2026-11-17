@@ -883,3 +883,12 @@ test('a config-env alias in the equals form is denied', () => {
   assert.equal(hookDecision(bash('git --config-env=core.pager=P log --grep push'), fakeGit()), null,
     'a config-env that sets no alias only reads history, so it must not wedge the session');
 });
+
+test('an alias for a plain git merge is still allowed', () => {
+  for (const cmd of ['git config alias.m "merge --no-ff"', 'git -c alias.m=merge m origin/main', 'git config --global alias.mff "merge --ff-only"']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} only merges locally, as git merge typed directly does, so it must not wedge the session`);
+  }
+  for (const cmd of ["git config alias.m '!gh pr merge 5'", "git -c alias.m='!gh pr merge 5' m"]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} is a shell alias that merges a pull request, so it still denies`);
+  }
+});
