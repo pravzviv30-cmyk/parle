@@ -892,3 +892,25 @@ test('an alias for a plain git merge is still allowed', () => {
     assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} is a shell alias that merges a pull request, so it still denies`);
   }
 });
+
+test('an alias whose value pushes behind quotes is denied', () => {
+  for (const cmd of [
+    `git -c alias.p='!git pu""sh' p`,
+    `git config alias.p '!git pu""sh'`,
+    `git config alias.p 'pu""sh'`,
+    `git -c alias.s='!sh -c "git push"' s`,
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} defines an alias that runs git push once the shell drops the quotes, so it must deny`);
+  }
+});
+
+test('an alias that only mentions push or merges locally is allowed', () => {
+  for (const cmd of [
+    `git config alias.sync '!git fetch && git merge --ff-only @{u}'`,
+    `git -c alias.x='!git merge main' x`,
+    `git config alias.lg 'log --grep=push --oneline'`,
+    `git config alias.nopush '!echo no push'`,
+  ]) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} publishes nothing when run, so it must not wedge the session`);
+  }
+});
