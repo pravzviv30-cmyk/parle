@@ -1,10 +1,13 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { dayRange } from './dayKey.ts';
+import { addDays, daysBetween, type DayKey } from './dayKey.ts';
 import type { StreakCover } from './streak.ts';
 import { TRAVEL_EVERY_DAYS, TRAVEL_OFFSET_MINUTES, travelCover } from './travel.ts';
 
+/** Every key from `from` to `to`, both included, built with `addDays`. */
+const dayRange = (from: DayKey, to: DayKey): DayKey[] =>
+  Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i));
 const run = dayRange('2026-10-01', '2026-10-03');
 
 describe('the travel cover', () => {

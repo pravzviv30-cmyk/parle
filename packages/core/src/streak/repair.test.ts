@@ -1,11 +1,15 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { dayRange, type DayKey } from './dayKey.ts';
+import { addDays, daysBetween, type DayKey } from './dayKey.ts';
 import { streakFrom, type StreakCover } from './streak.ts';
 import { REPAIR_EVERY_DAYS, REPAIR_MAX_GAP, REPAIR_PRACTICES, recentBreak, repairOffer, repairOfferWithLimit } from './repair.ts';
 
 process.env.TZ = 'Europe/Paris';
+
+/** Every key from `from` to `to`, both included, built with `addDays`. */
+const dayRange = (from: DayKey, to: DayKey): DayKey[] =>
+  Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i));
 
 const noon = (day: DayKey, minutes = 0) => Date.parse(`${day}T10:00:00Z`) + minutes * 60_000;
 const run = dayRange('2026-09-21', '2026-10-02'); // twelve days

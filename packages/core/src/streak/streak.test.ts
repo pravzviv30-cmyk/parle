@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { addDays, dayKeyOf, dayRange, type DayKey } from './dayKey.ts';
+import { addDays, dayKeyOf, daysBetween, type DayKey } from './dayKey.ts';
 import {
   STREAK_MILESTONES,
   isStreakMilestone,
@@ -16,6 +16,10 @@ import {
 
 // Each test file runs in its own process; Paris is where the clock changes below happen.
 process.env.TZ = 'Europe/Paris';
+
+/** Every key from `from` to `to`, both included, built with `addDays`. */
+const dayRange = (from: DayKey, to: DayKey): DayKey[] =>
+  Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i));
 
 const cover = (day: DayKey, kind: CoverKind = 'freeze', at = 0): StreakCover => ({ day, kind, at });
 

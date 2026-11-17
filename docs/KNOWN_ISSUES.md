@@ -12778,7 +12778,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1074 — Day-key and week rules have second homes, beside exports only tests call
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/daily/pick.ts:43
 - note: C2-4, C2-5, C2-6, C2-8 and the missions comment. The dayIndex characterization test is written first.
 - verified-by: `a day key counts the same days from the epoch whichever module reads it`

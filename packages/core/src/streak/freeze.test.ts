@@ -1,13 +1,17 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { addDays, dayRange, type DayKey } from './dayKey.ts';
+import { addDays, daysBetween, type DayKey } from './dayKey.ts';
 import { monthFrom, streakFrom, type StreakCover } from './streak.ts';
 import { FREE_FREEZE_CAP, FREEZE_CAP, FREEZE_RETURN_DAYS, freezesHeld, freezesToApply, nextFreezeReturn } from './freeze.ts';
 import { recentBreak, repairOffer } from './repair.ts';
 import { travelCover } from './travel.ts';
 
 process.env.TZ = 'Europe/Paris';
+
+/** Every key from `from` to `to`, both included, built with `addDays`. */
+const dayRange = (from: DayKey, to: DayKey): DayKey[] =>
+  Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i));
 
 const freeze = (day: DayKey, at = 0): StreakCover => ({ day, kind: 'freeze', at });
 /** Noon in Paris on a day, so a sitting's day key is never near a boundary. */

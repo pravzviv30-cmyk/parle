@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import {
   addDays,
   dayKeyOf,
-  dayRange,
   daysBetween,
   daysInMonth,
   isDayKey,
@@ -44,7 +43,7 @@ describe('calendar days', () => {
     assert.equal(addDays('2026-03-30', -1), '2026-03-29');
     assert.equal(addDays('2026-03-28', 1), '2026-03-29');
     assert.equal(daysBetween('2026-03-28', '2026-03-30'), 2);
-    assert.deepEqual(dayRange('2026-03-28', '2026-03-30'), ['2026-03-28', '2026-03-29', '2026-03-30']);
+    assert.deepEqual([0, 1, 2].map((n) => addDays('2026-03-28', n)), ['2026-03-28', '2026-03-29', '2026-03-30']);
   });
 
   test('the autumn clock change neither skips nor repeats a date', () => {
@@ -55,7 +54,7 @@ describe('calendar days', () => {
     assert.equal(dayKeyOf(lateOn25th - 86_400_000), '2026-10-25', 'the trap this module exists to avoid');
     assert.equal(addDays('2026-10-25', -1), '2026-10-24');
     assert.equal(addDays('2026-10-25', 1), '2026-10-26');
-    assert.deepEqual(dayRange('2026-10-24', '2026-10-26'), ['2026-10-24', '2026-10-25', '2026-10-26']);
+    assert.deepEqual([0, 1, 2].map((n) => addDays('2026-10-24', n)), ['2026-10-24', '2026-10-25', '2026-10-26']);
   });
 
   test('a leap day exists in 2028 and not in 2027', () => {
@@ -92,7 +91,7 @@ describe('calendar days', () => {
       assert.ok(!isDayKey(bad), `${String(bad)} is not a day`);
     }
     assert.throws(() => addDays('2026-02-30', 1), RangeError);
-    assert.deepEqual(dayRange('2026-10-06', '2026-10-05'), []);
+    assert.equal(daysBetween('2026-10-06', '2026-10-05'), -1, 'a range that ends before it starts has no days');
   });
 
   test('the offset is east-positive and never negative zero', () => {
