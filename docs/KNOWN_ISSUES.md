@@ -12821,3 +12821,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: services/tutor-agent/src/tutor.ts:932
 - note: Core now treats a filler-only reply ("Euh...") as silence, but tutor.ts still treats input.type === 'spoke' as a learner turn. It skips the scene's silence rule, adds one to learnerTurns, and marks the turn answered. On the guest scene, main and the branch give the same results, so this is not a regression. For the tutor-agent slice (B4). Found by /code-review, C1 push-check, 2026-11-17.
 - verified-by: `a filler-only reply counts as silence in the tutor agent's scene and turn counts`
+
+### F1219 — A right line with a self-correcting "non" is graded a miss
+- severity: P1
+- status: [ ]
+- where: packages/core/src/lessons/types.ts:227
+- note: 6bf689ff drops every negated candidate from the near-miss score, and "non" is a negation word. On t2-order, "Un thé, non, un café, s'il vous plaît" and "Euh, non, un café s'il vous plaît" grade poor, drop rung 3 to 2, hold the turn and say "Almost. Listen once more." On t3-sur-place, "À emporter, non, sur place" does the same. Before 6bf689ff these were partial; on main they were good. Only a clause negation (ne, pas, jamais) should leave the near-miss score. "Pas de problème, un café s'il vous plaît" still grades poor after this fix; the founder decides that one.
+- verified-by: `a self-correcting non on a right line is not graded a miss`
+- verified-by: `an added negation is not graded as carrying the meaning`
+
+### F1220 — A line that opens with "Non" and then states a positive accepts its opposite
+- severity: P2
+- status: [ ]
+- where: packages/core/src/lessons/types.ts:221
+- note: Deferred, not built in C1. bc8abaec treats any candidate holding non, pas, ne, jamais or rien as negative and forgives added negation words. Target "Non, je voudrais un café", said "Non, je ne voudrais pas un café": accepted via content. No scripted line has this shape today; the only negative candidates are "je ne comprends pas" and "non merci". Found by the work-judge, C1 push-check, 2026-11-17.
+- verified-by: `a line that opens with non and states a positive does not accept its negation`
