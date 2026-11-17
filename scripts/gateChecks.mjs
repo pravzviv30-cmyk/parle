@@ -112,3 +112,17 @@ export function guardWiringProblems(settingsText) {
   });
   return wired ? [] : [missing];
 }
+
+/** The gate.floors.json key that floors the release and provider proofs. */
+export const PROOF_FLOOR_KEY = 'release/provider proofs';
+
+/** The floors keys that name a workspace to run. */
+export function workspaceKeys(floors) {
+  return Object.keys(floors).filter((key) => key.startsWith('@'));
+}
+
+/** A run that counted fewer tests than its recorded floor. */
+export function belowFloor(name, count, floor) {
+  if (typeof floor !== 'number') return [`${name}: no floor recorded in scripts/gate.floors.json — run npm run gate:bless`];
+  return count < floor ? [`${name}: ${count} tests ran, floor is ${floor}. A suite is missing, not merely failing.`] : [];
+}

@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { suiteProblems, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems } from './gateChecks.mjs';
+import { suiteProblems, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems, PROOF_FLOOR_KEY, workspaceKeys, belowFloor } from './gateChecks.mjs';
 
 /** A node:test summary block as the spec reporter prints it. */
 const summary = ({ tests = 3, pass = 3, fail = 0, cancelled = 0, skipped = 0 } = {}) =>
@@ -92,5 +92,22 @@ describe('gate — the push check cannot be unplugged quietly', () => {
       'a guard that never sees a Bash call never sees a push');
     assert.equal(guardWiringProblems(null).length, 1, 'no settings file means no guard');
     assert.equal(guardWiringProblems('{ not json').length, 1, 'settings Claude Code cannot read wire nothing');
+  });
+});
+
+describe('gate — the release and provider proofs are counted like the workspaces', () => {
+  test('the release and provider proofs fail below their recorded floor', () => {
+    assert.deepEqual(belowFloor(PROOF_FLOOR_KEY, 359, 359), [], 'at the floor is green');
+    assert.equal(belowFloor(PROOF_FLOOR_KEY, 358, 359).length, 1,
+      'one test fewer means a proof file stopped loading, which "more than zero tests" never noticed');
+    assert.match(belowFloor(PROOF_FLOOR_KEY, 358, 359)[0], /floor is 359/, 'the detail names the floor it fell below');
+    assert.equal(belowFloor(PROOF_FLOOR_KEY, 359, undefined).length, 1,
+      'a deleted floor is not a floor of zero; it is a missing guard');
+  });
+
+  test('a floors key that is not a workspace is not run as one', () => {
+    assert.deepEqual(workspaceKeys({ '@luvani/core': 1152, [PROOF_FLOOR_KEY]: 359, '@luvani/mobile': 4112 }),
+      ['@luvani/core', '@luvani/mobile'],
+      'npm test --workspace on the proof floor would fail as an unknown workspace, so only @ keys run');
   });
 });

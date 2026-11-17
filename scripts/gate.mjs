@@ -48,7 +48,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { passingTestTitles } from './gateReporter.mjs';
 import { evaluateAudit } from './dependencyAudit.mjs';
-import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems } from './gateChecks.mjs';
+import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems, PROOF_FLOOR_KEY, workspaceKeys, belowFloor } from './gateChecks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
@@ -177,7 +177,7 @@ const passed = new Set();
 /** @type {Record<string, {tests: number, pass: number, fail: number}>} */
 const counts = {};
 
-for (const pkg of fast ? [] : Object.keys(floors)) {
+for (const pkg of fast ? [] : workspaceKeys(floors)) {
   const result = run('npm', ['test', `--workspace=${pkg}`], { env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}` } });
   const { tests, pass, fail: failed } = suiteSummary(result.out);
   for (const problem of suiteProblems(pkg, result)) fail('tests', problem);
@@ -226,6 +226,10 @@ if(!fast) {
   const problems = suiteProblems('release/provider proofs', result);
   if (tested === 0 && problems.length === 0) problems.push(`release/provider proofs: no test ran.\n${result.out.slice(-4000)}`);
   for (const problem of problems) fail('release/provider proofs', problem);
+  // Blessing is what records a missing floor, so only a recorded floor is enforced there.
+  if (problems.length === 0 && !(bless && floors[PROOF_FLOOR_KEY] === undefined)) {
+    for (const problem of belowFloor(PROOF_FLOOR_KEY, tested, floors[PROOF_FLOOR_KEY])) fail('tests', problem);
+  }
   if (problems.length === 0) {
     releaseProviderProofTests = tested;
     for (const title of passingTestTitles(result.out)) passed.add(title);
@@ -507,6 +511,7 @@ if (bless) {
   }
   const next = { ...floors };
   for (const [pkg, c] of Object.entries(counts)) next[pkg] = Math.max(floors[pkg] ?? 0, c.tests);
+  next[PROOF_FLOOR_KEY] = Math.max(floors[PROOF_FLOOR_KEY] ?? 0, releaseProviderProofTests);
   writeFileSync(FLOORS_PATH, `${JSON.stringify(next, null, 2)}\n`);
   console.log('floors raised to', next);
   process.exit(0);
@@ -523,7 +528,7 @@ if (asJson) {
     console.log('  fast: hygiene, secrets, agents and the ledger only. No suite ran and no tick was verified.');
   } else {
     console.log(`  total: ${total} tests`);
-    if(releaseProviderProofTests) console.log(`  ✔ shared release/provider proofs: ${releaseProviderProofTests} tests, 0 failing`);
+    if(releaseProviderProofTests) console.log(`  ✔ shared release/provider proofs: ${releaseProviderProofTests} tests, 0 failing (floor ${floors[PROOF_FLOOR_KEY]})`);
     for (const proof of databaseProofs) console.log(`  ✔ ${proof.script}: all ${proof.migrationCount} migrations replayed`);
   }
   if (ok) {

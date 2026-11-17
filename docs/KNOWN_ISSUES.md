@@ -12795,7 +12795,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1059 — The release and provider proofs have no count floor
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/gate.mjs:241
 - note: S1a-6. 37 files run with only "more than zero tests" checked. Approval 3 then governs this floor like the others.
 - verified-by: `the release and provider proofs fail below their recorded floor`
