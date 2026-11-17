@@ -1,6 +1,12 @@
 -- Disable the worker first and back up budgets before rolling back. Removing
 -- counters destroys spend history; reapplying starts dark and cannot safely
 -- enable spending from an older snapshot. No learning words are deleted.
+begin;
+do $$ begin
+  if current_setting('luvani.remove_phrase_audio_budget', true) is distinct from 'yes' then
+    raise exception 'refusing to remove phrase audio spend history without explicit interlock';
+  end if;
+end $$;
 create or replace function public.export_account_data(p_user_id uuid) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
 declare v_result jsonb;
@@ -70,3 +76,4 @@ drop trigger if exists phrase_audio_rate_revision on public.phrase_audio_rates;
 drop table if exists public.phrase_audio_rates;
 drop function if exists public.advance_phrase_audio_rate_revision();
 drop table if exists public.phrase_audio_policy;
+commit;

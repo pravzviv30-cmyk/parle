@@ -1360,7 +1360,8 @@ describe('database security contract — SQL cannot drift quietly', () => {
 
     // F245's down-script restores a body that grants a free month to every cancelled
     // subscriber, forever, and it touches no rows — the same shape as the four interlocks
-    // above, so it carries one too. F244's drops a table that holds rows instead.
+    // above, so it carries one too. F244's drops a table that holds rows, so it says
+    // DESTRUCTIVE and, since F1081, carries the luvani.remove_billing_events interlock.
     const reopensF245 = readFileSync(path.join(ROLLBACKS, '202608300002_down.sql'), 'utf8');
     assert.match(reopensF245, /REOPENS-F245/);
     assert.match(reopensF245, /luvani\.reopen_f245/);
@@ -1391,6 +1392,17 @@ describe('database security contract — SQL cannot drift quietly', () => {
       assert.ok(readme.includes(heading), `supabase/README.md has no ${heading} section`);
     }
     assert.match(readme, /verify\/supabaseLive\.ts/, 'the runbook does not say how to verify the result');
+  });
+
+  test('the Supabase runbook names every SQL suite the gate runs', () => {
+    const gate = readFileSync(path.join(ROOT, 'scripts', 'gate.mjs'), 'utf8');
+    const list = gate.match(/for \(const script of \[('verifyDataBoundaries\.mjs'[^\]]*)\]\)/)?.[1];
+    assert.ok(list, 'scripts/gate.mjs no longer lists its SQL suites where this test looks');
+    const suites = [...list.matchAll(/'(verify\w+)\.mjs'/g)].map((match) => match[1]!);
+    const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+    const readme = readFileSync(path.join(ROOT, 'supabase', 'README.md'), 'utf8').replace(/\s+/g, ' ');
+    assert.ok(readme.includes(`runs ${words[suites.length]} current disposable SQL suites`), `supabase/README.md does not say the gate runs ${suites.length} SQL suites`);
+    for (const suite of suites) assert.ok(readme.includes(`${suite}.mjs`), `supabase/README.md does not name the gate's ${suite} suite`);
   });
 
   test('the migration 46 notes name what it requires and what silently undoes it', () => {
@@ -1473,6 +1485,87 @@ describe('tutor baseline contract (F970)', () => {
         grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`);
       for (const name of migrationFiles) await db.exec(sqlOf(name));
       await db.query('select luvani_private.tutor_pack_v1($1,$2,$3)', [JSON.stringify(pack), user, session]);
+    } finally { await db.close(); }
+  });
+});
+
+// F1081: the old destructive rollbacks refuse unless their luvani.* setting is 'yes'.
+describe('destructive rollback interlocks (F1081)', () => {
+  const INTERLOCKS: [string, string][] = [
+    ['202608220001', 'remove_learning_tables'], ['202608230001', 'remove_session_ledger'],
+    ['202608260001', 'remove_state_revision'], ['202608300001', 'remove_billing_events'],
+    ['202608300003', 'remove_lapse_marker'], ['202609040001', 'remove_conversation_packs'],
+    ['202609050001', 'remove_daily_namespaces'], ['20261002171317', 'remove_saved_text'],
+    ['20261002212536', 'remove_phrase_audio_budget'], ['20261002233520', 'remove_session_grants'],
+  ];
+  const down = (stamp: string): string => readFileSync(path.join(ROLLBACKS, `${stamp}_down.sql`), 'utf8');
+
+  test('every destructive rollback refuses without its interlock', () => {
+    for (const [stamp, setting] of INTERLOCKS) {
+      assert.match(
+        stripComments(down(stamp)),
+        new RegExp(`^\\s*begin;\\s*do \\$\\$ begin\\s+if current_setting\\('luvani\\.${setting}', true\\) is distinct from 'yes' then\\s+raise exception '[^']+';\\s+end if;\\s+end \\$\\$;`, 'i'),
+        `${stamp}_down.sql does not open its transaction with the luvani.${setting} interlock`,
+      );
+      assert.match(stripComments(down(stamp)), /;\s*commit;\s*$/i, `${stamp}_down.sql does not end by committing its transaction`);
+    }
+  });
+
+  /** All 46 migrations replayed, and a reader of every column the rollbacks could drop. */
+  const replayed = async (): Promise<{ db: PGlite; columns: () => Promise<string[]> }> => {
+    const db = new PGlite();
+    await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+      create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+      create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+      create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+      grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`);
+    for (const name of migrationFiles) await db.exec(sqlOf(name));
+    const columns = async (): Promise<string[]> => (await db.query<{ c: string }>(
+      `select table_schema||'.'||table_name||'.'||column_name c from information_schema.columns
+       where table_schema in ('public','luvani_private') order by 1`)).rows.map((row) => row.c);
+    return { db, columns };
+  };
+
+  /** The statements of a SQL file, split on semicolons outside comments, quotes and dollar-quoted bodies. */
+  const statements = (sql: string): string[] => {
+    const out: string[] = [];
+    let start = 0;
+    for (let i = 0; i < sql.length; i++) {
+      if (sql.startsWith('--', i)) { i = sql.indexOf('\n', i); if (i < 0) break; continue; }
+      if (sql[i] === "'") { i = sql.indexOf("'", i + 1); while (sql[i + 1] === "'") i = sql.indexOf("'", i + 2); continue; }
+      const tag = /^\$[A-Za-z_]*\$/.exec(sql.slice(i))?.[0];
+      if (tag) { i = sql.indexOf(tag, i + tag.length) + tag.length - 1; continue; }
+      if (sql[i] === ';') { out.push(sql.slice(start, i + 1)); start = i + 1; }
+    }
+    return out.filter((statement) => stripComments(statement).trim() !== ';' && stripComments(statement).trim() !== '');
+  };
+
+  test('the old destructive rollbacks leave every table in place when run without their setting', async () => {
+    const { db, columns } = await replayed();
+    try {
+      const before = await columns();
+      // Newest first, as a real rollback runs, so no file is stopped only by a dependency error.
+      for (const [stamp] of [...INTERLOCKS].reverse()) {
+        await assert.rejects(db.exec(down(stamp)), /refusing/, `${stamp}_down.sql ran without its setting`);
+        await db.exec('rollback'); // the refused file leaves its own transaction open and aborted
+      }
+      assert.deepEqual(await columns(), before);
+    } finally { await db.close(); }
+  });
+
+  test('an old destructive rollback run one statement at a time past its refusal leaves every table in place', async () => {
+    const { db, columns } = await replayed();
+    try {
+      const before = await columns();
+      // A client that carries on after an error (psql -f without ON_ERROR_STOP) runs each statement alone.
+      for (const [stamp] of [...INTERLOCKS].reverse()) {
+        const errors: string[] = [];
+        for (const statement of statements(down(stamp))) {
+          await db.exec(statement).catch((error: Error) => { errors.push(error.message); });
+        }
+        assert.match(errors[0] ?? '', /refusing/, `${stamp}_down.sql ran without its setting`);
+      }
+      assert.deepEqual(await columns(), before);
     } finally { await db.close(); }
   });
 });
