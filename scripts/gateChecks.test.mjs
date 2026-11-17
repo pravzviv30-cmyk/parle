@@ -152,3 +152,13 @@ describe('gate — CI runs the gate once per change', () => {
       'a push to a pull request branch already runs the gate through pull_request; a second run on push is the same work twice. Main keeps its push run');
   });
 });
+
+describe('gate — a todo test is not a passing test', () => {
+  test('a suite with a todo test fails the gate', () => {
+    const out = summary({ tests: 3, pass: 3 }).replace('ℹ todo 0', 'ℹ todo 1');
+    const problems = suiteProblems('@luvani/x', { code: 0, out });
+    assert.equal(problems.length > 0, true,
+      'a failing { todo: true } test still reports fail 0 and exit 0, so only the todo count shows it defended nothing');
+    assert.match(problems.join('\n'), /todo/, 'the detail says a test was marked todo');
+  });
+});

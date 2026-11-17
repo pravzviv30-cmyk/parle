@@ -18,6 +18,7 @@ export function suiteSummary(out) {
     fail: num('fail'),
     cancelled: num('cancelled'),
     skipped: num('skipped'),
+    todo: num('todo'),
   };
 }
 
@@ -39,6 +40,8 @@ export function suiteProblems(name, { code, out }) {
   // A timed-out test is cancelled, not failed: `fail 0`, `cancelled 1`, exit 1.
   // The runtime count catches every skip form, `{ skip: true }` and `t.skip()` included.
   if (s.skipped > 0) problems.push(`${name}: ${s.skipped} skipped — a skipped test is a test that is not defending anything`);
+  // A failing `{ todo: true }` test leaves `fail 0`; only this count sees it.
+  if (s.todo > 0) problems.push(`${name}: ${s.todo} todo — a test marked todo is a test that is not defending anything`);
   if (s.cancelled > 0) problems.push(`${name}: ${s.cancelled} cancelled — a test that never finished defended nothing`);
   if (code !== 0 && problems.length === 0) {
     problems.push(`${name}: the runner exited ${code} with no failing test named.\n${out.slice(-2000)}`);
