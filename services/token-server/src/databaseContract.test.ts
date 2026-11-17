@@ -1927,3 +1927,82 @@ describe('unjoined tutor start release (F955)', () => {
     }
   });
 });
+
+// F933: a purchase before the first conversation leaves an unclaimed, spent trial row.
+// The first device claim promotes it to a fresh free conversation; a device that already
+// had one leaves it spent.
+describe('purchase-first trial row (F933)', () => {
+  const BOOT = `create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+    create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+    create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+    create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+    grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`;
+  const OPEN = `update public.tutor_session_admission_config set enabled=true,max_active_sessions=10,
+    max_daily_issued_seconds=100000,max_account_daily_sessions=50,max_account_daily_seconds=100000`;
+  const uid = (n: number): string => `30000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const hash = (tag: string, n: number): string => `${tag}${String(n).padStart(43 - tag.length, '0')}`;
+  type Json = Record<string, any>;
+  type Claim = 'claim_trial' | 'claim_trial_with_evidence';
+  const CLAIMS: Claim[] = ['claim_trial', 'claim_trial_with_evidence'];
+
+  let base: PGlite;
+  before(async () => {
+    base = new PGlite();
+    await base.exec(BOOT);
+    for (const name of migrationFiles) await base.exec(sqlOf(name));
+    await base.exec(OPEN);
+  });
+  after(async () => { await base.close(); });
+
+  const learner = async (db: PGlite, n: number): Promise<void> => {
+    await db.query('insert into auth.users(id) values($1)', [uid(n)]);
+    await db.query('insert into auth.sessions(id,user_id) values($1,$2)', [uid(1000 + n), uid(n)]);
+  };
+  const claim = async (db: PGlite, fn: Claim, n: number, device: number): Promise<boolean> => {
+    const args = fn === 'claim_trial' ? [uid(n), hash('i', device), hash('u', n)] : [uid(n), hash('i', device), hash('u', n), true];
+    return (await db.query<{ ok: boolean }>(`select public.${fn}(${args.map((_, i) => `$${i + 1}`).join(',')}) ok`, args)).rows[0]!.ok;
+  };
+  const row = async (db: PGlite, n: number): Promise<Json> =>
+    (await db.query<Json>('select plan,seconds_used,weekly_taste,period_end from public.entitlements where user_id=$1', [uid(n)])).rows[0]!;
+  const reserve = async (db: PGlite, n: number, id: number): Promise<Json> =>
+    (await db.query<{ v: Json }>('select public.reserve_tutor_session_v1($1,$2,$3,$4,$5,$6) v',
+      [uid(n), uid(2000 + id), `luvani-f933-${id}`, 'lesson', id.toString(16).padStart(64, '0'), uid(1000 + n)])).rows[0]!.v;
+
+  test('a trial row begun by a purchase becomes a refilling free conversation at its first device claim', async () => {
+    const db = (await base.clone()) as PGlite;
+    try {
+      for (const [i, fn] of CLAIMS.entries()) {
+        const n = i + 1;
+        await learner(db, n);
+        await db.query('select public.begin_billing_refresh($1)', [uid(n)]);
+        assert.deepEqual(await row(db, n), { plan: 'trial', seconds_used: 600, weekly_taste: false, period_end: null });
+        // Before the claim no reservation can exist on the spent row: admission refuses it.
+        assert.equal((await reserve(db, n, 10 * n)).reason, 'exhausted');
+        assert.equal(await claim(db, fn, n, n), true);
+        assert.deepEqual(await row(db, n), { plan: 'trial', seconds_used: 0, weekly_taste: true, period_end: null },
+          `${fn} left a purchase-first row spent on a device that never had a free conversation`);
+        const recorded = (await db.query('select 1 from public.trial_installations where installation_hash=$1', [hash('i', n)])).rows.length;
+        assert.equal(recorded, 1, `${fn} did not record the device that took the free conversation`);
+        assert.equal((await reserve(db, n, 10 * n + 1)).reservedSeconds, 600, `${fn}: the promoted row cannot start a free conversation`);
+      }
+    } finally { await db.close(); }
+  });
+
+  test('a purchase-first row on a device that already had a free conversation stays spent', async () => {
+    const db = (await base.clone()) as PGlite;
+    try {
+      for (const [i, fn] of CLAIMS.entries()) {
+        const first = 10 + 2 * i;
+        const second = first + 1;
+        await learner(db, first);
+        await learner(db, second);
+        assert.equal(await claim(db, fn, first, first), true);
+        await db.query('select public.begin_billing_refresh($1)', [uid(second)]);
+        assert.equal(await claim(db, fn, second, first), true, `${fn} refused a learner who had paid`);
+        assert.deepEqual(await row(db, second), { plan: 'trial', seconds_used: 600, weekly_taste: false, period_end: null },
+          `${fn} gave a second free conversation to a device that already had one`);
+        assert.equal((await reserve(db, second, 100 + i)).reason, 'exhausted');
+      }
+    } finally { await db.close(); }
+  });
+});
