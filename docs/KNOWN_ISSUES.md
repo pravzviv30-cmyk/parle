@@ -12846,3 +12846,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/migrations/20261116120000_tutor_unjoined_release.sql:78
 - note: Deferred, not built in this PR. Settling an unjoined start locks that day's tutor_session_budget_days row until the transaction ends, and every reserve queues on it. The production reconciler passes p_limit 5 (services/token-server/src/maintenance.ts:9). In disposable PGlite a 5-candidate unjoined batch took about 5 ms and one reserve about 5 ms. Measure on staging after the apply, and again before anyone raises the batch size. If it matters, sort claimed candidates ahead of unjoined ones in the reconciler.
 - verified-by: `a reconciler batch of five holds the service-wide day row for under 50 ms on staging (measured)`
+
+### F1081 — Ten destructive rollbacks run without an interlock
+- severity: P2
+- status: [ ]
+- where: supabase/rollback/20261002233520_down.sql:1
+- note: (a), `data-engineer`. Six run cleanly on the full schema and drop the session, billing and saved-text tables; two more are stopped only by a dependency error. The other rollbacks refuse without a `luvani.*` setting. Two legacy proofs that execute these files must set it.
+- verified-by: `every destructive rollback refuses without its interlock`
+- verified-by: `the old destructive rollbacks leave every table in place when run without their setting`
+
+### F1082 — The Supabase runbook miscounts the gate's SQL suites and says applied migrations are not live
+- severity: P2
+- status: [ ]
+- where: supabase/README.md:312
+- note: (a), docs, `data-engineer`. Eight named, nine run; rows 40, 41, 43, 44, 45 and F970's note contradict the launch log. Re-confirm line numbers after f955 lands.
+- verified-by: `the Supabase runbook names every SQL suite the gate runs`
