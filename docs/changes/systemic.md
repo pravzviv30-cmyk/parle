@@ -166,6 +166,14 @@ reach except F999's: Card/Tile/Hero 60 or fewer, Button/Pill 21.
   "After: as built" page).
 - Landing disposition: LAND after the gate and `/push-check --main`, by PR.
 - Next task: the gate, then the founder's OK, push-check and the PR.
+- Push-check findings left out of scope on purpose (2026-11-17), each older than this
+  pass: the `state-offline` drawing is light-only on the dark card (it already showed
+  on main's device-offline lead; the dark rows of 2026-11-07 go to their own dark
+  board); "Say it better, then compare" wraps to two lines at 320 as it did on main
+  (founder-gated copy); `icons/ghostLinks.json`'s "Restore purchases" row matches no
+  button (already stale on main). The two dark lip values repeat `b.dark.line` and
+  `b.dark.primaryLip` as literals because the dark theme is one literal object;
+  `palette.test.ts` pins them equal, so they cannot drift.
 - Noted by the judge, not sent back: if the first next-task read fails and the learner
   taps Retry, the hero is briefly an empty white card (`practice/NextTaskCard.tsx:150`
   returns null while `heroReview` is already false); `sceneEyebrow`

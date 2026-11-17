@@ -8806,6 +8806,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/practice/madeFrom.ts:1
 - note: revamp A. "Listen and try again" is the tutor's voice reading the better line, then the drill;
   no recording and no transcript are ever kept, by the existing privacy contract.
+- note: 2026-11-17, the systemic pass (UI-023, F999): the replay row had no production caller and went with `ReplayMomentCard.tsx`, and its test with it; what remains true is that a voice started on practice stops when the tab goes.
 - verified-by: `a voice started on practice stops when the tab goes`
 - verified-by: `nothing on practice listens, records or scores`
 
