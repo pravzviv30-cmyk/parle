@@ -210,6 +210,13 @@ describe('answer matching', () => {
     assert.ok(isAcceptable(croissant, 'Non merci, pas de croissant'), 'a decline that agrees with the line is still the line');
   });
 
+  test('a self-correcting non on a right line is not graded a miss', () => {
+    const near = { accepted: false, via: 'near' };
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns[1]!, "Un thé, non, un café, s'il vous plaît"), near);
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns[1]!, "Euh, non, un café s'il vous plaît"), near);
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns.find((x) => x.id === 't3-sur-place')!, 'À emporter, non, sur place'), near);
+  });
+
   test('a half-said line is a near miss, not an unrelated answer', () => {
     const t = CAFE_LESSON.turns[1]!;
     const match = matchAcceptable(t, 'un café');

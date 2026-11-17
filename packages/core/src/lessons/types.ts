@@ -223,8 +223,9 @@ export function matchAcceptable(turn: LessonTurn, spoken: string): AcceptanceMat
     if (hits === wanted && !negated && contentWords(heard).length <= wanted + EXTRA_WORD_ALLOWANCE) {
       return { accepted: true, via: 'content' };
     }
-    // The opposite sentence is not a near miss of the line.
-    if (wanted > 0 && !negated) best = Math.max(best, hits / wanted);
+    // The opposite sentence (an added ne, pas or jamais) is not a near miss of the
+    // line. A stray "non" is often a self-correction, so it still can be.
+    if (wanted > 0 && !(negated && heard.some((w) => (w === 'ne' || w === 'pas' || w === 'jamais') && !candidate.includes(w)))) best = Math.max(best, hits / wanted);
   }
 
   // Half the line is not the line — but it is not "je voudrais un éléphant"
