@@ -11746,8 +11746,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F933 — A trial row created by a purchase before any device claim is spent and never refills
 - severity: P2
-- status: [ ]
-- where: supabase/migrations/20261023220000_daily_free_allowance.sql:91
+- status: [x]
+- where: supabase/migrations/20261117120000_claim_promotes_unclaimed_row.sql:58 (and :108)
 - note: Found 2026-10-29 while fixing F911 (Stream B). `begin_billing_refresh` creates a trial row
   for an account that starts a purchase before any device claim. The row is already spent, with
   `weekly_taste=false` and no `period_end`, so the free conversation never refills and
@@ -11755,7 +11755,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   conversation is used for now. Practice and review still work offline.", `purchases/outOfTime.ts`),
   but the learner silently loses the every-other-day taste (REV-001). Not fixed here: it needs a
   migration and the pinned billing files, so it waits for its own change with founder approval.
-- verified-by: `a trial row begun by a purchase still refills its free conversation every other day`
+  2026-11-17 (D1 PR B, founder Q1 yes): the spent row itself is by design (D24, and
+  `scripts/verifyTutorSessions.mjs` still pins that it never refills on its own); the defect was
+  the early return in `claim_trial` and `claim_trial_with_evidence`, which never promoted it.
+  Migration 47 replaces both: an unclaimed row on a newly recorded device becomes a fresh free
+  conversation, and on a device that already had one it stays spent while the claim still
+  returns true. No row can hold a live reservation before the reset (it is created spent at the
+  cap and admission refuses under 120 s). Not applied to staging; that needs its own founder yes.
+  Closed here, no new id.
+- verified-by: `a trial row begun by a purchase becomes a refilling free conversation at its first device claim`
+- verified-by: `a purchase-first row on a device that already had a free conversation stays spent`
 
 ### F915 — Onboarding has no Back, and a new account cannot leave the first scene without starting it
 - severity: P2

@@ -615,6 +615,9 @@ const REDEFINED_BY_DAILY = new Set(['luvani_private.tutor_cap_v1', 'luvani_priva
 /** The migration that nets reserve_tutor_session_v1's day caps of unjoined give-backs (F955); the rest of its body is D24's. */
 const UNJOINED_RELEASE = '20261116120000_tutor_unjoined_release.sql';
 
+/** The migration that promotes a purchase-first trial row at its first device claim (F933); both claim bodies are otherwise D24's. */
+const CLAIM_PROMOTES = '20261117120000_claim_promotes_unclaimed_row.sql';
+
 const FUNCTION_DEFINITION = /create (?:or replace )?function ((?:public|luvani_private)\.\w+)\s*\(/gi;
 
 /** Each allowance table in one file, with the function whose body holds it. */
@@ -890,16 +893,18 @@ describe('database security contract — SQL cannot drift quietly', () => {
     const laterClaimTrial = migrationFiles
       .slice(migrationFiles.indexOf('202608240001_claim_trial_null_fix.sql') + 1)
       .filter((name) => FUNCTION_HEADERS.claim_trial.test(sqlOf(name)));
-    // D24 re-defines it once, to mark the claimed row as a weekly taste. Everything above
-    // reads the effective body, so that one is read; any other re-definition is not.
-    assert.deepEqual(laterClaimTrial, [WEEKLY_TASTE], 'a later migration re-defines claim_trial without being read here');
+    // D24 re-defines it to mark the claimed row as a weekly taste, and F933 to promote a
+    // purchase-first row. Everything above reads the effective body, so those are read;
+    // any other re-definition is not.
+    assert.deepEqual(laterClaimTrial, [WEEKLY_TASTE, CLAIM_PROMOTES], 'a later migration re-defines claim_trial without being read here');
   });
 
   test('the weekly taste refills only a claimed trial, and every lapse lands on a fresh one (D24)', () => {
     const d24 = sqlOf(WEEKLY_TASTE);
     const code = stripComments(d24);
     const latestIn = (name: string): string => {
-      const owner = REDEFINED_BY_DAILY.has(name) ? DAILY_ALLOWANCE : name === 'public.reserve_tutor_session_v1' ? UNJOINED_RELEASE : WEEKLY_TASTE;
+      const owner = REDEFINED_BY_DAILY.has(name) ? DAILY_ALLOWANCE : name === 'public.reserve_tutor_session_v1' ? UNJOINED_RELEASE
+        : name.startsWith('public.claim_trial') ? CLAIM_PROMOTES : WEEKLY_TASTE;
       assert.equal(latestFunctionDefinitions().get(name)?.file, owner, `${name} is not defined last by ${owner}`);
       return stripComments(effectiveBody(new RegExp(`create or replace function ${name.replace('.', '\\.')}\\b`, 'i')));
     };
@@ -1511,7 +1516,7 @@ describe('destructive rollback interlocks (F1081)', () => {
     }
   });
 
-  /** All 46 migrations replayed, and a reader of every column the rollbacks could drop. */
+  /** All 47 migrations replayed, and a reader of every column the rollbacks could drop. */
   const replayed = async (): Promise<{ db: PGlite; columns: () => Promise<string[]> }> => {
     const db = new PGlite();
     await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
