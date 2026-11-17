@@ -12763,3 +12763,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/secureSessionStorage.ts:63
 - note: `removeGeneration` uses `Promise.all`, and `writeSecure` swallows its failure, so `setItem` returns while deletes of the previous generation are still running. The next write reuses that generation. Inputs: write A (generation a, 3 chunks), write B with the delete of chunk a-0 rejecting and the deletes of a-1 and a-2 taking 30 ms, then write C straight away (generation a again). The late deletes remove C's chunks and `getItem` returns null, so the learner signs in again. Nobody else's session is restored. Same fix as F1023: wait with `Promise.allSettled`. Found by work-judge (Fable 5.2), F960 round 3, 2026-11-17.
 - verified-by: `a write waits for every old chunk delete before it returns`
+
+### F1076 — A refused thin free window does not say when time comes back
+- severity: P2
+- status: [ ]
+- where: packages/core/src/metering/meter.ts:378
+- note: C3-1. Production is patched by the token server's copy of the rule; core should be the one home. The builder confirms the unreserved path is dev-only first.
+- verified-by: `a free learner refused for a thin window is told when the next free conversation is ready`
+
+### F1077 — Metering and core barrels re-export names nothing imports, and voice comments describe an old roster
+- severity: P2
+- status: [ ]
+- where: packages/core/src/metering/index.ts:8
+- note: C3-2 and the metering and index.ts parts of C3-3. Eleven barrel lines and five comments; no function is deleted.
+- verified-by: `the catalogue offers six voices, three men and three women, with one default`
+- verified-by: `the refill lands exactly at +44 h, not at +43h59m and not at +48 h`
