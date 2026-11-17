@@ -3,7 +3,6 @@ export {
   dayKeyOf,
   addDays,
   daysBetween,
-  dayRange,
   weekdayIndex,
   mondayOf,
   daysInMonth,

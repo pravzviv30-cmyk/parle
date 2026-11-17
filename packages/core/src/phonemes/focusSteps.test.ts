@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { DRILLS, getDrill } from './drills.ts';
+import { DRILLS } from './drills.ts';
 import { focusDrillSteps } from './focusSteps.ts';
 import type { Drill } from './drills.ts';
 
@@ -44,7 +44,7 @@ describe('focusDrillSteps — the drill behind the end card', () => {
   });
 
   test('each half of a pair carries the other, so the contrast is on screen while it is said', () => {
-    const drill = getDrill('y-vs-u');
+    const drill = DRILLS.find((d) => d.id === 'y-vs-u');
     assert.ok(drill, 'the bank still has the vowel pair drill');
     const steps = focusDrillSteps(drill);
     const [first, second] = steps;

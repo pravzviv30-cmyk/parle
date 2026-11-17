@@ -178,7 +178,8 @@ const FILES: Record<string, string> = {
   // 2026-10-23. Prices, allowances, plans and every function body are
   // unchanged; meter.test.ts floors were tightened, none lowered.
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
-  'packages/core/src/metering/meter.ts': '5c121dded5c2fcfbf7a23972a9e3976507d69f7340ddbb4a4becfb719299fdcb',
+  // 2026-11-17, F1076/F1077 (Phase 4 C3): canStartSession names refillsAt for a thin window too (the message, allowed and reason are unchanged; grid of 7056 inputs compared against main), and ten unused metering re-exports are removed. No price, allowance, debit, refund or admission decision changed. Review: revenue-engineer, work-judge, security and code reviews.
+  'packages/core/src/metering/meter.ts': 'fdd3afb9e552dac6b5f7d39967d4aecd2bc32e1cbffbf7fe04e95dabcb4bb632',
   'services/token-server/src/billing/revenuecat.ts': '33964e5a51bf18aa5cb3f7198c9cc377dc2b815eeb13a26a0ebd2a4a0b9ba8ff',
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
   // 2026-10-27, F886: /billing/status answers a fresh free view (trial, 600 s, nothing written) for an account with no entitlement row, via billingStatusOf and EntitlementNotProvisionedError; no debit, grant, refund, price or allowance changed. Approval: founder approved the F886 plan in chat 2026-10-27. Review: fix-verifier (read-only) and the Opus orchestrator read the diff.
@@ -225,7 +226,8 @@ const FILES: Record<string, string> = {
   // 2026-10-27, F886: /billing/status answers a fresh free view (trial, 600 s, nothing written) for an account with no entitlement row, via billingStatusOf and EntitlementNotProvisionedError; no debit, grant, refund, price or allowance changed. Approval: founder approved the F886 plan in chat 2026-10-27. Review: fix-verifier (read-only) and the Opus orchestrator read the diff.
   'services/token-server/src/store.ts': '4bee8c995ae14048c00241645570ea22fedee0d7ef9d4d0b4c06361009cb8bc8',
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
-  'packages/core/src/metering/index.ts': 'f8248a199da76f3d1f7dfa195e9c5cfe1d2a236db445e1720af6e18654ca3e67',
+  // 2026-11-17, F1076/F1077 (Phase 4 C3): canStartSession names refillsAt for a thin window too (the message, allowed and reason are unchanged; grid of 7056 inputs compared against main), and ten unused metering re-exports are removed. No price, allowance, debit, refund or admission decision changed. Review: revenue-engineer, work-judge, security and code reviews.
+  'packages/core/src/metering/index.ts': '204da6a18fb40728ef321c6b7cdf5304a59a1c98371ffff9ba2ce815789e2b33',
   'apps/mobile/src/purchases/subscription.ts': 'a9c8873857eedacec2a5ed02895a65146ae91ec2bc61fd457c641b367ba2a69a',
   'apps/mobile/src/purchases/useContinueArc.ts': '122bbc57861e4bd52bf1207d39f0da89a297357369b865a9bed84ee7e505b3c8',
   'supabase/migrations/202608220001_luvani_learning.sql': '837130edcd96955383936bb34814c38a6cf9357e5031355156dd5398eb1f8c23',
