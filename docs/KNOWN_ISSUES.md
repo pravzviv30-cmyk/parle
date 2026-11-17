@@ -6870,9 +6870,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the primitive stayed in core, still exported and still tested, so both surface-level titles are
   re-pointed at the shuffle tests that hold the seeded order and the wrap.
 - note: review C2 (2026-11-17, F1073): the shuffle primitive had no caller left and was removed
-  with its tests (it is in git history). The entry is re-pointed at the daily pick's clock test,
-  the surviving guard that the daily surface reads no clock of its own.
-- verified-by: `the pick never reads the wall clock, only the moment it was handed`
+  with its tests (it is in git history), so this claim is retired with it: there is no suggestion
+  card left to walk the pool in any order. The entry now points at the test that keeps the card
+  from coming back.
+- verified-by: `the path, the archive and the suggestion card stay gone from the sound-led page — F442`
 
 ### F451 — A beginner could be shown a situation pitched at somebody two levels up
 - severity: P2
