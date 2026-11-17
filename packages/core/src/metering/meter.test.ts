@@ -611,3 +611,15 @@ describe('a yearly window that ends is a refill owed, never a lapse (F733 review
     assert.equal(rollPeriod(spent, new Date(yearEnd.getTime() + LAPSE_GRACE_SEC * 1000 + 1)).lapsed, true);
   });
 });
+
+// F1077. The removed type re-exports leave nothing at runtime, so only the values are checked.
+test('the core barrels no longer re-export the unused metering helpers', async () => {
+  const metering: Record<string, unknown> = await import('./index.ts');
+  const core: Record<string, unknown> = await import('../index.ts');
+  for (const name of ['YEARLY_PLANS', 'allowanceWindowCount', 'planMargin', 'storeTrialCostUsd', 'yearlyPlanMargin']) {
+    assert.ok(!(name in metering), `metering/index.ts still exports ${name}`);
+    assert.ok(!(name in core), `index.ts still exports ${name}`);
+  }
+  assert.ok(!('shortGoalLabel' in core), 'index.ts still exports shortGoalLabel');
+  assert.ok('canStartSession' in core && 'SHORT_GOALS' in core, 'the barrels still carry what the app uses');
+});

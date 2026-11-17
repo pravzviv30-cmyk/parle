@@ -12776,5 +12776,4 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [x]
 - where: packages/core/src/metering/index.ts:8
 - note: C3-2 and the metering and index.ts parts of C3-3. Eleven barrel lines and five comments; no function is deleted.
-- verified-by: `the catalogue offers six voices, three men and three women, with one default`
-- verified-by: `the refill lands exactly at +44 h, not at +43h59m and not at +48 h`
+- verified-by: `the core barrels no longer re-export the unused metering helpers`
