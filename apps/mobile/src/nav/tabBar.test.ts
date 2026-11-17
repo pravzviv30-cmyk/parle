@@ -357,15 +357,15 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
   /** Lifts pressIn and pressOut from the bar and runs them over a simulated `armed` state. */
   function pressHandlers(selected: number) {
     const start = BAR.indexOf('const pressIn = ');
-    const end = BAR.indexOf('\n', BAR.indexOf('const pressOut = ', start));
+    const end = BAR.indexOf('\n', BAR.indexOf('const press = ', start));
     assert.ok(start > 0 && end > start, 'the press handlers are not where this test looks');
     const js = stripTypeScriptTypes(BAR.slice(start, end));
     const log = { ticks: 0, armed: null as number | null, touchTicked: { current: false } };
     const setArmed = (v: number | null | ((a: number | null) => number | null)) => { log.armed = typeof v === 'function' ? v(log.armed) : v; };
-    const [pressIn, pressOut] = new Function('selected', 'setArmed', 'tapSettled', 'touchTicked', `"use strict";\n${js}\nreturn [pressIn, pressOut];`)(
+    const [pressIn, pressOut, press] = new Function('selected', 'setArmed', 'tapSettled', 'touchTicked', `"use strict";\n${js}\nreturn [pressIn, pressOut, press];`)(
       selected, setArmed, () => { log.ticks += 1; }, log.touchTicked,
-    ) as [(i: number) => void, (i: number) => void];
-    return { pressIn, pressOut, log };
+    ) as [(i: number) => void, (i: number) => void, (i: number, go: () => void) => void];
+    return { pressIn, pressOut, press, log };
   }
 
   test('pressing in on another tab moves the pill and its colours there with one tick, and lifting adds none (F981)', () => {
@@ -391,6 +391,25 @@ describe('the bottom bar keeps every whole word at the largest reading size — 
     bar.pressIn(2);
     assert.equal(bar.log.armed, null, 'pressing the open tab arms it');
     assert.equal(bar.log.ticks, 0, 'pressing the open tab ticks');
+  });
+
+  test('a tab opened with no press-in (TalkBack, keyboard) ticks once; a tap ticks once; the open tab never (F981, Impeccable)', () => {
+    assert.match(FLAT, /onPress=\{\(\) => press\(i, route\.onPress\)\}/, 'the cell does not open through the press that ticks');
+    let went = 0;
+    const go = () => { went += 1; };
+    const quiet = pressHandlers(0);
+    quiet.press(2, go);
+    assert.equal(quiet.log.ticks, 1, 'activating a tab without a press-in gives no tick');
+    const tap = pressHandlers(0);
+    tap.pressIn(2); tap.pressOut(2); tap.press(2, go);
+    assert.equal(tap.log.ticks, 1, 'a tap ticks on press-in and again on lift');
+    const open = pressHandlers(0);
+    open.pressIn(0); open.press(0, go);
+    assert.equal(open.log.ticks, 0, 'tapping the open tab ticks');
+    const detached = pressHandlers(-1);
+    detached.press(0, go);
+    assert.equal(detached.log.ticks, 1, 'Profile\'s bar gives no tick when a tab is activated without a press-in');
+    assert.equal(went, 4, 'press does not go on to the tab');
   });
 
   test('a late press-out from an earlier tap leaves the tab now pressed armed (F981, push-check)', () => {

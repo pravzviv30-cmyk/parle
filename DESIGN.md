@@ -1813,7 +1813,7 @@ to its description.
 | press | 0.30 s | 0.70 | 439 | 29.3 | the press |
 | pop | 0.35 s | 0.55 | 322 | 19.7 | the select pop, chips, medals, numbers |
 | settle | 0.50 s | 0.85 | 158 | 21.4 | bars and cards |
-| snap | 0.20 s | 0.80 | 987 | 50.3 | detents |
+| snap | 0.20 s | 0.80 | 987 | 50.3 | detents, the tab pill (F981) |
 
 ### The press
 

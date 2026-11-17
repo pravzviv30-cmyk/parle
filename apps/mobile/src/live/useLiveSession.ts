@@ -1496,8 +1496,8 @@ export function useLiveSession(
         // The room is gone, so haptics and sounds come back on the error view.
         if (moved) void releaseAudioSession().catch(() => {});
         // After an end or an error the recap may still use the audio session, so
-        // only the hold that mutes haptics and sounds goes (F981).
-        else releaseLiveHold();
+        // only the hold that mutes haptics and sounds goes (F981). A safety stop keeps it.
+        else if (!stoppedBySafety(safetyRef.current)) releaseLiveHold();
       });
 
       // A blip, and the three states livekit-client publishes on the way through

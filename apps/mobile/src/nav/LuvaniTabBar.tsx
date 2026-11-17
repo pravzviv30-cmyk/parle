@@ -136,6 +136,8 @@ function TabStrip({ routes, insets, due }: {
   const touchTicked = useRef(false);
   const pressIn = (i: number) => { touchTicked.current = i !== selected; if (i === selected) return; tapSettled(); if (selected >= 0) setArmed(i); };
   const pressOut = (i: number) => setArmed((a) => (a === i ? null : a));
+  // TalkBack and the keyboard open a tab with no press-in, so the tick waits for onPress there.
+  const press = (i: number, go: () => void) => { if (i !== selected && !touchTicked.current) tapSettled(); touchTicked.current = false; go(); };
   const capsuleRef = useRef<View>(null);
   const capsuleX = useRef(0);
   const over = useRef(0);
@@ -187,7 +189,7 @@ function TabStrip({ routes, insets, due }: {
             frame={[st.cell, wrapped && st.cellWrapped]}
             style={st.face}
             key={route.key}
-            onPress={route.onPress}
+            onPress={() => press(i, route.onPress)}
             onPressIn={() => pressIn(i)}
             onPressOut={() => pressOut(i)}
             accessibilityRole="tab"

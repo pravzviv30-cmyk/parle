@@ -12554,6 +12554,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `reply-first at rung 3: the early line is uninterruptible, since a blocking error it cannot see yet may drop the rung`
 - verified-by: `a session that fails to start still logs its exit, named start`
 - verified-by: `the drop handler gives back the live hold but keeps the audio session when the session had already ended or failed`
+- verified-by: `the drop handler keeps the live hold after a session stopped by safety (F981, Impeccable)`
+- verified-by: `a tab opened with no press-in (TalkBack, keyboard) ticks once; a tap ticks once; the open tab never (F981, Impeccable)`
 
 
 ### F970 — Signed-in conversations end at the first checkpoint: the pack validator does not know learnerReplies
