@@ -12677,3 +12677,91 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/repoStructure.test.mjs:46
 - note: isExternal treats every scheme as external, so a tracked doc containing `[a](file:///Users/pravz_07/x.png)` passes "no tracked markdown link points at an absolute machine path".
 - verified-by: `a file link to a machine path counts as an absolute machine path`
+
+### F990 — The radius scale and continuous corners are tokens
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/theme.ts:245
+- note: card 20, tile 18, field 14, inset 12, mark 8, nib 4, pill; `corner` and `continuous` carry the iOS curve.
+- verified-by: `the radius scale is card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill`
+- verified-by: `a corner fragment carries its radius and the continuous curve on iOS only`
+
+### F991 — Lip colours are named and every ink primary pill sits on a 3pt lip
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/components.tsx:368
+- note: Q1. The lip defaults on for the ink primary and sinks 2pt; the palette names paper, peach, lilac, sun and blue.
+- verified-by: `every ink primary pill sits on a 3pt lip and sinks 2pt`
+- verified-by: `the lip colours are named once in the palette`
+
+### F992 — Choice draws the raised tile and BoldChoice folds into it
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/components.tsx:2561
+- note: Q2, revisiting D7. White face, 2pt line border, 4pt paper lip; chosen blue on the blue lip; radio and checkbox both say checked.
+- verified-by: `a choice is the raised tile and still says checked`
+- verified-by: `onboarding's plan editor draws Choice and BoldChoice is gone`
+
+### F993 — OutlineButton folds into GhostButton
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/components.tsx:401
+- note: Q4. One quiet action, the underlined word.
+- verified-by: `the one quiet action is the underlined word`
+
+### F994 — Literal radii outside onboarding and the tab bar move to the scale
+- severity: P1
+- status: [ ]
+- where: scripts/unslop-scan.baseline.json:1
+- note: Q6. The baseline shrinks to onboarding and the three tab-bar files, and the scan holds it there.
+- verified-by: `literal radii remain only in onboarding and the tab bar`
+- verified-by: `the app is clean against the unslop baseline`
+- verified-by: `a zero radius is not a literal radius`
+
+### F995 — Eyebrows fold on Today and every drill stage
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/drill/DrillFrame.tsx:126
+- note: Q5. The label becomes the heading or joins the meta line; the scan's eyebrow rule stops the count rising.
+- verified-by: `Today and the drill stages draw no eyebrow`
+- verified-by: `a drill's task joins its meta line`
+- verified-by: `a planted eyebrow is flagged`
+
+### F996 — Today's hero states after the folds
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/practice/NextTaskCard.tsx:222
+- note: Q3 and Q8. The held state is the card family's first fix: a LipTile never sits on a Card.
+- verified-by: `a held hero sets its words on the paper and its LipTile is not on a card`
+- verified-by: `held at Starter the café line lives once, as the phrase row`
+- verified-by: `a start the tutor could not take leads with the offline line and one Check again`
+- verified-by: `the hero loads in one look`
+- verified-by: `the fix hero leads with the English line`
+- verified-by: `the scene's place joins its meta line`
+- verified-by: `a secondary pill on the hero takes a pastel`
+
+### F997 — Type roles are named and the stage and hero titles follow them
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/theme.ts:113
+- note: Q7 and Q8-4. Roles alias existing tokens; only the centre stage title moves, 26 to 28.
+- verified-by: `every type role names a token at its stated size`
+- verified-by: `the centre stage title is the stage title role`
+- verified-by: `the hero title steps 28, 24, 20 to fit its column`
+
+### F998 — The folded practice rows and the two housekeeping rows
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/phrases/PhrasebookScreen.tsx:180
+- note: Founder yes, 2026-11-06 and 2026-11-10.
+- verified-by: `nothing to review sits on butter in Review and the drill bank`
+- verified-by: `an empty phrasebook has one headline`
+- verified-by: `the greeting has no subline`
+- verified-by: `the live error view has a preview key`
+
+### F999 — Exports with no production caller go
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/motion/MorphButton.tsx:53
+- note: The count targets the founder accepted: Card/Tile/Hero 60 or fewer, Button/Pill 21.
+- verified-by: `the dead card and button exports are gone`
