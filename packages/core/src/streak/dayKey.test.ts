@@ -91,7 +91,7 @@ describe('calendar days', () => {
       assert.ok(!isDayKey(bad), `${String(bad)} is not a day`);
     }
     assert.throws(() => addDays('2026-02-30', 1), RangeError);
-    assert.equal(daysBetween('2026-10-06', '2026-10-05'), -1, 'a range that ends before it starts has no days');
+    assert.equal(daysBetween('2026-10-06', '2026-10-05'), -1, 'counting from a later day to an earlier one is negative');
   });
 
   test('the offset is east-positive and never negative zero', () => {
