@@ -13058,3 +13058,87 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/push-check-guard.mjs:203
 - note: S1a round 4, filed as a limit. `noglob git push`, `nocorrect git push`, `xcrun git push`, `arch -arm64 git push`, `coproc git push`, `repeat 1 git push`, `find . -exec git push \;`, `script -q /dev/null git push` and `trap 'git push' EXIT` are allowed. Each needs its own argument rules; the pre-push hook still runs the gate on all of them.
 - verified-by: `a push run by a command runner outside the wrapper table is denied`
+
+### F1228 — xargs running a search tool is denied when its pattern says git push or gh pr merge
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:503
+- note: Found by work-judge (Fable 5.2), S1a round 5, 2026-11-17. `git ls-files -z | xargs -0 grep -l "git push"` and `find . -name '*.md' | xargs grep -n "gh pr merge"` are denied with the "its own command" reason, though xargs runs grep. Also denied on origin/main, so not a regression. Workaround: `grep -rn "git push" .` or `rg`, both allowed.
+- verified-by: `xargs running a search tool whose pattern mentions git push is allowed`
+
+### F1229 — A shell-built remote word can carry the refspec, so a branch stamp lands code on main
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:586
+- note: Found by /security-review, S1a round 5, 2026-11-17 (confidence 9). F1222 checks only the parsed source and destination for `$`, but `"$@"` or `"${A[@]}"` lands in the remote slot: with a branch stamp, `set -- origin HEAD:main; git push "$@"`, `A=(origin HEAD:main); git push "${A[@]}"` and `bash -c 'git push "$@"' _ origin HEAD:main` are allowed and push to main. Also allowed on origin/main. The founder accepted landing S1a with this open on 2026-11-17; the fix belongs to F1239.
+- verified-by: `a push whose remote word the shell builds is denied once the stamp passes`
+
+### F1230 — exec -a with a value the scan reads, or a sudo user named git, hides the push behind it
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:490
+- note: Found by /security-review and push-reviewer, S1a round 5, 2026-11-17. `exec -a git -l git push origin main`, `exec -a sh -l git push …` and `exec -a gh -c git push …` are allowed with no stamp, because the `-a` value ends the wrapper loop and the forward scan does not move past a word it reads. `sudo -nu git env git push` and `sudo -nu git nice git push` are allowed the same way. Also allowed on origin/main. Accepted by the founder for landing; fix with F1239.
+- verified-by: `exec -a and a sudo user named git do not hide the push behind them`
+
+### F1231 — gh api writes slip past through -X=PUT, a /graphql path, a query in a variable or a query file
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:413
+- note: Found by /security-review and push-reviewer, S1a round 5, 2026-11-17. With no stamp, `gh api -X=PUT repos/o/r/pulls/12/merge`, `gh api /graphql -f query='mutation{mergePullRequest(...)}'`, `Q='mutation{…}'; gh api graphql -f query="$Q"` and `gh api graphql --input q.json` are allowed: `-X=` is read as the method `=PUT`, GraphQL is checked only when an argument is exactly `graphql`, and a query from a variable or file is never seen. Also allowed on origin/main. Accepted for landing; fix with F1239 and GitHub-side protection.
+- verified-by: `gh api merges through -X=, a graphql URL, a variable or a file are denied`
+
+### F1232 — The tokenizer falls out of step with the shell, so the commands after it are never read
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:112
+- note: Found by /security-review, S1a round 5, 2026-11-17. With no stamp, each of these is allowed and both shells run the push: `echo "$(case x in x) git push origin main;; esac)"` (a case pattern's `)` ends the quoted substitution early), `echo $(true)#; git push origin main`, ``echo `true`#; git push origin main``, `echo ${x:- #}; git push origin main`, `echo $'\'' ; git push origin main ; echo 'x'`, `cat <<$'EOF'` and `cat <<'E F'` here-documents, `echo $[ 1 <<2 ]` and `echo ${x:- <<EOF}` followed by a push on the next line. Also allowed on origin/main. Accepted for landing; F1239 removes the need to read shell text.
+- verified-by: `a push after a comment, an ANSI-C quote, a case pattern or an odd here-document delimiter is still read`
+
+### F1233 — Negated push flags make a real push look like a dry run, a delete or a tag push
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:332
+- note: Found by /security-review, S1a round 5, 2026-11-17 (confidence 9). `dryRun`, `delete` and `tags` are only ever set, but git honours `--no-<flag>` and the last one wins. `git push -n --no-dry-run origin HEAD:main` and `git push -d --no-delete origin HEAD:main` are allowed with no stamp and land on main; `git push --tags --no-tags origin` publishes the current branch. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `a negated dry-run, delete or tags flag is judged as a real push`
+
+### F1234 — A refspec whose source is a tag and whose destination is a branch is skipped
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:638
+- note: Found by /security-review, S1a round 5, 2026-11-17 (confidence 9). `pushTargets` skips any source under `refs/tags/`, so `git tag v1 && git push origin refs/tags/v1:refs/heads/main` is allowed with no stamp and pushes the tagged commit to main. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `a tag pushed to a branch is judged as a push to that branch`
+
+### F1235 — An abbreviated --all or --mirror is read as a push of the current branch
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:335
+- note: Found by /security-review, S1a round 5, 2026-11-17. git accepts any unique prefix of a long option, so with a branch stamp `git push --al origin` and `git push --mi origin` are allowed and publish every local branch, main included, or force-mirror them. Even the full `--all` is judged on HEAD alone. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `a push of every branch or a mirror is judged on each branch it publishes`
+
+### F1236 — In-command -c remote config changes where a push goes
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:558
+- note: Found by /security-review, S1a round 5, 2026-11-17. `-c` is checked only for `alias.*`, so with a branch stamp `git -c remote.origin.push=HEAD:refs/heads/main push origin` lands on main and `git -c remote.origin.mirror=true push origin` mirrors. The environment form is already denied for any key. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `in-command remote, push or branch config on a push is denied`
+
+### F1237 — eval text is not re-read, and xargs's stdin and config prefix are ignored
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:539
+- note: Found by /security-review and push-reviewer, S1a round 5, 2026-11-17 (confidence 9). With no stamp, `eval 'git pu""sh origin main'`, `eval "git pu\sh origin main"`, `eval git -c alias.p=push p origin main`, `echo push origin main | xargs git`, `echo push | xargs -I{} git {} origin main`, and a `GIT_CONFIG_*` prefix on `xargs git p` or `eval 'git p'` are allowed. F1226 covers only config exported through eval. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `eval and xargs that run git push are denied however the push is spelled`
+
+### F1238 — --git-dir or GIT_DIR lets the stamp on this checkout vouch for another repository's commit
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:464
+- note: Found by /security-review, S1a round 5, 2026-11-17. `--git-dir` is skipped as a plain value flag and a `GIT_DIR=` prefix is dropped, so HEAD and the stamp are read in the session's checkout while git pushes from the other gitdir: `git --git-dir=<another worktree's gitdir> push origin HEAD:claude/x` publishes that worktree's unchecked HEAD. Also allowed on origin/main. Accepted for landing; fix with F1239.
+- verified-by: `a push from another git directory makes the push directory unknown`
+
+### F1239 — Move the push check into git's pre-push hook, which sees the exact refs being pushed
+- severity: P2
+- status: [ ]
+- where: .githooks/pre-push:1
+- note: Founder, 2026-11-17, after S1a reached the 5-round limit: land S1a, then move the stamp check into the pre-push hook. git hands that hook the local ref, local commit, remote ref and remote commit of every update on stdin, so the stamp, the security review for main and the docs-only rule can be checked on exactly what is pushed, whatever the shell spelling. The PreToolUse guard stays as a thin first line (it still has to stop `--no-verify`, `core.hooksPath` overrides and gh merges, which no git hook sees). F1229 to F1238 close through it. Fable route (security).
+- verified-by: `the pre-push hook refuses an unstamped commit and a code push to main whatever the command spelling`
