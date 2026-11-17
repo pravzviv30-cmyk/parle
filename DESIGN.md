@@ -110,8 +110,9 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
     The device-offline lead is the same part, saying "You're offline. Here's
     something you can do without a connection."
   - **The plans** when a trial cannot start: the heading, the words, what the
-    learner keeps and "See the plans"; at Starter the inline café line, past
-    it a Review secondary on sage.
+    learner keeps and "See the plans"; at Starter "Try the offline café line"
+    as the one underlined word (`GhostButton`), past it a Review secondary on
+    sage.
   - **Held** (out of time, or "Your paid plan has ended." when lapsed; "See
     the plans" only when lapsed). Past Starter with Review due there is no
     card: the sky ends under the tiles, the held words sit on the paper 20pt

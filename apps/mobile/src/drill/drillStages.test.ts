@@ -23,7 +23,7 @@ test('the drill stages draw no eyebrow', () => {
   for (const path of STAGES) {
     assert.doesNotMatch(read(path), /\beyebrow\b/, `${path} still draws or passes an eyebrow`);
   }
-  assert.deepEqual(read('../soundcheck/SoundCheckScreen.tsx').match(/[^ ]{0,20}Sound check.{0,3}/g), ["english={taskLine('Sound check')}"], 'Sound check names itself other than on its meta line');
+  assert.deepEqual(read('../soundcheck/SoundCheckScreen.tsx').match(/[^ ]{0,20}Sound check.{0,3}/g), ["english={taskLine('Sound check', "], 'Sound check names itself other than on its meta line');
   assert.doesNotMatch(read('./FocusDrillPlayer.tsx'), /Nothing to practise/, 'the empty sound drill still carries its kicker');
 });
 

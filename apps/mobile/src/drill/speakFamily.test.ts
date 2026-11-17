@@ -64,7 +64,9 @@ describe('the speak family, drill B v2', () => {
     assert.match(check, /stage=\{drillStage\('sound-check', t\.mode\)\}/);
     // F995: no eyebrow; the label joins the meta line, as the other drill kinds do.
     assert.doesNotMatch(check, /eyebrow/, 'Sound check draws an eyebrow');
-    assert.match(check, /english=\{taskLine\('Sound check'\)\}/, 'Sound check never names itself on its meta line');
+    // Push-check (Impeccable): the honest line joins the same meta line, so no larger paragraph sits under the smaller tag.
+    assert.match(check, /english=\{taskLine\('Sound check', 'This is the part Luvani can assess honestly, because the words are known in advance\.'\)\}/, "Sound check's tag and honest line are not one meta line");
+    assert.doesNotMatch(check, /stageExtra=/, 'Sound check stacks a second muted paragraph under its meta line');
     assert.match(check, /sheet=\{resultSheet\}/);
     assert.match(check, /<ResultSheet result=\{shownResult\} done=\{done\} \/>/);
     assert.equal((check.match(/<PillButton\b/g) ?? []).length, 1, 'Sound Check grew a second primary');

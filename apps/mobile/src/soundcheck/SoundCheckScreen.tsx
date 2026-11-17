@@ -271,8 +271,7 @@ export function SoundCheckScreen({
       header={shownPhase !== 'result' ? <ScreenHeader leave={{ onPress: onDone, label: 'Back', close: true }} /> : <View style={{ height: HIT, marginBottom: 18 }} />}
       sheet={resultSheet}
       prompt={<DrillPrompt header>One useful line, once.</DrillPrompt>}
-      english={taskLine('Sound check')}
-      stageExtra={<Text style={[type.body, { color: t.muted }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>}
+      english={taskLine('Sound check', 'This is the part Luvani can assess honestly, because the words are known in advance.')}
     >
       {/* How the sound is made, above the line that uses it. It came off My
           French in revamp A: instructions two taps from the doing are a
