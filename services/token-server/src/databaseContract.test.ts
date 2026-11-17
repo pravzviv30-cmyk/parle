@@ -1927,3 +1927,27 @@ describe('unjoined tutor start release (F955)', () => {
     }
   });
 });
+
+// F1084: a finished erasure record keeps the erased account's id for 30 days, then goes.
+describe('erasure record retention (F1084)', () => {
+  test('a finished erasure job is removed once its keep period has passed', async () => {
+    const id = (n: number): string => `10840000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+    const db = new PGlite();
+    try {
+      await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+        create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+        create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+        create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+        grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`);
+      for (const name of migrationFiles) await db.exec(sqlOf(name));
+      await db.query(`insert into public.account_erasure_jobs(user_id,processor_required,identity_deleted,requested_at,completed_at) values
+        ($1,false,true,clock_timestamp()-interval '40 days',clock_timestamp()-interval '31 days'),
+        ($2,false,true,clock_timestamp()-interval '40 days',clock_timestamp()-interval '29 days'),
+        ($3,false,false,clock_timestamp()-interval '40 days',null)`, [id(1), id(2), id(3)]);
+      const result = (await db.query<{ value: { erasureRecordsDeleted: number } }>('select public.run_data_retention_v1(500) value')).rows[0]!.value;
+      const left = (await db.query<{ user_id: string }>('select user_id from public.account_erasure_jobs order by user_id')).rows.map((row) => row.user_id);
+      assert.deepEqual(left, [id(2), id(3)], 'retention kept a job finished 31 days ago, or removed one finished 29 days ago or still unfinished');
+      assert.equal(result.erasureRecordsDeleted, 1, 'retention does not report how many erasure records it removed');
+    } finally { await db.close(); }
+  });
+});
