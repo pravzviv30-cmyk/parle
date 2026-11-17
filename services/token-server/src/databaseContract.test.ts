@@ -1985,6 +1985,22 @@ describe('erasure record retention (F1084)', () => {
     } finally { await db.close(); await earlier.close(); }
   });
 
+  test('retention removes at most one batch of finished erasure jobs per run', async () => {
+    const id = (n: number): string => `10840000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+    const db = await replay();
+    try {
+      // Five due jobs; the higher the id, the older the completion, so oldest-first is not id order.
+      for (let n = 1; n <= 5; n++) {
+        await db.query(`insert into public.account_erasure_jobs(user_id,processor_required,identity_deleted,requested_at,completed_at)
+          values($1,false,true,clock_timestamp()-interval '90 days',clock_timestamp()-make_interval(days=>30+$2::int))`, [id(n), n]);
+      }
+      const result = (await db.query<{ value: { erasureRecordsDeleted: number } }>('select public.run_data_retention_v1(2) value')).rows[0]!.value;
+      const left = (await db.query<{ user_id: string }>('select user_id from public.account_erasure_jobs order by user_id')).rows.map((row) => row.user_id);
+      assert.equal(result.erasureRecordsDeleted, 2, 'one run removed more or fewer erasure records than its batch size');
+      assert.deepEqual(left, [id(1), id(2), id(3)], 'one run did not remove the two oldest finished erasure records');
+    } finally { await db.close(); }
+  });
+
   test('the maintenance worker logs how many erasure records retention removed', () => {
     // The worker runs on import, so its retention log line is read as source (as renewals.test.ts does).
     const worker = readFileSync(path.join(import.meta.dirname, 'maintenanceWorker.ts'), 'utf8');
