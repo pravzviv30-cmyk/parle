@@ -1950,4 +1950,11 @@ describe('erasure record retention (F1084)', () => {
       assert.equal(result.erasureRecordsDeleted, 1, 'retention does not report how many erasure records it removed');
     } finally { await db.close(); }
   });
+
+  test('the maintenance worker logs how many erasure records retention removed', () => {
+    // The worker runs on import, so its retention log line is read as source (as renewals.test.ts does).
+    const worker = readFileSync(path.join(import.meta.dirname, 'maintenanceWorker.ts'), 'utf8');
+    const line = worker.split('\n').find((text) => text.includes("event: 'retention'")) ?? '';
+    assert.match(line, /erasureRecordsDeleted: retained\.erasureRecordsDeleted/, 'the retention log line drops the only evidence an erasure record was removed');
+  });
 });
