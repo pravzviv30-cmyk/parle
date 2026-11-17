@@ -12931,7 +12931,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1207 — The push guard skips a git or gh command that never spells push or merge as a plain word
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:617
 - note: Found by push-check, judged by work-judge (Fable 5.2), S1a round 3, 2026-11-17. The pre-filter returns before analysis unless the text holds a literal push, gh or merge, so `git pu${E}sh origin main`, `A=pu; B=sh; git $A$B`, `git pu$'s'h` and a push split by a line continuation are allowed with no stamp. Past the pre-filter, `gh pr $M 5`, `G=git; $G push` and `$(which git) push` are allowed because only the git subcommand is checked for expansion, and `git push $(echo origin) main` is judged as a push of the current branch. All of these are also allowed on origin/main. This narrows the limit the S1a contract accepted; a command with no readable git or gh word stays a limit, written in the guard's header.
 - verified-by: `a push or merge the guard cannot read is denied even when the command never spells the word`
@@ -12940,7 +12940,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1208 — Alias values are searched as raw text, so a quoted push slips through and harmless aliases are denied
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:218
 - note: S1a round 3. `git -c alias.p='!git pu""sh' p` and `git config alias.p '!git pu""sh'` are allowed. `git config alias.sync '!git fetch && git merge --ff-only @{u}'`, `git -c alias.x='!git merge main' x`, `git config alias.lg 'log --grep=push --oneline'` and `git config alias.nopush '!echo no push'` are denied with "Push blocked", and origin/main allows all four. The value is now read as the command line it is.
 - verified-by: `an alias whose value pushes behind quotes is denied`
@@ -12948,14 +12948,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1209 — Git config passed in the environment defines an alias the guard never reads
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:392
 - note: S1a round 3, F1197's sibling. `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push git p` and `GIT_CONFIG_PARAMETERS="'alias.p=push'" git p` are allowed, because leading assignments are dropped unread. Any git command after such an assignment in the same call is now denied as unreadable, a harmless one included.
 - verified-by: `a git command with alias config in its environment is denied`
 
 ### F1210 — A wrapper named by its path, or carrying a flag the tables do not know, hides the push behind it
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:394
 - note: S1a round 3. `/usr/bin/env git push`, `/usr/bin/env -S "git push"`, `sudo -nu me git push`, `exec -a foo git push` and `command time -o /dev/null git push` are allowed. `git send-pack origin main` and `git subtree push --prefix=x origin main` publish without the word in the subcommand place and are allowed too.
 - verified-by: `a wrapper named by its path does not hide the push behind it`
@@ -12964,14 +12964,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1211 — A failing todo test passes the gate
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/gateChecks.mjs:39
 - note: S1a round 3. `suiteSummary` never reads the `todo` count, so a failing `{ todo: true }` test leaves `fail 0` and the gate green. No tracked test uses todo today. Same class as F1058's skipped count.
 - verified-by: `a suite with a todo test fails the gate`
 
 ### F1212 — Nothing fails when gate.mjs stops calling its own checks
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/gate.mjs:183
 - note: S1a round 3. `gateChecks.test.mjs` covers the pure helpers only. Reverting the F1056 loop, or dropping the `guardWiringProblems` or `unrunTestFiles` call, leaves all 83 tests green. The contract rejected spawning the gate, so the pin reads `gate.mjs` as text.
 - verified-by: `gate.mjs still calls each check that gateChecks exports`
