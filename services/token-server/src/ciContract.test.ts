@@ -82,7 +82,7 @@ interface AdvisoryDecision {
   module: string;
   severity: string;
   decision: string;
-  lockedAt: string;
+  lockedAt: string | string[];
   removedPackages?: string[];
   advisories?: string[];
   chain?: string;
@@ -363,6 +363,7 @@ describe('the ci contract', () => {
       const key = `node_modules/${record.module}`;
       const entry = lock.packages[key];
       assert.ok(entry, `${record.module} is recorded as fixed but the lockfile does not carry it`);
+      assert.ok(typeof record.lockedAt === 'string', `${record.module} is recorded as fixed, so it names one version, not a list`);
       assert.ok(
         atLeast(entry.version ?? '0.0.0', record.lockedAt),
         `${record.module} was fixed at ${record.lockedAt} but the lockfile now carries ${entry.version}`,
@@ -457,7 +458,7 @@ describe('the ci contract', () => {
   });
 
   test('unpatched build-tool exceptions cannot enter service runtimes or the mobile update client', () => {
-    const tooling = ['braces', 'micromatch', 'node-forge', '@expo/code-signing-certificates'];
+    const tooling = ['braces', 'micromatch', 'picomatch', 'tinyglobby', 'fdir', 'node-forge', '@expo/code-signing-certificates'];
     for (const workspace of ['packages/core', 'packages/brain', 'services/tutor-agent', 'services/token-server', 'services/brain-playground']) {
       const closure = dependencyClosure(workspace);
       for (const key of closure.keys()) {
@@ -486,8 +487,8 @@ describe('the ci contract', () => {
     const files = execFileSync('git', ['ls-files', '-co', '--exclude-standard', '-z'], { cwd: ROOT, encoding: 'utf8' })
       .split('\0').filter((file) => /^(apps|services|packages)\//.test(file) && /\.(?:tsx?|[cm]?js)$/.test(file) && !/\.(?:test|spec)\.(?:tsx?|[cm]?js)$/.test(file));
     assert.ok(files.length > 100, 'the runtime import check must inspect the actual application');
-    const forbiddenImport = /\b(?:from\s+|require\s*\(\s*|import\s*(?:\(\s*)?)['"](?:braces|micromatch|node-forge|@expo\/code-signing-certificates)(?:\/[^'"]+)?['"]/;
-    for (const example of ["import 'node-forge';", "import forge from 'node-forge';", "require('braces');", "import('node-forge/lib/rsa.js');"]) {
+    const forbiddenImport = /\b(?:from\s+|require\s*\(\s*|import\s*(?:\(\s*)?)['"](?:braces|micromatch|picomatch|tinyglobby|fdir|node-forge|@expo\/code-signing-certificates)(?:\/[^'"]+)?['"]/;
+    for (const example of ["import 'node-forge';", "import forge from 'node-forge';", "require('braces');", "import('node-forge/lib/rsa.js');", "import pm from 'picomatch';", "import { glob } from 'tinyglobby';", "import { fdir } from 'fdir';"]) {
       assert.ok(forbiddenImport.test(example), `the runtime guard misses ${example}`);
     }
     for (const file of new Set(files)) {
@@ -507,10 +508,10 @@ describe('the ci contract', () => {
       const entry = lock.packages[`node_modules/${record.module}`];
       assert.ok(entry, `${where}: the lockfile does not carry this package, so the record is stale`);
       // An accepted record may list each exact version installed (picomatch 4 and the 2.x micromatch needs).
-      const listed: unknown = record.lockedAt;
+      const listed = record.lockedAt;
       if (Array.isArray(listed)) {
         assert.equal(record.decision, 'accepted', `${where}: only an accepted record may list several versions`);
-        assert.ok(listed.includes(entry.version), `${where}: recorded at ${listed.join(', ')} but the lockfile now carries ${entry.version}`);
+        assert.ok(listed.includes(entry.version ?? ''), `${where}: recorded at ${listed.join(', ')} but the lockfile now carries ${entry.version}`);
         for (const version of listed) {
           assert.ok(
             Object.entries(lock.packages).some(([key, row]) => (key === `node_modules/${record.module}` || key.endsWith(`/node_modules/${record.module}`)) && row.version === version),
