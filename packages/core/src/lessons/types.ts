@@ -13,6 +13,7 @@
  */
 
 import type { Rung } from '../ladder/ladder.ts';
+import { negationWords } from '../speech/recognitionRepair.ts';
 import { sameWord } from '../text/distance.ts';
 
 export type CefrLevel = 'A0' | 'A1' | 'A2';
@@ -150,6 +151,11 @@ function words(text: string): string[] {
   return said.length === 0 ? [] : said.split(' ');
 }
 
+/** True when the transcript carries no words, or only hesitation sounds. */
+export function fillerOnly(spoken: string): boolean {
+  return words(spoken).every((w) => FILLERS.has(w));
+}
+
 function contentWords(list: readonly string[]): string[] {
   const content = list.filter((w) => !FUNCTION_WORDS.has(w));
   // A line made entirely of small words ("de rien") still has to be sayable.
@@ -208,7 +214,9 @@ export function matchAcceptable(turn: LessonTurn, spoken: string): AcceptanceMat
     if (sameWord(heard.join(' '), target)) return { accepted: true, via: 'typo' };
 
     const { hits, wanted } = contentHits(heard, candidate);
-    if (hits === wanted && contentWords(heard).length <= wanted + EXTRA_WORD_ALLOWANCE) {
+    // An added "ne" or "pas" fits the allowance and says the opposite of the line.
+    const negated = heard.some((w) => negationWords.has(w) && !candidate.includes(w));
+    if (hits === wanted && !negated && contentWords(heard).length <= wanted + EXTRA_WORD_ALLOWANCE) {
       return { accepted: true, via: 'content' };
     }
     if (wanted > 0) best = Math.max(best, hits / wanted);

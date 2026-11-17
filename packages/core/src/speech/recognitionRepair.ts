@@ -1,8 +1,10 @@
 /** Context-bound spelling repair for speech recognition, never pronunciation grading. */
 export const words = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+/** The negations a learner may add that turn a line into its opposite, elided n' included. */
+export const negationWords: ReadonlySet<string> = new Set(['non', 'pas', 'ne', 'n', 'jamais']);
 // Include elided negation (n'), compound numbers and plural hundreds. A close
 // spelling must never turn thirteen coffees into sixteen, or lose a refusal.
-const protectedWords = /^(?:non|pas|ne|n|ni|rien|personne|jamais|sans|plus|aucuns?|aucunes?|zero|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingts?|trente|quarante|cinquante|soixante|septante|huitante|octante|nonante|cents?|mille|millions?|milliards?|no|not|never|without|\d+)$/;
+const protectedWords = new RegExp(`^(?:${[...negationWords].join('|')}|ni|rien|personne|sans|plus|aucuns?|aucunes?|zero|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|vingts?|trente|quarante|cinquante|soixante|septante|huitante|octante|nonante|cents?|mille|millions?|milliards?|no|not|never|without|\\d+)$`);
 const protectedMeaning = (text: string) => words(text).split(' ').filter(word => protectedWords.test(word)).join('|');
 // These were observed during the café acceptance session. Approximate edit
 // distance alone cannot distinguish a misrecognition from another valid word

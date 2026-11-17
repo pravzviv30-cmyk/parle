@@ -80,6 +80,17 @@ describe('what arrives through the speech path but carries no words', () => {
     );
   });
 
+  test('a transcript of only hesitation sounds is treated as silence, not a wrong answer', () => {
+    for (const transcript of ['Alors...', 'Bon,', 'Euh.', 'euh hmm']) {
+      const state = createSession(lesson, RUNGS.PROMPTED);
+      const { state: after, feedback } = step(state, { type: 'spoke', transcript, phonemes: [], durationSec: 1 });
+      assert.equal(feedback.rescued, true, `"${transcript}" is thinking aloud, so it gets the rescue`);
+      assert.equal(after.ladder.rung, RUNGS.CUED, `"${transcript}" gets the same one rung a real pause gets`);
+      assert.ok(!FEEDBACK_FAMILIES.missed.includes(feedback.message), `"${transcript}" was answered as a miss`);
+      assert.equal(after.transcript.length, 0, `"${transcript}" carried no answer to record`);
+    }
+  });
+
   test('an empty transcript adds nothing to the record of what was said', () => {
     const state = createSession(lesson, RUNGS.PROMPTED);
     const { state: after } = step(state, { type: 'spoke', transcript: '', phonemes: [], durationSec: 0 });

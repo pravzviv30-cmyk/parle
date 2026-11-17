@@ -165,6 +165,24 @@ describe('answer matching', () => {
     assert.equal(isAcceptable(CAFE_LESSON.turns[0]!, 'bonsoir'), false, 'the deliberately-wrong option stays wrong');
   });
 
+  test('a negated line is not accepted as the line', () => {
+    const turn = (id: string) => CAFE_LESSON.turns.find((x) => x.id === id)!;
+    // Saying the opposite is a different sentence, however many words it shares.
+    assert.equal(isAcceptable(CAFE_LESSON.turns[1]!, 'je ne voudrais pas un café'), false);
+    assert.equal(isAcceptable(turn('t6-thats-all'), "non c'est pas tout merci"), false);
+    assert.equal(isAcceptable(turn('t5-croissant'), 'pas un croissant'), false);
+    assert.equal(isAcceptable(CAFE_LESSON.turns[1]!, "jamais un café s'il vous plaît"), false);
+  });
+
+  test('a line that carries its own negation is still accepted as written', () => {
+    const base = CAFE_LESSON.turns[1]!;
+    const t = { ...base, target: "Pas de problème, un café s'il vous plaît", accepts: [], options: [] };
+    assert.ok(isAcceptable(t, "Pas de problème, un café s'il vous plaît"));
+    assert.equal(matchAcceptable(t, "bonjour, pas de problème, un café s'il vous plaît").via, 'content');
+    // "un" and "une" are protected in the repair but are not negations here.
+    assert.ok(isAcceptable(base, "bonjour un café s'il vous plaît"));
+  });
+
   test('a half-said line is a near miss, not an unrelated answer', () => {
     const t = CAFE_LESSON.turns[1]!;
     const match = matchAcceptable(t, 'un café');

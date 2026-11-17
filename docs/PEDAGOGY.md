@@ -132,10 +132,17 @@ acceptable options:
    is indefensible).
 4. **content** — every meaning-bearing word present, small words loose, one edit
    per word, and no more than two extra words. The cap is what stops containment
-   accepting anything with the right word in it somewhere.
+   accepting anything with the right word in it somewhere. An added negation
+   (`ne`, `pas`, `non`, `jamais`) that the candidate does not carry refuses this
+   route, because it fits inside the allowance and says the opposite (F1068). A
+   line that carries its own negation still passes as written.
 
 Anything else that produced at least half the line's content words is `near`,
 which grades `partial` — it holds the rung. Below that is `poor`.
+
+A spoken transcript of nothing but hesitation (`Alors...`, `Euh.`) never reaches
+the matcher unless the turn's own line is that word. `submitTurn` treats it as
+silence, the same as an empty transcript: the rescue, with the line (F1068).
 
 The pressure runs both ways and both directions are failures. Too strict and a
 beginner who said the right thing with an "euh" in front is told "Not quite" and
