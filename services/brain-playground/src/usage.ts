@@ -22,7 +22,7 @@ import { addLlmUsage, costUsd, defaultModel, priceUsage, resolveRouting, USD_PER
 
 import { openAiEvalModel } from './eval/openaiEval.ts';
 
-export { addLlmUsage, addLlmUsage as addUsage, costUsd, USD_PER_MTOK, ZERO_USAGE };
+export { addLlmUsage as addUsage, ZERO_USAGE };
 
 function k(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);

@@ -123,7 +123,7 @@ async function runCase(client: LlmClient, testCase: EvalCase): Promise<CaseResul
   const elapsedMs = Date.now() - started;
   const { state: after, view } = integrateTurn(state, input, turn);
 
-  const hardViolations = hardRules(testCase, turn, view);
+  const hardViolations = hardRules(testCase, view);
   const misses = expectationMisses(testCase, turn, view, after.deferred.length, rescued);
 
   return {
@@ -138,7 +138,7 @@ async function runCase(client: LlmClient, testCase: EvalCase): Promise<CaseResul
   };
 }
 
-function hardRules(testCase: EvalCase, turn: TutorTurn, view: TurnView): string[] {
+function hardRules(testCase: EvalCase, view: TurnView): string[] {
   const violations: string[] = [];
 
   if (view.coachLine !== null) {

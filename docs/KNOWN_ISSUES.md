@@ -12788,7 +12788,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1126 — Unused names in the playground
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/brain-playground/src/eval/replayEval.ts:110
 - note: B5-6. Confirm the `hardRules` parameter with `tsc --noUnusedParameters` before removing it.
 - verified-by: `a run is priced on the model stamped on its usage, then on the label model`

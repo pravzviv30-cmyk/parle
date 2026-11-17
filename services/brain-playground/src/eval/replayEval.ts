@@ -107,7 +107,7 @@ import { SILENT_TUTOR, isQuietRescue, newRecorder, recordTurn, safetyTutor, toSe
 import { openAiEvalModel } from './openaiEval.ts';
 import { replyWaitSummary } from './sessionChecks.ts';
 import { recordPaths, scoreSession, summariseSessions, type CheckSummary } from './sessionEval.ts';
-import { CHECK_IDS, parseSessionRecord, type SessionRecord } from './sessionRecord.ts';
+import { parseSessionRecord, type SessionRecord } from './sessionRecord.ts';
 
 export const REPLAY_PROVIDERS = ['openai', 'anthropic', 'groq', 'mock'] as const;
 export type ReplayProvider = (typeof REPLAY_PROVIDERS)[number];
