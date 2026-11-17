@@ -1,4 +1,4 @@
-import { transcriptTail, replyAnnouncement } from './transcriptTail.ts';
+import { transcriptTail, replyAnnouncement, readsAsFrench } from './transcriptTail.ts';
 import type { CorrectionReasonId } from '@luvani/core';
 /**
  * The conversation as a thread.
@@ -90,7 +90,7 @@ function Line({
   });
   const body = (
     <>
-      <Text {...frenchText} accessibilityLiveRegion={announceReply && isLastTutorLine ? 'polite' : 'none'} style={[boldType.body, { color: learner ? c.white : c.ink }]}>{turn.fr}</Text>
+      <Text {...(readsAsFrench(turn) ? frenchText : {})} accessibilityLiveRegion={announceReply && isLastTutorLine ? 'polite' : 'none'} style={[boldType.body, { color: learner ? c.white : c.ink }]}>{turn.fr}</Text>
       {turn.frWritten && turn.frWritten !== turn.fr ? (
         <Text style={[type.small, { color: learner ? paper.onInk : paper.inkSoft, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
       ) : null}

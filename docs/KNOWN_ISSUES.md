@@ -12507,7 +12507,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `docs/live-latency-evidence/2026-11-07-tts-first-audio.json`): first audio p50 437 ms against HTTP's
   329 ms, and the socket delivers a sentence whole, so the paid proxy gets no websocket route. Closed when the founder has
   before/after numbers for each landed switch and the remaining switches are recorded as
-  decided or deferred.
+  decided or deferred. 2026-11-17 (voice-latency, F983 to F988): reply-first English-reach turns now
+  speak at the coach hand-over (coach closes about 1.8 to 3.0 s before the whole turn, measured locally);
+  `LUVANI_BRAIN_WARMUP` (default off) and a free ElevenLabs preconnect address the cold first reply;
+  the early `tutor-line` puts the words with the voice. Local numbers in
+  `docs/live-latency-evidence/2026-11-17-voice-latency-local.md`; the before and after for the room
+  comes from `[luvani:reply-stages]` at the device session.
 - verified-by: `reply-first order puts coach after sceneReply and keeps every field`
 - verified-by: `a brain slower than 1.5 s gets one bridge line before the reply, and the reply is not held for it`
 - verified-by: `rungs 1-2 wait up to 3,500 ms when the detector holds the turn (VOICE-022)`
@@ -12711,7 +12716,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `reply-first: a turn that reached for English speaks once its coach has streamed, hand-back first`
 - verified-by: `reply-first English reach at rung 2: the early line with its coach is uninterruptible`
 - verified-by: `reply-first English reach at rung 4: the early line with its coach stays interruptible`
-- verified-by: `reply-first English reach at rung 3 with a blocking error: the early line is uninterruptible`
+- verified-by: `reply-first English reach at rung 3 with a blocking error: the early line keeps the rung the full turn keeps`
 - verified-by: `the coach hand-over never speaks a second early line, including on the retried attempt`
 
 ### F984 — The first reply pays for a cold brain cache and a cold voice connection
@@ -12773,12 +12778,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a view never changes the French of a line already shown, and fills in its English`
 - verified-by: `a tutor-line ends the thinking state`
 - verified-by: `a tutor-line with no view after it is never journalled or counted`
+- verified-by: `the spoken coach line is read as English, other tutor lines as French`
 
 ### F989 — Conversations give Flux no keyterms
 - severity: P2
 - status: [ ]
 - where: services/tutor-agent/src/agent.ts:297; services/tutor-agent/src/recognitionPlan.ts; scripts/paidQuotes.mjs
-- note: Founder yes 2026-11-17 (Q3) to the quote change. A mission conversation passes up to 16 fixed keyterms from its phrase keys at construction (VOICE-017), and the conversation quote gains the keyterm stream components beside the plain ones. Until that quote is bound at the next renewal, the proxy strips them.
+- note: Deferred (founder, 2026-11-17): the conversation quote already holds 15 components and `paid_quote_valid_v1` refuses more than 16 (migration 20261004010327), so three keyterm streams need a cap migration of their own, reviewed for security; it comes back as its own change. The design: founder yes 2026-11-17 (Q3) to the quote change. A mission conversation passes up to 16 fixed keyterms from its phrase keys at construction (VOICE-017), and the conversation quote gains the keyterm stream components beside the plain ones. Until that quote is bound at the next renewal, the proxy strips them.
 - verified-by: `a mission's keyterms are at most 16 terms and 400 bytes, full phrases first`
 - verified-by: `a conversation with a mission passes its keyterms to Flux and a free topic passes none`
 - verified-by: `the conversation quote carries both the keyterm and the plain Flux stream`

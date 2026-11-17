@@ -275,3 +275,13 @@ describe('one hiccup is survivable and the exit is named', () => {
     assert.match(left, /exit\.mark\('learner-left'\);[^]*stopPaidWork\(\);/);
   });
 });
+
+describe('the voice vendor connection is warmed at join (F984)', () => {
+  test('the worker preconnects the voice vendor after the proxy is built in a spoken session', () => {
+    const lastBuild = CODE.lastIndexOf('proxy = await createPaidVoiceProxy(');
+    const call = CODE.indexOf('proxy.preconnect()');
+    assert.ok(lastBuild > 0 && call > lastBuild, 'after both proxies are built');
+    assert.match(CODE.slice(lastBuild, call + 20), /if \(proxy && !voiceless\) proxy\.preconnect\(\);/);
+    assert.equal(CODE.split('preconnect(').length - 1, 1, 'called once');
+  });
+});

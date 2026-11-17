@@ -234,6 +234,8 @@ export default defineAgent({
       // Only the two voice keys reach this proxy; no model key is handed over.
       proxy = await createPaidVoiceProxy({ gate: sceneGate.gate, speechAllowList: sceneGate.admitsText, signal: lifecycle.signal, maximumSessionMillis: maximumSessionSec * 1000, credentials: { deepgram: process.env.DEEPGRAM_API_KEY, elevenlabs: process.env.ELEVEN_API_KEY } });
     }
+    // F984: the first spoken line otherwise pays a cold TLS handshake. Unawaited and free.
+    if (proxy && !voiceless) proxy.preconnect();
     // Clamped, not trusted: the value is server-signed, but a rung outside the
     // ladder would still put createSession into a state that cannot exist.
     const startRung =

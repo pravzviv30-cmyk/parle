@@ -16,3 +16,11 @@ export function transcriptTail(turns: readonly TurnLine[]): { tutor: TurnLine | 
 export function replyAnnouncement(turn: TurnLine, tutorName: string): string {
   return `${tutorName}: ${turn.fr}${turn.en ? `\n${turn.en}` : ''}`;
 }
+
+/**
+ * Whether a bubble is read with a French voice. The spoken coach line (F988,
+ * `coach:<id>` from roleLine.ts) is English said aloud; every other line is French.
+ */
+export function readsAsFrench(turn: TurnLine): boolean {
+  return !turn.id.startsWith('coach:');
+}
