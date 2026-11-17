@@ -53,7 +53,7 @@ import {
   type MemoryExtraction,
 } from '@luvani/brain';
 
-import { evalCostUsd } from '../usage.ts';
+import { evalCostNote, evalCostUsd } from '../usage.ts';
 import { EXTRACT_FIXTURES, type ExtractFixture, type Matcher } from './extractFixtures.ts';
 
 // ---------------------------------------------------------------------------
@@ -246,12 +246,13 @@ export function formatSummary(summary: ExtractRunSummary): string[] {
     for (const flag of flags) lines.push(`      ${flag}`);
   }
   const { config: c, tokens: t } = summary;
+  const usage = { inputTokens: t.in, outputTokens: t.out, cacheReadTokens: t.cacheRead, cacheWriteTokens: t.cacheWrite };
   lines.push(
     `config: model ${c.model}, effort ${c.effort}, ${c.trim ? 'trimmed' : 'full'} transcript, repeats ${c.repeats}`,
     `calls ${summary.calls}, mean recall ${summary.meanRecall.toFixed(3)}, unlabelled ${summary.unlabelled}`,
     `leaks: sensitive ${summary.sensitiveLeaks}, fiction ${summary.fictionLeaks}; known repeats ${summary.knownRepeats}; failures ${summary.structuredFailures}; opener misses ${summary.openerMisses}`,
     `tokens: in ${t.in}, cache read ${t.cacheRead}, cache write ${t.cacheWrite}, out ${t.out} (reasoning ${t.reasoning})`,
-    `usd: total $${summary.usdTotal.toFixed(4)}, per call $${summary.usdPerCall.toFixed(4)}`,
+    `usd: total $${summary.usdTotal.toFixed(4)}, per call $${summary.usdPerCall.toFixed(4)}${evalCostNote(usage, c.model)}`,
     `latency: p50 ${(summary.latencyP50Ms / 1000).toFixed(1)}s, p95 ${(summary.latencyP95Ms / 1000).toFixed(1)}s`,
   );
   return lines;
