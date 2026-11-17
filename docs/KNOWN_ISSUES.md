@@ -12772,8 +12772,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1073 — The shuffle primitive has no caller, and daily comments describe retired code
 - severity: P2
 - status: [x]
-- where: packages/core/src/daily/shuffle.ts:1
-- note: C2-3 and the daily half of C2-7. Core floor drops by exactly 9 with F1074's one test. F450 is re-pointed in the same PR.
+- where: packages/core/src/daily/scenarios.ts:138
+- note: C2-3 and the daily half of C2-7. `shuffle.ts`, its tests and its barrel line are deleted; the line above is the comment that last named `shuffledPick`. Core floor drops by 7 net across C2: 9 tests deleted (8 shuffle, 1 monthly count), 2 added (the word-pack snapshot and the dayIndex impossible-date test). F450 is re-pointed in the same PR.
 - verified-by: `the pick never reads the wall clock, only the moment it was handed`
 
 ### F1074 — Day-key and week rules have second homes, beside exports only tests call
