@@ -12937,6 +12937,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a push or merge the guard cannot read is denied even when the command never spells the word`
 - verified-by: `a command name the guard cannot read is denied when its arguments say push or merge`
 - verified-by: `git and gh commands with a readable subcommand are still allowed`
+- verified-by: `a merge behind an unreadable command name is denied, and a name split across lines is joined`
 
 ### F1208 — Alias values are searched as raw text, so a quoted push slips through and harmless aliases are denied
 - severity: P2
@@ -12950,14 +12951,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: scripts/push-check-guard.mjs:392
-- note: S1a round 3, F1197's sibling. `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push git p` and `GIT_CONFIG_PARAMETERS="'alias.p=push'" git p` are allowed, because leading assignments are dropped unread. Any git command after such an assignment in the same call is now denied as unreadable, a harmless one included.
+- note: S1a round 3, F1197's sibling. `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push git p` and `GIT_CONFIG_PARAMETERS="'alias.p=push'" git p` are allowed, because leading assignments are dropped unread. A prefix assignment makes its own command unreadable; see F1224 for what carries to later commands, and F1226 for the forms not read.
 - verified-by: `a git command with alias config in its environment is denied`
 
 ### F1210 — A wrapper named by its path, or carrying a flag the tables do not know, hides the push behind it
 - severity: P2
 - status: [x]
 - where: scripts/push-check-guard.mjs:394
-- note: S1a round 3. `/usr/bin/env git push`, `/usr/bin/env -S "git push"`, `sudo -nu me git push`, `exec -a foo git push` and `command time -o /dev/null git push` are allowed. `git send-pack origin main` and `git subtree push --prefix=x origin main` publish without the word in the subcommand place and are allowed too.
+- note: S1a round 3. `/usr/bin/env git push`, `/usr/bin/env -S "git push"`, `sudo -nu me git push`, `exec -a foo git push` and `command time -o /dev/null git push` are allowed. `git send-pack origin main` and `git subtree push --prefix=x origin main` publish without the word in the subcommand place and are allowed too. The forward scan this added was narrowed in F1223; the commands named here are still denied by the same tests.
 - verified-by: `a wrapper named by its path does not hide the push behind it`
 - verified-by: `a wrapper flag the tables do not know does not hide the push behind it`
 - verified-by: `git send-pack and git subtree push are denied`
@@ -13003,3 +13004,57 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: services/token-server/src/ciContract.test.ts:295
 - note: S1a round 3, for B2, which owns this file. The title and comment argue for every push; F1061 narrowed the trigger to pull requests and main. The assertion (a `push:` key exists) still holds. The ticked line at docs/KNOWN_ISSUES.md:1711 names the old title and must be re-pointed in the same change.
 - verified-by: `ci runs the gate, the dependency audit and the secret scan on pull requests and on pushes to main`
+
+### F1221 — A push or merge inside a double-quoted substitution or an expanding here-document is never read
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:110
+- note: Found by security-review, judged by work-judge (Fable 5.2), S1a round 4, 2026-11-17. `out="$(git push origin HEAD:main 2>&1)"; echo "$out"`, `echo "$(gh pr merge 12 --merge)"`, a backtick form inside double quotes, and `cat <<EOF` with `$(git push origin main)` in the body are allowed with no stamp, because quoted text and here-document bodies are copied unread. The shell runs all of them. A quoted delimiter (`<<'EOF'`) and an escaped `\$(` stay data. Also allowed on origin/main.
+- verified-by: `a push or merge inside a quoted command substitution is judged`
+- verified-by: `a here-document body with an unquoted delimiter is read for command substitutions`
+- verified-by: `quoted substitutions that publish nothing are still allowed`
+
+### F1222 — A push whose destination the shell builds passes on a branch stamp
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:536
+- note: S1a round 4. `git push origin HEAD:$B` and `git push origin "HEAD:$(echo main)"` are judged as pushes to the branch they spell, so a passing branch stamp lets them land on main and the docs-only rule never fires. A refspec with `$` or a backtick is now denied once the stamp passes. `"$(git branch --show-current)"` and `"$(git rev-parse --abbrev-ref HEAD)"` are read as HEAD when git runs in the same directory. Deletes, dry runs and tag pushes with a variable stay allowed. Limit: the unquoted `git push origin $(git branch --show-current)` is still denied as unreadable.
+- verified-by: `a push whose branch the shell builds is denied even with a passing stamp`
+- verified-by: `a push that asks git for the current branch is judged as a push of HEAD`
+
+### F1223 — The wrapper scan misses a shell or eval, and denies harmless commands that mention git push
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:450
+- note: S1a round 4, F1210's sibling. `sudo -nu me sh -c "git push"`, `exec -a foo sh -c "git push"`, `sudo -nu me eval "git push"` and `sudo -nu git git push` are allowed, because the forward scan only jumps to a bare git or gh word. The same scan denies `env FOO=bar echo git push`, `time grep -rn git push scripts` and `sudo mv git push`, which origin/main allows. The scan now runs only after a wrapper flag the tables give no value, and goes to the next git, gh, shell, eval or xargs word. Limits: `sudo -n grep -rn git push scripts` is still denied, and an unknown value flag followed by a known value flag (`sudo -nu me -g staff git push`) is read correctly only because the scan goes forward.
+- verified-by: `a shell or eval behind a wrapper flag the tables do not know is still read`
+- verified-by: `a harmless command behind a wrapper that only mentions git push is allowed`
+
+### F1224 — Git config set by readonly or local is missed, and config given to another command sticks to later ones
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:415
+- note: S1a round 4, F1209's sibling. `readonly GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push; git p` and the `local` form are allowed. `GIT_CONFIG_COUNT=0 npm test && git status` is denied, though the prefix reaches npm only and origin/main allows it. A prefix now counts for its own command and any shell it starts; a bare assignment and a declaring builtin count for the rest of the call.
+- verified-by: `git config set by any declaring builtin, or inherited by a nested shell, is denied`
+- verified-by: `git config handed to another command does not make a later git command unreadable`
+
+### F1225 — gh api merges with a variable PR number, and three more GraphQL writes, are allowed
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:369
+- note: S1a round 4. `gh api -X PUT repos/o/r/pulls/$N/merge` is allowed because the path check needs digits. The GraphQL mutations `createCommitOnBranch`, `mergeBranch`, `enablePullRequestAutoMerge` and `createRef` are allowed because only `mergePullRequest` and `updateRef` are named. Limit: a query read from a file (`-F query=@file`) is not seen.
+- verified-by: `gh api merges and branch writes under other names are denied`
+
+### F1226 — Git config exported through eval, or under a name the shell builds, is not read
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:470
+- note: S1a round 4, filed as a limit. `eval 'export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push'; git p` and `P=GIT_CONFIG_; export ${P}COUNT=1 ${P}KEY_0=alias.p ${P}VALUE_0=push; git p` are allowed. Reading eval's text as a command line changes the reason existing eval tests pin, so it needs its own design.
+- verified-by: `git config exported through eval or a built variable name is denied`
+
+### F1227 — Commands that run another command are read only when they are in the wrapper table
+- severity: P2
+- status: [ ]
+- where: scripts/push-check-guard.mjs:203
+- note: S1a round 4, filed as a limit. `noglob git push`, `nocorrect git push`, `xcrun git push`, `arch -arm64 git push`, `coproc git push`, `repeat 1 git push`, `find . -exec git push \;`, `script -q /dev/null git push` and `trap 'git push' EXIT` are allowed. Each needs its own argument rules; the pre-push hook still runs the gate on all of them.
+- verified-by: `a push run by a command runner outside the wrapper table is denied`
