@@ -70,7 +70,9 @@ describe('the entitlement gate', () => {
       assert.equal(result.ok, false);
       if (!result.ok) assert.ok(!('refillsAt' in result), `${entitlement.plan} refusal leaked a refillsAt`);
     }
-    // F1076: a thin free window knows its refill now, so core names it here too.
+  });
+
+  test('a thin free window refusal carries when the next free conversation is ready', async () => {
     const thin = await grantSession({ userId: 'u1', lessonId: 'cafe-01', config,
       entitlement: { plan: 'trial', secondsUsed: PLANS.trial.secondsPerPeriod - 30, periodEnd: new Date('2026-10-22T05:00:00.000Z') } });
     assert.equal(!thin.ok && thin.refillsAt, '2026-10-22T05:00:00.000Z');
