@@ -21,13 +21,14 @@
  * deciding a learner's review history across two devices whose clocks disagree
  * — the one input this merge should never trust.
  *
- * It does carry something better. `applyGrade` increments at most one of
- * `reps` (good, easy) or `lapses` (again) on each grade, and an assisted good
- * increments neither, so `reps + lapses` counts grades applied — monotone,
- * immune to skew, and already on disk. Both copies descend from one ancestor,
- * so the copy with more grades is strictly the copy that was reviewed more
- * recently, and it holds the other's history plus its own. `gradesApplied` is
- * that number and it is the primary key here.
+ * It does carry something better. `applyGrade` increments `reps` on a good or
+ * easy grade and `lapses` on again, but an assisted good increments neither,
+ * so `reps + lapses` counts the grades that were not assisted. It never goes
+ * down, is immune to skew, and is already on disk. Both copies descend from one
+ * ancestor, so the copy with more counted grades has the longer review history.
+ * It is usually, not always, the one reviewed last: assisted goods on the other
+ * copy are not counted. `gradesApplied` is that number and it is the primary
+ * key here; on a tie the later `due` wins, which an assisted good does set.
  *
  * The accepted loss is the same one per-item last-write-wins always carries:
  * if the phone graded a card twice and the tablet graded it once, the tablet's
@@ -101,8 +102,8 @@ export const PAST_CONVERSATION_NOTE = 'Saved from a past conversation';
 const CARD_KINDS: readonly string[] = ['vocab', 'phoneme', 'turn'];
 
 /**
- * How many grades this card has been through — `reps + lapses`, because
- * `applyGrade` increments exactly one of them per grade. The deck's ordering
+ * How many grades this card has been through, assisted goods aside: `reps +
+ * lapses`, which an assisted good leaves alone. The deck's ordering
  * primitive: more grades means more review history, with no clock involved.
  */
 export function gradesApplied(card: ReviewCard): number {
