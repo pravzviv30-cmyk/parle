@@ -22,8 +22,9 @@ import {
   type ScenarioFrame,
 } from '@luvani/brain';
 
-import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostLine, ZERO_USAGE } from '../usage.ts';
 import { openAiEvalClient } from './openaiEval.ts';
+import { EVAL_ORDER, pickProvider } from './provider.ts';
 
 /** The founder's examples first; the rest span transactional to personal. */
 const REQUESTS = [
@@ -70,17 +71,17 @@ function checkFrame(frame: ScenarioFrame, request: string): string[] {
 }
 
 function pickClient(): { client: LlmClient; costModel: string } {
-  const choice = (process.env.BRAIN_LLM ?? '').toLowerCase();
-  if ((choice === 'openai' || (choice === '' && !process.env.ANTHROPIC_API_KEY)) && process.env.OPENAI_API_KEY) {
+  const provider = pickProvider(process.env, EVAL_ORDER);
+  if (provider === 'openai') {
     // Frames are on the live model, because the learner waits through them.
     // Pricing them as analyst work overstates the cost ~10x.
-    return openAiEvalClient('frame', process.env.OPENAI_API_KEY);
+    return openAiEvalClient('frame', process.env.OPENAI_API_KEY ?? '');
   }
-  if ((choice === 'anthropic' || choice === '') && process.env.ANTHROPIC_API_KEY) {
+  if (provider === 'anthropic') {
     return { client: new AnthropicBrainClient(), costModel: 'claude-sonnet-5' };
   }
-  if ((choice === 'groq' || choice === '') && process.env.GROQ_API_KEY) {
-    return { client: new OpenAiCompatBrainClient({ apiKey: process.env.GROQ_API_KEY }), costModel: 'groq' };
+  if (provider === 'groq') {
+    return { client: new OpenAiCompatBrainClient({ apiKey: process.env.GROQ_API_KEY ?? '' }), costModel: 'groq' };
   }
   console.error('The frame eval needs a real model. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GROQ_API_KEY in services/brain-playground/.env');
   process.exit(2);
@@ -115,7 +116,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`\n${REQUESTS.length - failures}/${REQUESTS.length} frames hold the contract · ~$${evalCostUsd(usage, costModel).toFixed(3)}`);
+  console.log(`\n${REQUESTS.length - failures}/${REQUESTS.length} frames hold the contract · ${evalCostLine(usage, costModel)}`);
   if (failures > 0) process.exit(1);
 }
 
