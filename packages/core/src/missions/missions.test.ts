@@ -5,7 +5,6 @@ import {
   MISSIONS,
   FIRST_MISSION,
   getMission,
-  missionPhraseKeys,
   missionStates,
   independenceFrom,
   replayRung,
@@ -78,7 +77,7 @@ describe('the catalogue — thirty-one front doors, each with somewhere to pract
     for (const key of authoredPhraseKeys()) {
       assert.ok(drillable.has(key), `${key} sits on the path and nothing in the bank can drill it`);
     }
-    for (const key of missionPhraseKeys()) {
+    for (const key of MISSIONS.flatMap((mission) => [...mission.phraseKeys])) {
       assert.ok(drillable.has(key), `${key} is a mission phrase and nothing in the bank can drill it`);
     }
   });
