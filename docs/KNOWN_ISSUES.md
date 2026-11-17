@@ -13189,3 +13189,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: .githooks/pre-push:1
 - note: Founder, 2026-11-17, after S1a reached the 5-round limit: land S1a, then move the stamp check into the pre-push hook. git hands that hook the local ref, local commit, remote ref and remote commit of every update on stdin, so the stamp, the security review for main and the docs-only rule can be checked on exactly what is pushed, whatever the shell spelling. The PreToolUse guard stays as a thin first line (it still has to stop `--no-verify`, `core.hooksPath` overrides and gh merges, which no git hook sees). F1229 to F1238 close through it. Fable route (security).
 - verified-by: `the pre-push hook refuses an unstamped commit and a code push to main whatever the command spelling`
+
+### F1242 — The fast gate accepts a ledger that still holds merge conflict markers
+- severity: P2
+- status: [ ]
+- where: scripts/gate.mjs:1
+- note: Found by the coordinator, 2026-11-17. While landing S1a, a merge commit was made with `<<<<<<<`, `=======` and `>>>>>>>` lines left in docs/KNOWN_ISSUES.md, and the pre-commit `gate:fast` printed "fast checks green". The commit was amended before any push. Whether the full gate refuses it is unchecked. The ledger check should refuse any conflict marker line, in fast and full mode alike.
+- verified-by: `the ledger check refuses a file that holds merge conflict markers`
