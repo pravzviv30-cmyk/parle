@@ -2,7 +2,8 @@
  * F995, Q5 of the systemic pass: the drill stages fold their eyebrow. The
  * kind's tag joins the meta line under the prompt (tag first, a full stop,
  * then any existing line); Listen and type's tag is its header prompt; Say it
- * aloud lets the French lead; Sound check and the sound drill carry no kicker.
+ * aloud lets the French lead; the sound drill carries no kicker, and Sound
+ * check names itself only on its meta line.
  * Source pins, as the drill's other tests are: there are no testIDs.
  */
 import assert from 'node:assert/strict';
@@ -22,7 +23,7 @@ test('the drill stages draw no eyebrow', () => {
   for (const path of STAGES) {
     assert.doesNotMatch(read(path), /\beyebrow\b/, `${path} still draws or passes an eyebrow`);
   }
-  assert.doesNotMatch(read('../soundcheck/SoundCheckScreen.tsx'), /"Sound check"/, 'Sound check still names itself on its stage');
+  assert.deepEqual(read('../soundcheck/SoundCheckScreen.tsx').match(/[^ ]{0,20}Sound check.{0,3}/g), ["english={taskLine('Sound check')}"], 'Sound check names itself other than on its meta line');
   assert.doesNotMatch(read('./FocusDrillPlayer.tsx'), /Nothing to practise/, 'the empty sound drill still carries its kicker');
 });
 

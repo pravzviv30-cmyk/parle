@@ -340,6 +340,10 @@
     "label": "{checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}"
   },
   {
+    "file": "practice/NextTaskCard.tsx",
+    "label": "\"Try the offline café line\""
+  },
+  {
     "file": "recap/PrivatePractice.tsx",
     "label": "{busy ? 'One moment…' : recording ? 'Finish recording' : uri ? 'Record another take' : 'Record my practice take'}"
   },

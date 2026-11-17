@@ -817,15 +817,16 @@ export function PreAccountOnboarding({
                 />
               </>
             ) : (
-              <>
-                {planField === 'reason' && BOLD_GOALS.map((v) => <Choice key={v.key} title={v.title} detail={v.detail} selected={edit.reason === v.key} onPress={() => setEdit({ ...edit, reason: v.key })} />)}
-                {planField === 'interests' && INTERESTS.map((v) => <Choice key={v.key} role="checkbox" title={v.title} selected={edit.interests?.includes(v.key) ?? false} onPress={() => setEdit({ ...edit, interests: edit.interests?.includes(v.key) ? edit.interests.filter(i => i !== v.key) : [...(edit.interests ?? []), v.key] })} />)}
-                {planField === 'start-level' && START_LEVELS.map((v) => <Choice key={v.key} title={v.title} detail={v.gloss} selected={edit.startLevel === v.key} onPress={() => setEdit({ ...edit, startLevel: v.key })} />)}
-                {planField === 'confidence' && CONFIDENCE_OPTIONS.map((v) => <Choice key={v.key} title={v.title} detail={v.gloss} selected={edit.speakingConfidence === v.key} onPress={() => setEdit({ ...edit, speakingConfidence: v.key })} />)}
-                {planField === 'focus' && FOCUS_OPTIONS.map((v) => <Choice key={v.key} title={v.title} detail={v.gloss} selected={edit.practiceFocus === v.key} onPress={() => setEdit({ ...edit, practiceFocus: v.key })} />)}
-                {planField === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes) => <Choice key={minutes} title={minutes === 'none' ? FIRST_RUN_COPY.chooseEachTime : `${minutes} minutes a day`} selected={edit.minutes === minutes} onPress={() => setEdit({ ...edit, minutes })} />)}
+              // The scroller clips at its top, so the list clears the chosen ring's reach (Press, SelectRing).
+              <View style={{ gap: space(4), paddingTop: space(1) }}>
+                {planField === 'reason' && BOLD_GOALS.map((v) => <Choice key={v.key} ground={paper.ground} title={v.title} detail={v.detail} selected={edit.reason === v.key} onPress={() => setEdit({ ...edit, reason: v.key })} />)}
+                {planField === 'interests' && INTERESTS.map((v) => <Choice key={v.key} ground={paper.ground} role="checkbox" title={v.title} selected={edit.interests?.includes(v.key) ?? false} onPress={() => setEdit({ ...edit, interests: edit.interests?.includes(v.key) ? edit.interests.filter(i => i !== v.key) : [...(edit.interests ?? []), v.key] })} />)}
+                {planField === 'start-level' && START_LEVELS.map((v) => <Choice key={v.key} ground={paper.ground} title={v.title} detail={v.gloss} selected={edit.startLevel === v.key} onPress={() => setEdit({ ...edit, startLevel: v.key })} />)}
+                {planField === 'confidence' && CONFIDENCE_OPTIONS.map((v) => <Choice key={v.key} ground={paper.ground} title={v.title} detail={v.gloss} selected={edit.speakingConfidence === v.key} onPress={() => setEdit({ ...edit, speakingConfidence: v.key })} />)}
+                {planField === 'focus' && FOCUS_OPTIONS.map((v) => <Choice key={v.key} ground={paper.ground} title={v.title} detail={v.gloss} selected={edit.practiceFocus === v.key} onPress={() => setEdit({ ...edit, practiceFocus: v.key })} />)}
+                {planField === 'time' && ([5, 10, 15, 20, 'none'] as const).map((minutes) => <Choice key={minutes} ground={paper.ground} title={minutes === 'none' ? FIRST_RUN_COPY.chooseEachTime : `${minutes} minutes a day`} selected={edit.minutes === minutes} onPress={() => setEdit({ ...edit, minutes })} />)}
 
-              </>
+              </View>
             )}
           </>
         )}

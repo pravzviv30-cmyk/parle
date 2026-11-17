@@ -62,7 +62,9 @@ describe('the speak family, drill B v2', () => {
   test('Sound Check stands on the peach frame, its result as the calm sheet with the one Done', () => {
     const check = read('../soundcheck/SoundCheckScreen.tsx');
     assert.match(check, /stage=\{drillStage\('sound-check', t\.mode\)\}/);
-    assert.doesNotMatch(check, /eyebrow|"Sound check"/, 'Sound check names itself on its stage (F995)');
+    // F995: no eyebrow; the label joins the meta line, as the other drill kinds do.
+    assert.doesNotMatch(check, /eyebrow/, 'Sound check draws an eyebrow');
+    assert.match(check, /english=\{taskLine\('Sound check'\)\}/, 'Sound check never names itself on its meta line');
     assert.match(check, /sheet=\{resultSheet\}/);
     assert.match(check, /<ResultSheet result=\{shownResult\} done=\{done\} \/>/);
     assert.equal((check.match(/<PillButton\b/g) ?? []).length, 1, 'Sound Check grew a second primary');

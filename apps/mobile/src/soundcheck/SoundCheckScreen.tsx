@@ -9,7 +9,7 @@ import { acousticFor, type Acoustic } from '../myfrench/acoustic.ts';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { HIT, bType, continuous, frenchText, radius, space, type } from '../theme.ts';
 import { DrillFrame, DrillPrompt, useFootLayout } from '../drill/DrillFrame.tsx';
-import { drillStage } from '../drill/drillStage.ts';
+import { drillStage, taskLine } from '../drill/drillStage.ts';
 import { SpeakMic } from '../drill/SpeakMic.tsx';
 import { Enter } from '../motion/layout.tsx';
 import { DUR } from '../motion/tokens.ts';
@@ -257,7 +257,8 @@ export function SoundCheckScreen({
 
   // 2026-10-31 drill B v2 (UI-016; drill-b.md "Sound"): the check stands in the
   // one drill frame on the speak family's peach stage. The stage holds the
-  // title and the honest line about what is assessed (no eyebrow, F995); the area
+  // title, the name on the meta line and the honest line about what is
+  // assessed (no eyebrow, F995); the area
   // holds how the sound is made, the line card with Hear it and the one mic;
   // the result rises as the calm sheet at the foot, with Done.
   const resultSheet = shownPhase === 'result' && shownResult ? (
@@ -270,6 +271,7 @@ export function SoundCheckScreen({
       header={shownPhase !== 'result' ? <ScreenHeader leave={{ onPress: onDone, label: 'Back', close: true }} /> : <View style={{ height: HIT, marginBottom: 18 }} />}
       sheet={resultSheet}
       prompt={<DrillPrompt header>One useful line, once.</DrillPrompt>}
+      english={taskLine('Sound check')}
       stageExtra={<Text style={[type.body, { color: t.muted }]}>This is the part Luvani can assess honestly, because the words are known in advance.</Text>}
     >
       {/* How the sound is made, above the line that uses it. It came off My

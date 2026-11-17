@@ -120,14 +120,14 @@ AccountField.displayName = 'AccountField';
 const st = StyleSheet.create({
   group: { gap: 6 },
   label: { color: c.ink, fontFamily: font.medium },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 48, ...corner.inset, backgroundColor: c.white, borderWidth: 1, borderColor: c.field },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', minHeight: 48, ...corner.field, backgroundColor: c.white, borderWidth: 1, borderColor: c.field },
   // UITextField positions entered/secure text using its font's native metrics;
   // a paragraph line height shifts its baseline below the field's centre.
-  input: { ...boldType.body, lineHeight: Platform.OS === 'ios' ? undefined : boldType.body.lineHeight, flex: 1, minWidth: 0, minHeight: 46, paddingVertical: 11, paddingHorizontal: 14, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, ...corner.inset, color: c.ink, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
+  input: { ...boldType.body, lineHeight: Platform.OS === 'ios' ? undefined : boldType.body.lineHeight, flex: 1, minWidth: 0, minHeight: 46, paddingVertical: 11, paddingHorizontal: 14, textAlign: 'left', textAlignVertical: 'center', includeFontPadding: false, ...corner.field, color: c.ink, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
   focused: { borderColor: c.violet },
-  focusRing: { ...corner.inset, borderColor: c.violet, borderWidth: 2 },
+  focusRing: { ...corner.field, borderColor: c.violet, borderWidth: 2 },
   disabled: { opacity: 0.65 },
-  show: { position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 64, minHeight: HIT, paddingHorizontal: 12, paddingVertical: 10, margin: 3, borderRadius: Math.max(radius.nib, radius.inset - 3), justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
+  show: { position: 'absolute', right: 0, top: 0, bottom: 0, minWidth: 64, minHeight: HIT, paddingHorizontal: 12, paddingVertical: 10, margin: 3, borderRadius: Math.max(radius.nib, radius.field - 3), justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: 'transparent' },
   showActive: { borderColor: paper.inkSoft, backgroundColor: paper.ground },
   showLabel: { color: paper.ink, fontFamily: font.semiBold },
   error: { flexDirection: 'row', gap: space(2), alignItems: 'flex-start' },

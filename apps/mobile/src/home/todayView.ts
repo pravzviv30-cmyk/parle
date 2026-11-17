@@ -161,7 +161,6 @@ export const TODAY_COPY = {
   fix: 'One fix to try',
   fixAsk: 'One fix: how would you say this in French?',
   fixAction: 'Say it better, then compare',
-  phrase: "Today's phrase",
   sayIt: 'Say it yourself',
   week: 'Your week in French',
   seeWeek: 'See your week',
@@ -196,12 +195,6 @@ function scenePlace(hero: HomeMission): { at: number; of: number } | string | nu
   const stage = SCENE_SPINE.map((id) => getMission(id)).filter((m): m is Mission => m !== undefined && m.cefr === hero.mission.cefr);
   const at = stage.findIndex((m) => m.id === hero.mission.id);
   return at === -1 ? null : { at: at + 1, of: stage.length };
-}
-
-/** The scene's place as words: "Next scene, 2 of 3", the label, or "Next scene". */
-export function sceneEyebrow(hero: HomeMission): string {
-  const place = scenePlace(hero);
-  return place === null ? 'Next scene' : typeof place === 'string' ? place : `Next scene, ${place.at} of ${place.of}`;
 }
 
 /** Under the title on Today's card, only the scene's length: "About 3 minutes" (founder, 2026-10-29). */

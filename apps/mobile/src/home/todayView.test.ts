@@ -79,12 +79,12 @@ import {
   hidesAnswer,
   oneFix,
   questTrailing,
-  sceneEyebrow,
   sceneTime,
   threeDone,
   weekInFrench,
   weekStart,
 } from './todayView.ts';
+import * as todayViewModule from './todayView.ts';
 import { readFileSync } from 'node:fs';
 
 const B5_NOW = new Date(2026, 9, 20, 14, 0, 0).getTime();
@@ -117,15 +117,19 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.doesNotMatch(JSON.stringify(homeGreeting('Yasmin', morning)), /Bonsoir|\?/);
   });
 
-  test('the eyebrow is the scene place in its stage, with commas', () => {
+  test('the scene place in its stage rides the meta line, with commas', () => {
+    // F995, F996: the eyebrow went, so its words and the unused phrase label go too (push-check, 2026-11-17).
+    assert.ok(!('sceneEyebrow' in todayViewModule), 'sceneEyebrow outlived the eyebrow');
+    assert.ok(!('phrase' in TODAY_COPY), "TODAY_COPY still names Today's phrase that nothing draws");
+    const line = (id: string) => sceneHeroLine(sceneFor(id));
     const a0 = SCENE_SPINE.map((id) => getMission(id)!).filter((m) => m.cefr === 'A0');
-    assert.equal(sceneEyebrow(sceneFor('mission:premier-cafe')), `Next scene, 1 of ${a0.length}`);
-    assert.equal(sceneEyebrow(sceneFor('mission:cafe')), `Next scene, 2 of ${a0.length}`);
+    assert.equal(line('mission:premier-cafe'), `${sceneTime(sceneFor('mission:premier-cafe'))}, scene 1 of ${a0.length}`);
+    assert.equal(line('mission:cafe'), `${sceneTime(sceneFor('mission:cafe'))}, scene 2 of ${a0.length}`);
     const a1 = SCENE_SPINE.map((id) => getMission(id)!).filter((m) => m.cefr === 'A1');
     const firstA1 = a1[0]!;
-    assert.equal(sceneEyebrow(sceneFor(firstA1.id)), `Next scene, 1 of ${a1.length}`);
-    assert.equal(sceneEyebrow({ ...sceneFor('mission:cafe'), label: 'Pick up where you left off' }), 'Pick up where you left off');
-    for (const id of SCENE_SPINE) assert.doesNotMatch(sceneEyebrow(sceneFor(id)), /[·—]/);
+    assert.equal(line(firstA1.id), `${sceneTime(sceneFor(firstA1.id))}, scene 1 of ${a1.length}`);
+    assert.equal(sceneHeroLine({ ...sceneFor('mission:cafe'), label: 'Pick up where you left off' }), `${sceneTime(sceneFor('mission:cafe'))}. Pick up where you left off`);
+    for (const id of SCENE_SPINE) assert.doesNotMatch(line(id), /[·—]/);
     // Founder, 2026-10-29: the card says only the scene's length, not its French name or the tutor.
     assert.match(sceneTime(sceneFor('mission:cafe')), /^About \d+ minutes?$/);
   });
@@ -436,7 +440,7 @@ describe("Today's hero after the folds (F996)", () => {
     assert.match(hero, /if \(heldBack !== null\) return <LocalPracticeCard vivid bare levelIndex=\{levelIndex\} held=\{\{ checking, onRetry: \(\) => open\(heldBack\.textMode\) \}\} \/>;/, 'a held start still draws the scene');
     assert.match(TASK(), /<MissionHero hero=\{value\.hero\} vivid buildsOn=\{value\.buildsOn\} levelIndex=\{value\.levelIndex\} \/>/);
     const local = source('../practice/LocalPracticeCard.tsx');
-    assert.match(local, /notice=\{offlineNotice\(held !== undefined \? true : deviceOnLine\(\)\)\}/, 'the held start does not say the tutor is out of reach');
+    assert.match(local, /notice=\{offlineNotice\(deviceOnLine\(\)\)\}/, 'the held start does not say what the device says');
     assert.match(local, /checking=\{held\?\.checking \?\? checking\}/);
     assert.match(local, /onRecheck=\{held !== undefined \? held\.onRetry :/, 'Check again does not rerun the held start');
     const lead = between(local, 'export function OfflineLeadBody(', '</View>; }');

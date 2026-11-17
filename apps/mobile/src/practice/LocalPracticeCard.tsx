@@ -21,7 +21,8 @@ import { OFFLINE_LEAD_TITLE } from './nextTask.ts';
  * Starter line and is labelled as one; a learner past Starter is pointed at
  * today's phrase and review below, which work offline, rather than handed it.
  * A start the tutor could not take (`held`, from the scene hero) is the same
- * lead, saying the tutor is out of reach, and its Check again is that start.
+ * lead, saying the tutor is out of reach (or the phone offline, when it is),
+ * and its Check again is that start.
  */
 export function LocalPracticeCard({ vivid = false, levelIndex = 0, bare = false, held }: { vivid?: boolean; levelIndex?: number; /** On Today's hero card (UI-015): no card of its own, so no card sits inside a card. */ bare?: boolean; /** The gate held a start back (F996): its check, and the same start again. */ held?: { checking: boolean; onRetry: () => void } }) {
   const nav = useNavigation<{ navigate: (screen: string, params?: object) => void }>();
@@ -33,7 +34,7 @@ export function LocalPracticeCard({ vivid = false, levelIndex = 0, bare = false,
   const t = useB();
   const phrase = localPracticeFor(profile.tutorVoice, DAILY_ITEMS, TUTOR_DAILY_AUDIO);
   const offer = offlineOffer(levelIndex);
-  if (vivid) return <OfflineLeadBody notice={offlineNotice(held !== undefined ? true : deviceOnLine())} cafe={offer === 'cafe' && phrase !== null} bare={bare} checking={held?.checking ?? checking}
+  if (vivid) return <OfflineLeadBody notice={offlineNotice(deviceOnLine())} cafe={offer === 'cafe' && phrase !== null} bare={bare} checking={held?.checking ?? checking}
     onTry={() => { if (phrase !== null) nav.navigate('DailyPractice', { id: phrase.id, mode: 'shadowing' }); }}
     onRecheck={held !== undefined ? held.onRetry : () => { if (checking) return; setChecking(true); void recheck().catch(() => false).finally(() => setChecking(false)); }} />;
   // Past Starter (F946) the plain card is not drawn: the phrase and review

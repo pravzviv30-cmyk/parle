@@ -82,7 +82,7 @@ test('iOS account fields use native line metrics without changing other platform
   assert.ok(begin > 0, 'evaluate the actual account field style for each platform');
   const stylesFor = (os: string) => new Function('StyleSheet', 'Platform', 'boldType', 'font', 'c', 'paper', 'radius', 'corner', 'space', 'HIT',
     stripTypeScriptTypes(field.slice(begin)) + '\nreturn st;')(
-      { create: (value: unknown) => value }, { OS: os }, boldType, font, {}, {}, { field: 12 }, { inset: { borderRadius: 12 } }, (value: number) => value * 4, 44,
+      { create: (value: unknown) => value }, { OS: os }, boldType, font, {}, {}, { field: 14, nib: 4 }, { field: { borderRadius: 14 } }, (value: number) => value * 4, 44,
     );
   const ios = stylesFor('ios'), android = stylesFor('android'), web = stylesFor('web');
   assert.equal(ios.input.lineHeight, undefined, 'UIKit must place both entered and secure text using the font’s own metrics');

@@ -1139,7 +1139,7 @@ describe('the systemic pass parts keep their promises — F991, F992, F997', () 
     for (const line of editor) assert.match(line, /<Choice key=/, `a plan picker does not draw Choice: ${line.trim().slice(0, 60)}`);
     // Interests is many of many and says so; every other picker is one of a set, the radio default.
     const interests = editor.find((line) => line.includes("planField === 'interests'"));
-    assert.match(interests ?? '', /<Choice key=\{v\.key\} role="checkbox"/, 'the interests picker is not a checkbox list');
+    assert.match(interests ?? '', /<Choice key=\{v\.key\} ground=\{paper\.ground\} role="checkbox"/, 'the interests picker is not a checkbox list');
     for (const line of editor.filter((l) => l !== interests)) assert.doesNotMatch(line, /role=/, 'a single pick is not left as a radio');
   });
 
@@ -1180,10 +1180,11 @@ function sources(dir = SRC): { file: string; body: string }[] {
 describe('the systemic pass deletions — F993, F999', () => {
   test('the one quiet action is the underlined word', () => {
     // Q4, UI-023: OutlineButton folded into GhostButton, so a quiet action is
-    // drawn one way. TutorMemoryScreen's `SettingsFormAction as OutlineButton`
-    // comes from settings, not from here, and is a different part.
+    // drawn one way, and the retired name is not kept alive as an alias
+    // (TutorMemoryScreen calls settings' SettingsFormAction by its own name).
     assert.doesNotMatch(componentsSource(), /export function OutlineButton\b/, 'components.tsx still exports OutlineButton');
     for (const { file, body } of sources()) {
+      assert.doesNotMatch(body, /\bOutlineButton\b/, `${file} still names the retired OutlineButton`);
       for (const m of body.matchAll(/import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*'[^']*\/components(?:\.tsx)?'/g)) {
         const names = m[1]!.split(',').map((n) => n.trim().split(/\s+as\s+/)[0]);
         assert.ok(!names.includes('OutlineButton'), `${file} imports OutlineButton from components`);

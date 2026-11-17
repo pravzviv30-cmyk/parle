@@ -174,8 +174,11 @@ reach except F999's: Card/Tile/Hero 60 or fewer, Button/Pill 21.
   button (already stale on main). The two dark lip values repeat `b.dark.line` and
   `b.dark.primaryLip` as literals because the dark theme is one literal object;
   `palette.test.ts` pins them equal, so they cannot drift.
-- Noted by the judge, not sent back: if the first next-task read fails and the learner
-  taps Retry, the hero is briefly an empty white card (`practice/NextTaskCard.tsx:150`
-  returns null while `heroReview` is already false); `sceneEyebrow`
-  (`home/todayView.ts`) and `TODAY_COPY.phrase` have no production caller left. Both
-  are follow-ups.
+- Noted by the judge and fixed in push-check round 1 (2026-11-17), each test first:
+  the hero's Retry hands its answer back so the sand block shows (no empty white card),
+  and `sceneEyebrow` and `TODAY_COPY.phrase` are deleted. Also fixed there: a held
+  start says offline only when the phone is, a new hero clears the held-back start,
+  the plans hero's café line is the one quiet word, the plan editor's choices take the
+  paper face on the white sheet with room for the chosen ring, Sound check names
+  itself on its meta line, the auth fields take the field corner, and a stale test
+  slice end.

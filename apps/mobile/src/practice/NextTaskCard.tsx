@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp } from '@luvani/core';
-import { Card, ColourCard, FrenchBlock, IconAction, LipTile, PillButton } from '../components.tsx';
+import { Card, ColourCard, FrenchBlock, GhostButton, IconAction, LipTile, PillButton } from '../components.tsx';
 import { bType, paper, space, type } from '../theme.ts';
 import { Icon } from '../icons/Icon.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -144,7 +144,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   const heldCafe = value !== null && value.scope === scopeGeneration() && (lead === 'outOfTime' || lead === 'lapsed') && billing !== null && starter === null && cafeOffered ? local : null;
   useEffect(() => { if (bare) onHeroCafe?.(heldCafe); }, [bare, heldCafe, onHeroCafe]);
   useEffect(() => () => { if (bare) onHeroCafe?.(null); }, [bare, onHeroCafe]);
-  if (failed && vivid) return row ? null : (<View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
+  if (failed && vivid) return row ? null : (<View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => { onHeroReview?.(null); setAttempt(n => n + 1); }} /></View>);
   if (failed) return <View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
   // On the hero the frame draws the one sand block while the lead decides (F996).
   if (value === null || value.scope !== scopeGeneration()) return row || bare ? null : <Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>;
@@ -226,7 +226,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
  */
 export function PlansLeadBody({ onSun, body, onPlans, onCafe, onReview, reviewLabel }: { onSun: boolean; body: string; onPlans: () => void; /** Only at Starter: past it the café line is a first order. */ onCafe?: () => void; /** Past Starter, when Review has something to deal: Today's review row's door. */ onReview?: () => void; reviewLabel?: string }) {
   const t = useB();
-  return <><Text accessibilityRole="header" style={[type.heading, onSun ? null : { color: t.text }]}>{PLANS_LEAD.title}</Text><Text style={[type.body, onSun ? null : { color: t.text }]}>{body}</Text><Text style={[type.small, onSun ? null : { color: t.muted }]}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={onPlans} />{onCafe !== undefined && <IconAction layout="inline" ground={onSun ? 'sun' : undefined} icon="headphones" label="Try the offline café line" onPress={onCafe} />}{onCafe === undefined && onReview !== undefined && reviewLabel !== undefined && <PillButton label={reviewLabel} variant="secondary" pastel={onSun ? undefined : 'sage'} onPress={onReview} />}</>;
+  return <><Text accessibilityRole="header" style={[type.heading, onSun ? null : { color: t.text }]}>{PLANS_LEAD.title}</Text><Text style={[type.body, onSun ? null : { color: t.text }]}>{body}</Text><Text style={[type.small, onSun ? null : { color: t.muted }]}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={onPlans} />{onCafe !== undefined && <GhostButton label="Try the offline café line" color={onSun ? paper.ink : undefined} onPress={onCafe} />}{onCafe === undefined && onReview !== undefined && reviewLabel !== undefined && <PillButton label={reviewLabel} variant="secondary" pastel={onSun ? undefined : 'sage'} onPress={onReview} />}</>;
 }
 
 /**
