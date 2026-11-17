@@ -12854,3 +12854,42 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: founder, 2026-11-17. GHSA-fc5q-39xc-vjpf ("ReDoS through single-branch repeated extglobs", CVSS 7.5) was widened on 2026-11-17 to <= 4.0.7, every release, with no first patched version, and turned every PR's GitHub gate red at audit:ci. picomatch is build-time only (Expo CLI, Metro, React Native's CLI, Jest) on patterns authored in this repo; no source file or service imports it. Two exact copies are installed (4.0.5, and 2.3.2 under micromatch and jest-util, which need ^2), so scripts/dependencyAudit.mjs now lets an accepted record list each exact version. Accepted inside audit:ci's 30-day window; revisit when picomatch ships a fix or at the next Expo or React Native upgrade.
 - verified-by: `an accepted advisory can name each exact version installed`
 - verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+
+### F1122 — The chat meter prices turns and frames on models the client does not use
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/chat.ts:50
+- note: B5-1. OpenAI turns and frames go to the live model but are priced on the two default constants; Anthropic frames go to sonnet and are priced as opus.
+- verified-by: `a turn is priced on the model stamped on its usage, and the label model only fills a missing stamp`
+- verified-by: `the chat label and fallback models come from the routing the client uses`
+- verified-by: `chat takes its cost models from chatCostModels, not the default constants`
+
+### F1123 — Evals print a confident dollar figure for a model with no price row
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/usage.ts:46
+- note: B5-2. A Groq run prints the fallback rate as if it were real.
+- verified-by: `an eval cost line says when the model has no price row`
+- verified-by: `every eval cost line says when its model has no price row`
+
+### F1124 — The drill eval counts exercises production would drop
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/eval/drillEval.ts:88
+- note: B5-3. Class (b): file only on a founder yes. The eval applies `validateExercise` alone; production applies `groundedDrills`.
+- verified-by: `drill eval counts an ungrounded exercise as rejected`
+- verified-by: `the production drill count applies the learner's answer-length cap`
+
+### F1125 — The provider choice is hand-copied across the playground tools
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/eval/runEval.ts:56
+- note: B5-4. One pure picker, with each tool's present precedence passed in.
+- verified-by: `each playground tool picks the same provider as before for every key combination`
+
+### F1126 — Unused names in the playground
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/eval/replayEval.ts:110
+- note: B5-6. Confirm the `hardRules` parameter with `tsc --noUnusedParameters` before removing it.
+- verified-by: `the playground no longer re-exports the unused usage helpers`
