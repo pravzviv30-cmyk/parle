@@ -17,14 +17,17 @@ grant select, insert, update, delete on public.learner_state to authenticated;
 grant insert on public.product_events to authenticated;
 -- Self-check: a revoke removes only grants made by the role running it, so a grant to
 -- PUBLIC or one recorded under another grantor would survive silently. has_table_privilege
--- sees both, and MAINTAIN too.
+-- sees both, and MAINTAIN too; has_any_column_privilege adds column grants for the four
+-- privileges that can be granted on a column.
 do $$ begin
   if exists (
     select 1
     from (values ('anon'),('authenticated')) r(rol),
          (values ('conversation_packs'),('entitlements'),('learner_state'),('product_events')) t(tbl),
          (values ('SELECT'),('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('REFERENCES'),('TRIGGER'),('MAINTAIN')) p(priv)
-    where pg_catalog.has_table_privilege(r.rol, 'public.'||t.tbl, p.priv)
+    where (pg_catalog.has_table_privilege(r.rol, 'public.'||t.tbl, p.priv)
+        or case when p.priv in ('SELECT','INSERT','UPDATE','REFERENCES')
+             then pg_catalog.has_any_column_privilege(r.rol, 'public.'||t.tbl, p.priv) else false end)
       and (r.rol, t.tbl, p.priv) not in (values
         ('authenticated','entitlements','SELECT'), ('authenticated','conversation_packs','SELECT'),
         ('authenticated','learner_state','SELECT'), ('authenticated','learner_state','INSERT'),

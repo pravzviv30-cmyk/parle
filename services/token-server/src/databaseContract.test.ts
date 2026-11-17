@@ -2019,6 +2019,12 @@ describe('client table grants (F1080)', () => {
         await db.exec(`revoke ${privilege} on public.product_events from public`);
       }
 
+      // A column grant: has_table_privilege ignores it, and the table-level revoke leaves it.
+      await db.exec('grant update (plan) on public.entitlements to public');
+      await assert.rejects(db.exec(sqlOf(GRANTS)), /refusing to finish/, 'a PUBLIC column UPDATE grant survived the migration silently');
+      await db.exec('rollback');
+      await db.exec('revoke update (plan) on public.entitlements from public');
+
       // A grant recorded under another grantor: the owner's revoke removes only its own grants.
       await db.exec(`create role other_grantor; grant truncate on public.entitlements to other_grantor with grant option;
         set role other_grantor; grant truncate on public.entitlements to anon; reset role;`);
