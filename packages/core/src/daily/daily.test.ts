@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { DAILY_WORDS, type DailyWord } from './words.ts';
 import { DAILY_SCENARIOS, SEED_TOPIC_MAX, seedTopicOf, type DailyScenario } from './scenarios.ts';
 import { dailyPick, dayIndex } from './pick.ts';
+import { addDays, daysBetween } from '../streak/dayKey.ts';
 import { wordTierFor, wordsForLevel, type WordTier } from './tier.ts';
 import { LEVEL_NAMES, LEVEL_THRESHOLDS, levelFor } from '../levels/levels.ts';
 import { MISSIONS } from '../missions/missions.ts';
@@ -829,6 +830,22 @@ describe('the day decides, and nothing is stored', () => {
       /empty pool/,
       'an empty pool handed back undefined instead of saying so, and Home would draw a card with nothing on it',
     );
+  });
+
+  test('a day key counts the same days from the epoch whichever module reads it', () => {
+    // Pinned on the parser dayIndex had before it shared the streak's (F1074).
+    assert.equal(dayIndex('1969-12-31'), -1, 'the day before the epoch counts back, not round');
+    assert.equal(dayIndex('1900-03-01'), -25508);
+    assert.equal(dayIndex('2000-02-29'), 11016);
+    assert.equal(dayIndex('2026-11-17'), 20774);
+    assert.equal(dayIndex('9999-12-31'), 2932896);
+    // A run of real days either side of two leap years and a clock change.
+    for (const start of ['1969-12-01', '2024-02-01', '2026-03-01', '2028-12-01']) {
+      for (let i = 0; i < 120; i += 1) {
+        const key = addDays(start, i);
+        assert.equal(dayIndex(key), daysBetween('1970-01-01', key), `${key} counts differently in daily and streak`);
+      }
+    }
   });
 
   test('every day of a year lands on a real entry, and the sequence walks the whole pool', () => {
