@@ -80,6 +80,25 @@ describe('what arrives through the speech path but carries no words', () => {
     );
   });
 
+  test('a transcript of only hesitation sounds is treated as silence, not a wrong answer', () => {
+    for (const transcript of ['Alors...', 'Bon,', 'Euh.', 'euh hmm']) {
+      const state = createSession(lesson, RUNGS.PROMPTED);
+      const { state: after, feedback } = step(state, { type: 'spoke', transcript, phonemes: [], durationSec: 1 });
+      assert.equal(feedback.rescued, true, `"${transcript}" is thinking aloud, so it gets the rescue`);
+      assert.equal(after.ladder.rung, RUNGS.CUED, `"${transcript}" gets the same one rung a real pause gets`);
+      assert.ok(!FEEDBACK_FAMILIES.missed.includes(feedback.message), `"${transcript}" was answered as a miss`);
+      assert.equal(after.transcript.length, 0, `"${transcript}" carried no answer to record`);
+    }
+  });
+
+  test('a turn whose own line is a filler word still accepts that word', () => {
+    const first = lesson.turns[0]!;
+    const fillerLesson = { ...lesson, turns: [{ ...first, target: 'Bon', accepts: [], options: [] }, ...lesson.turns.slice(1)] };
+    const { feedback } = submitTurn(fillerLesson, createSession(fillerLesson, RUNGS.PROMPTED), said('Bon.'));
+    assert.equal(feedback.quality, 'good', 'the line was said, so it is not silence');
+    assert.equal(feedback.rescued, false);
+  });
+
   test('an empty transcript adds nothing to the record of what was said', () => {
     const state = createSession(lesson, RUNGS.PROMPTED);
     const { state: after } = step(state, { type: 'spoke', transcript: '', phonemes: [], durationSec: 0 });
@@ -215,6 +234,17 @@ describe('the stuck learner — the behaviour the whole product rests on', () =>
     // They answer it. Support goes back to what the dropped rung actually offers.
     const next = step(rescued.state, said('Bonjour'));
     assert.equal(currentPrompt(lesson, next.state).support.kind, 'hint', 'rung 3 support, as the drop intended');
+  });
+
+  test("a good turn answered from a rescue's full line is not counted as unassisted", () => {
+    const rescued = step(createSession(lesson, RUNGS.FREE), stuck);
+    assert.equal(currentPrompt(lesson, rescued.state).support.kind, 'full-line', 'the rescue hands over the line');
+    const echoed = step(rescued.state, said('Bonjour'));
+    assert.equal(echoed.feedback.quality, 'good');
+    assert.equal(echoed.state.ladder.unassistedTurns, 0, 'repeating the handed line is not composing it');
+    // The next turn, with the line no longer handed over, earns the credit again.
+    const own = step(echoed.state, said("Un café, s'il vous plaît"));
+    assert.equal(own.state.ladder.unassistedTurns, 1);
   });
 
   test('the rescue message offers help without ever naming the struggle', () => {

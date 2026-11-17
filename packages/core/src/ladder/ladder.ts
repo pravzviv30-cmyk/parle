@@ -47,7 +47,8 @@ export const PROMOTION_STREAK = 2;
 export type TurnQuality = 'good' | 'partial' | 'poor';
 
 export type TurnEvent =
-  | { type: 'spoke'; quality: TurnQuality }
+  /** `assisted`: answered while a rescue's full line was on offer, so no unassisted credit. */
+  | { type: 'spoke'; quality: TurnQuality; assisted?: boolean }
   /** Learner said nothing for this long. */
   | { type: 'silence'; durationMs: number }
   /** Learner tapped "aide-moi" or said they don't know. */
@@ -113,7 +114,7 @@ export function applyTurn(state: LadderState, event: TurnEvent): { state: Ladder
       if (event.quality === 'good') {
         next.streak = state.streak + 1;
         // Credit only counts where the learner actually composed something.
-        if (state.rung >= RUNGS.PROMPTED) next.unassistedTurns = state.unassistedTurns + 1;
+        if (state.rung >= RUNGS.PROMPTED && event.assisted !== true) next.unassistedTurns = state.unassistedTurns + 1;
         if (next.streak >= PROMOTION_STREAK && state.rung < RUNGS.FREE) {
           next.rung = clamp(state.rung + 1);
           next.streak = 0;
@@ -175,7 +176,7 @@ const INSTRUCTION_BY_RUNG: Record<Rung, string> = {
     'Show the French text with its English meaning. Do not ask them to produce anything new.',
   2:
     'Ask your question in French, then offer two or three short French replies they could give, each with its English meaning. ' +
-    'They must say their choice out loud — never let them tap it silently.',
+    'Welcome their answer however it comes: said, typed or tapped.',
   3:
     'Ask your question in French. Tell them in English what to communicate, but do not give them the French words. ' +
     'Let them compose it themselves.',

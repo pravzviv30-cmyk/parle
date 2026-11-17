@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { buildReport, buildTrends, type StoredSession } from './history.ts';
-import { buildEntries, toCsv, toAnkiTsv } from './export.ts';
+import { buildEntries, toAnkiTsv } from './export.ts';
 import { CAFE_LESSON } from '../lessons/cafe.ts';
 import type { SessionSummary } from '../session/session.ts';
 
@@ -110,12 +110,6 @@ describe('export', () => {
     assert.equal(entries[0]!.gloss, '');
   });
 
-  test('CSV starts with a BOM and quotes fields containing commas', () => {
-    const csv = toCsv([{ word: 'oui', gloss: 'yes, indeed', ipa: 'wi' }]);
-    assert.ok(csv.startsWith('﻿'), 'Excel needs the BOM to read accents');
-    assert.ok(csv.includes('"yes, indeed"'));
-  });
-
   test('Anki format is front-tab-back, one note per line', () => {
     const tsv = toAnkiTsv([
       { word: 'bonjour', gloss: 'hello', ipa: 'bɔ̃.ʒuʁ' },
@@ -124,11 +118,5 @@ describe('export', () => {
     const lines = tsv.trimEnd().split('\n');
     assert.equal(lines[0], 'bonjour\thello /bɔ̃.ʒuʁ/');
     assert.equal(lines[1], 'zut\tdarn');
-  });
-
-  test('accents survive the round trip', () => {
-    const csv = toCsv(buildEntries(['café', 'plaît'], [CAFE_LESSON]));
-    assert.ok(csv.includes('café'));
-    assert.ok(csv.includes('plaît'));
   });
 });

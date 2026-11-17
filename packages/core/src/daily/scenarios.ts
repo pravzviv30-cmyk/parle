@@ -4,7 +4,8 @@
  * Home's second card offers one scene to talk through today, and tapping it
  * opens a live session seeded with that scene. So unlike a mission, a scenario
  * here teaches the agent nothing: it rides the existing `seedTopic` pipe, which
- * carries exactly two strings and no structure at all.
+ * carries three strings (`seedTopicOf`: the title in both languages and the
+ * English brief) and no structure at all.
  *
  * That pipe is why this file has a character cap in it. The token server drops
  * a seed topic longer than `MAX_SEED_TOPIC_CHARS` rather than truncating it,
@@ -53,7 +54,7 @@ export interface DailyScenario {
    * Three beats of the learner's own side of the scene: how you open it, how
    * you handle the middle of it, how you close it.
    *
-   * Practice's suggestion card draws all three as chips, which is what the
+   * The scene preview and Explore show all three, which is what the
    * founder's mockup asks for and what `openingFr` alone could not give it.
    * They are always the LEARNER's lines and never the other person's, so a
    * learner reading the card is reading things they could say rather than
@@ -69,7 +70,7 @@ export interface DailyScenario {
    * sits behind the card, and a pharmacy and a post office share one. The theme
    * is what the scene is about, and it exists so the pool can be authored and
    * checked for an even spread rather than quietly becoming four hundred
-   * restaurants. Nothing on screen reads it yet.
+   * restaurants. Explore's topics filter the pool by it.
    */
   theme: ScenarioTheme;
   /**
@@ -134,9 +135,7 @@ export const SEED_TOPIC_MAX = 120;
  *
  * The order is the order below, and it is theme by theme. That matters for
  * exactly one thing and it is worth knowing: `dailyPick` is `dayIndex % length`
- * over this array, so Home walks it in this order, a theme at a time. Practice
- * does not, because `shuffledPick` deals its own order per learner, which is
- * the whole reason that function exists.
+ * over this array, so Home walks it in this order, a theme at a time.
  */
 export const DAILY_SCENARIOS: readonly DailyScenario[] = [
   ...SCENES_CAFE_AND_FOOD,

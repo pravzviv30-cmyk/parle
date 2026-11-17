@@ -299,12 +299,6 @@ export const DRILLS: readonly Drill[] = [
   },
 ] as const;
 
-const BY_ID = new Map(DRILLS.map((d) => [d.id, d]));
-
-export function getDrill(id: string): Drill | undefined {
-  return BY_ID.get(id);
-}
-
 /**
  * Every drill that repairs a given phoneme, best first.
  *

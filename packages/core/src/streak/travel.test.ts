@@ -1,11 +1,11 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { dayRange } from './dayKey.ts';
+import { addDays } from './dayKey.ts';
 import type { StreakCover } from './streak.ts';
 import { TRAVEL_EVERY_DAYS, TRAVEL_OFFSET_MINUTES, travelCover } from './travel.ts';
 
-const run = dayRange('2026-10-01', '2026-10-03');
+const run = Array.from({ length: 3 }, (_, i) => addDays('2026-10-01', i));
 
 describe('the travel cover', () => {
   test('a one-day gap after a big clock change is covered for travel', () => {

@@ -24,7 +24,6 @@ export {
   isSettled,
   isMastered,
   NO_EVIDENCE,
-  EVIDENCE_STATES,
   MASTERY_USES,
   SETTLED_REPS,
   SETTLED_DAYS,

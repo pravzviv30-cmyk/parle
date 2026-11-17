@@ -10,7 +10,7 @@
  *
  * Every one of these is already an authored `DailyWord` with its own note and
  * example: nothing new is written here and nothing is duplicated. What was
- * missing was a way to ask "which of the two hundred and eighty-four are the
+ * missing was a way to ask "which of the thousand are the
  * ones that carry cadence", and `DailyWord` has no kind to ask it with. Adding
  * one would mean deciding a kind for every other word in the pool, most of
  * which have no obvious answer. A curated list of ids is the smaller shape, and

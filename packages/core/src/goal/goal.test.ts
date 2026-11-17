@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { DAILY_GOAL_TIERS, goalProgressFrom, goalTierFor, isDailyGoalMinutes } from './goal.ts';
+import { DAILY_GOAL_TIERS, goalProgressFrom, isDailyGoalMinutes } from './goal.ts';
 
 process.env.TZ = 'Europe/Paris';
 
@@ -18,9 +18,6 @@ describe('the daily goal', () => {
         ['intense', 20, 'Intense'],
       ],
     );
-    assert.equal(goalTierFor(20)?.id, 'intense');
-    assert.equal(goalTierFor(null), null);
-    assert.equal(goalTierFor(7), null);
     assert.ok(isDailyGoalMinutes(15) && !isDailyGoalMinutes(12) && !isDailyGoalMinutes('10'));
     for (const tier of DAILY_GOAL_TIERS) {
       assert.ok(!/[—–·]/.test(`${tier.label} ${tier.line}`), `${tier.id} uses a dash or a middot`);

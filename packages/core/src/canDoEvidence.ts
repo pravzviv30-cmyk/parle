@@ -2,8 +2,8 @@ import type { ConvoView } from './protocol/protocol.ts';
 import { getMission, type MissionId } from './missions/missions.ts';
 import { readMissionTasks } from './missions/tasks.ts';
 
-export const MAX_CAN_DO_SOURCES = 8;
-export const MAX_CAN_DO_QUOTE_CHARS = 240;
+const MAX_CAN_DO_SOURCES = 8;
+const MAX_CAN_DO_QUOTE_CHARS = 240;
 export interface CanDoSource { sourceId: string; beatId: string; quote: string }
 export interface CanDoEvidence extends CanDoSource { sessionId: string; missionId: MissionId }
 export interface CurrentMissionFinish { sessionId: string; missionId: string; rung: number }
