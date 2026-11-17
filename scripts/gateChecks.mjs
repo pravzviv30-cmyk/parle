@@ -89,3 +89,26 @@ function globRegExp(glob) {
     .join('');
   return new RegExp(`^${body}$`);
 }
+
+/** The .claude/commands the workflow depends on. */
+export const REQUIRED_COMMANDS = ['forge', 'bug-sweep', 'ship', 'backend-review', 'push-check', 'land'];
+
+/** Why `.claude/settings.json` (its text, or null when missing) no longer runs the push guard. */
+export function guardWiringProblems(settingsText) {
+  const missing = '.claude/settings.json no longer runs scripts/push-check-guard.mjs as a PreToolUse hook on Bash, so every git push and gh pr merge goes out unchecked';
+  let settings;
+  try {
+    settings = JSON.parse(settingsText ?? '');
+  } catch {
+    return [missing];
+  }
+  const entries = Array.isArray(settings?.hooks?.PreToolUse) ? settings.hooks.PreToolUse : [];
+  const wired = entries.some((entry) => {
+    let matchesBash = false;
+    try {
+      matchesBash = new RegExp(`^(?:${entry?.matcher ?? ''})$`).test('Bash');
+    } catch { /* an unreadable matcher matches nothing */ }
+    return matchesBash && (entry.hooks ?? []).some((hook) => /push-check-guard\.mjs"?\s+hook\b/.test(hook?.command ?? ''));
+  });
+  return wired ? [] : [missing];
+}

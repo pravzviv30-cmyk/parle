@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { suiteProblems, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles } from './gateChecks.mjs';
+import { suiteProblems, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems } from './gateChecks.mjs';
 
 /** A node:test summary block as the spec reporter prints it. */
 const summary = ({ tests = 3, pass = 3, fail = 0, cancelled = 0, skipped = 0 } = {}) =>
@@ -72,5 +72,25 @@ describe('gate — every test on disk runs, and runs whole', () => {
     assert.equal(focusProblems('a.test.mjs', `test${dot}only('x', () => {})`).length, 1, 'a focused test hides every other test in the file');
     assert.equal(focusProblems('a.test.tsx', `describe${dot}skip('x', () => {})`).length, 1, 'a skipped block defends nothing');
     assert.deepEqual(focusProblems('a.test.mjs', "test('x', () => {})"), [], 'a plain test is fine');
+  });
+});
+
+describe('gate — the push check cannot be unplugged quietly', () => {
+  test('the gate fails when the push-check hook or the push-check and land commands go missing', () => {
+    for (const command of ['push-check', 'land']) {
+      assert.equal(REQUIRED_COMMANDS.includes(command), true, `/${command} is how code reaches main; the gate must notice it vanishing`);
+    }
+    const hook = { type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/scripts/push-check-guard.mjs" hook' };
+    const settings = (entries) => JSON.stringify({ hooks: { PreToolUse: entries } });
+    assert.deepEqual(guardWiringProblems(settings([{ matcher: 'Bash', hooks: [hook] }])), [],
+      'the repo settings as they stand wire the guard on every Bash call');
+    assert.deepEqual(guardWiringProblems(settings([{ matcher: 'Bash|Grep', hooks: [hook] }])), [],
+      'a matcher that names Bash among others still reaches every push');
+    assert.equal(guardWiringProblems(settings([{ matcher: 'Bash', hooks: [] }])).length, 1,
+      'with the hook entry deleted every git push goes out unchecked');
+    assert.equal(guardWiringProblems(settings([{ matcher: 'Read', hooks: [hook] }])).length, 1,
+      'a guard that never sees a Bash call never sees a push');
+    assert.equal(guardWiringProblems(null).length, 1, 'no settings file means no guard');
+    assert.equal(guardWiringProblems('{ not json').length, 1, 'settings Claude Code cannot read wire nothing');
   });
 });

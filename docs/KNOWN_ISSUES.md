@@ -12810,7 +12810,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/gate.mjs:439
 - note: S1a-8 (Phase 4, confirmed). The gate requires the forge, bug-sweep, ship and backend-review commands but not push-check or land, and no gate check or test reads `.claude/settings.json`. Deleting the `push-check-guard.mjs hook` entry leaves the gate green. Reserve id, coordinator.
 - verified-by: `the gate fails when the push-check hook or the push-check and land commands go missing`

@@ -48,7 +48,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { passingTestTitles } from './gateReporter.mjs';
 import { evaluateAudit } from './dependencyAudit.mjs';
-import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles } from './gateChecks.mjs';
+import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems } from './gateChecks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
@@ -427,11 +427,13 @@ for (const agent of agentFiles) {
   }
 }
 
-for (const command of ['forge', 'bug-sweep', 'ship', 'backend-review']) {
+for (const command of REQUIRED_COMMANDS) {
   if (readOrNull(path.join(ROOT, '.claude', 'commands', `${command}.md`)) === null) {
     fail('agents', `.claude/commands/${command}.md is missing — /${command} does not exist`);
   }
 }
+
+for (const problem of guardWiringProblems(readOrNull(path.join(ROOT, '.claude', 'settings.json')))) fail('agents', problem);
 
 // --------------------------------------------------------------------- 6. goal
 
