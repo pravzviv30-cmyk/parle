@@ -13007,7 +13007,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1221 — A push or merge inside a double-quoted substitution or an expanding here-document is never read
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:110
 - note: Found by security-review, judged by work-judge (Fable 5.2), S1a round 4, 2026-11-17. `out="$(git push origin HEAD:main 2>&1)"; echo "$out"`, `echo "$(gh pr merge 12 --merge)"`, a backtick form inside double quotes, and `cat <<EOF` with `$(git push origin main)` in the body are allowed with no stamp, because quoted text and here-document bodies are copied unread. The shell runs all of them. A quoted delimiter (`<<'EOF'`) and an escaped `\$(` stay data. Also allowed on origin/main.
 - verified-by: `a push or merge inside a quoted command substitution is judged`
@@ -13016,7 +13016,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1222 — A push whose destination the shell builds passes on a branch stamp
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:536
 - note: S1a round 4. `git push origin HEAD:$B` and `git push origin "HEAD:$(echo main)"` are judged as pushes to the branch they spell, so a passing branch stamp lets them land on main and the docs-only rule never fires. A refspec with `$` or a backtick is now denied once the stamp passes. `"$(git branch --show-current)"` and `"$(git rev-parse --abbrev-ref HEAD)"` are read as HEAD when git runs in the same directory. Deletes, dry runs and tag pushes with a variable stay allowed. Limit: the unquoted `git push origin $(git branch --show-current)` is still denied as unreadable.
 - verified-by: `a push whose branch the shell builds is denied even with a passing stamp`
@@ -13024,7 +13024,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1223 — The wrapper scan misses a shell or eval, and denies harmless commands that mention git push
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:450
 - note: S1a round 4, F1210's sibling. `sudo -nu me sh -c "git push"`, `exec -a foo sh -c "git push"`, `sudo -nu me eval "git push"` and `sudo -nu git git push` are allowed, because the forward scan only jumps to a bare git or gh word. The same scan denies `env FOO=bar echo git push`, `time grep -rn git push scripts` and `sudo mv git push`, which origin/main allows. The scan now runs only after a wrapper flag the tables give no value, and goes to the next git, gh, shell, eval or xargs word. Limits: `sudo -n grep -rn git push scripts` is still denied, and an unknown value flag followed by a known value flag (`sudo -nu me -g staff git push`) is read correctly only because the scan goes forward.
 - verified-by: `a shell or eval behind a wrapper flag the tables do not know is still read`
@@ -13032,7 +13032,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1224 — Git config set by readonly or local is missed, and config given to another command sticks to later ones
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:415
 - note: S1a round 4, F1209's sibling. `readonly GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push; git p` and the `local` form are allowed. `GIT_CONFIG_COUNT=0 npm test && git status` is denied, though the prefix reaches npm only and origin/main allows it. A prefix now counts for its own command and any shell it starts; a bare assignment and a declaring builtin count for the rest of the call.
 - verified-by: `git config set by any declaring builtin, or inherited by a nested shell, is denied`
@@ -13040,7 +13040,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1225 — gh api merges with a variable PR number, and three more GraphQL writes, are allowed
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/push-check-guard.mjs:369
 - note: S1a round 4. `gh api -X PUT repos/o/r/pulls/$N/merge` is allowed because the path check needs digits. The GraphQL mutations `createCommitOnBranch`, `mergeBranch`, `enablePullRequestAutoMerge` and `createRef` are allowed because only `mergePullRequest` and `updateRef` are named. Limit: a query read from a file (`-F query=@file`) is not seen.
 - verified-by: `gh api merges and branch writes under other names are denied`
