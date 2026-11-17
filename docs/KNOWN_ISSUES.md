@@ -12787,6 +12787,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: services/brain-playground/src/eval/drillEval.ts:88
 - note: B5-3. Class (b): file only on a founder yes. The eval applies `validateExercise` alone; production applies `groundedDrills`.
 - verified-by: `drill eval counts an ungrounded exercise as rejected`
+- verified-by: `the production drill count applies the learner's answer-length cap`
 
 ### F1125 — The provider choice is hand-copied across the playground tools
 - severity: P2
