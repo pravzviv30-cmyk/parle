@@ -32,13 +32,13 @@
  *
  * On `sound`: it is learner-facing copy and it may state only what has actually
  * been verified about the recording. Gender, where the accent is from, and
- * "young" for the one voice whose age band is known. Not warmth, not timbre,
+ * "young" for the two voices whose age band is known. Not warmth, not timbre,
  * and above all nothing comparative. "The most native sounding" would be a
- * claim about the other seven that is not true, and a learner who picks by
+ * claim about the other five that is not true, and a learner who picks by
  * adjective and then dislikes the voice has been mis-sold. They pick by name
  * and by listening; the line is orientation, not a review.
  *
- * Three Parisian men therefore read alike here, and that is the honest outcome
+ * Two men from France therefore read alike here, and that is the honest outcome
  * of the rule rather than an oversight: the sample the chooser plays is what
  * tells them apart, and inventing an adjective to fill the gap is exactly the
  * thing this comment exists to stop.
@@ -81,7 +81,7 @@ export interface TutorPersona {
  */
 export type TutorVoiceGender = 'male' | 'female';
 
-/** Only two bands, and only because one voice is audibly younger. */
+/** Only two bands, and only because two voices are audibly younger. */
 export type TutorVoiceAgeBand = 'young' | 'middle-aged';
 
 export interface TutorVoice {
@@ -139,9 +139,8 @@ export const TUTOR_VOICES: Readonly<Record<TutorVoiceKey, TutorVoice>> = Object.
     gender: 'male',
     ageBand: 'young',
   },
-  // The key is ASCII and the name is not, the same way it was for Benoît before
-  // her. A learner reads "Sarah"; every path that stores or signs a choice
-  // carries the key.
+  // A learner reads the name; every path that stores or signs a choice carries
+  // the key. Here both are ASCII, which Émilie's are not.
   sarah: {
     key: 'sarah',
     persona: { name: 'Sarah', pronoun: 'she' },

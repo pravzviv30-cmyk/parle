@@ -12773,7 +12773,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1077 — Metering and core barrels re-export names nothing imports, and voice comments describe an old roster
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/core/src/metering/index.ts:8
 - note: C3-2 and the metering and index.ts parts of C3-3. Eleven barrel lines and five comments; no function is deleted.
 - verified-by: `the catalogue offers six voices, three men and three women, with one default`
