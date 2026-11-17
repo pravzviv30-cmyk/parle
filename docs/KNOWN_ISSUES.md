@@ -12791,7 +12791,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: packages/core/src/lessons/keyterms.ts:30
-- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Three tests were deleted and ten added across C1 and its follow-ups (F1196, push-check, code review, F1219); core went from 1152 to 1159, and the floor was not lowered.
+- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Three tests were deleted and eleven added across C1 and its follow-ups (F1196, push-check, code review, F1219); core went from 1152 to 1160, and the floor was not lowered.
 - verified-by: `the keyterm list dedupes on the same key the recognition repair uses`
 
 ### F1196 — A formal "ne" added to a line that already carries "pas" is refused as a negation
@@ -12805,7 +12805,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [ ]
 - where: packages/core/src/lessons/types.ts:225
-- note: Deferred, not built in C1. normalise joins n' to the verb ("n'aime" becomes "naime"), so the guard never sees it. Harmful direction: target "J'aime ça", said "Je n'aime plus ça", accepted via content, because naime is one edit from jaime and plus is not a guard word. Also accepted: "Je vois rien" for "Je vois" (rien, personne, aucun and plus are outside negationWords), and "Si tu ne viens jamais" for "Si jamais tu viens" (F1196 forgives ne beside a positive jamais). Harmless direction: "Ce n'est pas grave" for "C'est pas grave" grades near, because cest is under the five-letter typo floor. Separately, the typo route accepts "C'est non" for "C'est bon": the whole line is one edit away. It is a swapped word, not an added negation, and it happens on main too. No scripted line triggers any of these today. Founder to decide whether jamais stays in the F1196 exception. Found by work-judge (Fable 5.2), C1 follow-up, 2026-11-17.
+- note: Deferred, not built in C1. normalise joins n' to the verb ("n'aime" becomes "naime"), so the guard never sees it. Harmful direction: target "J'aime ça", said "Je n'aime plus ça", accepted via content, because naime is one edit from jaime and plus is not a guard word. Also accepted: "Je vois rien" for "Je vois" (rien, personne, aucun and plus are outside negationWords), and "Si tu ne viens jamais" for "Si jamais tu viens" (F1196 forgives ne beside a positive jamais). Harmless direction: "Ce n'est pas grave" for "C'est pas grave" grades near, because cest is under the five-letter typo floor. Separately, the typo route accepts "C'est non" for "C'est bon": the whole line is one edit away. It is a swapped word, not an added negation, and it happens on main too. No scripted line triggers any of these today. Founder, 2026-11-17: take jamais out of the restored-ne forgiveness; fix it with this entry. Found by work-judge (Fable 5.2), C1 follow-up, 2026-11-17.
 - verified-by: `an elided or unlisted negation added to a positive line is not the line, and an elided ne restored to a negated line is`
 
 ### F1217 — Merging decks drops an assisted review when the grade counts tie
