@@ -12856,7 +12856,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: supabase/rollback/20261002233520_down.sql:1
-- note: (a), `data-engineer`. Six run cleanly on the full schema and drop the session, billing and saved-text tables; two more are stopped only by a dependency error. The other rollbacks refuse without a `luvani.*` setting. Two legacy proofs that execute these files must set it. 2026-11-17: fixed; each of the ten opens with a `luvani.remove_*` interlock (names in `supabase/README.md` § Rollback), and `scripts/verifySessionRefunds.mjs` and `scripts/verifyPhraseAudioBudget.mjs` set theirs before the rollback.
+- note: (a), `data-engineer`. Six run cleanly on the full schema and drop the session, billing and saved-text tables; two more are stopped only by a dependency error. The other destructive rollbacks refuse without a `luvani.*` setting, except one: migration 46's `supabase/rollback/20261116120000_down.sql:174-175` drops the `released_*` columns with no interlock. That is accepted, because it fails closed: afterwards admission counts unjoined starts as spent again, so it errs toward refusing, and only that day's give-backs are lost. Two legacy proofs that execute these files must set it. 2026-11-17: fixed; each of the ten runs in one transaction and opens it with a `luvani.remove_*` interlock (names in `supabase/README.md` § Rollback), and `scripts/verifySessionRefunds.mjs` and `scripts/verifyPhraseAudioBudget.mjs` set theirs before the rollback.
 - verified-by: `every destructive rollback refuses without its interlock`
 - verified-by: `the old destructive rollbacks leave every table in place when run without their setting`
 
