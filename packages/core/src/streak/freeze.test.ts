@@ -1,17 +1,13 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { addDays, daysBetween, type DayKey } from './dayKey.ts';
+import { addDays, type DayKey } from './dayKey.ts';
 import { monthFrom, streakFrom, type StreakCover } from './streak.ts';
 import { FREE_FREEZE_CAP, FREEZE_CAP, FREEZE_RETURN_DAYS, freezesHeld, freezesToApply, nextFreezeReturn } from './freeze.ts';
 import { recentBreak, repairOffer } from './repair.ts';
 import { travelCover } from './travel.ts';
 
 process.env.TZ = 'Europe/Paris';
-
-/** Every key from `from` to `to`, both included, built with `addDays`. */
-const dayRange = (from: DayKey, to: DayKey): DayKey[] =>
-  Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i));
 
 const freeze = (day: DayKey, at = 0): StreakCover => ({ day, kind: 'freeze', at });
 /** Noon in Paris on a day, so a sitting's day key is never near a boundary. */
@@ -54,7 +50,7 @@ describe('repair and travel are a paid-plan perk; with no cap nothing freezes', 
 });
 
 describe('freezes', () => {
-  const run = dayRange('2026-09-20', '2026-10-02');
+  const run = Array.from({ length: 13 }, (_, i) => addDays('2026-09-20', i));
   const paid = { protectedSince: '2026-09-01' };
 
   test('a freeze covers a gap automatically only when it saves the whole run', () => {
@@ -144,7 +140,7 @@ describe('freezes', () => {
   });
 
   test('freezes held stay between none and two, however many covers there are', () => {
-    const many = dayRange('2026-09-28', '2026-10-04').map((d) => freeze(d));
+    const many = Array.from({ length: 7 }, (_, i) => addDays('2026-09-28', i)).map((d) => freeze(d));
     assert.equal(freezesHeld(FREEZE_CAP, { practiceDays: [], covers: [...many, ...many], today: '2026-10-05' }), 0);
     assert.equal(freezesHeld(FREEZE_CAP, { practiceDays: [], covers: [freeze('2026-10-04'), freeze('2026-10-04', 9)], today: '2026-10-05' }), 1);
     // Repair and travel covers are not freezes and never use one up.
@@ -157,7 +153,7 @@ describe('freezes', () => {
 });
 
 describe('a free learner holds one freeze (D23)', () => {
-  const run = dayRange('2026-09-20', '2026-10-02');
+  const run = Array.from({ length: 13 }, (_, i) => addDays('2026-09-20', i));
   const free = { protectedSince: '2026-09-01' };
 
   test('a free learner holds one, and it covers a single missed day', () => {

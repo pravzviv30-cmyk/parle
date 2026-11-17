@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { addDays, dayKeyOf, daysBetween, type DayKey } from './dayKey.ts';
+import { addDays, dayKeyOf, type DayKey } from './dayKey.ts';
 import {
   STREAK_MILESTONES,
   isStreakMilestone,
@@ -16,10 +16,6 @@ import {
 
 // Each test file runs in its own process; Paris is where the clock changes below happen.
 process.env.TZ = 'Europe/Paris';
-
-/** Every key from `from` to `to`, both included, built with `addDays`. */
-const dayRange = (from: DayKey, to: DayKey): DayKey[] =>
-  Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i));
 
 const cover = (day: DayKey, kind: CoverKind = 'freeze', at = 0): StreakCover => ({ day, kind, at });
 
@@ -143,7 +139,7 @@ describe('the streak', () => {
     assert.equal(leap.current, 3);
     const notLeap = streakFrom({ practiceDays: ['2027-02-27', '2027-02-28', '2027-03-01'], covers: [], today: '2027-03-01' });
     assert.equal(notLeap.current, 3, '2027 has no 29th of February to fall into');
-    const newYear = streakFrom({ practiceDays: dayRange('2026-12-29', '2027-01-02'), covers: [], today: '2027-01-02' });
+    const newYear = streakFrom({ practiceDays: Array.from({ length: 5 }, (_, i) => addDays('2026-12-29', i)), covers: [], today: '2027-01-02' });
     assert.equal(newYear.current, 5);
     assert.equal(newYear.runStart, '2026-12-29');
   });
