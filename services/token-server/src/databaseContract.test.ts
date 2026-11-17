@@ -1927,3 +1927,63 @@ describe('unjoined tutor start release (F955)', () => {
     }
   });
 });
+
+// F1080: the client roles keep only the verbs their RLS policies use on the four client
+// tables. Replayed under the hosted Supabase default grants (scripts/verifyDataBoundaries.mjs),
+// so the pre-fix state is asserted first and the test cannot pass on a replay with no grants.
+describe('client table grants (F1080)', () => {
+  const GRANTS = '20261117121000_client_table_grants.sql';
+  const TABLES = ['conversation_packs', 'entitlements', 'learner_state', 'product_events'];
+  const PRIVILEGES = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'];
+  const POLICY_VERBS: Record<string, Record<string, string[]>> = {
+    anon: { conversation_packs: [], entitlements: [], learner_state: [], product_events: [] },
+    authenticated: {
+      conversation_packs: ['SELECT'], entitlements: ['SELECT'],
+      learner_state: ['SELECT', 'INSERT', 'UPDATE', 'DELETE'], product_events: ['INSERT'],
+    },
+  };
+  const held = async (db: PGlite, role: string): Promise<Record<string, string[]>> => {
+    const out: Record<string, string[]> = {};
+    for (const table of TABLES) {
+      out[table] = [];
+      for (const privilege of PRIVILEGES) {
+        const { rows } = await db.query<{ held: boolean }>('select has_table_privilege($1, $2, $3) held', [role, `public.${table}`, privilege]);
+        if (rows[0]!.held) out[table]!.push(privilege);
+      }
+    }
+    return out;
+  };
+
+  test('anon and authenticated hold only the verbs their policies use on the four client tables', async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+        create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+        create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+        create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+        grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;
+        alter default privileges in schema public grant all on tables to anon,authenticated,service_role;
+        alter default privileges in schema public grant all on sequences to anon,authenticated,service_role;`);
+      for (const name of migrationFiles.filter((file) => file < GRANTS)) await db.exec(sqlOf(name));
+
+      const everything = Object.fromEntries(TABLES.map((table) => [table, PRIVILEGES]));
+      assert.deepEqual(await held(db, 'anon'), everything, 'the replay does not reproduce the hosted default grants');
+      assert.deepEqual(await held(db, 'authenticated'), everything, 'the replay does not reproduce the hosted default grants');
+      const serviceRole = await held(db, 'service_role');
+
+      assert.ok(migrationFiles.includes(GRANTS), `supabase/migrations/${GRANTS} does not exist`);
+
+      for (const name of migrationFiles.filter((file) => file >= GRANTS)) await db.exec(sqlOf(name));
+      for (const role of ['anon', 'authenticated']) assert.deepEqual(await held(db, role), POLICY_VERBS[role], `${role} holds more than its policies use`);
+      assert.deepEqual(await held(db, 'service_role'), serviceRole, 'the migration changed what service_role holds');
+
+      // The rollback refuses without its interlock, then restores the hosted grants exactly.
+      const down = readFileSync(path.join(ROLLBACKS, `${GRANTS.split('_')[0]}_down.sql`), 'utf8');
+      await assert.rejects(db.exec(down), /refusing/);
+      await db.exec('rollback');
+      await db.exec(`set luvani.rollback_client_grants = 'yes'; ${down}`);
+      for (const role of ['anon', 'authenticated']) assert.deepEqual(await held(db, role), everything, `the rollback did not restore ${role}`);
+      assert.deepEqual(await held(db, 'service_role'), serviceRole, 'the rollback changed what service_role holds');
+    } finally { await db.close(); }
+  });
+});
