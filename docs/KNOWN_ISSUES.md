@@ -12763,3 +12763,32 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/secureSessionStorage.ts:63
 - note: `removeGeneration` uses `Promise.all`, and `writeSecure` swallows its failure, so `setItem` returns while deletes of the previous generation are still running. The next write reuses that generation. Inputs: write A (generation a, 3 chunks), write B with the delete of chunk a-0 rejecting and the deletes of a-1 and a-2 taking 30 ms, then write C straight away (generation a again). The late deletes remove C's chunks and `getItem` returns null, so the learner signs in again. Nobody else's session is restored. Same fix as F1023: wait with `Promise.allSettled`. Found by work-judge (Fable 5.2), F960 round 3, 2026-11-17.
 - verified-by: `a write waits for every old chunk delete before it returns`
+
+### F1122 — The chat meter prices turns and frames on models the client does not use
+- severity: P2
+- status: [ ]
+- where: services/brain-playground/src/chat.ts:50
+- note: B5-1. OpenAI turns and frames go to the live model but are priced on the two default constants; Anthropic frames go to sonnet and are priced as opus.
+- verified-by: `a turn is priced on the model stamped on its usage, and the label model only fills a missing stamp`
+- verified-by: `the chat label and fallback models come from the routing the client uses`
+
+### F1123 — Evals print a confident dollar figure for a model with no price row
+- severity: P2
+- status: [ ]
+- where: services/brain-playground/src/usage.ts:46
+- note: B5-2. A Groq run prints the fallback rate as if it were real.
+- verified-by: `an eval cost line says when the model has no price row`
+
+### F1125 — The provider choice is hand-copied across the playground tools
+- severity: P2
+- status: [ ]
+- where: services/brain-playground/src/eval/runEval.ts:56
+- note: B5-4. One pure picker, with each tool's present precedence passed in.
+- verified-by: `each playground tool picks the same provider as before for every key combination`
+
+### F1126 — Unused names in the playground
+- severity: P2
+- status: [ ]
+- where: services/brain-playground/src/eval/replayEval.ts:110
+- note: B5-6. Confirm the `hardRules` parameter with `tsc --noUnusedParameters` before removing it.
+- verified-by: `a run is priced on the model stamped on its usage, then on the label model`
