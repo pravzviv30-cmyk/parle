@@ -190,7 +190,8 @@ const FILES: Record<string, string> = {
   // reconciliation remain release holds. Prices, allowances and margin floors
   // retain their original pins. These new pins guard the deliberate new rules.
   // 2026-10-23, REV-001: free 600 s every 44 h, Core 300 min, Max 600 min, refillsAt on the 402; founder approved the allowances and prices in chat.
-  'packages/core/src/sessionSettlement.ts': 'a1da5beb4a0b771ac65a06777147ea86e4640a636192aa26b2e5476f28e77198',
+    // 2026-11-17, F1195 (Phase 4 C4): dead upper bound and the hand-copied plan list removed; readSessionSettlement accepts and refuses the same inputs (grid of 17333 inputs compared against main). No price, allowance, debit or refund changed. Review: revenue-engineer, security and code reviews.
+  'packages/core/src/sessionSettlement.ts': 'e3bf11abf42c54c4e78377baa7218f73863c1c4b2dadd89e8075836cc22ac3c9',
   'supabase/migrations/20261002233520_failed_session_refunds.sql': 'e2159b5fa5079ac44a68fc84bbb8717ba891324c000b488be4d4ee6af606b122',
   'supabase/migrations/20261003001510_approved_phrase_audio_caps.sql': '4dcb7de1e44d95cd10c3914ae59d3b8e9d435ea9714e0cb0264cd42d451252c6',
   // 2026-09-27, Fable paywall review: the entitlement gate, the debit, core metering's entry point, the
