@@ -3,8 +3,10 @@
  *
  * When a tab becomes the selected one, its icon rises two points, then the pop
  * spring brings it home. One Linear drawing in one layer, never scaled, so it
- * stays sharp (item 8, 2026-11-01). Only on a real change from not selected to selected:
- * never when the bar mounts, never on a tap of the tab already open. When the
+ * stays sharp (item 8, 2026-11-01). Only on a change from not selected to selected,
+ * which since F981 includes pressing in on a closed tab (the selected look moves
+ * with the pill) and the open tab again when such a press is cancelled: never
+ * when the bar mounts, never on a tap of the tab already open. When the
  * review deck goes from nothing due to something due while the bar is open,
  * the Practice dot pops in once; a deck already due when the app opens is
  * simply there, because nothing just happened.

@@ -1170,7 +1170,7 @@ describe('a session that ends in the error view lets go of the learner\'s ears',
     }
   });
 
-  test('the drop handler releases nothing when the session had already ended or failed', () => {
+  test('the drop handler gives back the live hold but keeps the audio session when the session had already ended or failed', () => {
     for (const phase of ['ended', 'error']) {
       const calls: string[] = [];
       const handlers = new Map<string, () => void>();
@@ -1187,11 +1187,39 @@ describe('a session that ends in the error view lets go of the learner\'s ears',
           calls.push('release');
           return Promise.resolve();
         },
+        releaseLiveHold: () => calls.push('hold'),
+        safetyRef: { current: null },
+        stoppedBySafety,
       });
       handlers.get(RoomEvent.Disconnected)!();
       assert.ok(!calls.includes('release'), `a room deleted after the session was ${phase} released the audio session out from under the recap`);
+      assert.ok(calls.includes('hold'), `a room deleted after the session was ${phase} kept the live hold up, so every haptic stayed muted (F981)`);
     }
   });
+  test('the drop handler keeps the live hold after a session stopped by safety (F981, Impeccable)', () => {
+    const calls: string[] = [];
+    const handlers = new Map<string, () => void>();
+    run(DISCONNECTED_HANDLER, {
+      room: { on: (event: string, handler: () => void) => handlers.set(event, handler) },
+      RoomEvent,
+      owns: () => true,
+      statusRef: { current: { phase: 'ended' } },
+      clearWatchdog: () => {},
+      setReconnecting: () => {},
+      setStatus: () => calls.push('status'),
+      failureCopy,
+      releaseAudioSession: () => {
+        calls.push('release');
+        return Promise.resolve();
+      },
+      releaseLiveHold: () => calls.push('hold'),
+      safetyRef: { current: STOP },
+      stoppedBySafety,
+    });
+    handlers.get(RoomEvent.Disconnected)!();
+    assert.ok(!calls.includes('hold') && !calls.includes('release'), 'a room dropped after a safety stop gave the stopped session its haptics and sounds back');
+  });
+
 });
 
 describe('the quiet door, mid-session — F200', () => {

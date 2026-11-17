@@ -1,0 +1,1063 @@
+{
+  "generatedAt": "2026-11-07T23:07:56.749Z",
+  "model": "gpt-realtime-2.1",
+  "syntheticOnly": true,
+  "stopped": null,
+  "clips": [
+    {
+      "name": "s01-bonjour-je-voudrais-un-cafe-s-il-vous-plait",
+      "rep": 1,
+      "kind": "scene reply",
+      "truth": "Bonjour, je voudrais un café, s'il vous plaît.",
+      "firstTextMs": 2172,
+      "spokenMs": null,
+      "doneMs": 3961,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"en\": \"For here or to go?\", \"fr\": \"Sur place ou à emporter ?\" },\nassessment: { \"understood\": true, \"taskAchieved\": true, \"comprehensibility\": \"clear\", \"language\": \"french\", \"cefrEvidence\": \"A1\" },\ncoach: [],\ncoachLine: null,\nnarration: null,\nsupport: { \"fullLine\": \"Sur place, s'il vous plaît.\", \"options\": [\"Sur place, s'il vous plaît.\", \"À emporter, s'il vous plaît.\"], \"hintEn\": \"Say whether you want to drink it here or take it away.\" },\nnewPhrases: [\"Je voudrais un café. [courant]\"],\nprofileSignals: { \"errorPatterns\": [], \"usedWell\": [\"Bonjour, je voudrais un café, s'il vous plaît.\"] },\ntopicShift: null,\nscene: { \"beat\": \"greet-and-order\", \"beatDone\": true, \"sceneDone\": false, \"goalMet\": true }",
+      "usage": {
+        "total_tokens": 6884,
+        "input_tokens": 6493,
+        "output_tokens": 391,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 20,
+          "image_tokens": 0,
+          "cached_tokens": 0,
+          "cached_tokens_details": {
+            "text_tokens": 0,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 391,
+          "audio_tokens": 0,
+          "reasoning_tokens": 162
+        }
+      },
+      "usd": 0.032788
+    },
+    {
+      "name": "s02-un-croissant-aussi",
+      "rep": 1,
+      "kind": "scene reply",
+      "truth": "Un croissant aussi.",
+      "firstTextMs": 6399,
+      "spokenMs": 6688,
+      "doneMs": 9944,
+      "text": "\"sceneReply\": {\n  \"speaker\": \"Karim\",\n  \"fr\": \"D'accord pour le croissant. Pour le café, je vous écoute.\"\n},\n\"assessment\": {\n  \"understood\": true,\n  \"taskAchieved\": false,\n  \"comprehensibility\": \"clear\",\n  \"language\": \"french\",\n  \"cefrEvidence\": \"A1\"\n},\n\"coach\": [\n  {\n    \"kind\": \"blocking-error\",\n    \"quote\": \"Un croissant aussi.\",\n    \"betterForm\": \"Bonjour, je vais prendre un café, et un croissant aussi.\",\n    \"betterWritten\": \"Bonjour, je vais prendre un café, et un croissant aussi.\",\n    \"betterEn\": \"Hello, I will have a coffee, and a croissant as well.\",\n    \"why\": \"Say bonjour first and include the coffee to meet the goal of ordering it.\",\n    \"weight\": \"matters-now\"\n  }\n],\n\"coachLine\": \"Pas tout à fait. On dirait: Bonjour, je vais prendre un café, et un croissant aussi.\",\n\"narration\": null,\n\"support\": {\n  \"fullLine\": \"Un café, s'il vous plaît.\",\n  \"options\": [\n    \"Un café, s'il vous plaît.\",\n    \"Je vais prendre un café.\",\n    \"Un café allongé, s'il vous plaît.\"\n  ],\n  \"hintEn\": \"Order the coffee now.\"\n},\n\"newPhrases\": [],\n\"profileSignals\": {\n  \"errorPatterns\": [\n    \"scene-goal-missing: \\\"Un croissant aussi.\\\"\"\n  ],\n  \"usedWell\": [\n    \"aussi\"\n  ]\n},\n\"topicShift\": null,\n\"scene\": {\n  \"beat\": \"greet-and-order\",\n  \"beatDone\": false,\n  \"sceneDone\": false,\n  \"goalMet\": false\n}",
+      "usage": {
+        "total_tokens": 7562,
+        "input_tokens": 6486,
+        "output_tokens": 1076,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 13,
+          "image_tokens": 0,
+          "cached_tokens": 0,
+          "cached_tokens_details": {
+            "text_tokens": 0,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 1076,
+          "audio_tokens": 0,
+          "reasoning_tokens": 680
+        }
+      },
+      "usd": 0.043524
+    },
+    {
+      "name": "s03-c-est-combien",
+      "rep": 1,
+      "kind": "scene reply",
+      "truth": "C'est combien ?",
+      "firstTextMs": 2667,
+      "spokenMs": 2840,
+      "doneMs": 4624,
+      "text": "\"sceneReply\": {\n  \"speaker\": \"Karim\",\n  \"fr\": \"Ça fait deux euros.\"\n},\n\"assessment\": {\n  \"understood\": true,\n  \"taskAchieved\": true,\n  \"comprehensibility\": \"clear\",\n  \"language\": \"french\",\n  \"cefrEvidence\": \"A1\"\n},\n\"coach\": [],\n\"coachLine\": null,\n\"narration\": null,\n\"support\": {\n  \"fullLine\": \"Je paie par carte.\",\n  \"options\": [\n    \"Je paie par carte.\",\n    \"Je paie en espèces.\"\n  ],\n  \"hintEn\": \"Pay the two euros and say how you want to pay.\"\n},\n\"newPhrases\": [\n  {\n    \"fr\": \"Ça fait deux euros.\",\n    \"register\": \"courant\"\n  }\n],\n\"profileSignals\": {\n  \"errorPatterns\": [],\n  \"usedWell\": [\n    \"C'est combien ?\"\n  ]\n},\n\"topicShift\": null,\n\"scene\": {\n  \"beat\": \"pay\",\n  \"beatDone\": false,\n  \"sceneDone\": false,\n  \"goalMet\": true\n}",
+      "usage": {
+        "total_tokens": 6986,
+        "input_tokens": 6485,
+        "output_tokens": 501,
+        "input_token_details": {
+          "text_tokens": 6475,
+          "audio_tokens": 10,
+          "image_tokens": 0,
+          "cached_tokens": 0,
+          "cached_tokens_details": {
+            "text_tokens": 0,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 501,
+          "audio_tokens": 0,
+          "reasoning_tokens": 256
+        }
+      },
+      "usd": 0.034236
+    },
+    {
+      "name": "s04-sur-place-merci",
+      "rep": 1,
+      "kind": "scene reply",
+      "truth": "Sur place, merci.",
+      "firstTextMs": 2737,
+      "spokenMs": null,
+      "doneMs": 4419,
+      "text": "sceneReply: {\"speaker\":\"Karim\",\"text\":\"Ça marche. Un euro cinquante, s'il vous plaît.\"},\nassessment: {\"understood\":true,\"taskAchieved\":true,\"comprehensibility\":\"clear\",\"language\":\"french\",\"cefrEvidence\":\"A1\"},\ncoach: [],\ncoachLine: null,\nnarration: null,\nsupport: {\"fullLine\":\"Je peux payer par carte ?\",\"options\":[\"Je peux payer par carte ?\",\"Voilà, en espèces.\"],\"hintEn\":\"You need to pay now. You can ask to pay by card or say you are paying in cash.\"},\nnewPhrases: [{\"fr\":\"Sur place\",\"en\":\"To have here\",\"register\":\"courant\"},{\"fr\":\"Ça marche\",\"en\":\"Deal. That works\",\"register\":\"courant\"}],\nprofileSignals: {\"errorPatterns\":[],\"usedWell\":[\"Sur place\"]},\ntopicShift: null,\nscene: {\"beat\":\"pay\",\"beatDone\":false,\"sceneDone\":false,\"goalMet\":true}",
+      "usage": {
+        "total_tokens": 6963,
+        "input_tokens": 6493,
+        "output_tokens": 470,
+        "input_token_details": {
+          "text_tokens": 6483,
+          "audio_tokens": 10,
+          "image_tokens": 0,
+          "cached_tokens": 0,
+          "cached_tokens_details": {
+            "text_tokens": 0,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 470,
+          "audio_tokens": 0,
+          "reasoning_tokens": 260
+        }
+      },
+      "usd": 0.033772
+    },
+    {
+      "name": "s05-non-c-est-tout",
+      "rep": 1,
+      "kind": "scene reply",
+      "truth": "Non, c'est tout.",
+      "firstTextMs": 2905,
+      "spokenMs": null,
+      "doneMs": 5406,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"text\": \"D'accord. Je vous écoute pour la commande.\" },\nassessment: { \"understood\": true, \"taskAchieved\": false, \"comprehensibility\": \"clear\", \"language\": \"french\", \"cefrEvidence\": \"A1\" },\ncoach: [ { \"kind\": \"blocking-error\", \"quote\": \"Non, c'est tout.\", \"better\": \"Un café, s'il vous plaît.\", \"betterWritten\": \"Un café, s'il vous plaît.\", \"betterEn\": \"A coffee, please.\", \"why\": \"You need to name what you want to order for the scene to move.\", \"weight\": \"matters-now\" } ],\ncoachLine: \"Pas tout à fait. On dirait: Un café, s'il vous plaît.\",\nnarration: null,\nsupport: { \"fullLine\": \"Un café, s'il vous plaît.\", \"options\": [ \"Bonjour, je vais prendre un café.\", \"Un café allongé, s'il vous plaît.\" ], \"hintEn\": \"Order a coffee and include a polite please.\" },\nnewPhrases: [ { \"fr\": \"Je vous écoute\", \"en\": \"I am listening to you\", \"register\": \"courant\" } ],\nprofileSignals: { \"errorPatterns\": [ { \"tag\": \"missing-order\", \"example\": \"Non, c'est tout.\" } ], \"usedWell\": [] },\ntopicShift: null,\nscene: { \"beat\": \"greet-and-order\", \"beatDone\": false, \"sceneDone\": false, \"goalMet\": false }",
+      "usage": {
+        "total_tokens": 7106,
+        "input_tokens": 6485,
+        "output_tokens": 621,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 5120,
+          "cached_tokens_details": {
+            "text_tokens": 5120,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 621,
+          "audio_tokens": 0,
+          "reasoning_tokens": 277
+        }
+      },
+      "usd": 0.036212
+    },
+    {
+      "name": "s06-je-prends-un-the",
+      "rep": 1,
+      "kind": "scene reply",
+      "truth": "Je prends un thé.",
+      "firstTextMs": 3733,
+      "spokenMs": null,
+      "doneMs": 6558,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"fr\": \"Bonjour. Vous voulez un café ?\", \"en\": \"Hello. Do you want a coffee?\" },\nassessment: { \"understood\": true, \"taskAchieved\": false, \"comprehensibility\": \"clear\", \"language\": \"french\", \"cefrEvidence\": \"A1\" },\ncoach: [ { \"kind\": \"blocking-error\", \"quote\": \"Je prends un thé.\", \"better\": \"Bonjour, je vais prendre un café.\", \"betterWritten\": \"Bonjour, je vais prendre un café.\", \"betterEn\": \"Hello, I'll have a coffee.\", \"why\": \"The scene is about ordering a coffee, and bonjour comes first at the counter.\", \"weight\": \"matters-now\" } ],\ncoachLine: \"Pas tout à fait. On dirait: Bonjour, je vais prendre un café.\",\nnarration: null,\nsupport: { \"fullLine\": \"Bonjour, je vais prendre un café, s'il vous plaît.\", \"options\": [ \"Bonjour, un café, s'il vous plaît.\", \"Bonjour, je vais prendre un café.\" ], \"hintEn\": \"Say hello first, then order a coffee.\" },\nnewPhrases: [ { \"fr\": \"Je vais prendre un café\", \"en\": \"I'll have a coffee.\", \"register\": \"courant\" } ],\nprofileSignals: { \"errorPatterns\": [ { \"tag\": \"wrong-item\", \"example\": \"Je prends un thé.\" } ], \"usedWell\": [] },\ntopicShift: null,\nscene: { \"beat\": \"greet-and-order\", \"beatDone\": false, \"sceneDone\": false, \"goalMet\": false }",
+      "usage": {
+        "total_tokens": 7217,
+        "input_tokens": 6485,
+        "output_tokens": 732,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 0,
+          "cached_tokens_details": {
+            "text_tokens": 0,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 732,
+          "audio_tokens": 0,
+          "reasoning_tokens": 372
+        }
+      },
+      "usd": 0.037988
+    },
+    {
+      "name": "s07-l-addition-s-il-vous-plait",
+      "rep": 1,
+      "kind": "scene reply",
+      "truth": "L'addition, s'il vous plaît.",
+      "firstTextMs": 4769,
+      "spokenMs": null,
+      "doneMs": 6605,
+      "text": "sceneReply: {\"speaker\":\"Karim\",\"fr\":\"Ça fait deux euros, s'il vous plaît.\",\"en\":\"That comes to two euros, please.\"}\nassessment: {\"understood\":true,\"taskAchieved\":true,\"comprehensibility\":\"clear\",\"language\":\"french\",\"cefrEvidence\":\"A1\"}\ncoach: []\ncoachLine: null\nnarration: null\nsupport: {\"fullLine\":\"Je vous dois deux euros.\",\"options\":[\"Je vous dois deux euros.\",\"Je paie en espèces.\",\"Je paie par carte.\"],\"hintEn\":\"Say that you owe two euros, then pay with cash or card.\"}\nnewPhrases: [{\"fr\":\"Ça fait deux euros.\",\"en\":\"That comes to two euros.\",\"register\":\"courant\"}]\nprofileSignals: {\"errorPatterns\":[],\"usedWell\":[\"L'addition, s'il vous plaît.\"]}\ntopicShift: null\nscene: {\"beat\":\"pay\",\"beatDone\":false,\"sceneDone\":false,\"goalMet\":true}",
+      "usage": {
+        "total_tokens": 7142,
+        "input_tokens": 6487,
+        "output_tokens": 655,
+        "input_token_details": {
+          "text_tokens": 6475,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 5120,
+          "cached_tokens_details": {
+            "text_tokens": 5120,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 655,
+          "audio_tokens": 0,
+          "reasoning_tokens": 447
+        }
+      },
+      "usd": 0.036764
+    },
+    {
+      "name": "s08-merci-bonne-journee",
+      "rep": 1,
+      "kind": "scene reply",
+      "truth": "Merci, bonne journée.",
+      "firstTextMs": 3016,
+      "spokenMs": null,
+      "doneMs": 5379,
+      "text": "sceneReply: {\"speaker\":\"Karim\",\"fr\":\"Je vous écoute pour la commande.\",\"en\":\"I am listening for your order.\"}\nassessment: {\"understood\":true,\"taskAchieved\":false,\"comprehensibility\":\"clear\",\"language\":\"french\",\"cefrEvidence\":\"A1\"}\ncoach: [{\"kind\":\"blocking-error\",\"quote\":\"Merci, bonne journée\",\"better\":\"Bonjour, un café s'il vous plaît\",\"betterWritten\":\"Bonjour, un café s'il vous plaît\",\"betterEn\":\"Hello, a coffee please\",\"why\":\"You thanked and closed the exchange, but you still need to order.\",\"weight\":\"matters-now\"}]\ncoachLine: \"Pour commander, dites bonjour puis ce que vous voulez, par exemple un café.\"\nnarration: null\nsupport: {\"fullLine\":\"Bonjour, un café s'il vous plaît.\",\"options\":[\"Bonjour, un café s'il vous plaît.\",\"Bonjour, je vais prendre un café.\",\"Bonjour, un café allongé s'il vous plaît.\"],\"hintEn\":\"Say hello and order the coffee you want.\"}\nnewPhrases: [{\"fr\":\"Je vous écoute\",\"en\":\"I am listening\",\"register\":\"courant\"}]\nprofileSignals: {\"errorPatterns\":[\"task-mismatch: \\\"Merci, bonne journée\\\"\"],\"usedWell\":[]}\ntopicShift: null\nscene: {\"beat\":\"greet-and-order\",\"beatDone\":false,\"sceneDone\":false,\"goalMet\":false}",
+      "usage": {
+        "total_tokens": 7083,
+        "input_tokens": 6486,
+        "output_tokens": 597,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 13,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 597,
+          "audio_tokens": 0,
+          "reasoning_tokens": 299
+        }
+      },
+      "usd": 0.03586
+    },
+    {
+      "name": "e01-a-coffee-please",
+      "rep": 1,
+      "kind": "English answer",
+      "truth": "A coffee please.",
+      "firstTextMs": 2719,
+      "spokenMs": 3007,
+      "doneMs": 5976,
+      "text": "```json\n{\n  \"sceneReply\": {\n    \"speaker\": \"Karim\",\n    \"fr\": \"Très bien. Sur place ou à emporter ?\"\n  },\n  \"assessment\": {\n    \"understood\": true,\n    \"taskAchieved\": true,\n    \"comprehensibility\": \"clear\",\n    \"language\": \"english\",\n    \"cefrEvidence\": \"A1\"\n  },\n  \"coach\": [\n    {\n      \"kind\": \"english-to-french\",\n      \"quote\": \"A coffee, please.\",\n      \"betterSpoken\": \"Un café, s'il vous plaît.\",\n      \"betterWritten\": \"Un café, s'il vous plaît.\",\n      \"betterEn\": \"A coffee, please.\",\n      \"why\": \"This is the natural polite order at a café.\"\n    }\n  ],\n  \"coachLine\": \"You asked for a coffee. In French, say: Un café, s'il vous plaît.\",\n  \"narration\": null,\n  \"support\": {\n    \"fullLine\": \"Sur place, s'il vous plaît.\",\n    \"options\": [\n      \"Sur place, s'il vous plaît.\",\n      \"À emporter, s'il vous plaît.\"\n    ],\n    \"hintEn\": \"Say whether you want it for here or to go.\"\n  },\n  \"newPhrases\": [\n    {\n      \"fr\": \"Un café, s'il vous plaît.\",\n      \"en\": \"A coffee, please.\",\n      \"register\": \"courant\"\n    }\n  ],\n  \"profileSignals\": {\n    \"errorPatterns\": [],\n    \"usedWell\": []\n  },\n  \"topicShift\": null,\n  \"scene\": {\n    \"beat\": \"greet-and-order\",\n    \"beatDone\": true,\n    \"sceneDone\": false,\n    \"goalMet\": true\n  }\n}\n```",
+      "usage": {
+        "total_tokens": 7098,
+        "input_tokens": 6484,
+        "output_tokens": 614,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 11,
+          "image_tokens": 0,
+          "cached_tokens": 0,
+          "cached_tokens_details": {
+            "text_tokens": 0,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 614,
+          "audio_tokens": 0,
+          "reasoning_tokens": 229
+        }
+      },
+      "usd": 0.036068,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e02-i-don-t-know-how-to-say-it",
+      "rep": 1,
+      "kind": "English answer",
+      "truth": "I don't know how to say it.",
+      "firstTextMs": 402,
+      "spokenMs": null,
+      "doneMs": 6787,
+      "text": "Je vais vous proposer une façon naturelle de le dire, puis on continue la scène.sceneReply: { \"speaker\": \"Karim\", \"fr\": \"Pas de souci. Dites simplement ce que vous voulez.\", \"en\": \"No problem. Just say what you want.\" },\nassessment: { \"understood\": true, \"taskAchieved\": false, \"comprehensibility\": \"clear\", \"language\": \"english\", \"cefrEvidence\": \"A1\" },\ncoach: [ { \"kind\": \"english-to-french\", \"quote\": \"I don't know how to say it.\", \"better\": \"Je sais pas comment le dire.\", \"betterWritten\": \"Je ne sais pas comment le dire.\", \"betterEn\": \"I don't know how to say it.\", \"why\": \"This is the natural spoken form and the ne is usually dropped.\", \"weight\": \"matters-now\" } ],\ncoachLine: \"Vous cherchiez les mots. On dirait: \\\"Je sais pas comment le dire.\\\"\",\nnarration: null,\nsupport: { \"fullLine\": \"Bonjour, je vais prendre un café.\", \"options\": [ \"Un café, s'il vous plaît.\", \"Bonjour, un café allongé, s'il vous plaît.\" ], \"hintEn\": \"Say hello, then order a coffee.\" },\nnewPhrases: [ { \"fr\": \"Je sais pas comment le dire.\", \"en\": \"I don't know how to say it.\", \"register\": \"courant\" } ],\nprofileSignals: { \"errorPatterns\": [], \"usedWell\": [] },\ntopicShift: null,\nscene: { \"beat\": \"greet-and-order\", \"beatDone\": false, \"sceneDone\": false, \"goalMet\": false }",
+      "usage": {
+        "total_tokens": 7261,
+        "input_tokens": 6485,
+        "output_tokens": 776,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 776,
+          "audio_tokens": 0,
+          "reasoning_tokens": 402
+        }
+      },
+      "usd": 0.038692,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e03-how-much-is-it",
+      "rep": 1,
+      "kind": "English answer",
+      "truth": "How much is it?",
+      "firstTextMs": 4149,
+      "spokenMs": null,
+      "doneMs": 6879,
+      "text": "sceneReply: {\n  \"speaker\": \"Karim\",\n  \"fr\": \"Ça fait deux euros.\"\n},\nassessment: {\n  \"understood\": true,\n  \"taskAchieved\": true,\n  \"comprehensibility\": \"clear\",\n  \"language\": \"english\",\n  \"cefrEvidence\": \"A1\"\n},\ncoach: [\n  {\n    \"kind\": \"english-to-french\",\n    \"quote\": \"How much is it?\",\n    \"better\": \"Je vous dois combien ?\",\n    \"betterWritten\": \"Je vous dois combien ?\",\n    \"betterEn\": \"How much do I owe you?\",\n    \"why\": \"This is the natural service-counter question in French.\",\n    \"weight\": \"matters-now\"\n  }\n],\ncoachLine: \"You were asking the price. In French, you can say: Je vous dois combien ?\",\nnarration: null,\nsupport: {\n  \"fullLine\": \"Je paie par carte, s'il vous plaît.\",\n  \"options\": [\n    \"Je paie par carte, s'il vous plaît.\",\n    \"Je paie en espèces.\"\n  ],\n  \"hintEn\": \"Say how you will pay.\"\n},\nnewPhrases: [\n  \"Ça fait deux euros. [courant]\",\n  \"Je vous dois combien ? [courant]\"\n],\nprofileSignals: {\n  \"errorPatterns\": [],\n  \"usedWell\": []\n},\ntopicShift: null,\nscene: {\n  \"beat\": \"pay\",\n  \"beatDone\": false,\n  \"sceneDone\": false,\n  \"goalMet\": false\n}",
+      "usage": {
+        "total_tokens": 7200,
+        "input_tokens": 6485,
+        "output_tokens": 715,
+        "input_token_details": {
+          "text_tokens": 6475,
+          "audio_tokens": 10,
+          "image_tokens": 0,
+          "cached_tokens": 5120,
+          "cached_tokens_details": {
+            "text_tokens": 5120,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 715,
+          "audio_tokens": 0,
+          "reasoning_tokens": 382
+        }
+      },
+      "usd": 0.03766,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e04-can-i-have-a-croissant-too",
+      "rep": 1,
+      "kind": "English answer",
+      "truth": "Can I have a croissant too?",
+      "firstTextMs": 4828,
+      "spokenMs": 5047,
+      "doneMs": 7916,
+      "text": "\"sceneReply\": {\n  \"speaker\": \"Karim\",\n  \"fr\": \"Bien sûr, je note un croissant. Pour le café, je vous écoute.\",\n  \"en\": null\n},\n\"assessment\": {\n  \"understood\": true,\n  \"taskAchieved\": false,\n  \"comprehensibility\": \"clear\",\n  \"language\": \"english\",\n  \"cefrEvidence\": null\n},\n\"coach\": [\n  {\n    \"kind\": \"english-to-french\",\n    \"quote\": \"Can I have a croissant too?\",\n    \"betterSpoken\": \"Je voudrais aussi un croissant.\",\n    \"betterWritten\": \"Je voudrais aussi un croissant.\",\n    \"betterEn\": \"I would also like a croissant.\",\n    \"why\": \"This is the natural polite way to add another item at the counter.\",\n    \"weight\": \"matters-now\"\n  }\n],\n\"coachLine\": \"You were adding something to the order. In French, say: Je voudrais aussi un croissant.\",\n\"narration\": null,\n\"support\": {\n  \"fullLine\": \"Bonjour, un café s'il vous plaît.\",\n  \"options\": [\n    \"Bonjour, un café s'il vous plaît.\",\n    \"Bonjour, un café allongé s'il vous plaît.\",\n    \"Bonjour, juste un café, merci.\"\n  ],\n  \"hintEn\": \"Say which coffee you want to order.\"\n},\n\"newPhrases\": [\n  {\n    \"fr\": \"Je voudrais aussi un croissant.\",\n    \"register\": \"courant\"\n  }\n],\n\"profileSignals\": {\n  \"errorPatterns\": [],\n  \"usedWell\": []\n},\n\"topicShift\": null,\n\"scene\": {\n  \"beat\": \"greet-and-order\",\n  \"beatDone\": false,\n  \"sceneDone\": false,\n  \"goalMet\": false\n}",
+      "usage": {
+        "total_tokens": 7372,
+        "input_tokens": 6487,
+        "output_tokens": 885,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 14,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 885,
+          "audio_tokens": 0,
+          "reasoning_tokens": 495
+        }
+      },
+      "usd": 0.0405,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e05-i-want-to-sit-outside",
+      "rep": 1,
+      "kind": "English answer",
+      "truth": "I want to sit outside.",
+      "firstTextMs": 2366,
+      "spokenMs": 2528,
+      "doneMs": 5297,
+      "text": "\"sceneReply\": {\n  \"speaker\": \"Karim\",\n  \"fr\": \"Ça marche.\",\n  \"en\": \"That works.\"\n},\n\"assessment\": {\n  \"understood\": true,\n  \"taskAchieved\": true,\n  \"comprehensibility\": \"clear\",\n  \"language\": \"english\",\n  \"cefrEvidence\": \"A1\"\n},\n\"coach\": [\n  {\n    \"kind\": \"english-to-french\",\n    \"quote\": \"I want to sit outside.\",\n    \"betterSpoken\": \"Sur place, en terrasse, s'il vous plaît.\",\n    \"betterWritten\": \"Sur place, en terrasse, s'il vous plaît.\",\n    \"betterEn\": \"To have it here, on the terrace, please.\",\n    \"why\": \"This fits the counter choice and adds the terrace detail naturally.\",\n    \"weight\": \"matters-now\"\n  }\n],\n\"coachLine\": \"You want to sit outside, so you can say: Sur place, en terrasse, s'il vous plaît.\",\n\"narration\": null,\n\"support\": {\n  \"fullLine\": \"Merci.\",\n  \"options\": [\n    \"Merci.\",\n    \"Parfait, merci.\"\n  ],\n  \"hintEn\": \"Just acknowledge the barista before they continue.\"\n},\n\"newPhrases\": [\n  {\n    \"fr\": \"en terrasse\",\n    \"en\": \"on the terrace\",\n    \"register\": \"courant\"\n  }\n],\n\"profileSignals\": {\n  \"errorPatterns\": [],\n  \"usedWell\": []\n},\n\"topicShift\": null,\n\"scene\": {\n  \"beat\": \"say-where\",\n  \"beatDone\": true,\n  \"sceneDone\": false,\n  \"goalMet\": true\n}",
+      "usage": {
+        "total_tokens": 7090,
+        "input_tokens": 6495,
+        "output_tokens": 595,
+        "input_token_details": {
+          "text_tokens": 6483,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 5120,
+          "cached_tokens_details": {
+            "text_tokens": 5120,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 595,
+          "audio_tokens": 0,
+          "reasoning_tokens": 232
+        }
+      },
+      "usd": 0.035836,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e06-no-thanks-that-s-all",
+      "rep": 1,
+      "kind": "English answer",
+      "truth": "No thanks, that's all.",
+      "firstTextMs": 2185,
+      "spokenMs": null,
+      "doneMs": 4873,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"fr\": \"Très bien. Je reste là si vous changez d'avis.\" },\nassessment: { \"understood\": true, \"taskAchieved\": false, \"comprehensibility\": \"clear\", \"language\": \"english\", \"cefrEvidence\": \"A1\" },\ncoach: [\n  {\n    \"kind\": \"english-to-french\",\n    \"quote\": \"No thanks, that's all.\",\n    \"betterSpoken\": \"Non merci, c'est tout.\",\n    \"betterWritten\": \"Non merci, c'est tout.\",\n    \"betterEn\": \"No thanks, that's all.\",\n    \"why\": \"This is the natural short way to refuse politely in French.\",\n    \"weight\": \"matters-now\"\n  }\n],\ncoachLine: \"You’re closing the order. In French, say: Non merci, c'est tout.\",\nnarration: null,\nsupport: { \"fullLine\": \"Non merci, c'est tout.\", \"options\": [\"Non merci, c'est tout.\", \"En fait, un café s'il vous plaît.\"], \"hintEn\": \"You’re politely saying you don’t want anything else.\" },\nnewPhrases: [\"Non merci, c'est tout. [courant]\"],\nprofileSignals: { \"errorPatterns\": [\"english-answer in scene\"], \"usedWell\": [] },\ntopicShift: null,\nscene: { \"beat\": \"greet-and-order\", \"beatDone\": false, \"sceneDone\": false, \"goalMet\": false }",
+      "usage": {
+        "total_tokens": 7019,
+        "input_tokens": 6484,
+        "output_tokens": 535,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 11,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 535,
+          "audio_tokens": 0,
+          "reasoning_tokens": 212
+        }
+      },
+      "usd": 0.034804,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e07-what-does-that-mean",
+      "rep": 1,
+      "kind": "English answer",
+      "truth": "What does that mean?",
+      "firstTextMs": 5396,
+      "spokenMs": 5675,
+      "doneMs": 7744,
+      "text": "\"sceneReply\": {\n  \"speaker\": \"Karim\",\n  \"fr\": \"Bonjour. Vous pouvez me dire votre café quand vous voulez.\"\n},\n\"assessment\": {\n  \"understood\": true,\n  \"taskAchieved\": false,\n  \"comprehensibility\": \"clear\",\n  \"language\": \"english\",\n  \"cefrEvidence\": null\n},\n\"coach\": [],\n\"coachLine\": \"It means: what would you like?\",\n\"narration\": null,\n\"support\": {\n  \"fullLine\": \"Bonjour, je vais prendre un café, s'il vous plaît.\",\n  \"options\": [\n    \"Bonjour, un café, s'il vous plaît.\",\n    \"Bonjour, je vais prendre un café allongé, s'il vous plaît.\"\n  ],\n  \"hintEn\": \"Say hello, then say which coffee you want.\"\n},\n\"newPhrases\": [\n  {\n    \"fr\": \"je vais prendre\",\n    \"register\": \"courant\",\n    \"en\": \"I will have\"\n  }\n],\n\"profileSignals\": {\n  \"errorPatterns\": [],\n  \"usedWell\": []\n},\n\"topicShift\": null,\n\"scene\": {\n  \"beat\": \"greet-and-order\",\n  \"beatDone\": false,\n  \"sceneDone\": false,\n  \"goalMet\": false\n}",
+      "usage": {
+        "total_tokens": 7280,
+        "input_tokens": 6483,
+        "output_tokens": 797,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 10,
+          "image_tokens": 0,
+          "cached_tokens": 0,
+          "cached_tokens_details": {
+            "text_tokens": 0,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 797,
+          "audio_tokens": 0,
+          "reasoning_tokens": 520
+        }
+      },
+      "usd": 0.038964,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e08-sorry-i-didn-t-understand",
+      "rep": 1,
+      "kind": "English answer",
+      "truth": "Sorry, I didn't understand.",
+      "firstTextMs": 5425,
+      "spokenMs": 5715,
+      "doneMs": 9082,
+      "text": "```json\n{\n  \"sceneReply\": {\n    \"speaker\": \"Karim\",\n    \"fr\": \"Bonjour. Je peux prendre votre commande.\"\n  },\n  \"assessment\": {\n    \"understood\": true,\n    \"taskAchieved\": false,\n    \"comprehensibility\": \"clear\",\n    \"language\": \"english\",\n    \"cefrEvidence\": \"A1\"\n  },\n  \"coach\": [\n    {\n      \"kind\": \"english-to-french\",\n      \"quote\": \"Sorry, I didn't understand.\",\n      \"betterSpoken\": \"Désolé, j'ai pas compris.\",\n      \"betterWritten\": \"Désolé, je n'ai pas compris.\",\n      \"betterEn\": \"Sorry, I didn't understand.\",\n      \"why\": \"It is the natural way to say you did not understand in French.\",\n      \"weight\": \"matters-now\"\n    }\n  ],\n  \"coachLine\": \"You were saying you didn't understand. In French, say: Désolé, j'ai pas compris.\",\n  \"narration\": null,\n  \"support\": {\n    \"fullLine\": \"Bonjour, je vais prendre un café.\",\n    \"options\": [\n      \"Bonjour, un café, s'il vous plaît.\",\n      \"Bonjour, je vais prendre un café allongé.\"\n    ],\n    \"hintEn\": \"Say hello and order a coffee.\"\n  },\n  \"newPhrases\": [\n    {\n      \"fr\": \"J'ai pas compris.\",\n      \"en\": \"I didn't understand.\",\n      \"register\": \"courant\"\n    },\n    {\n      \"fr\": \"Je peux prendre votre commande.\",\n      \"en\": \"I can take your order.\",\n      \"register\": \"courant\"\n    }\n  ],\n  \"profileSignals\": {\n    \"errorPatterns\": [],\n    \"usedWell\": []\n  },\n  \"topicShift\": null,\n  \"scene\": {\n    \"beat\": \"greet-and-order\",\n    \"beatDone\": false,\n    \"sceneDone\": false,\n    \"goalMet\": false\n  }\n}\n```",
+      "usage": {
+        "total_tokens": 7362,
+        "input_tokens": 6486,
+        "output_tokens": 876,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 13,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 876,
+          "audio_tokens": 0,
+          "reasoning_tokens": 445
+        }
+      },
+      "usd": 0.040324,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "s01-bonjour-je-voudrais-un-cafe-s-il-vous-plait",
+      "rep": 2,
+      "kind": "scene reply",
+      "truth": "Bonjour, je voudrais un café, s'il vous plaît.",
+      "firstTextMs": 1499,
+      "spokenMs": null,
+      "doneMs": 3472,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"fr\": \"Bonjour. Sur place ou à emporter ?\" },\nassessment: { \"understood\": true, \"taskAchieved\": true, \"comprehensibility\": \"clear\", \"language\": \"french\", \"cefrEvidence\": \"A1\" },\ncoach: [],\ncoachLine: null,\nnarration: null,\nsupport: { \"fullLine\": \"Sur place, s'il vous plaît.\", \"options\": [\"Sur place, s'il vous plaît.\", \"À emporter, s'il vous plaît.\"], \"hintEn\": \"Say whether you will drink it here or take it away.\" },\nnewPhrases: [{ \"fr\": \"À emporter\", \"en\": \"To take away\", \"register\": \"courant\" }],\nprofileSignals: { \"errorPatterns\": [], \"usedWell\": [\"Bonjour, je voudrais un café, s'il vous plaît.\"] },\ntopicShift: null,\nscene: { \"beat\": \"say-where\", \"beatDone\": false, \"goalMet\": true, \"sceneDone\": false }",
+      "usage": {
+        "total_tokens": 6818,
+        "input_tokens": 6493,
+        "output_tokens": 325,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 20,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 325,
+          "audio_tokens": 0,
+          "reasoning_tokens": 92
+        }
+      },
+      "usd": 0.031732
+    },
+    {
+      "name": "s02-un-croissant-aussi",
+      "rep": 2,
+      "kind": "scene reply",
+      "truth": "Un croissant aussi.",
+      "firstTextMs": 5458,
+      "spokenMs": null,
+      "doneMs": 8935,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"fr\": \"Bonjour. Un café et un croissant, ça marche. Sur place ou à emporter ?\", \"en\": \"Hello. A coffee and a croissant, that works. For here or to go?\" },\nassessment: { \"understood\": true, \"taskAchieved\": false, \"comprehensibility\": \"clear\", \"language\": \"french\", \"cefrEvidence\": \"A1\" },\ncoach: [\n  {\n    \"kind\": \"blocking-error\",\n    \"quote\": \"un croissant aussi\",\n    \"betterSpoken\": \"Bonjour, je vais prendre un café, et un croissant aussi.\",\n    \"betterWritten\": \"Bonjour, je vais prendre un café, et un croissant aussi.\",\n    \"betterEn\": \"Hello, I will have a coffee, and a croissant too.\",\n    \"why\": \"You need the greeting first, and the scene goal includes ordering a coffee.\",\n    \"weight\": \"matters-now\"\n  }\n],\ncoachLine: \"Pas tout à fait. On dirait: Bonjour, je vais prendre un café, et un croissant aussi.\",\nnarration: null,\nsupport: {\n  \"fullLine\": \"Sur place, s'il vous plaît.\",\n  \"options\": [\n    \"Sur place, s'il vous plaît.\",\n    \"À emporter, s'il vous plaît.\"\n  ],\n  \"hintEn\": \"Say if the order is for here or to go.\"\n},\nnewPhrases: [\n  { \"fr\": \"ça marche\", \"en\": \"that works\", \"register\": \"courant\" }\n],\nprofileSignals: {\n  \"errorPatterns\": [\n    { \"tag\": \"bonjour-missing\", \"example\": \"un croissant aussi\" }\n  ],\n  \"usedWell\": [\n    \"croissant\"\n  ]\n},\ntopicShift: null,\nscene: { \"beat\": \"greet-and-order\", \"beatDone\": false, \"sceneDone\": false, \"goalMet\": false }",
+      "usage": {
+        "total_tokens": 7434,
+        "input_tokens": 6486,
+        "output_tokens": 948,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 13,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 948,
+          "audio_tokens": 0,
+          "reasoning_tokens": 522
+        }
+      },
+      "usd": 0.041476
+    },
+    {
+      "name": "s03-c-est-combien",
+      "rep": 2,
+      "kind": "scene reply",
+      "truth": "C'est combien ?",
+      "firstTextMs": 3367,
+      "spokenMs": 3619,
+      "doneMs": 5932,
+      "text": "```json\n{\n  \"sceneReply\": {\n    \"speaker\": \"Karim\",\n    \"fr\": \"Ça fait deux euros.\",\n    \"en\": \"That comes to two euros.\"\n  },\n  \"assessment\": {\n    \"understood\": true,\n    \"taskAchieved\": true,\n    \"comprehensibility\": \"clear\",\n    \"language\": \"french\",\n    \"cefrEvidence\": \"A1\"\n  },\n  \"coach\": [],\n  \"coachLine\": null,\n  \"narration\": null,\n  \"support\": {\n    \"fullLine\": \"Je paie par carte, s'il vous plaît.\",\n    \"options\": [\n      \"Je paie en espèces.\",\n      \"Je paie par carte, s'il vous plaît.\"\n    ],\n    \"hintEn\": \"Say how you will pay.\"\n  },\n  \"newPhrases\": [\n    {\n      \"fr\": \"Ça fait deux euros.\",\n      \"en\": \"That comes to two euros.\",\n      \"register\": \"courant\"\n    }\n  ],\n  \"profileSignals\": {\n    \"errorPatterns\": [],\n    \"usedWell\": [\n      \"C'est combien ?\"\n    ]\n  },\n  \"topicShift\": null,\n  \"scene\": {\n    \"beat\": \"pay\",\n    \"beatDone\": false,\n    \"sceneDone\": false,\n    \"goalMet\": true\n  }\n}\n```",
+      "usage": {
+        "total_tokens": 7091,
+        "input_tokens": 6485,
+        "output_tokens": 606,
+        "input_token_details": {
+          "text_tokens": 6475,
+          "audio_tokens": 10,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 606,
+          "audio_tokens": 0,
+          "reasoning_tokens": 312
+        }
+      },
+      "usd": 0.035916
+    },
+    {
+      "name": "s04-sur-place-merci",
+      "rep": 2,
+      "kind": "scene reply",
+      "truth": "Sur place, merci.",
+      "firstTextMs": 2230,
+      "spokenMs": null,
+      "doneMs": 3797,
+      "text": "sceneReply: {\"speaker\":\"Karim\",\"text\":\"Ça marche. Ça fait deux euros.\"},\nassessment: {\"understood\":true,\"taskAchieved\":true,\"comprehensibility\":\"clear\",\"language\":\"french\",\"cefrEvidence\":\"A1\"},\ncoach: [],\ncoachLine: null,\nnarration: null,\nsupport: {\"fullLine\":\"Je peux payer par carte ?\",\"options\":[\"Je peux payer par carte ?\",\"Je paie en espèces, merci.\",\"Tenez, voici la carte.\"],\"hintEn\":\"Pay now, for example by asking if you can pay by card.\"},\nnewPhrases: [\"ça marche [courant]\"],\nprofileSignals: {\"errorPatterns\":[],\"usedWell\":[\"Sur place\"]},\ntopicShift: null,\nscene: {\"beat\":\"say-where\",\"beatDone\":true,\"sceneDone\":false,\"goalMet\":true}",
+      "usage": {
+        "total_tokens": 6879,
+        "input_tokens": 6493,
+        "output_tokens": 386,
+        "input_token_details": {
+          "text_tokens": 6483,
+          "audio_tokens": 10,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 386,
+          "audio_tokens": 0,
+          "reasoning_tokens": 203
+        }
+      },
+      "usd": 0.032428
+    },
+    {
+      "name": "s05-non-c-est-tout",
+      "rep": 2,
+      "kind": "scene reply",
+      "truth": "Non, c'est tout.",
+      "firstTextMs": 1622,
+      "spokenMs": 1788,
+      "doneMs": 4311,
+      "text": "\"sceneReply\": {\"speaker\":\"Karim\",\"fr\":\"D'accord. Quand vous êtes prêt, vous me dites.\",\"en\":\"Alright. When you are ready, just tell me.\"},\n\"assessment\": {\"understood\":true,\"taskAchieved\":false,\"comprehensibility\":\"clear\",\"language\":\"french\",\"cefrEvidence\":\"A1\"},\n\"coach\":[{\"kind\":\"blocking-error\",\"quote\":\"Non, c'est tout.\",\"better\":\"Bonjour, je vais prendre un café, s'il vous plaît.\",\"betterWritten\":\"Bonjour, je vais prendre un café, s'il vous plaît.\",\"betterEn\":\"Hello, I will have a coffee, please.\",\"why\":\"This line closes the order instead of making one.\",\"weight\":\"matters-now\"}],\n\"coachLine\":\"You meant you did not want anything, but to continue you need to order a coffee.\",\n\"narration\": null,\n\"support\": {\"fullLine\":\"Bonjour, je vais prendre un café, s'il vous plaît.\",\"options\":[\"Bonjour, un café, s'il vous plaît.\",\"Bonjour, je vais prendre un café allongé.\"],\"hintEn\":\"Order a coffee after saying hello.\"},\n\"newPhrases\":[{\"fr\":\"Je vais prendre un café\",\"en\":\"I will have a coffee\",\"register\":\"courant\"}],\n\"profileSignals\":{\"errorPatterns\":[{\"tag\":\"order-missing\",\"example\":\"Non, c'est tout.\"}],\"usedWell\":[]},\n\"topicShift\": null,\n\"scene\":{\"beat\":\"greet-and-order\",\"beatDone\":false,\"sceneDone\":false,\"goalMet\":false}",
+      "usage": {
+        "total_tokens": 6921,
+        "input_tokens": 6485,
+        "output_tokens": 436,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 0,
+          "cached_tokens_details": {
+            "text_tokens": 0,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 436,
+          "audio_tokens": 0,
+          "reasoning_tokens": 110
+        }
+      },
+      "usd": 0.033252
+    },
+    {
+      "name": "s06-je-prends-un-the",
+      "rep": 2,
+      "kind": "scene reply",
+      "truth": "Je prends un thé.",
+      "firstTextMs": 5189,
+      "spokenMs": null,
+      "doneMs": 8119,
+      "text": "sceneReply: {\"speaker\":\"Karim\",\"fr\":\"Un thé, très bien. Sur place ou à emporter ?\",\"en\":\"A tea, very well. For here or to go?\"},\nassessment: {\"understood\":true,\"taskAchieved\":false,\"comprehensibility\":\"clear\",\"language\":\"french\",\"cefrEvidence\":\"A1\"},\ncoach: [{\"kind\":\"blocking-error\",\"quote\":\"Je prends un thé.\",\"better\":\"Bonjour, je vais prendre un café.\",\"betterWritten\":\"Bonjour, je vais prendre un café.\",\"betterEn\":\"Hello, I will have a coffee.\",\"why\":\"The scene goal is to greet and order a coffee, and your line ordered a different drink.\",\"weight\":\"matters-now\"}],\ncoachLine: \"Pas tout à fait. Ici, on commande un café.\",\nnarration: null,\nsupport: {\"fullLine\":\"Sur place, s'il vous plaît.\",\"options\":[\"Sur place, s'il vous plaît.\",\"À emporter, s'il vous plaît.\",\"Au comptoir, s'il vous plaît.\"],\"hintEn\":\"Say whether you want it for here or to go.\"},\nnewPhrases: [{\"phrase\":\"Sur place ou à emporter ?\",\"register\":\"courant\"}],\nprofileSignals: {\"errorPatterns\":[\"task-mismatch: \\\"Je prends un thé.\\\"\"],\"usedWell\":[\"Je prends.\"]},\ntopicShift: null,\nscene: {\"beat\":\"greet-and-order\",\"beatDone\":false,\"sceneDone\":false,\"goalMet\":false}",
+      "usage": {
+        "total_tokens": 7290,
+        "input_tokens": 6485,
+        "output_tokens": 805,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 805,
+          "audio_tokens": 0,
+          "reasoning_tokens": 495
+        }
+      },
+      "usd": 0.039156
+    },
+    {
+      "name": "s07-l-addition-s-il-vous-plait",
+      "rep": 2,
+      "kind": "scene reply",
+      "truth": "L'addition, s'il vous plaît.",
+      "firstTextMs": 3490,
+      "spokenMs": null,
+      "doneMs": 5916,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"fr\": \"Deux euros, s'il vous plaît.\", \"en\": \"Two euros, please.\" }\nassessment: { \"understood\": true, \"taskAchieved\": true, \"comprehensibility\": \"clear\", \"language\": \"french\", \"cefrEvidence\": \"A1\" }\ncoach: [ { \"kind\": \"register-mismatch\", \"quote\": \"L'addition, s'il vous plaît.\", \"better\": \"Je vous dois combien ?\", \"betterWritten\": \"Je vous dois combien ?\", \"betterEn\": \"How much do I owe you?\", \"why\": \"At a counter, people usually ask the amount rather than asking for the bill.\", \"weight\": \"minor\" } ]\ncoachLine: null\nnarration: null\nsupport: { \"fullLine\": \"Je paie en espèces.\", \"options\": [\"Je paie en espèces.\", \"Je paie par carte.\"], \"hintEn\": \"Tell them how you are paying.\" }\nnewPhrases: [\"Je vous dois combien ? [courant]\"]\nprofileSignals: { \"errorPatterns\": [\"register-mismatch\"], \"usedWell\": [\"Sur place, merci.\"] }\ntopicShift: null\nscene: { \"beat\": \"pay\", \"beatDone\": false, \"sceneDone\": false, \"goalMet\": true }",
+      "usage": {
+        "total_tokens": 7117,
+        "input_tokens": 6487,
+        "output_tokens": 630,
+        "input_token_details": {
+          "text_tokens": 6475,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 630,
+          "audio_tokens": 0,
+          "reasoning_tokens": 339
+        }
+      },
+      "usd": 0.036364
+    },
+    {
+      "name": "s08-merci-bonne-journee",
+      "rep": 2,
+      "kind": "scene reply",
+      "truth": "Merci, bonne journée.",
+      "firstTextMs": 3344,
+      "spokenMs": null,
+      "doneMs": 5876,
+      "text": "sceneReply: {\"speaker\":\"Karim\",\"fr\":\"Bonjour. Si vous voulez commander, je peux prendre votre café.\",\"en\":\"Hello. If you want to order, I can take your coffee order.\"}\nassessment: {\"understood\":true,\"taskAchieved\":false,\"comprehensibility\":\"clear\",\"language\":\"french\",\"cefrEvidence\":\"A1\"}\ncoach: [{\"kind\":\"blocking-error\",\"quote\":\"Merci, bonne journée\",\"betterSpoken\":\"Bonjour, un café, s'il vous plaît\",\"betterWritten\":\"Bonjour, un café, s'il vous plaît\",\"betterEn\":\"Hello, a coffee please\",\"why\":\"You ended the exchange instead of giving an order at the counter.\",\"weight\":\"matters-now\"}]\ncoachLine: \"Pas tout à fait. On dirait: Bonjour, un café, s'il vous plaît.\"\nnarration: null\nsupport: {\"fullLine\":\"Bonjour, un café, s'il vous plaît.\",\"options\":[\"Bonjour, un café, s'il vous plaît.\",\"Bonjour, je vais prendre un café.\",\"Bonjour, un café allongé, s'il vous plaît.\"],\"hintEn\":\"Order a coffee politely.\"}\nnewPhrases: []\nprofileSignals: {\"errorPatterns\":[\"task-mismatch: \\\"Merci, bonne journée\\\"\"],\"usedWell\":[]}\ntopicShift: null\nscene: {\"beat\":\"greet-and-order\",\"beatDone\":false,\"sceneDone\":false,\"goalMet\":false}",
+      "usage": {
+        "total_tokens": 7118,
+        "input_tokens": 6486,
+        "output_tokens": 632,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 13,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 632,
+          "audio_tokens": 0,
+          "reasoning_tokens": 334
+        }
+      },
+      "usd": 0.03642
+    },
+    {
+      "name": "e01-a-coffee-please",
+      "rep": 2,
+      "kind": "English answer",
+      "truth": "A coffee please.",
+      "firstTextMs": 2486,
+      "spokenMs": null,
+      "doneMs": 5557,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"fr\": \"Très bien. Sur place ou à emporter ?\", \"en\": \"Very good. For here or to go?\" },\nassessment: { \"understood\": true, \"taskAchieved\": true, \"comprehensibility\": \"clear\", \"language\": \"english\", \"cefrEvidence\": \"A1\" },\ncoach: [ { \"kind\": \"english-to-french\", \"quote\": \"A coffee, please.\", \"betterSpoken\": \"Bonjour, un café, s'il vous plaît.\", \"betterWritten\": \"Bonjour, un café, s'il vous plaît.\", \"betterEn\": \"Hello, a coffee, please.\", \"why\": \"This is the natural polite order at a café, and bonjour comes first.\", \"weight\": \"matters-now\" } ],\ncoachLine: \"You were asking for a coffee. In French: Bonjour, un café, s'il vous plaît.\",\nnarration: null,\nsupport: { \"fullLine\": \"Sur place, s'il vous plaît.\", \"options\": [ \"Sur place, s'il vous plaît.\", \"À emporter, s'il vous plaît.\" ], \"hintEn\": \"Say whether you will drink it here or take it away.\" },\nnewPhrases: [ { \"fr\": \"Un café, s'il vous plaît.\", \"en\": \"A coffee, please.\", \"register\": \"courant\" } ],\nprofileSignals: { \"errorPatterns\": [], \"usedWell\": [] },\ntopicShift: null,\nscene: { \"beat\": \"greet-and-order\", \"beatDone\": true, \"sceneDone\": false, \"goalMet\": false }",
+      "usage": {
+        "total_tokens": 7067,
+        "input_tokens": 6484,
+        "output_tokens": 583,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 11,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 583,
+          "audio_tokens": 0,
+          "reasoning_tokens": 230
+        }
+      },
+      "usd": 0.035572,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e02-i-don-t-know-how-to-say-it",
+      "rep": 2,
+      "kind": "English answer",
+      "truth": "I don't know how to say it.",
+      "firstTextMs": 578,
+      "spokenMs": null,
+      "doneMs": 7936,
+      "text": "I’ll keep it simple and help you say exactly what you mean in French, then we’ll slip back into the café scene.\"sceneReply\": {\n  \"speaker\": \"Karim\",\n  \"text\": \"Bonjour, je vous écoute.\"\n},\n\"assessment\": {\n  \"understood\": true,\n  \"taskAchieved\": false,\n  \"comprehensibility\": \"clear\",\n  \"language\": \"english\",\n  \"cefrEvidence\": \"A0\"\n},\n\"coach\": [\n  {\n    \"kind\": \"english-to-french\",\n    \"quote\": \"I don't know how to say it.\",\n    \"better\": \"Bonjour, je vais prendre un café, s'il vous plaît.\",\n    \"betterWritten\": \"Bonjour, je vais prendre un café, s'il vous plaît.\",\n    \"betterEn\": \"Hello, I will have a coffee, please.\",\n    \"why\": \"This is the usual polite way to order at a counter.\",\n    \"weight\": \"matters-now\"\n  }\n],\n\"coachLine\": \"You want to place the order. Say: Bonjour, je vais prendre un café, s'il vous plaît.\",\n\"narration\": null,\n\"support\": {\n  \"fullLine\": \"Bonjour, je vais prendre un café, s'il vous plaît.\",\n  \"options\": [\n    \"Bonjour, un café s'il vous plaît.\",\n    \"Bonjour, je vais prendre un café.\"\n  ],\n  \"hintEn\": \"Say hello first, then order a coffee politely.\"\n},\n\"newPhrases\": [\n  {\n    \"phrase\": \"je vais prendre\",\n    \"register\": \"courant\"\n  }\n],\n\"profileSignals\": {\n  \"errorPatterns\": [],\n  \"usedWell\": []\n},\n\"topicShift\": null,\n\"scene\": {\n  \"beat\": \"greet-and-order\",\n  \"beatDone\": false,\n  \"sceneDone\": false,\n  \"goalMet\": false\n}",
+      "usage": {
+        "total_tokens": 7299,
+        "input_tokens": 6485,
+        "output_tokens": 814,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 814,
+          "audio_tokens": 0,
+          "reasoning_tokens": 405
+        }
+      },
+      "usd": 0.0393,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e03-how-much-is-it",
+      "rep": 2,
+      "kind": "English answer",
+      "truth": "How much is it?",
+      "firstTextMs": 3314,
+      "spokenMs": null,
+      "doneMs": 6112,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"fr\": \"Ça fait deux euros.\" },\nassessment: { \"understood\": true, \"taskAchieved\": true, \"comprehensibility\": \"clear\", \"language\": \"english\", \"cefrEvidence\": \"A1\" },\ncoach: [{ \"kind\": \"english-to-french\", \"quote\": \"How much is it?\", \"better\": \"Je vous dois combien ?\", \"betterWritten\": \"Je vous dois combien ?\", \"betterEn\": \"How much do I owe you?\", \"why\": \"This is the natural way to ask the price at a counter.\", \"weight\": \"matters-now\" }],\ncoachLine: \"You were asking the price. In French, you can say: Je vous dois combien ?\",\nnarration: null,\nsupport: { \"fullLine\": \"Je paie en espèces.\", \"options\": [\"Je paie en espèces.\", \"Je paie par carte.\", \"Je paie en liquide.\"], \"hintEn\": \"Say that you will pay, and choose a method.\" },\nnewPhrases: [{ \"fr\": \"Je vous dois combien ?\", \"register\": \"courant\", \"en\": \"How much do I owe you?\" }],\nprofileSignals: { \"errorPatterns\": [\"answered-in-english: \\\"How much is it?\\\"\"], \"usedWell\": [] },\ntopicShift: null,\nscene: { \"beat\": \"pay\", \"beatDone\": false, \"sceneDone\": false, \"goalMet\": false }",
+      "usage": {
+        "total_tokens": 7138,
+        "input_tokens": 6485,
+        "output_tokens": 653,
+        "input_token_details": {
+          "text_tokens": 6475,
+          "audio_tokens": 10,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 653,
+          "audio_tokens": 0,
+          "reasoning_tokens": 331
+        }
+      },
+      "usd": 0.036668,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e04-can-i-have-a-croissant-too",
+      "rep": 2,
+      "kind": "English answer",
+      "truth": "Can I have a croissant too?",
+      "firstTextMs": 580,
+      "spokenMs": null,
+      "doneMs": 7703,
+      "text": "I’ll think about how to respond in the café scene and help with the French, then we can keep the order moving.// sceneReply\n{\"speaker\":\"Karim\",\"fr\":\"Bien sûr. Et pour le café ?\",\"en\":null}\n// assessment\n{\"assessment\":{\"understood\":true,\"taskAchieved\":false,\"comprehensibility\":\"clear\",\"language\":\"english\",\"cefrEvidence\":\"A1\"}}\n// coach\n{\"coach\":[{\"kind\":\"english-to-french\",\"quote\":\"Can I have a croissant too?\",\"better\":\"Je prends un croissant aussi, s'il vous plaît.\",\"betterWritten\":\"Je prends un croissant aussi, s'il vous plaît.\",\"betterEn\":\"I’ll have a croissant too, please.\",\"why\":\"You answered in English, so here is the natural French for exactly that meaning.\",\"weight\":\"matters-now\"}]}\n// coachLine\n{\"coachLine\":\"You want a croissant too. In French: Je prends un croissant aussi, s'il vous plaît.\"}\n// narration\n{\"narration\":null}\n// support\n{\"support\":{\"fullLine\":\"Bonjour, je vais prendre un café aussi, s'il vous plaît.\",\"options\":[\"Bonjour, je vais prendre un café, s'il vous plaît.\",\"Je prends un café aussi, s'il vous plaît.\",\"Un café, s'il vous plaît.\"],\"hintEn\":\"Order the coffee and include a polite please. Saying hello first is the usual French way.\"}}\n// newPhrases\n{\"newPhrases\":[{\"fr\":\"Je prends ... aussi, s'il vous plaît.\",\"en\":\"I’ll have ... as well, please.\",\"register\":\"courant\"}]}\n// profileSignals\n{\"profileSignals\":{\"errorPatterns\":[],\"usedWell\":[]}}\n// topicShift\n{\"topicShift\":null}\n// scene\n{\"scene\":{\"beat\":\"greet-and-order\",\"beatDone\":false,\"sceneDone\":false,\"goalMet\":false}}",
+      "usage": {
+        "total_tokens": 7399,
+        "input_tokens": 6487,
+        "output_tokens": 912,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 14,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 912,
+          "audio_tokens": 0,
+          "reasoning_tokens": 513
+        }
+      },
+      "usd": 0.040932,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e05-i-want-to-sit-outside",
+      "rep": 2,
+      "kind": "English answer",
+      "truth": "I want to sit outside.",
+      "firstTextMs": 4359,
+      "spokenMs": null,
+      "doneMs": 7967,
+      "text": "sceneReply: { \"speaker\": \"Karim\", \"text\": \"Ça marche. Sur place, en terrasse. Ça fait un euro vingt.\" },\nassessment: { \"understood\": true, \"taskAchieved\": true, \"comprehensibility\": \"clear\", \"language\": \"english\", \"cefrEvidence\": \"A1\" },\ncoach: [\n  {\n    \"kind\": \"english-to-french\",\n    \"quote\": \"I want to sit outside.\",\n    \"better\": \"Sur place, en terrasse, s'il vous plaît.\",\n    \"betterWritten\": \"Sur place, en terrasse, s'il vous plaît.\",\n    \"betterEn\": \"To have it here, outside on the terrace, please.\",\n    \"why\": \"This is the natural way to say you will drink it here, outside.\",\n    \"weight\": \"matters-now\"\n  }\n],\ncoachLine: \"You want to sit outside. In French, say: Sur place, en terrasse, s'il vous plaît.\",\nnarration: null,\nsupport: {\n  \"fullLine\": \"Je paie en espèces, s'il vous plaît.\",\n  \"options\": [\n    \"Je paie en espèces, s'il vous plaît.\",\n    \"Je paie par carte, s'il vous plaît.\"\n  ],\n  \"hintEn\": \"Say how you will pay.\"\n},\nnewPhrases: [\n  { \"phrase\": \"en terrasse\", \"register\": \"courant\" },\n  { \"phrase\": \"ça marche\", \"register\": \"courant\" }\n],\nprofileSignals: {\n  \"errorPatterns\": [\n    { \"tag\": \"english-to-french\", \"example\": \"I want to sit outside.\" }\n  ],\n  \"usedWell\": []\n},\ntopicShift: null,\nscene: {\n  \"beat\": \"say-where\",\n  \"beatDone\": true,\n  \"sceneDone\": false,\n  \"goalMet\": true\n}",
+      "usage": {
+        "total_tokens": 7304,
+        "input_tokens": 6495,
+        "output_tokens": 809,
+        "input_token_details": {
+          "text_tokens": 6483,
+          "audio_tokens": 12,
+          "image_tokens": 0,
+          "cached_tokens": 5120,
+          "cached_tokens_details": {
+            "text_tokens": 5120,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 809,
+          "audio_tokens": 0,
+          "reasoning_tokens": 406
+        }
+      },
+      "usd": 0.03926,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e06-no-thanks-that-s-all",
+      "rep": 2,
+      "kind": "English answer",
+      "truth": "No thanks, that's all.",
+      "firstTextMs": 2831,
+      "spokenMs": null,
+      "doneMs": 4947,
+      "text": "sceneReply: {\"speaker\":\"Karim\",\"fr\":\"D'accord. Bonne journée.\",\"en\":\"Alright. Have a good day.\"}\nassessment: {\"understood\":true,\"taskAchieved\":false,\"comprehensibility\":\"clear\",\"language\":\"english\",\"cefrEvidence\":\"A1\"}\ncoach: [{\"kind\":\"english-to-french\",\"quote\":\"No thanks, that's all.\",\"better\":\"Non merci, ce sera tout.\",\"betterWritten\":\"Non merci, ce sera tout.\",\"betterEn\":\"No thanks, that will be all.\",\"why\":\"This is the natural polite way to decline and close the order.\",\"weight\":\"matters-now\"}]\ncoachLine: \"Got it, you’re closing the order. You can say: Non merci, ce sera tout.\"\nnarration: null\nsupport: {\"fullLine\":\"Merci, vous aussi.\",\"options\":[\"Merci, au revoir.\",\"Merci, vous aussi.\"],\"hintEn\":\"Close politely and leave.\"}\nnewPhrases: [{\"fr\":\"Non merci, ce sera tout.\",\"en\":\"No thanks, that will be all.\",\"register\":\"courant\"}]\nprofileSignals: {\"errorPatterns\":[],\"usedWell\":[]}\ntopicShift: null\nscene: {\"beat\":\"greet-and-order\",\"beatDone\":true,\"sceneDone\":true,\"goalMet\":false}",
+      "usage": {
+        "total_tokens": 7018,
+        "input_tokens": 6484,
+        "output_tokens": 534,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 11,
+          "image_tokens": 0,
+          "cached_tokens": 0,
+          "cached_tokens_details": {
+            "text_tokens": 0,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 534,
+          "audio_tokens": 0,
+          "reasoning_tokens": 266
+        }
+      },
+      "usd": 0.034788,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e07-what-does-that-mean",
+      "rep": 2,
+      "kind": "English answer",
+      "truth": "What does that mean?",
+      "firstTextMs": 3308,
+      "spokenMs": null,
+      "doneMs": 5296,
+      "text": "sceneReply: {\"speaker\":\"Karim\",\"fr\":\"Bonjour. Allez-y, je vous écoute.\",\"en\":\"Hello. Go ahead, I am listening.\"},\nassessment: {\"understood\":true,\"taskAchieved\":false,\"comprehensibility\":\"clear\",\"language\":\"english\",\"cefrEvidence\":\"A1\"},\ncoach: [{\"kind\":\"english-to-french\",\"quote\":\"What does that mean?\",\"betterFr\":\"Qu'est-ce que ça veut dire ?\",\"betterWritten\":\"Qu'est-ce que ça veut dire ?\",\"betterEn\":\"What does that mean?\",\"why\":\"You asked about the meaning, so this is the natural question in French.\",\"weight\":\"minor\"}],\ncoachLine: \"It means: Hello. What can I get you?\",\nnarration: null,\nsupport: {\"fullLine\":\"Bonjour, je vais prendre un café.\",\"options\":[\"Bonjour, un café, s'il vous plaît.\",\"Bonjour, je vais prendre un café allongé.\"],\"hintEn\":\"Say hello, then say what coffee you want.\"},\nnewPhrases: [{\"fr\":\"Je vais prendre un café\",\"en\":\"I will have a coffee\",\"register\":\"courant\"}],\nprofileSignals: {\"errorPatterns\":[],\"usedWell\":[]},\ntopicShift: null,\nscene: {\"beat\":\"greet-and-order\",\"beatDone\":false,\"goalMet\":false,\"sceneDone\":false}",
+      "usage": {
+        "total_tokens": 7096,
+        "input_tokens": 6483,
+        "output_tokens": 613,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 10,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 613,
+          "audio_tokens": 0,
+          "reasoning_tokens": 329
+        }
+      },
+      "usd": 0.03602,
+      "handedBackInFrench": false
+    },
+    {
+      "name": "e08-sorry-i-didn-t-understand",
+      "rep": 2,
+      "kind": "English answer",
+      "truth": "Sorry, I didn't understand.",
+      "firstTextMs": 4573,
+      "spokenMs": null,
+      "doneMs": 6937,
+      "text": "sceneReply: {\"speaker\":\"Karim\",\"fr\":\"Bonjour. Je peux vous servir un café.\",\"en\":\"Hello. I can serve you a coffee.\"},\nassessment: {\"understood\":true,\"taskAchieved\":false,\"comprehensibility\":\"clear\",\"language\":\"english\",\"cefrEvidence\":\"A1\"},\ncoach: [{\"type\":\"english-to-french\",\"quote\":\"Sorry, I didn't understand.\",\"better\":\"Pardon, j'ai pas compris.\",\"betterWritten\":\"Pardon, j'ai pas compris.\",\"betterEn\":\"Sorry, I didn't understand.\",\"why\":\"This is the natural spoken way to say you did not understand.\",\"weight\":\"matters-now\"}],\ncoachLine: \"You said you didn't understand. In French, you can say: Pardon, j'ai pas compris.\",\nnarration: null,\nsupport: {\"fullLine\":\"Bonjour. Je vais prendre un café.\",\"options\":[\"Un café, s'il vous plaît.\",\"Bonjour, un café.\",\"Je voudrais un café, s'il vous plaît.\"],\"hintEn\":\"Say hello and order a coffee.\"},\nnewPhrases: [{\"fr\":\"j'ai pas compris\",\"register\":\"courant\",\"en\":\"I didn't understand\"}],\nprofileSignals: {\"errorPatterns\":[\"english-response\"],\"usedWell\":[]},\ntopicShift: null,\nscene: {\"beat\":\"greet-and-order\",\"goalMet\":false,\"beatDone\":false,\"sceneDone\":false}",
+      "usage": {
+        "total_tokens": 7259,
+        "input_tokens": 6486,
+        "output_tokens": 773,
+        "input_token_details": {
+          "text_tokens": 6473,
+          "audio_tokens": 13,
+          "image_tokens": 0,
+          "cached_tokens": 6400,
+          "cached_tokens_details": {
+            "text_tokens": 6400,
+            "audio_tokens": 0,
+            "image_tokens": 0
+          }
+        },
+        "output_token_details": {
+          "text_tokens": 773,
+          "audio_tokens": 0,
+          "reasoning_tokens": 484
+        }
+      },
+      "usd": 0.038676,
+      "handedBackInFrench": false
+    }
+  ],
+  "summary": {
+    "scene reply": {
+      "n": 4,
+      "spokenP50": 2840,
+      "spokenP95": 6688
+    },
+    "English answer": {
+      "n": 5,
+      "spokenP50": 5047,
+      "spokenP95": 5715
+    }
+  },
+  "totalUsd": 1.18195,
+  "priceNote": "Approximate list prices, for the spend cap only.",
+  "reference": "Tuned cascade reference (2026-11-07): Flux end of turn p50 699 ms + brain spoken fields p50 937 ms on priority ≈ 1,636 ms from end of speech."
+}
