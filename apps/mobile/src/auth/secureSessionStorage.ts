@@ -60,17 +60,23 @@ async function readSecure(secure: KeyValueStorage, key: string): Promise<string 
 
 async function removeGeneration(secure: KeyValueStorage, key: string, meta: StoredMeta | null): Promise<void> {
   if (meta === null) return;
-  await Promise.all(
+  // Every delete settles first, so none can remove a chunk of the next write (F1024).
+  const results = await Promise.allSettled(
     Array.from({ length: meta.chunks }, (_, index) => secure.removeItem(chunkKey(key, meta.generation, index))),
   );
+  const failed = results.find((result) => result.status === 'rejected');
+  if (failed !== undefined) throw failed.reason;
 }
 
 async function removeAllGenerations(secure: KeyValueStorage, key: string): Promise<void> {
-  await Promise.all(
+  // Every delete settles before a failure is reported, so none can land after the next write (F1023).
+  const results = await Promise.allSettled(
     (['a', 'b'] as const).flatMap((generation) =>
       Array.from({ length: 64 }, (_, index) => secure.removeItem(chunkKey(key, generation, index))),
     ),
   );
+  const failed = results.find((result) => result.status === 'rejected');
+  if (failed !== undefined) throw failed.reason;
 }
 
 async function writeSecure(secure: KeyValueStorage, key: string, value: string): Promise<void> {

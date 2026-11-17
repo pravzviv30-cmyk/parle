@@ -12332,7 +12332,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F960 — On iOS, deleting and reinstalling Luvani is not a fresh start: the Keychain keeps the sign-in and the "used before" hint
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/installHistory.native.ts (`luvani.has-used-app.v1`) and
   apps/mobile/src/auth/supabaseAdapter.ts (~:50-55, the Supabase session in SecureStore)
 - note: Found 2026-11-06 while preparing the founder's three beginner sessions on one iPhone. iOS
@@ -12345,6 +12345,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   marker (AsyncStorage is removed on uninstall) as a fresh install and clear the hint and the session
   once, which changes the returning-person design in `installHistory.native.ts`, so it waits for the
   founder.
+- fixed: 2026-11-16 on claude/f960-fresh-install, by F1004 (the iOS session reset in `freshInstall.ts`) and F1005
+  (`installHistory.native.ts` deleted). The founder's iPhone device check is still to record here.
 - verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
 
 ### F961 — Today's hero flashed to "Finding your next task…" on every return to Home
@@ -12695,6 +12697,76 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `on the bar with no open tab a press ticks once and lights nothing (F981, push-check)`
 - verified-by: `a drag that starts on a closed tab ticks once at the grab; from the open tab the grab still ticks (F981, push-check)`
 - verified-by: `the drop handler gives back the live hold but keeps the audio session when the session had already ended or failed`
+
+### F1006 — Audit exceptions re-reviewed: uuid fixed, decode-uri-component and zod renewed to 2026-12-16
+- severity: P3
+- status: [x]
+- where: package.json:82 (the @expo/config-plugins record; decode-uri-component :97, zod :114)
+- note: founder, 2026-11-16. @expo/config-plugins 57.0.13 (still SDK 57) moved to xcode 4.0.0, which drops uuid, so a lockfile-only update fixed it and an iOS prebuild still writes the project. decode-uri-component 0.2.2 and zod 3.25.76 have no compatible fix and unchanged reachability; renewed inside audit:ci's 30-day window, and fixed later with the react-navigation, SDK 58 and zod 4 upgrades.
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
+
+### F1009 — xcode 4 prebuild is proven to write a project, not to build one
+- severity: P2
+- status: [ ]
+- where: docs/RISK_REGISTER.md:46
+- note: F1006 checked `expo prebuild --platform ios --no-install --clean` on xcode 4.0.0 (valid pbxproj). No xcodebuild, archive or signed device install has run on the new project, and its pbxproj was not diffed against the xcode 3.0.1 output. The founder's next USB install or the next mobile-preview build is the first real proof; if it fails in project settings, entitlements or build phases, suspect this change first. Filed by work-judge (Fable 5.2), 2026-11-16.
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
+
+### F1004 — iOS clears a Keychain sign-in that outlived the app, before Supabase can restore it
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:48
+- note: An empty AsyncStorage on iOS means a fresh install. The session storage decorator removes each key on its first read that launch, then writes `luvani.install-marker.v1` so it happens once. All storage calls await the decision, so there is no race with session restore. A read error or any existing key keeps the session. The first test carries F960's own title and must also assert that no `installHistory.native.ts` exists and `installHistory.ts` has no SecureStore.
+- verified-by: `a fresh install clears the Keychain sign-in and the used-before hint once`
+- verified-by: `an install that already has any stored key keeps its sign-in`
+- verified-by: `a storage read error never signs anyone out`
+- verified-by: `a sign-in made on the fresh launch survives later reads and the next launch`
+- verified-by: `the install marker is written only after the old sign-in is removed`
+- verified-by: `only iOS wraps the session storage with the fresh-install reset`
+
+### F1005 — The used-before hint no longer lives in the Keychain
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/installHistory.native.ts:11
+- note: Delete the native twin so every platform reads the hint from AsyncStorage (`@luvani/has-used-app/v1`), which uninstall removes. Upgraded installs already hold that key. Update the two lists in `tokenHygiene.test.ts` and the device-keys sentence in `docs/STATE_AND_STORAGE.md`.
+- verified-by: `the used-before hint is kept only in storage that uninstalling removes`
+
+### F1020 — A failed Keychain removal on a fresh iOS launch deletes the sign-in made right after it
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/freshInstall.ts:48
+- note: On a fresh launch, `setItem` awaits `clearOnce(key)` and ignores its result. When the removal inside it throws, `handled` forgets the key, the new session is written with no marker, and the next `getItem` of that key removes the new session and returns null. Inputs: empty AsyncStorage, one `inner.removeItem` rejection, then `setItem(KEY, 'new-person')`, then `getItem(KEY)` returns null and the Keychain is empty. The same happens with `getItem` (removal fails), `setItem` (removal fails), `getItem`. A `removeItem` that succeeds after a failed clear leaves the key unhandled in the same way. Found by work-judge (Fable 5.2), F960 round 1, 2026-11-16.
+- verified-by: `a sign-in written after a failed removal on the fresh launch is kept`
+- verified-by: `a sign-out that succeeds after a failed removal settles the key`
+
+### F1021 — A read that overlaps the sign-in write after a failed fresh-install clear can remove the new sign-in
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/freshInstall.ts:46
+- note: `writeThrough` marks the key handled only after `write()` resolves. Inputs: fresh iOS launch, one `inner.removeItem` rejection, `setItem(KEY, 'new')` whose Keychain writes take 10 ms, and a `getItem(KEY)` started 2 ms in whose removal takes 40 ms. The read starts a second clear, it lands after the write, and every later `getItem(KEY)` returns null. The learner signs in again; the previous person is never restored. Found by work-judge (Fable 5.2), F960 round 2, 2026-11-16.
+- verified-by: `a read that overlaps the sign-in write after a failed removal does not remove the new sign-in`
+
+### F1022 — Overlapping writes after a failed fresh-install clear can remove a good sign-in
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/freshInstall.ts:55
+- note: After a failed clear on a fresh iOS launch, two writes to the same key that overlap (A then B) let B's failure delete the handled entry A had settled, so the next read clears again and removes A's session. Root fix: operations on one key run one at a time (a per-key promise chain), so no clear can interleave with a write. Found by /code-review (high) at push-check, 2026-11-17.
+- verified-by: `overlapping writes after a failed removal keep the write that succeeded`
+
+### F1023 — A failed chunk delete reports before the other deletes finish, so a late delete can land after the next write
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/secureSessionStorage.ts:68
+- note: `removeAllGenerations` uses `Promise.all`, which rejects on the first failed delete while the other chunk deletes are still running. On a fresh-install clear that failed, the next write can start before those deletes land, and a late delete can remove part of the new session. Losing a sign-in is the worst case; the previous person is never restored. Fix: wait for every delete to settle (`Promise.allSettled`) and then report failure if any failed. Found by /code-review (high) at push-check, 2026-11-17.
+- verified-by: `removing a session waits for every chunk delete before it reports a failure`
+
+### F1024 — A failed old-generation chunk delete lets late deletes remove chunks of the next write
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/secureSessionStorage.ts:63
+- note: `removeGeneration` uses `Promise.all`, and `writeSecure` swallows its failure, so `setItem` returns while deletes of the previous generation are still running. The next write reuses that generation. Inputs: write A (generation a, 3 chunks), write B with the delete of chunk a-0 rejecting and the deletes of a-1 and a-2 taking 30 ms, then write C straight away (generation a again). The late deletes remove C's chunks and `getItem` returns null, so the learner signs in again. Nobody else's session is restored. Same fix as F1023: wait with `Promise.allSettled`. Found by work-judge (Fable 5.2), F960 round 3, 2026-11-17.
+- verified-by: `a write waits for every old chunk delete before it returns`
 
 ### F1000 — An unjoined tutor start gives back its daily seconds and its session count
 - severity: P1
