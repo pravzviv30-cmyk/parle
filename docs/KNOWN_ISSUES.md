@@ -12768,7 +12768,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: packages/core/src/session/session.ts:259
-- note: C1-1 and C1-4, each built only on the founder's yes. A filler-only transcript goes to matching and grades poor; "ne" and "pas" fit inside the two-extra-word allowance at lessons/types.ts:215.
+- note: C1-1 and C1-4, each built only on the founder's yes. A filler-only transcript goes to matching and grades poor; "ne" and "pas" fit inside the two-extra-word allowance at lessons/types.ts:215. Accepted limit: a filler word that is a near miss of the line ("Bon" on a line "Bon appétit") becomes a silence rescue and drops a rung. No scripted line in CAFE_LESSON or GUEST_CAFE_SCENE contains a filler word today, so no learner reaches it.
 - verified-by: `a transcript of only hesitation sounds is treated as silence, not a wrong answer`
 - verified-by: `a negated line is not accepted as the line`
 - verified-by: `a line that carries its own negation is still accepted as written`
