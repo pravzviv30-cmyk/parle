@@ -16,6 +16,8 @@ class MemoryStorage implements KeyValueStorage {
   /** While set, writes and removals wait for it, so a test can order overlapping calls. */
   holdWrites: Promise<void> | null = null;
   holdRemoves: Promise<void> | null = null;
+  /** A write of a value containing this text fails. */
+  failWritesOf: string | null = null;
   readonly log: string[];
 
   constructor(log: string[] = []) {
@@ -28,6 +30,7 @@ class MemoryStorage implements KeyValueStorage {
 
   async setItem(key: string, value: string): Promise<void> {
     if (this.holdWrites !== null) await this.holdWrites;
+    if (this.failWritesOf !== null && value.includes(this.failWritesOf)) throw new Error('keychain unavailable');
     this.values.set(key, value);
   }
 
@@ -91,7 +94,7 @@ describe('a fresh install on iOS is a fresh start (F960)', () => {
     const keychain = new MemoryStorage();
     await signedIn(keychain, 'upgraded-person');
     const disk = new MemoryDisk();
-    await disk.setItem('@luvani/installation/v1', 'some-installation');
+    await disk.setItem('luvani.installation.v1', 'some-installation');
 
     const storage = launch(keychain, disk);
 
@@ -216,9 +219,29 @@ describe('a fresh install on iOS is a fresh start (F960)', () => {
     assert.equal(await storage.getItem(KEY), 'new');
   });
 
+  test('overlapping writes after a failed removal keep the write that succeeded', async () => {
+    const keychain = new MemoryStorage();
+    const storage = launch(keychain, new MemoryDisk());
+    let releaseWrites!: () => void;
+    keychain.failRemoves = 1;
+    keychain.failWritesOf = 'session-FAIL';
+    keychain.holdWrites = new Promise((resolve) => { releaseWrites = resolve; });
+
+    const good = storage.setItem(KEY, 'session-A');
+    const bad = storage.setItem(KEY, 'session-FAIL');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    releaseWrites();
+    await good;
+    await assert.rejects(bad);
+    keychain.holdWrites = null;
+
+    assert.equal(await storage.getItem(KEY), 'session-A');
+    assert.equal(await storage.getItem(KEY), 'session-A');
+  });
+
   test('only iOS wraps the session storage with the fresh-install reset', () => {
     const adapter = readFileSync(path.join(AUTH_DIR, 'supabaseAdapter.ts'), 'utf8');
-    assert.match(adapter, /Platform\.OS === 'ios'\s*\?\s*clearOnFreshInstall\(\s*secureSessionStorage,\s*AsyncStorage\s*\)\s*:\s*secureSessionStorage/);
+    assert.match(adapter, /if \(Platform\.OS === 'ios'\) nativeSessionStorage = clearOnFreshInstall\(nativeSessionStorage, AsyncStorage\);/);
     assert.equal(adapter.match(/clearOnFreshInstall\(/g)?.length, 1, 'the reset is applied in exactly one place');
     assert.match(adapter, /storage:\s*nativeSessionStorage/);
 

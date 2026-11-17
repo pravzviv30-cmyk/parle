@@ -121,7 +121,7 @@ const byName = (name: string): Source => {
   return found;
 };
 
-/** AsyncStorage is plaintext. These two are the only files allowed to write to it. */
+/** AsyncStorage is plaintext. These are the only files allowed to write to it. */
 const PLAINTEXT_WRITERS = new Set(['installation.ts', 'mockAdapter.ts', 'installHistory.ts']);
 
 describe('auth token hygiene — what a static walk can prove without a device', () => {

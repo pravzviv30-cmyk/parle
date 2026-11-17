@@ -19,58 +19,44 @@ export interface InstallDisk {
 
 export function clearOnFreshInstall(inner: KeyValueStorage, disk: InstallDisk): KeyValueStorage {
   const fresh = disk.getAllKeys().then((keys) => keys.length === 0, () => false);
-  // Per key: resolves true once the key is safe to read through.
-  const handled = new Map<string, Promise<boolean>>();
+  // Keys with nothing stale left to read this launch.
+  const settled = new Set<string>();
+  // Each key's calls run one at a time, so no clear can interleave with a write (F1022).
+  const tails = new Map<string, Promise<unknown>>();
 
-  function clearOnce(key: string): Promise<boolean> {
-    const known = handled.get(key);
-    if (known !== undefined) return known;
-    const next = fresh.then(async (isFresh) => {
-      if (!isFresh) return true;
-      try {
-        await inner.removeItem(key);
-      } catch {
-        handled.delete(key); // The old sign-in is still there: try again next call.
-        return false;
-      }
-      await disk.setItem(INSTALL_MARKER, '1').catch(() => undefined);
-      return true;
-    });
-    handled.set(key, next);
-    return next;
+  function inTurn<T>(key: string, run: () => Promise<T>): Promise<T> {
+    const result = (tails.get(key) ?? Promise.resolve()).then(run);
+    tails.set(key, result.catch(() => undefined));
+    return result;
   }
 
-  // A write that completed replaces whatever the failed clear left, so it settles the key (F1020).
-  async function writeThrough(key: string, write: () => Promise<void>): Promise<void> {
-    const cleared = await clearOnce(key);
-    if (cleared) return write();
-    // Settle the key before writing, so an overlapping read waits for the write
-    // instead of starting a second clear that would remove it (F1021).
-    let settle!: (readable: boolean) => void;
-    const settled = new Promise<boolean>((resolve) => { settle = resolve; });
-    handled.set(key, settled);
-    try {
-      await write();
-    } catch (error) {
-      if (handled.get(key) === settled) handled.delete(key); // The next call retries the clear.
-      settle(false);
-      throw error;
-    }
-    settle(true);
+  async function settle(key: string): Promise<void> {
+    settled.add(key);
     await disk.setItem(INSTALL_MARKER, '1').catch(() => undefined);
   }
 
+  // True once nothing stale can be read under this key. A failed removal is retried next call.
+  async function clear(key: string): Promise<boolean> {
+    if (settled.has(key) || !(await fresh)) return true;
+    try {
+      await inner.removeItem(key);
+    } catch {
+      return false;
+    }
+    await settle(key);
+    return true;
+  }
+
+  // A write that completed replaces whatever a failed clear left, so it settles the key (F1020).
+  async function writeThrough(key: string, write: () => Promise<void>): Promise<void> {
+    const cleared = await clear(key);
+    await write();
+    if (!cleared) await settle(key);
+  }
+
   return {
-    async getItem(key) {
-      return (await clearOnce(key)) ? inner.getItem(key) : null;
-    },
-
-    async setItem(key, value) {
-      await writeThrough(key, () => inner.setItem(key, value));
-    },
-
-    async removeItem(key) {
-      await writeThrough(key, () => inner.removeItem(key));
-    },
+    getItem: (key) => inTurn(key, async () => ((await clear(key)) ? inner.getItem(key) : null)),
+    setItem: (key, value) => inTurn(key, () => writeThrough(key, () => inner.setItem(key, value))),
+    removeItem: (key) => inTurn(key, () => writeThrough(key, () => inner.removeItem(key))),
   };
 }

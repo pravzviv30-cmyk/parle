@@ -12713,3 +12713,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/freshInstall.ts:46
 - note: `writeThrough` marks the key handled only after `write()` resolves. Inputs: fresh iOS launch, one `inner.removeItem` rejection, `setItem(KEY, 'new')` whose Keychain writes take 10 ms, and a `getItem(KEY)` started 2 ms in whose removal takes 40 ms. The read starts a second clear, it lands after the write, and every later `getItem(KEY)` returns null. The learner signs in again; the previous person is never restored. Found by work-judge (Fable 5.2), F960 round 2, 2026-11-16.
 - verified-by: `a read that overlaps the sign-in write after a failed removal does not remove the new sign-in`
+
+### F1022 — Overlapping writes after a failed fresh-install clear can remove a good sign-in
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/freshInstall.ts:55
+- note: After a failed clear on a fresh iOS launch, two writes to the same key that overlap (A then B) let B's failure delete the handled entry A had settled, so the next read clears again and removes A's session. Root fix: operations on one key run one at a time (a per-key promise chain), so no clear can interleave with a write. Found by /code-review (high) at push-check, 2026-11-17.
+- verified-by: `overlapping writes after a failed removal keep the write that succeeded`

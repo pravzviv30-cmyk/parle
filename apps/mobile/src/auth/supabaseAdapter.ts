@@ -46,7 +46,7 @@ function toUser(session: Session | null): AuthUser | null {
 
 export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter {
   if (Platform.OS !== 'web') ensureAuthRandom(globalThis, Crypto.getRandomValues);
-  const secureSessionStorage = createSecureSessionStorage(
+  let nativeSessionStorage = createSecureSessionStorage(
     {
       getItem: (key) => SecureStore.getItemAsync(key),
       setItem: (key, value) =>
@@ -58,8 +58,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
     AsyncStorage,
   );
   // The Keychain outlives an uninstall on iOS only; a reinstall must not restore the last person (F960).
-  const nativeSessionStorage =
-    Platform.OS === 'ios' ? clearOnFreshInstall(secureSessionStorage, AsyncStorage) : secureSessionStorage;
+  if (Platform.OS === 'ios') nativeSessionStorage = clearOnFreshInstall(nativeSessionStorage, AsyncStorage);
   const client: SupabaseClient = createClient(url, anonKey, {
     auth: {
       ...(Platform.OS !== 'web' ? { storage: nativeSessionStorage } : {}),
