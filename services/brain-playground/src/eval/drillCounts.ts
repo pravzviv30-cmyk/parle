@@ -5,12 +5,13 @@
  * before a learner sees a drill.
  *
  * The grounded keys mirror `drillPhraseKeys` in tutor-agent's convo.ts: the
- * phrases the request was built from, transfer phrases included. The eval's
- * profiles carry no CEFR band, so the answer-length bound is skipped, as it is
- * in production for a learner with no estimate.
+ * phrases the request was built from, transfer phrases included. Production
+ * always passes the learner's CEFR estimate as the band for the answer-length
+ * cap. The eval's profiles carry none, so they take the estimate a learner
+ * with no history starts on (`createProfile`, A0), which is also the strictest.
  */
 
-import type { DrillGenerationInput } from '@luvani/brain';
+import { createProfile, type DrillGenerationInput } from '@luvani/brain';
 import { groundedDrills, phraseKeyOf, validateExercise, type DrillExercise } from '@luvani/core';
 import { outputGuard } from '@luvani/tutor-agent/src/safety.ts';
 
@@ -35,6 +36,6 @@ export function drillCounts(exercises: readonly DrillExercise[], input: DrillGen
   const keys = new Set(
     [...input.sessionPhrases, ...input.profilePhrases, ...(input.transferPhrases ?? [])].map((p) => phraseKeyOf(p.fr)),
   );
-  const kept = groundedDrills(exercises, keys, { screen: outputGuard, band: null });
+  const kept = groundedDrills(exercises, keys, { screen: outputGuard, band: createProfile().cefr.estimate });
   return { total: exercises.length, basic, kept, reasons };
 }

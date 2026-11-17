@@ -106,7 +106,7 @@ async function main(): Promise<void> {
       console.log(`        ${count}× ${reason}`);
     }
     if (basic > valid.length) {
-      console.log(`        ${basic - valid.length}× dropped by the production filter (ungrounded phrase, repeated id, unsafe or oversized text)`);
+      console.log(`        ${basic - valid.length}× dropped by the production filter (ungrounded phrase, repeated id, unsafe or oversized text, or an answer past the A0 length cap)`);
     }
     if (total < 6 || total > 14) console.log(`        batch size ${total}, want 6-14`);
     if (!varied) {

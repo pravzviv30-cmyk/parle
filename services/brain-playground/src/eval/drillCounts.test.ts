@@ -28,4 +28,13 @@ describe('drill eval — what production would keep', () => {
     assert.equal(counts.basic, 2, 'both exercises are well formed, so the basic check passes both');
     assert.deepEqual(counts.kept, [grounded], 'production drops the exercise for a phrase the request never asked about');
   });
+
+  test("the production drill count applies the learner's answer-length cap", () => {
+    // Thirteen words: one past the A0 cap of twelve, which production applies to a learner with no history.
+    const long = 'Un café et un croissant pour moi et mon ami qui attend dehors';
+    const tooLong: DrillExercise = { ...grounded, id: 'gen:cafe:long', fr: long, accepted: [long] };
+    const counts = drillCounts([grounded, tooLong], input);
+    assert.equal(counts.basic, 2, 'the basic check has no length bound');
+    assert.deepEqual(counts.kept, [grounded], 'an A0 learner never sees a thirteen-word answer, so the eval must not count it');
+  });
 });
