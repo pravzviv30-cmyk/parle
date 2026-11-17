@@ -12766,7 +12766,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1056 — The gate passes a workspace whose suite cancelled a test or exited non-zero
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/gate.mjs:181
 - note: the loop reads only `tests` and `fail`. A timed-out test reports `fail 0`, `cancelled 1`, exit 1, and the gate records nothing. Reproduced at 1620d172.
 - verified-by: `a suite that cancelled a test or exited non-zero fails the gate even with zero failures`

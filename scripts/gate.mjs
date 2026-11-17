@@ -48,6 +48,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { passingTestTitles } from './gateReporter.mjs';
 import { evaluateAudit } from './dependencyAudit.mjs';
+import { suiteSummary, suiteProblems } from './gateChecks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
@@ -178,28 +179,11 @@ const counts = {};
 
 for (const pkg of fast ? [] : Object.keys(floors)) {
   const result = run('npm', ['test', `--workspace=${pkg}`], { env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}` } });
-  const num = (label) => {
-    const m = result.out.match(new RegExp(`^ℹ ${label} (\\d+)$`, 'm'));
-    return m ? Number(m[1]) : null;
-  };
-  const tests = num('tests');
-  const pass = num('pass');
-  const failed = num('fail');
-
-  if (tests === null || failed === null) {
-    fail('tests', `${pkg}: could not read a test summary — the suite did not finish.\n${result.out.slice(-2000)}`);
-    continue;
-  }
+  const { tests, pass, fail: failed } = suiteSummary(result.out);
+  for (const problem of suiteProblems(pkg, result)) fail('tests', problem);
+  if (tests === null || failed === null) continue;
   counts[pkg] = { tests, pass: pass ?? 0, fail: failed };
 
-  if (failed > 0) {
-    const names = result.out
-      .split('\n')
-      .filter((l) => l.trim().startsWith('✖ '))
-      .slice(0, 15)
-      .map((l) => l.trim());
-    fail('tests', `${pkg}: ${failed} failing\n${names.join('\n')}`);
-  }
   // A suite that never loads takes its whole file with it and still exits 0. The count
   // floor is the only thing that notices — see CLAUDE.md on worktrees.
   if (tests < floors[pkg]) {
@@ -235,7 +219,7 @@ if (!fast) {
   }
 }
 
-const releaseProofTests=['services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','scripts/measureTtsFirstAudio.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs','scripts/measureFluxEot.test.mjs','scripts/daily-tutor-plan.test.mjs','scripts/ttsV4TurboCheck.test.mjs','scripts/unslop-scan.test.mjs','scripts/repoStructure.test.mjs','scripts/measureHalfCascade.test.mjs'];
+const releaseProofTests=['services/shared/paidExecution.test.ts','services/shared/lessonScoringQuote.test.ts','scripts/verifyPaidAdapters.test.mjs','scripts/loop.test.mjs','scripts/jev.test.mjs','scripts/ttsBlindCheck.test.mjs','scripts/liveTurnMilestones.test.mjs','scripts/speechRatings.test.mjs','scripts/measureQuietSpeech.test.mjs','scripts/measureVoiceSpeed.test.mjs','scripts/measureKeyterms.test.mjs','scripts/measureTtsFirstAudio.test.mjs','services/shared/audioDecode.test.ts','services/shared/liveScoringAudio.test.ts','services/shared/audioDecoderSlots.test.ts','services/shared/paidAdmission.test.ts','scripts/verifyRelease.test.mjs','scripts/verifyCurrentHostedSchema.test.mjs','scripts/betaMetrics.test.mjs','scripts/replayDeletionJournal.test.mjs','deployment/containerAcceptance.test.mjs','deployment/observability.test.mjs','deployment/observabilityAcceptance.test.mjs','scripts/verifyVoiceAcceptance.test.mjs','deployment/validateEnvironment.test.mjs','deployment/validatePaidBudget.test.mjs','scripts/audioDecoderImage.test.mjs','deployment/deletion-journal/worker.test.ts','scripts/paidQuotes.test.mjs','scripts/shots/capture.test.mjs','scripts/push-check-guard.test.mjs','scripts/measureFluxEot.test.mjs','scripts/daily-tutor-plan.test.mjs','scripts/ttsV4TurboCheck.test.mjs','scripts/unslop-scan.test.mjs','scripts/repoStructure.test.mjs','scripts/measureHalfCascade.test.mjs','scripts/gateChecks.test.mjs'];
 if(!fast) {
   const result=run(process.execPath,['--test',`--test-reporter=${path.join(ROOT, 'scripts/gateReporter.mjs')}`,...releaseProofTests]);
   const tested = Number(result.out.match(/[ℹ#] tests ([1-9][0-9]*)/)?.[1] ?? 0);
