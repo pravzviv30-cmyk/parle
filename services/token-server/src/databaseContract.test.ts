@@ -1420,6 +1420,9 @@ describe('database security contract — SQL cannot drift quietly', () => {
     for (const file of ['20261020140000_weekly_free_taste.sql', '20261004010327_whole_product_paid_admission.sql']) {
       assert.ok(row(`| \`${file}\` |`).includes('20261116120000'), `the ${file} rollback row does not warn that it undoes migration 46`);
     }
+    // Rolling 40 back also restores the pre-47 claim bodies and drops weekly_taste, which 47 reads.
+    assert.ok(row('| `20261020140000_weekly_free_taste.sql` |').includes('20261117120000'),
+      'the 20261020140000_weekly_free_taste.sql rollback row does not warn that it undoes migration 47');
   });
 
   test('learner state has own-row read, insert, update and delete policies', () => {
