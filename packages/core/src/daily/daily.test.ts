@@ -1,6 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 import { DAILY_WORDS, type DailyWord } from './words.ts';
 import { DAILY_SCENARIOS, SEED_TOPIC_MAX, seedTopicOf, type DailyScenario } from './scenarios.ts';
@@ -1252,5 +1253,19 @@ describe('the situations say what people say, and keep every id they shipped wit
         );
       }
     }
+  });
+});
+
+describe('the word pack is built the same way every launch — F1072', () => {
+  test("the word pack's ids, examples and order match the pinned snapshot", () => {
+    // Saved words are keyed by id, and the example is what the card shows, so
+    // a faster build has to produce this exact list. A real content change
+    // updates the hash on purpose.
+    const rows = DAILY_WORDS.map((w) => [w.id, w.exampleFr, w.exampleEn]);
+    assert.equal(rows.length, 1000);
+    assert.equal(
+      createHash('sha256').update(JSON.stringify(rows)).digest('hex'),
+      'f5865967e9571f7fb178b29753cbdbfc98ec3e5ede66ddd6791fdb9d9060bf2d',
+    );
   });
 });
