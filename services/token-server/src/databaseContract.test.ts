@@ -646,7 +646,7 @@ function latestFunctionDefinitions(): Map<string, { file: string; at: number }> 
 // ------------------------------------------------------------------ rollbacks
 
 interface CreatedObject {
-  readonly kind: 'table' | 'index' | 'policy' | 'function' | 'trigger' | 'constraint';
+  readonly kind: 'table' | 'index' | 'policy' | 'function' | 'trigger' | 'constraint' | 'grant';
   readonly name: string;
   /** What the rollback must contain to count as naming and undoing this object. */
   readonly undone: readonly RegExp[];
@@ -717,6 +717,20 @@ function createdObjects(sql: string): CreatedObject[] {
         new RegExp(`add constraint ${escape(name!)}`, 'i'),
       ],
     });
+    }
+  }
+
+  // F1080 added the first migration that only changes table privileges, so for a
+  // migration that creates nothing else, each revoked table must be granted back.
+  // Older migrations' revokes are hardening their rollbacks deliberately keep.
+  if (objects.length > 0) return objects;
+  for (const [, tables] of flat.matchAll(/revoke [^;]*? on (?:table )?((?:public|luvani_private)\.\w+(?:, ?(?:public|luvani_private)\.\w+)*) from/gi)) {
+    for (const table of tables!.split(/, ?/)) {
+      objects.push({
+        kind: 'grant',
+        name: `privileges on ${table}`,
+        undone: [new RegExp(`grant [^;]* on [^;]*${escape(table)}\\b`, 'i')],
+      });
     }
   }
 

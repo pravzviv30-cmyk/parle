@@ -12866,3 +12866,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/README.md:312
 - note: (a), docs, `data-engineer`. Eight named, nine run; rows 40, 41, 43, 44, 45 and F970's note contradict the launch log. Re-confirm line numbers after f955 lands. 2026-11-17: fixed; the runbook names all nine suites by script, rows 40, 41, 43, 44, 45 and 46 say when they reached staging, and F970's note is corrected.
 - verified-by: `the Supabase runbook names every SQL suite the gate runs`
+
+### F1080 — The app's database roles hold every table privilege on four client tables, TRUNCATE included
+- severity: P2
+- status: [x]
+- where: supabase/migrations/202608220001_luvani_learning.sql:1
+- note: (b), founder Q2 (2026-11-17, "remove the unused table rights") after probes P1 to P3, `security-engineer`. Only RLS guarded `entitlements`, `learner_state`, `product_events` and `conversation_packs`, and RLS does not gate TRUNCATE; staging probe P1 showed `anon` and `authenticated` holding all seven privileges on exactly these four. No reachable path today (PostgREST exposes no TRUNCATE). 2026-11-17: fixed in `supabase/migrations/20261117121000_client_table_grants.sql`: revoke all from both roles, then grant `authenticated` exactly its policy verbs; `anon` gets nothing, `service_role` untouched. The app's only direct table call is `learner_state` sync, which keeps all four verbs; the token server writes events and packs with the service role. Rollback `supabase/rollback/20261117121000_down.sql`, interlock `luvani.rollback_client_grants`. NOT applied to staging: needs its own founder yes, as a single file while 42 stays held. New tables are tracked as F1241.
+- verified-by: `anon and authenticated hold only the verbs their policies use on the four client tables`
+
+### F1241 — Every new public table is granted in full to the app's database roles unless its migration revokes
+- severity: P2
+- status: [ ]
+- where: supabase/migrations/20261117121000_client_table_grants.sql:1
+- note: Found by F1080's probe P3 (2026-11-17, staging). `pg_default_acl` grants `anon` and `authenticated` ALL on new tables (and EXECUTE on new functions, USAGE on new sequences) in `public` for both owners `postgres` and `supabase_admin`, the Supabase defaults. Today every table created since `202608230001` revokes from both roles in its own migration, and no migration relies on the default grant, so nothing is exposed; the risk is the next migration that forgets. Not fixed inside F1080 because the D1 contract puts changing hosted default privileges out of scope, a migration can only alter `postgres`'s defaults (not `supabase_admin`'s), and Supabase's tooling expects these defaults. Candidate shape, for a founder decision: a `databaseContract.test.ts` check that every `create table public.*` migration also revokes from `anon` and `authenticated`, rather than an `alter default privileges` on the hosted project. `security-engineer`, consult `database-security-architect`.
+- verified-by: `every migration that creates a public table revokes it from anon and authenticated`
