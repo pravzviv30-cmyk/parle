@@ -12791,7 +12791,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: packages/core/src/lessons/keyterms.ts:30
-- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Three tests were deleted and eight added across C1 and its follow-ups (F1196, push-check); core went from 1152 to 1157, and the floor was not lowered.
+- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Three tests were deleted and nine added across C1 and its follow-ups (F1196, push-check, code review); core went from 1152 to 1158, and the floor was not lowered.
 - verified-by: `the keyterm list dedupes on the same key the recognition repair uses`
 
 ### F1196 — A formal "ne" added to a line that already carries "pas" is refused as a negation
