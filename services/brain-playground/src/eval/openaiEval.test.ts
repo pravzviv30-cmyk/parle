@@ -6,13 +6,16 @@
  */
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, test } from 'node:test';
 
 import { costUsd, type LlmUsage } from '@luvani/brain';
 
-import { evalCostUsd } from '../usage.ts';
+import { chatCostModels, evalCostLine, evalCostUsd, formatSessionUsage, formatTurnUsage } from '../usage.ts';
 import { curationCostModel } from './curationEval.ts';
 import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
+import { formatSummary, summariseExtraction } from './extractEval.ts';
+import { replayReportLines } from './replayEval.ts';
 
 const KEYS = ['OPENAI_LIVE_MODEL', 'OPENAI_TURN_MODEL', 'OPENAI_ANALYST_MODEL', 'OPENAI_DRILLS_MODEL', 'OPENAI_CURATION_MODEL', 'BRAIN_EFFORT'] as const;
 
@@ -67,5 +70,57 @@ describe('eval model label and price', () => {
     assert.equal(evalCostUsd(usage, 'gpt-6-luna'), 0.6);
     // A stamp with no price row falls back to the label model rather than the opus fallback.
     assert.equal(evalCostUsd({ ...usage, model: 'unlisted' }, 'gpt-6-luna'), 0.6);
+  });
+
+  test('a turn is priced on the model stamped on its usage, and the label model only fills a missing stamp', () => {
+    const stamped = { ...usage, model: 'gpt-6-luna' };
+    // The chat labelled OpenAI turns gpt-5.6-luna ($1.40) while gpt-6-luna ($0.60) answered them.
+    assert.match(formatTurnUsage(stamped, 0, 'gpt-5.6-luna'), /~\$0\.600 · /, 'the stamp names the model that answered, so it sets the price');
+    assert.match(formatSessionUsage(stamped, 1, 'gpt-5.6-luna'), /~\$0\.600 this session/, 'the session total follows the same stamp');
+    assert.match(formatTurnUsage(usage, 0, 'gpt-6-luna'), /~\$0\.600 · /, 'an unstamped usage is priced on the label model');
+    assert.doesNotMatch(formatTurnUsage(stamped, 0, 'gpt-5.6-luna'), /unpriced/, 'a stamp with a price row is an exact figure');
+  });
+
+  test('the chat label and fallback models come from the routing the client uses', () => {
+    assert.deepEqual(chatCostModels('openai', {}), { turn: 'gpt-6-luna', frame: 'gpt-6-luna' }, 'OpenAI turns and frames go to the live model');
+    assert.deepEqual(
+      chatCostModels('openai', { OPENAI_LIVE_MODEL: 'custom-live' }),
+      { turn: 'custom-live', frame: 'custom-live' },
+      'an override moves the label with the bill',
+    );
+    assert.deepEqual(chatCostModels('anthropic', {}), { turn: 'claude-sonnet-5', frame: 'claude-sonnet-5' }, 'Anthropic frames go to sonnet, not opus');
+    assert.deepEqual(chatCostModels('groq', { GROQ_MODEL: 'some-llama' }), { turn: 'some-llama', frame: 'some-llama' });
+  });
+
+  test('chat takes its cost models from chatCostModels, not the default constants', () => {
+    // chat.ts runs its REPL on import, so its wiring is pinned by source: the
+    // F1122 bug was this file pricing on the two default constants.
+    const chat = readFileSync(new URL('../chat.ts', import.meta.url), 'utf8');
+    assert.match(chat, /import \{[^}]*\bchatCostModels\b[^}]*\} from '\.\/usage\.ts';/, 'the chat imports the routing-backed models');
+    for (const provider of ['openai', 'anthropic', 'groq']) {
+      assert.match(chat, new RegExp(`chatCostModels\\('${provider}'\\)`), `the ${provider} branch prices through chatCostModels`);
+    }
+    assert.doesNotMatch(chat, /DEFAULT_OPENAI_TURN_MODEL|DEFAULT_OPENAI_ANALYST_MODEL/, 'the default constants are not what the client answers with');
+  });
+
+  test('an eval cost line says when the model has no price row', () => {
+    // A Groq run: neither the stamp nor the label has a row, so the figure is the fallback rate.
+    const line = evalCostLine({ ...usage, model: 'some-llama' }, 'groq');
+    assert.match(line, /^~\$30\.000 /, 'the figure is still printed, at the fallback rate');
+    assert.match(line, /unpriced some-llama, shown at claude-opus-5 rates/, 'and it says the figure is a guess');
+    assert.equal(evalCostLine({ ...usage, model: 'gpt-6-luna' }, 'groq', 2), '~$0.60', 'a priced stamp carries no note');
+  });
+
+  test('every eval cost line says when its model has no price row', () => {
+    const unpriced = { ...usage, model: 'some-llama' };
+    const replay = replayReportLines({
+      label: 'groq', costModel: 'groq', records: 1, runs: 1, turns: 1, modelTurns: 1, acceptedModelTurns: 1, acceptance: 1,
+      checks: [], usage: unpriced, modelCalls: 1, quietRescues: 0, safetyTurns: 0, failedTurns: 0, unreplayedInputs: 0,
+      costUsd: 30, costPerAcceptedTurn: 30, latency: { count: 0, p50: null, p95: null }, notes: [],
+    });
+    const extract = formatSummary(summariseExtraction([], { model: 'some-llama', effort: 'low', trim: false, repeats: 1 }));
+    for (const line of [...replay, ...extract].filter((l) => l.includes('$'))) {
+      assert.match(line, /unpriced/, `a dollar figure for an unpriced model reads as real without the note: ${line}`);
+    }
   });
 });
