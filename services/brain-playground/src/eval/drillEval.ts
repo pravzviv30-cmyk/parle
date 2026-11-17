@@ -22,6 +22,7 @@ import { validateExercise } from '@luvani/core';
 
 import { addUsage, evalCostLine, ZERO_USAGE } from '../usage.ts';
 import { openAiEvalClient } from './openaiEval.ts';
+import { EVAL_ORDER, pickProvider } from './provider.ts';
 
 /** Below this share of clean exercises, the authoring prompt is not earning its keep. */
 const ACCEPT_THRESHOLD = 0.7;
@@ -59,15 +60,15 @@ const PROFILES = [
 ];
 
 function pickClient(): { client: LlmClient; costModel: string } {
-  const choice = (process.env.BRAIN_LLM ?? '').toLowerCase();
-  if ((choice === 'openai' || (choice === '' && !process.env.ANTHROPIC_API_KEY)) && process.env.OPENAI_API_KEY) {
-    return openAiEvalClient('drills', process.env.OPENAI_API_KEY);
+  const provider = pickProvider(process.env, EVAL_ORDER);
+  if (provider === 'openai') {
+    return openAiEvalClient('drills', process.env.OPENAI_API_KEY ?? '');
   }
-  if ((choice === 'anthropic' || choice === '') && process.env.ANTHROPIC_API_KEY) {
+  if (provider === 'anthropic') {
     return { client: new AnthropicBrainClient(), costModel: 'claude-opus-5' };
   }
-  if ((choice === 'groq' || choice === '') && process.env.GROQ_API_KEY) {
-    return { client: new OpenAiCompatBrainClient({ apiKey: process.env.GROQ_API_KEY }), costModel: 'groq' };
+  if (provider === 'groq') {
+    return { client: new OpenAiCompatBrainClient({ apiKey: process.env.GROQ_API_KEY ?? '' }), costModel: 'groq' };
   }
   console.error('The drill eval needs a real model. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GROQ_API_KEY in services/brain-playground/.env');
   process.exit(2);

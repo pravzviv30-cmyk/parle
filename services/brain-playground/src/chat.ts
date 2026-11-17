@@ -26,13 +26,13 @@ import {
 import { COMMAND_HELP, parseCommand } from './commands.ts';
 import { loadProfile, resetProfile, saveProfile } from './profileStore.ts';
 import { chatCostModels, formatSessionUsage, formatTurnUsage } from './usage.ts';
+import { CHAT_ORDER, pickProvider } from './eval/provider.ts';
 import { meta, renderProfile, renderRecap, title, warm } from './render.ts';
 import { parseRecordFlag, recordPathFor, timestampSlug, toSessionRecord, writeDevRecord } from './eval/devRecord.ts';
 import { beginSession, buildScenario, endSession, runInput, silenceInput, type Session } from './sessionLoop.ts';
 
 function pickClient(): { client: LlmClient; label: string; turnCostModel: string; frameCostModel: string } {
   const choice = (process.env.BRAIN_LLM ?? '').toLowerCase();
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const groqKey = process.env.GROQ_API_KEY;
   const rawEffort = (process.env.BRAIN_EFFORT ?? '').toLowerCase();
@@ -49,17 +49,18 @@ function pickClient(): { client: LlmClient; label: string; turnCostModel: string
     };
   }
 
-  if ((choice === 'openai' || (choice === '' && !anthropicKey)) && openaiKey) {
+  const provider = pickProvider(process.env, CHAT_ORDER);
+  if (provider === 'openai') {
     const { turn, frame } = chatCostModels('openai');
     return {
-      client: new OpenAiResponsesBrainClient({ apiKey: openaiKey }),
+      client: new OpenAiResponsesBrainClient({ apiKey: openaiKey ?? '' }),
       label: `${turn} talker · ${openAiModelFor('extract')} analyst`,
       turnCostModel: turn,
       frameCostModel: frame,
     };
   }
 
-  if ((choice === 'anthropic' || choice === '') && anthropicKey) {
+  if (provider === 'anthropic') {
     // The client routes per activity (routing.ts): the talker answers turns
     // and frames, the analyst handles the background calls. BRAIN_EFFORT
     // still works as the blunt all-activities knob it always was.
@@ -70,10 +71,10 @@ function pickClient(): { client: LlmClient; label: string; turnCostModel: string
       frameCostModel: chatCostModels('anthropic').frame,
     };
   }
-  if ((choice === 'groq' || choice === '' || choice === 'anthropic') && groqKey) {
+  if (provider === 'groq') {
     if (choice === 'anthropic') console.log(meta('No ANTHROPIC_API_KEY found; falling back to groq.'));
     return {
-      client: new OpenAiCompatBrainClient({ apiKey: groqKey }),
+      client: new OpenAiCompatBrainClient({ apiKey: groqKey ?? '' }),
       label: `${defaultModel()} · groq free tier`,
       turnCostModel: chatCostModels('groq').turn,
       frameCostModel: chatCostModels('groq').frame,

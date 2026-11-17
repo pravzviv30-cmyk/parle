@@ -40,6 +40,7 @@ import { STUCK_SILENCE_MS } from '@luvani/core';
 import { EVAL_CASES, type EvalCase } from './cases.ts';
 import { addUsage, evalCostLine, ZERO_USAGE } from '../usage.ts';
 import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
+import { EVAL_ORDER, pickProvider } from './provider.ts';
 import { HESITATION_COMMENTARY } from './sessionChecks.ts';
 
 interface CaseResult {
@@ -54,7 +55,6 @@ interface CaseResult {
 }
 
 function pickClient(): { client: LlmClient; label: string; costModel: string } {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const groqKey = process.env.GROQ_API_KEY;
   const rawEffort = (process.env.BRAIN_EFFORT ?? '').toLowerCase();
@@ -72,20 +72,21 @@ function pickClient(): { client: LlmClient; label: string; costModel: string } {
       costModel: openAiEvalModel('turn'),
     };
   }
-  if ((choice === 'openai' || (choice === '' && !anthropicKey)) && openaiKey) {
-    const { client, costModel } = openAiEvalClient('turn', openaiKey);
+  const provider = pickProvider(process.env, EVAL_ORDER);
+  if (provider === 'openai') {
+    const { client, costModel } = openAiEvalClient('turn', openaiKey ?? '');
     return { client, label: `${costModel} · OpenAI Responses`, costModel };
   }
-  if ((choice === 'anthropic' || choice === '') && anthropicKey) {
+  if (provider === 'anthropic') {
     return {
       client: new AnthropicBrainClient(effort ? { effort } : {}),
       label: `routed: sonnet talker · opus analyst${effort ? ` · ${effort}` : ''}`,
       costModel: 'claude-sonnet-5',
     };
   }
-  if ((choice === 'groq' || choice === '') && groqKey) {
+  if (provider === 'groq') {
     return {
-      client: new OpenAiCompatBrainClient({ apiKey: groqKey }),
+      client: new OpenAiCompatBrainClient({ apiKey: groqKey ?? '' }),
       label: `${defaultModel()} · groq`,
       costModel: defaultModel(),
     };

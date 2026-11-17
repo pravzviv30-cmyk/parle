@@ -12781,7 +12781,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1125 — The provider choice is hand-copied across the playground tools
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/brain-playground/src/eval/runEval.ts:56
 - note: B5-4. One pure picker, with each tool's present precedence passed in.
 - verified-by: `each playground tool picks the same provider as before for every key combination`
