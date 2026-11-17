@@ -1525,7 +1525,7 @@ describe('destructive rollback interlocks (F1081)', () => {
     }
   });
 
-  /** All 46 migrations replayed, and a reader of every column the rollbacks could drop. */
+  /** All 47 migrations replayed, and a reader of every column the rollbacks could drop. */
   const replayed = async (): Promise<{ db: PGlite; columns: () => Promise<string[]> }> => {
     const db = new PGlite();
     await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
