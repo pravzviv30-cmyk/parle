@@ -110,9 +110,12 @@ describe('ladder — support and instructions per rung', () => {
     assert.equal(directiveFor(RUNGS.FREE).support, 'none');
   });
 
-  test('the cued rung insists the learner speaks rather than taps', () => {
-    assert.match(directiveFor(RUNGS.CUED).tutorInstruction, /say their choice out loud/i);
-    assert.match(directiveFor(RUNGS.CUED).tutorInstruction, /never let them tap it silently/i);
+  test('no rung instruction tells the tutor the learner must speak aloud', () => {
+    // PEDAGOGY: a learner is never forced to speak aloud. Every spoken path has a quiet twin.
+    for (const rung of [RUNGS.ECHO, RUNGS.CUED, RUNGS.PROMPTED, RUNGS.FREE]) {
+      assert.doesNotMatch(directiveFor(rung).tutorInstruction, /must say|out loud|never let them tap|silently/i, `rung ${rung}`);
+    }
+    assert.match(directiveFor(RUNGS.CUED).tutorInstruction, /said, typed or tapped/i);
   });
 
   test('the prompted rung withholds the French', () => {
