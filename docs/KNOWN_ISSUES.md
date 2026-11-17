@@ -12763,3 +12763,26 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/secureSessionStorage.ts:63
 - note: `removeGeneration` uses `Promise.all`, and `writeSecure` swallows its failure, so `setItem` returns while deletes of the previous generation are still running. The next write reuses that generation. Inputs: write A (generation a, 3 chunks), write B with the delete of chunk a-0 rejecting and the deletes of a-1 and a-2 taking 30 ms, then write C straight away (generation a again). The late deletes remove C's chunks and `getItem` returns null, so the learner signs in again. Nobody else's session is restored. Same fix as F1023: wait with `Promise.allSettled`. Found by work-judge (Fable 5.2), F960 round 3, 2026-11-17.
 - verified-by: `a write waits for every old chunk delete before it returns`
+
+### F1072 — Importing core spends about a second building the word pack
+- severity: P2
+- status: [ ]
+- where: packages/core/src/daily/words.ts:2695
+- note: C2-1. A Unicode regex runs against every scene line for every generated word at module load. The snapshot test is written and green before the change, and must still pass after it.
+- verified-by: `the word pack's ids, examples and order match the pinned snapshot`
+
+### F1073 — The shuffle primitive has no caller, and daily comments describe retired code
+- severity: P2
+- status: [ ]
+- where: packages/core/src/daily/shuffle.ts:1
+- note: C2-3 and the daily half of C2-7. Core floor drops by exactly 9 with F1074's one test. F450 is re-pointed in the same PR.
+- verified-by: `the pick never reads the wall clock, only the moment it was handed`
+
+### F1074 — Day-key and week rules have second homes, beside exports only tests call
+- severity: P2
+- status: [ ]
+- where: packages/core/src/daily/pick.ts:43
+- note: C2-4, C2-5, C2-6, C2-8 and the missions comment. The dayIndex characterization test is written first.
+- verified-by: `a day key counts the same days from the epoch whichever module reads it`
+- verified-by: `the week strip runs Monday to Sunday with today in it`
+- verified-by: `weeks start on Monday`
