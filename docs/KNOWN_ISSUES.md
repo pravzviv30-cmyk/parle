@@ -12763,3 +12763,33 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/secureSessionStorage.ts:63
 - note: `removeGeneration` uses `Promise.all`, and `writeSecure` swallows its failure, so `setItem` returns while deletes of the previous generation are still running. The next write reuses that generation. Inputs: write A (generation a, 3 chunks), write B with the delete of chunk a-0 rejecting and the deletes of a-1 and a-2 taking 30 ms, then write C straight away (generation a again). The late deletes remove C's chunks and `getItem` returns null, so the learner signs in again. Nobody else's session is restored. Same fix as F1023: wait with `Promise.allSettled`. Found by work-judge (Fable 5.2), F960 round 3, 2026-11-17.
 - verified-by: `a write waits for every old chunk delete before it returns`
+
+### F1068 — A hesitation is graded as a mistake, and a negated line as the line
+- severity: P2
+- status: [ ]
+- where: packages/core/src/session/session.ts:256
+- note: C1-1 and C1-4, each built only on the founder's yes. A filler-only transcript goes to matching and grades poor; "ne" and "pas" fit inside the two-extra-word allowance at lessons/types.ts:215.
+- verified-by: `a transcript of only hesitation sounds is treated as silence, not a wrong answer`
+- verified-by: `a negated line is not accepted as the line`
+- verified-by: `a line that carries its own negation is still accepted as written`
+
+### F1069 — A turn answered from a rescue's full line counts as unassisted
+- severity: P2
+- status: [ ]
+- where: packages/core/src/ladder/ladder.ts:116
+- note: C1-2, built only on the founder's yes. The inflated rate feeds the lesson XP bonus, the recap line and the unaided week. Lesson path only; the brain's call goes to B4.
+- verified-by: `a good turn answered from a rescue's full line is not counted as unassisted`
+
+### F1070 — The rung-2 instruction tells the tutor the learner must speak
+- severity: P2
+- status: [ ]
+- where: packages/core/src/ladder/ladder.ts:178
+- note: C1-3, a product decision. PEDAGOGY.md line 15 and line 359 disagree; the founder's wording replaces both.
+- verified-by: `no rung instruction tells the tutor the learner must speak aloud`
+
+### F1071 — Pedagogy exports only tests call, a false merge comment and a copied dedupe key
+- severity: P2
+- status: [ ]
+- where: packages/core/src/lessons/keyterms.ts:30
+- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Core floor drops by exactly 3.
+- verified-by: `the keyterm list dedupes on the same key the recognition repair uses`
