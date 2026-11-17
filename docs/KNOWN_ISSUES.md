@@ -12791,5 +12791,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: packages/core/src/lessons/keyterms.ts:30
-- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Core floor drops by exactly 3.
+- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Three tests were deleted and five added; core went from 1152 to 1154, and the floor was not lowered.
 - verified-by: `the keyterm list dedupes on the same key the recognition repair uses`
+
+### F1196 — A formal "ne" added to a line that already carries "pas" is refused as a negation
+- severity: P2
+- status: [x]
+- where: packages/core/src/lessons/types.ts:218
+- note: The C1-4 guard refused any negation word the candidate lacked, one word at a time. Target "Je sais pas", learner says "Je ne sais pas": same meaning, graded near (accepted before C1-4). An added ne or n' is now forgiven when the candidate carries pas, jamais or rien; not plus, which can mean more. The judge's first example, "Ce n'est pas grave" for "C'est pas grave", was near before C1-4 too: normalise joins n'est into nest and "cest" is under the five-letter typo floor, so it is an elision gap, not this guard. No scripted lesson has a dropped-ne target today. Found by work-judge (Fable 5.2), C1 round 1, 2026-11-17.
+- verified-by: `a formal ne added to a line that already carries pas is still the line`

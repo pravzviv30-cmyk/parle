@@ -215,7 +215,10 @@ export function matchAcceptable(turn: LessonTurn, spoken: string): AcceptanceMat
 
     const { hits, wanted } = contentHits(heard, candidate);
     // An added "ne" or "pas" fits the allowance and says the opposite of the line.
-    const negated = heard.some((w) => negationWords.has(w) && !candidate.includes(w));
+    // A "ne" restored to a line already negated by pas, jamais or rien is the same
+    // line said formally. Not "plus", which can mean more.
+    const negative = candidate.some((w) => w === 'pas' || w === 'jamais' || w === 'rien');
+    const negated = heard.some((w) => negationWords.has(w) && !candidate.includes(w) && !(negative && (w === 'ne' || w === 'n')));
     if (hits === wanted && !negated && contentWords(heard).length <= wanted + EXTRA_WORD_ALLOWANCE) {
       return { accepted: true, via: 'content' };
     }

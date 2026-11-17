@@ -183,6 +183,18 @@ describe('answer matching', () => {
     assert.ok(isAcceptable(base, "bonjour un café s'il vous plaît"));
   });
 
+  test('a formal ne added to a line that already carries pas is still the line', () => {
+    const base = CAFE_LESSON.turns[1]!;
+    const line = (target: string) => ({ ...base, target, accepts: [], options: [] });
+    // Spoken French drops the ne; putting it back is the same sentence, said formally.
+    assert.ok(isAcceptable(line('Je sais pas'), 'Je ne sais pas'));
+    assert.ok(isAcceptable(line('Je bois jamais de café'), 'Je ne bois jamais de café'));
+    assert.ok(isAcceptable(line('Il y a rien'), 'Il ne y a rien'));
+    // Turning a positive line negative is still refused.
+    assert.equal(isAcceptable(line('Je sais'), 'Je ne sais pas'), false);
+    assert.equal(isAcceptable(line('Je veux plus de café'), 'Je ne veux plus de café'), false, 'plus may mean more, so ne is not forgiven there');
+  });
+
   test('a half-said line is a near miss, not an unrelated answer', () => {
     const t = CAFE_LESSON.turns[1]!;
     const match = matchAcceptable(t, 'un café');
