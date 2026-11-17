@@ -162,3 +162,18 @@ describe('gate — a todo test is not a passing test', () => {
     assert.match(problems.join('\n'), /todo/, 'the detail says a test was marked todo');
   });
 });
+
+describe('gate — the checks are wired, not only written', () => {
+  test('gate.mjs still calls each check that gateChecks exports', () => {
+    // Spawning the gate is the slow pattern behind F1055, so this reads gate.mjs as text.
+    const gate = readFileSync(new URL('./gate.mjs', import.meta.url), 'utf8')
+      .split('\n')
+      .filter((line) => !/^import .* from '\.\/gateChecks\.mjs';$/.test(line))
+      .join('\n');
+    const calls = (name) => gate.split(`${name}(`).length - 1;
+    assert.equal(calls('suiteProblems'), 2, 'both the workspace suites and the release proofs are judged by suiteProblems');
+    for (const name of ['unrunTestFiles', 'trackedTestFiles', 'guardWiringProblems', 'malformedVerifiedBy', 'focusProblems', 'belowFloor', 'workspaceKeys']) {
+      assert.equal(calls(name) >= 1, true, `gate.mjs no longer calls ${name}, so its tests pass while the gate checks nothing`);
+    }
+  });
+});
