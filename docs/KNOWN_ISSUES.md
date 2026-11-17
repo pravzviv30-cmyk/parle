@@ -11765,6 +11765,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   Closed here, no new id.
 - verified-by: `a trial row begun by a purchase becomes a refilling free conversation at its first device claim`
 - verified-by: `a purchase-first row on a device that already had a free conversation stays spent`
+- verified-by: `a claim from a new device on a weekly-taste or paid row changes nothing`
 
 ### F915 — Onboarding has no Back, and a new account cannot leave the first scene without starting it
 - severity: P2

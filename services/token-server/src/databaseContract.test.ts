@@ -2014,6 +2014,40 @@ describe('purchase-first trial row (F933)', () => {
     } finally { await db.close(); }
   });
 
+  test('a claim from a new device on a weekly-taste or paid row changes nothing', async () => {
+    const db = (await base.clone()) as PGlite;
+    const snapshot = async (n: number): Promise<Json> =>
+      (await db.query<{ e: Json }>('select to_jsonb(e) e from public.entitlements e where user_id=$1', [uid(n)])).rows[0]!.e;
+    const devices = async (): Promise<number> => (await db.query<{ n: number }>('select count(*)::int n from public.trial_installations')).rows[0]!.n;
+    try {
+      for (const [i, fn] of CLAIMS.entries()) {
+        const taste = 20 + 3 * i;
+        const paid = taste + 1;
+        const lapsed = taste + 2;
+        for (const n of [taste, paid, lapsed]) await learner(db, n);
+        // A weekly taste part-way through its window.
+        assert.equal(await claim(db, fn, taste, taste), true);
+        await db.query('update public.entitlements set seconds_used=100 where user_id=$1', [uid(taste)]);
+        // A paid row, and a paid row that lapsed to a fresh taste without any device claim.
+        await db.query("insert into public.entitlements(user_id,plan,seconds_used,period_end) values($1,'starter',500,clock_timestamp()+interval '10 days')", [uid(paid)]);
+        await db.query("insert into public.entitlements(user_id,plan,seconds_used,period_end) values($1,'starter',500,clock_timestamp()-interval '48 hours')", [uid(lapsed)]);
+        await db.query('select luvani_private.tutor_entitlement_v1($1)', [uid(lapsed)]);
+        await db.query('update public.entitlements set seconds_used=100 where user_id=$1', [uid(lapsed)]);
+
+        const lapsedRow = await snapshot(lapsed);
+        assert.deepEqual([lapsedRow.plan, lapsedRow.weekly_taste, lapsedRow.lapsed_from_paid, lapsedRow.seconds_used], ['trial', true, true, 100]);
+        assert.notEqual((await snapshot(taste)).period_end, null, 'the weekly taste is not part-way through a window');
+        for (const [n, what] of [[taste, 'weekly-taste'], [paid, 'paid'], [lapsed, 'lapsed paid']] as const) {
+          const before = await snapshot(n);
+          const recorded = await devices();
+          assert.equal(await claim(db, fn, n, 900 + n), true, `${fn} refused a ${what} row`);
+          assert.deepEqual(await snapshot(n), before, `${fn} changed a ${what} row on a claim from a new device`);
+          assert.equal(await devices(), recorded, `${fn} recorded a new device against a ${what} row`);
+        }
+      }
+    } finally { await db.close(); }
+  });
+
   test('the claim rollback refuses without its interlock and restores the earlier bodies', async () => {
     const down = readFileSync(path.join(ROLLBACKS, `${CLAIM_PROMOTES.split('_')[0]}_down.sql`), 'utf8');
     const db = new PGlite();
