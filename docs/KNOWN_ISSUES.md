@@ -12727,3 +12727,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/auth/secureSessionStorage.ts:68
 - note: `removeAllGenerations` uses `Promise.all`, which rejects on the first failed delete while the other chunk deletes are still running. On a fresh-install clear that failed, the next write can start before those deletes land, and a late delete can remove part of the new session. Losing a sign-in is the worst case; the previous person is never restored. Fix: wait for every delete to settle (`Promise.allSettled`) and then report failure if any failed. Found by /code-review (high) at push-check, 2026-11-17.
 - verified-by: `removing a session waits for every chunk delete before it reports a failure`
+
+### F1024 — A failed old-generation chunk delete lets late deletes remove chunks of the next write
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/auth/secureSessionStorage.ts:63
+- note: `removeGeneration` uses `Promise.all`, and `writeSecure` swallows its failure, so `setItem` returns while deletes of the previous generation are still running. The next write reuses that generation. Inputs: write A (generation a, 3 chunks), write B with the delete of chunk a-0 rejecting and the deletes of a-1 and a-2 taking 30 ms, then write C straight away (generation a again). The late deletes remove C's chunks and `getItem` returns null, so the learner signs in again. Nobody else's session is restored. Same fix as F1023: wait with `Promise.allSettled`. Found by work-judge (Fable 5.2), F960 round 3, 2026-11-17.
+- verified-by: `a write waits for every old chunk delete before it returns`

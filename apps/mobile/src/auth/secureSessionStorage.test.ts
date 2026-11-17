@@ -111,3 +111,27 @@ test('removing a session waits for every chunk delete before it reports a failur
   releaseDeletes();
   assert.match(String(await outcome), /keychain unavailable/);
 });
+
+test('a write waits for every old chunk delete before it returns', async () => {
+  const keychain = new MemoryStorage();
+  const storage = createSecureSessionStorage(keychain, new MemoryStorage());
+  await storage.setItem('sb-auth-token', 'A'.repeat(4_000)); // generation a, 3 chunks
+
+  let releaseDeletes!: () => void;
+  const held = new Promise<void>((resolve) => { releaseDeletes = resolve; });
+  const removeChunk = keychain.removeItem.bind(keychain);
+  keychain.removeItem = async (key) => {
+    if (key.endsWith('.luvani-secure-a-0')) throw new Error('keychain unavailable');
+    if (/\.luvani-secure-a-[12]$/.test(key)) await held;
+    await removeChunk(key);
+  };
+
+  let returned = false;
+  const write = storage.setItem('sb-auth-token', 'B').then(() => { returned = true; });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(returned, false, 'the write must not return while old chunk deletes are still running');
+
+  releaseDeletes();
+  await write;
+  assert.equal(await storage.getItem('sb-auth-token'), 'B');
+});
