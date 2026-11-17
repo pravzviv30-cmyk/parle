@@ -289,7 +289,7 @@ describe('F927: Space and the focus ring', () => {
     const pressBody = components.slice(components.indexOf('export function Press('), components.indexOf('function SelectRing('));
     assert.match(pressBody, /const frameRadius = StyleSheet\.flatten\(style\)\?\.borderRadius;/, 'Press does not read its surface corner');
     assert.match(pressBody, /style=\{frameRadius != null \? \[\{ borderRadius: frameRadius \}, frame\] : frame\}/, 'the focusable frame is square around a rounded pill');
-    assert.match(components, /const face: ViewStyle = \{[^}]*borderRadius: shape\.radius/, 'the lip tile face has no corner for the ring to follow');
+    assert.match(components, /const face: ViewStyle = \{[^}]*\.\.\.shape\.corner/, 'the lip tile face has no corner for the ring to follow');
     assert.match(components, /style=\{\[lipStyles\.hit, face, style\]\}/, 'the lip tile ring is square inside a rounded tile');
     assert.match(components, /filterChip: \{[^}]*borderRadius: radius\.pill/, 'the chip ring is square');
 

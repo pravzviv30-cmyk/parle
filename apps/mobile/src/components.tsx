@@ -46,7 +46,10 @@ import { TileOnChosen } from './icons/IconTile.tsx';
 import {
   STROKE,
   accent,
+  bType,
   colour,
+  continuous,
+  corner,
   decorative,
   font,
   frenchText,
@@ -70,6 +73,7 @@ import {
   rungLabel,
 } from './theme.ts';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
+import { lip as lipColours } from './palette.ts';
 import Reanimated, { useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { pressed, tapSettled } from './motion/haptics.ts';
 import { PRESS_SCALE, PRESS_SCALE_TILE, SELECT_RING_OPACITY, pressTo, ringTo, selectPop, stopMotion, useReduceMotion } from './motion.ts';
@@ -284,7 +288,7 @@ export function PillButton({
   variant = 'primary',
   pastel,
   disabledReason,
-  lip = false,
+  lip = variant === 'primary' && tone === 'ink',
 }: {
   label: string;
   onPress: () => void;
@@ -334,9 +338,9 @@ export function PillButton({
   /** The pastel fill of a secondary pill on a white card. */
   pastel?: keyof typeof pastelFill;
   /**
-   * Drill B v2 (UI-016): a 4pt lip in `primaryLip` drawn as a View under the
-   * pill, never a shadow, sinking 2pt while pressed. Opt in; off by default so
-   * every other pill draws as before. A disabled pill keeps the space but no lip.
+   * A 3pt lip in `primaryLip` drawn as a View under the pill, never a shadow,
+   * sinking 2pt while pressed (UI-016, F991). On by default for the ink
+   * primary; an explicit value overrides. A disabled pill keeps the space but no lip.
    */
   lip?: boolean;
 }) {
@@ -364,8 +368,8 @@ export function PillButton({
   return <View style={{ borderRadius: radius.pill, backgroundColor: disabled ? 'transparent' : t.primaryLip }}>{pill}</View>;
 }
 
-/** The drill primary's lip, and how far the pill sinks into it under a finger (UI-016). */
-const PILL_LIP = 4;
+/** The ink primary's lip, and how far the pill sinks into it under a finger (UI-016, F991). */
+const PILL_LIP = 3;
 const PILL_LIP_PRESS = 2;
 
 /**
@@ -916,6 +920,14 @@ export function fitDisplay(text: string): TextStyle {
   return { fontFamily: type.frenchLg.fontFamily, fontSize: 20, lineHeight: 27 };
 }
 
+/**
+ * The hero title's fit (F997): the first of 28, 24 and 20 whose estimated
+ * one-line width (0.56 em a character) fits the column, else 20.
+ */
+export function fitTitle(text: string, column: number): TextStyle {
+  return [bType.bandTitle, bType.stat24].find((step) => text.length * step.fontSize * 0.56 <= column) ?? bType.section20;
+}
+
 
 /**
  * A column of words that takes the rest of a row and can still shrink.
@@ -984,7 +996,7 @@ const makeS = (t: B) => StyleSheet.create({
   abilityDivided: { borderTopWidth: HAIRLINE, borderTopColor: t.line },
   abilityWords: ROW_WORDS,
   abilityPressed: { opacity: 0.72 },
-  card: { backgroundColor: t.card, borderRadius: radius.card },
+  card: { backgroundColor: t.card, ...corner.card },
   cardPadded: { paddingVertical: space(4), paddingHorizontal: space(4) },
   pill: {
     minHeight: PILL_HEIGHT,
@@ -1044,7 +1056,7 @@ const makeS = (t: B) => StyleSheet.create({
   tabActive: { backgroundColor: t.card },
   segmentFrame: { flex: 1 },
   segments: { flexDirection: 'row', alignSelf: 'stretch', gap: space(1.5) },
-  segment: { flex: 1, height: 4, borderRadius: 2 },
+  segment: { flex: 1, height: 4, borderRadius: radius.pill },
   speak: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1462,7 +1474,7 @@ export function fitHero(text: string): TextStyle {
 
 const makeLs = (t: B) => StyleSheet.create({
   // SNIPPETS list: a white card, 4 above and below the rows and 20 at the sides.
-  ledger: { backgroundColor: t.card, borderRadius: radius.card, paddingVertical: space(1), paddingHorizontal: space(5) },
+  ledger: { backgroundColor: t.card, ...corner.card, paddingVertical: space(1), paddingHorizontal: space(5) },
   rule: { height: HAIRLINE, backgroundColor: t.line },
   row: {
     minHeight: HIT + space(4),
@@ -1800,7 +1812,7 @@ export function ColourCard({
   const fill = ground.startsWith('pastel.') ? t[ground.slice(7) as keyof typeof pastel] : colour[ground as Ground];
   const surface = [
     lift && liftStyle,
-    { backgroundColor: fill, borderRadius: radius.feature, padding: space(6), gap: space(4), overflow: 'hidden' as const },
+    { backgroundColor: fill, ...corner.card, padding: space(6), gap: space(4), overflow: 'hidden' as const },
     style,
   ];
   if (onPress != null) {
@@ -2048,7 +2060,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
             <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={StyleSheet.absoluteFill} />
           </Animated.View>
           <Animated.View accessibilityViewIsModal {...(Platform.OS === 'web' ? { role: 'dialog', 'aria-modal': true } as object : {})} onAccessibilityEscape={onClose}
-            style={[b.sheetPanel, reading && b.sheetReading, surface !== undefined ? { backgroundColor: surface } : undefined, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.feature, borderTopRightRadius: radius.feature,
+            style={[b.sheetPanel, reading && b.sheetReading, surface !== undefined ? { backgroundColor: surface } : undefined, { maxHeight: '94%', paddingTop: 0, paddingBottom: Math.max(insets.bottom, space(6)), borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card, ...continuous,
               transform: [{ translateY: Animated.add(drag, arrival.interpolate({ inputRange: [0, 1], outputRange: [600, 0] })) }] }]}>
             <View {...gesture.panHandlers} style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View {...decorative} style={b.grabber} /></View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(3) }}>
@@ -2191,7 +2203,7 @@ const makeB = (t: B) => StyleSheet.create({
   // 2026-10-20, lock seam wiring: the words wrap inside the pill at 320pt and large text instead of running past the row.
   lockPill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '100%', gap: space(1.25), minHeight: 26, paddingHorizontal: space(2.5), borderRadius: radius.pill },
   lockWords: { ...type.badge, color: t.link, flexShrink: 1 },
-  lockRound: { width: 28, height: 28, borderRadius: 14, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
+  lockRound: { width: 28, height: 28, borderRadius: radius.pill, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
   heroRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: space(2.5) },
   sheetOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' },
   // On an iPad the first run's sheets keep its reading column (come alive, icons section 3.6).
@@ -2203,7 +2215,7 @@ const makeB = (t: B) => StyleSheet.create({
     paddingBottom: space(10),
     gap: space(4),
   },
-  grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: t.line },
+  grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: radius.pill, backgroundColor: t.line },
   skeleton: { gap: space(3) },
   frenchRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3) },
   frenchWords: { ...ROW_WORDS, gap: space(1.5) },
@@ -2543,16 +2555,18 @@ export type ChoiceGround = 'paper' | 'card' | 'blue' | 'sun';
  *
  * A row is 72 (56 when compact) with the caller's tile at its head, the title,
  * a line under it and a 28 disc at its end; a tile stacks the tile over the
- * title for a grid of two. Not chosen: white with a 2pt hairline border, which
- * never matches the ground; on a white sheet the fill is the paper instead.
- * Chosen (founder decision D7: fill and glow, no lip, no shadow): the brand
- * blue with white words and a white disc holding the blue check, or the sun
- * with ink words on a blue ground, where blue would vanish. The tile inside
+ * title for a grid of two. It is the raised tile (F992, revisiting D7): a face
+ * on a lip of its own drawn as a View under it, never a shadow, sinking
+ * `LIP_PRESS` while pressed. Not chosen: the white card face with a 2pt field
+ * ring on the paper lip. Chosen: the brand blue on the blue lip with white
+ * words and a white disc holding the blue check, or the sun on the sun lip with
+ * ink words on a blue ground, where blue would vanish. The tile inside
  * turns white with a brand mark (`TileOnChosen`) so a blue or sun tile never
  * disappears into the fill. Becoming chosen pops once and lights the ring
  * layer `Press` draws; the disc settles in. It ticks like a choice.
  *
  * A radio by default, with its checked state said on a device and on the web;
+ * a checkbox, for a multi-select list, says checked the same way;
  * `role="button"` keeps a selected state instead, for rows that act on the tap.
  * A French title is set and read as French. A Hear is its own `IconButton`
  * beside the choice, never inside it, so hearing never chooses and no button
@@ -2584,8 +2598,8 @@ export function Choice({
   glyph?: ReactNode;
   selected: boolean;
   onPress: () => void;
-  /** radio, one of a set (the default); button, a row that acts on the tap. */
-  role?: 'radio' | 'button';
+  /** radio, one of a set (the default); checkbox, one of many; button, a row that acts on the tap. */
+  role?: 'radio' | 'checkbox' | 'button';
   layout?: 'row' | 'tile';
   /**
    * What the choice sits on. `paper.ground` is the first run's older way of
@@ -2610,7 +2624,7 @@ export function Choice({
   const t = useB();
   const on: ChoiceGround = ground === paper.ground ? 'card' : ground;
   const sunny = on === 'blue';
-  const radio = role === 'radio';
+  const radio = role === 'radio' || role === 'checkbox';
   const head = tile ?? glyph;
   const isTile = layout === 'tile';
   // On blue or sun the unchosen choice is a white plate in both modes; on the
@@ -2618,6 +2632,9 @@ export function Choice({
   const onColourGround = on === 'blue' || on === 'sun';
   const filled = selected && !outlined;
   const fill = filled ? (sunny ? colour.sun : t.brandMark) : on === 'card' ? t.ground : onColourGround ? paper.card : t.card;
+  const lipColour = filled ? (sunny ? lipColours.sun : t.lipBlue) : t.lipPaper;
+  const [pressed, setPressed] = useState(false);
+  const sunk = pressed ? LIP_PRESS : 0;
   const words = filled ? (sunny ? paper.ink : paper.onInk) : onColourGround ? paper.ink : t.text;
   const quiet = filled ? (sunny ? onColour.sun : t.mode === 'light' ? onColour.blue : t.onBrand) : onColourGround ? paper.inkSoft : t.muted;
   const rest = onColourGround ? paper.card : t.card;
@@ -2646,8 +2663,10 @@ export function Choice({
       aria-pressed={navigation || radio ? undefined : selected}
       accessibilityLabel={accessibilityLabel ?? (detail ? `${title}, ${detail}` : title)}
       onPress={onPress}
-      frame={onHear == null ? (isTile ? ch.share : undefined) : isTile ? undefined : ch.share}
-      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { backgroundColor: fill, borderColor: outlined ? (selected ? t.brandMark : rest) : selected ? fill : onColourGround ? paper.field : t.field }]}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      frame={isTile ? ch.share : undefined}
+      style={[isTile ? ch.tile : [ch.row, compact && ch.rowCompact, outlined && { minHeight: space(19), paddingVertical: space(4) }], { marginTop: sunk, marginBottom: LIP_SIZES.tile.lip - sunk, backgroundColor: fill, borderColor: outlined ? (selected ? t.brandMark : rest) : selected ? fill : onColourGround ? paper.field : t.field }]}
     >
       {head != null ? <TileOnChosen.Provider value={selected}>{head}</TileOnChosen.Provider> : null}
       <View style={isTile ? ch.tileWords : ch.words}>
@@ -2659,10 +2678,12 @@ export function Choice({
       {navigation ? null : isTile ? <View style={ch.tileDisc}>{disc}</View> : disc}
     </Press>
   );
-  if (onHear == null) return press;
+  const frame = onHear == null ? (isTile ? ch.share : undefined) : isTile ? undefined : ch.share;
+  const raised = <View style={[frame, { backgroundColor: lipColour, ...LIP_SIZES.tile.corner }]}>{press}</View>;
+  if (onHear == null) return raised;
   return (
     <View style={isTile ? ch.hearUnder : ch.hearBeside}>
-      {press}
+      {raised}
       {/* Its own slot, so the button sits centred on the row rather than at its top. */}
       <View>
         <IconButton
@@ -2684,8 +2705,8 @@ export function Choice({
 export type LipTone = 'card' | 'mint' | 'mintWash' | 'butter' | 'lavender' | 'sage' | 'peach';
 /** The two sizes: the stat tile, and a smaller chip (word chips, grades). */
 export const LIP_SIZES = {
-  tile: { radius: radius.stat, lip: 4 },
-  chip: { radius: radius.field, lip: 3 },
+  tile: { radius: radius.tile, corner: corner.tile, lip: 4 },
+  chip: { radius: radius.field, corner: corner.field, lip: 3 },
 } as const;
 /** How far a pressed tile sinks into its lip. */
 export const LIP_PRESS = 2;
@@ -2705,7 +2726,7 @@ const LIP_DISABLED = 0.6;
  */
 export function LipTile({ tone = 'card', lip, size = 'tile', onPress, selected = false, disabled = false, accessibilityLabel, accessibilityRole, accessibilityHint, style, children }: {
   tone?: LipTone;
-  /** The lip's colour; the `line` token by default. */
+  /** The lip's colour; the `lipPaper` token by default (F991). */
   lip?: string;
   size?: keyof typeof LIP_SIZES;
   onPress?: () => void;
@@ -2722,10 +2743,10 @@ export function LipTile({ tone = 'card', lip, size = 'tile', onPress, selected =
   const [pressed, setPressed] = useState(false);
   const shape = LIP_SIZES[size];
   const sunk = pressed && !disabled ? LIP_PRESS : 0;
-  const ground: ViewStyle = { backgroundColor: lip ?? t.line, borderRadius: shape.radius };
+  const ground: ViewStyle = { backgroundColor: lip ?? t.lipPaper, ...shape.corner };
   const face: ViewStyle = {
     backgroundColor: t[tone],
-    borderRadius: shape.radius,
+    ...shape.corner,
     marginTop: sunk,
     marginBottom: shape.lip - sunk,
     ...(selected ? { borderWidth: LIP_EDGE, borderColor: t.mark } : null),
@@ -2794,7 +2815,7 @@ const ch = StyleSheet.create({
     gap: space(3),
     paddingVertical: space(3),
     paddingHorizontal: space(4),
-    borderRadius: radius.tile,
+    ...corner.tile,
     borderWidth: 2,
   },
   rowCompact: { minHeight: HIT + space(3), paddingVertical: space(2) },
@@ -2808,7 +2829,7 @@ const ch = StyleSheet.create({
     justifyContent: 'center',
     gap: space(2),
     padding: space(4),
-    borderRadius: radius.tile,
+    ...corner.tile,
     borderWidth: 2,
   },
   tileWords: { alignSelf: 'stretch', gap: space(0.5) },

@@ -96,14 +96,14 @@ describe('LipTile, the shared game-button chrome', () => {
     return body.slice(body.indexOf('export type LipTone'), body.indexOf('const lipStyles'));
   })();
 
-  test('each tone is the token of its name, and the lip defaults to line', () => {
+  test('each tone is the token of its name, and the lip defaults to the paper lip', () => {
     assert.match(lip, /export type LipTone = 'card' \| 'mint' \| 'mintWash' \| 'butter' \| 'lavender' \| 'sage' \| 'peach';/);
     assert.match(lip, /backgroundColor: t\[tone\]/);
     // mintWash (drill B v2's right tile and sheet) is a useB() token, so t[tone] fills it.
     assert.match(read('../palette.ts'), /mintWash:/);
-    assert.match(lip, /backgroundColor: lip \?\? t\.line/);
-    assert.match(lip, /tile: \{ radius: radius\.stat, lip: 4 \}/);
-    assert.match(lip, /chip: \{ radius: radius\.field, lip: 3 \}/);
+    assert.match(lip, /backgroundColor: lip \?\? t\.lipPaper, \.\.\.shape\.corner/); // F991
+    assert.match(lip, /tile: \{ radius: radius\.tile, corner: corner\.tile, lip: 4 \}/);
+    assert.match(lip, /chip: \{ radius: radius\.field, corner: corner\.field, lip: 3 \}/);
     assert.doesNotMatch(lip, /shadow/i, 'the lip is a shadow');
   });
 
