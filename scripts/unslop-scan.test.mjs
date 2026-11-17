@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { countHits, HEAVY_WEIGHT_ALLOW, isScanned, regressions, REPEAT_ALLOW, scanSource, stripComments } from './unslop-scan.mjs';
+import { countHits, EYEBROW_ALLOW, HEAVY_WEIGHT_ALLOW, isScanned, regressions, REPEAT_ALLOW, scanSource, stripComments } from './unslop-scan.mjs';
 
 const dir = mkdtempSync(join(tmpdir(), 'unslop-scan-'));
 const REL = 'apps/mobile/src/home/Fixture.tsx';
@@ -101,4 +101,15 @@ test('withRepeat is allowed only in REPEAT_ALLOW', () => {
   const src = 'v.value = withRepeat(withTiming(1), -1);\n';
   assert.deepEqual(scanSource(REPEAT_ALLOW[0], src), []);
   assert.deepEqual(rules(scanSource(REL, src)), ['repeat-loop']);
+});
+
+test('a zero radius is not a literal radius', () => {
+  const src = 'const s = { a: { borderRadius: 0 }, b: { borderTopLeftRadius: 0, borderTopRightRadius: 0 } };\nconst c = { borderRadius: 0.5 };\n';
+  assert.deepEqual(rules(scan('zero.tsx', src)), ['literal-radius']);
+});
+
+test('a planted eyebrow is flagged', () => {
+  const src = '<Text style={[bType.eyebrow800, { color: t.link }]}>Notice</Text>\n<Row eyebrow={label} />\nconst v = { eyebrow: x };\nconst y = someEyebrowless;\n';
+  assert.deepEqual(rules(scan('eyebrow.tsx', src)), ['eyebrow', 'eyebrow', 'eyebrow']);
+  assert.deepEqual(scanSource(EYEBROW_ALLOW[0], 'export const bType = { eyebrow: { fontSize: 13 } };\n'), []);
 });

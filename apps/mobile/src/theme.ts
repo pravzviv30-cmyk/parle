@@ -228,6 +228,23 @@ export const bType = {
 } as const;
 
 /**
+ * The type scale by role (F997): each role names the existing token it draws,
+ * so a screen picks what a line is rather than a size.
+ */
+export const role = {
+  display: type.display,
+  screenTitle: type.title,
+  greeting: bType.greeting,
+  stageTitle: bType.bandTitle,
+  section: bType.section21,
+  cardHeading: type.cardTitle,
+  frenchLead: type.frenchLg,
+  body: type.body,
+  meta: type.small,
+  label: type.label,
+} as const;
+
+/**
  * The French hero's fit steps for a long line, after `type.frenchHero` at 34.
  * Each step is still larger than every head a card carries.
  */
@@ -243,22 +260,40 @@ export const space = (n: number) => n * 4;
 export const RHYTHM = { inline: space(2), item: space(3), block: space(5), section: space(8) } as const;
 
 export const radius = {
-  /** The one Card and the colour card: white or colour, no shadow, never nested. */
-  card: 24,
-  /** A feature card that leads a screen. */
-  feature: 28,
-  /** A stat tile. */
-  tile: 20,
-  /** The chunky Today stat tile with its 4pt lip (UI-015). */
-  stat: 18,
-  /** An input field. */
-  field: 16,
-  /** A real tappable capsule, fully rounded. */
+  /** A real tappable capsule, fully rounded: actions, capsules, circles, tracks, dots. */
   pill: 999,
-  row: 20, // alias of tile
-  chip: 16, // alias of field
-  input: 16, // alias of field
-  control: 16, // alias of field
+  /** Cards, bands, sheets, the hero. */
+  card: 20,
+  /** LipTile, Choice, stat tiles. */
+  tile: 18,
+  /** Inputs, small rounded squares. */
+  field: 14,
+  /** A chip or mark inside a tile or card (18 minus 6, 20 minus 8). */
+  inset: 12,
+  /** A mark inside a field (14 minus 6). */
+  mark: 8,
+  /** The floor: bubble tails, anything smaller. */
+  nib: 4,
+  feature: 20, // deprecated alias of card
+  stat: 18, // deprecated alias of tile
+  row: 18, // deprecated alias of tile
+  chip: 14, // alias of field
+  input: 14, // alias of field
+  control: 14, // alias of field
+} as const;
+
+/** iOS draws a token corner as the continuous curve; elsewhere it is a plain arc. */
+export const continuous: { borderCurve?: 'continuous' } =
+  Platform.OS === 'ios' ? { borderCurve: 'continuous' } : {};
+
+/** A full token corner: spread `...corner.x`. Pills and circles take `radius.pill` with no curve. */
+export const corner = {
+  card: { borderRadius: radius.card, ...continuous },
+  tile: { borderRadius: radius.tile, ...continuous },
+  field: { borderRadius: radius.field, ...continuous },
+  inset: { borderRadius: radius.inset, ...continuous },
+  mark: { borderRadius: radius.mark, ...continuous },
+  nib: { borderRadius: radius.nib, ...continuous },
 } as const;
 
 /**

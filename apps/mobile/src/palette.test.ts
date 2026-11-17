@@ -21,7 +21,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, boldRhythm, liftInk, b, mascot, sky } from './palette.ts';
+import { paper, colour, pastel, accent, highlight, signal, orb, onOrb, rungColor, lilac, textOn, onColour, segmentPending, streakCelebration, mainApp, mainArtColours, boldRhythm, liftInk, b, mascot, sky, lip } from './palette.ts';
 import { contrast } from './testing/contrast.ts';
 
 const SRC = new URL('.', import.meta.url).pathname;
@@ -836,6 +836,24 @@ describe('B tokens, light and dark — UI-008', () => {
     assert.equal(b.light.primaryLip, '#000000');
     // 2026-11-06, the founder's dark marks: the lip is one step under the lifted dark primary.
     assert.equal(b.dark.primaryLip, '#5549E8', 'the dark lip is not the pressed step of the lifted blue');
+  });
+
+  test('the lip colours are named once in the palette', () => {
+    // F991, Q1: the lip under a raised tile or pill is one of five named
+    // colours, each an existing value, so no part writes its own lip hex.
+    assert.deepEqual(lip, {
+      paper: paper.skeleton,
+      peach: mainArtColours.light.peach,
+      lilac: mainArtColours.light.lilac,
+      sun: segmentPending.sun,
+      blue: colour.bluePressed,
+    });
+    // The B theme reads the two lips the parts draw: light from `lip`, dark from
+    // the hairline and the primary's lip, both already held to the mark floor.
+    assert.equal(b.light.lipPaper, lip.paper);
+    assert.equal(b.light.lipBlue, lip.blue);
+    assert.equal(b.dark.lipPaper, b.dark.line);
+    assert.equal(b.dark.lipBlue, b.dark.primaryLip);
   });
 
   test('b.dark follows the Figma M3 page: the main app dark values, violet kept, the hero turned', () => {

@@ -339,6 +339,15 @@ export const passwordMeter = { low: colour.coral, medium: colour.sun, good: '#17
 /** Official provider assets retain their required brand colors. */
 export const providerBrand = { black: '#000000', white: '#FFFFFF', googleInk: '#1F1F1F' } as const;
 
+/** The lip under a raised tile or pill (F991): five named colours, each an existing value. A mark, never words. */
+export const lip = {
+  paper: paper.skeleton,
+  peach: mainArtColours.light.peach,
+  lilac: mainArtColours.light.lilac,
+  sun: segmentPending.sun,
+  blue: colour.bluePressed,
+} as const;
+
 /**
  * Direction B's semantic tokens, one set per appearance (DECISIONS.md UI-008,
  * 2026-10-20). Light is read straight off the canvas artboards and equals the
@@ -392,6 +401,10 @@ const bLight = {
   onPrimary: paper.onInk,
   /** The 4pt lip under a drill's primary pill (drill B v2, UI-016): one step darker than `primary`. A mark, never words. */
   primaryLip: '#000000',
+  /** The paper lip under a raised tile (F991). A mark, never words. */
+  lipPaper: lip.paper,
+  /** The blue lip under a chosen tile (F991). A mark, never words. */
+  lipBlue: lip.blue,
   /** The quiet secondary button and chip. */
   quiet: paper.inset,
   link: colour.blue,
@@ -469,6 +482,8 @@ export const b: { readonly light: BTokens; readonly dark: BTokens } = {
     onPrimary: paper.onInk,
     // The lip is one step under the lifted dark primary, still a mark on the ground.
     primaryLip: '#5549E8',
+    lipPaper: '#514967',
+    lipBlue: '#5549E8',
     quiet: '#302A48',
     link: '#A79AFF',
     avatar: '#302A48',

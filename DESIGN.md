@@ -870,6 +870,8 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.light.primary` | `#16123A` | The one primary pill |
 | `b.light.onPrimary` | `#FFFFFF` | Words on the primary pill |
 | `b.light.primaryLip` | `#000000` | The 4pt lip under a drill's primary pill (UI-016); decorative |
+| `b.light.lipPaper` | `#EFE6D6` | The paper lip under a LipTile and an unchosen Choice (`lip.paper`, UI-023); decorative |
+| `b.light.lipBlue` | `#2A20B0` | The lip under a chosen Choice (`lip.blue`, UI-023); decorative |
 | `b.light.quiet` | `#F5EEE2` | The quiet secondary button and chip |
 | `b.light.link` | `#3B2FE0` | Links and the lock mark |
 | `b.light.avatar` | `#16123A` | The avatar disc |
@@ -932,6 +934,8 @@ is drawn unchanged in both modes. `art/bArt.test.ts` pins the set at 22.
 | `b.dark.primary` | `#6357F2` | The one primary pill |
 | `b.dark.onPrimary` | `#FFFFFF` | Words on the primary pill |
 | `b.dark.primaryLip` | `#5549E8` | The lip under the dark primary: one step under the lifted blue (UI-016); decorative |
+| `b.dark.lipPaper` | `#514967` | The dark paper lip: the dark line (UI-023); decorative |
+| `b.dark.lipBlue` | `#5549E8` | The dark chosen lip: the dark primary lip (UI-023); decorative |
 | `b.dark.quiet` | `#302A48` | The quiet secondary button and chip |
 | `b.dark.link` | `#A79AFF` | Links and the lock mark |
 | `b.dark.avatar` | `#302A48` | The avatar disc |
