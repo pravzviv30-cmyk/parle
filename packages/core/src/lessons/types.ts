@@ -13,6 +13,7 @@
  */
 
 import type { Rung } from '../ladder/ladder.ts';
+import { negationWords } from '../speech/recognitionRepair.ts';
 import { sameWord } from '../text/distance.ts';
 
 export type CefrLevel = 'A0' | 'A1' | 'A2';
@@ -69,11 +70,6 @@ export interface Lesson {
   premise: string;
   culturalNotes: string[];
   turns: LessonTurn[];
-}
-
-/** Every distinct hard phoneme a lesson actually exercises across its turns. */
-export function phonemeCoverage(lesson: Lesson): string[] {
-  return [...new Set(lesson.turns.flatMap((t) => t.focusPhonemes))];
 }
 
 /**
@@ -155,6 +151,11 @@ function words(text: string): string[] {
   return said.length === 0 ? [] : said.split(' ');
 }
 
+/** True when the transcript carries no words, or only hesitation sounds. */
+export function fillerOnly(spoken: string): boolean {
+  return words(spoken).every((w) => FILLERS.has(w));
+}
+
 function contentWords(list: readonly string[]): string[] {
   const content = list.filter((w) => !FUNCTION_WORDS.has(w));
   // A line made entirely of small words ("de rien") still has to be sayable.
@@ -162,7 +163,10 @@ function contentWords(list: readonly string[]): string[] {
 }
 
 function withoutFillers(said: readonly string[], candidate: ReadonlySet<string>): string[] {
-  return said.filter((w) => !FILLERS.has(w) || candidate.has(w));
+  // "Pas de problème" is a set phrase of politeness, not a negation of the line
+  // (founder, 2026-11-17), so it goes the way a filler does.
+  const polite = candidate.has('probleme') ? said : ` ${said.join(' ')} `.replace(/ pas de probleme(?= )/g, '').split(' ').filter(Boolean);
+  return polite.filter((w) => !FILLERS.has(w) || candidate.has(w));
 }
 
 /** Every line this turn will take, in matching form. */
@@ -213,19 +217,22 @@ export function matchAcceptable(turn: LessonTurn, spoken: string): AcceptanceMat
     if (sameWord(heard.join(' '), target)) return { accepted: true, via: 'typo' };
 
     const { hits, wanted } = contentHits(heard, candidate);
-    if (hits === wanted && contentWords(heard).length <= wanted + EXTRA_WORD_ALLOWANCE) {
+    // An added "ne" or "pas" fits the allowance and says the opposite of the line.
+    // On a line that already says no (a negation word, or rien), an added one
+    // agrees with it instead: a restored "ne", or "non merci, pas de croissant".
+    // Not "plus", which can mean more.
+    const negative = candidate.some((w) => negationWords.has(w) || w === 'rien');
+    const negated = !negative && heard.some((w) => negationWords.has(w) && !candidate.includes(w));
+    if (hits === wanted && !negated && contentWords(heard).length <= wanted + EXTRA_WORD_ALLOWANCE) {
       return { accepted: true, via: 'content' };
     }
-    if (wanted > 0) best = Math.max(best, hits / wanted);
+    // The opposite sentence (an added ne, pas or jamais) is not a near miss of the
+    // line. A stray "non" is often a self-correction, so it still can be.
+    if (wanted > 0 && !(negated && heard.some((w) => (w === 'ne' || w === 'pas' || w === 'jamais') && !candidate.includes(w)))) best = Math.max(best, hits / wanted);
   }
 
   // Half the line is not the line — but it is not "je voudrais un éléphant"
   // either, and grading it the same way as one is how a learner who was almost
   // right learns to stop trying.
   return { accepted: false, via: best >= NEAR_MISS_SHARE ? 'near' : 'none' };
-}
-
-/** Did the learner produce an acceptable reply for this turn? */
-export function isAcceptable(turn: LessonTurn, spoken: string): boolean {
-  return matchAcceptable(turn, spoken).accepted;
 }

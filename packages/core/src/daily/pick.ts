@@ -24,8 +24,7 @@
  */
 
 import { localDayKey } from '../levels/levels.ts';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { daysBetween } from '../streak/dayKey.ts';
 
 /** A day key is exactly four digits, a month and a day. Anything else is not one of ours. */
 const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -33,7 +32,8 @@ const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 /**
  * Whole days since the first of January nineteen seventy, for a local day key.
  *
- * `Date.UTC` is deliberate and is not a time zone bug. The key has already had
+ * The count is the streak's own (`daysBetween`), so the two modules cannot
+ * disagree. Its `Date.UTC` is deliberate and is not a time zone bug. The key has already had
  * the learner's time zone applied to it by `localDayKey`; reading it back as
  * UTC treats it as the plain calendar date it is, so the arithmetic is exact
  * and every key is exactly one day apart from the next. Reading it as local
@@ -41,12 +41,10 @@ const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
  * across a daylight saving change, and a pick could then repeat or skip.
  */
 export function dayIndex(dayKey: string): number {
-  const parts = DAY_KEY.exec(dayKey);
-  if (parts === null) {
+  if (!DAY_KEY.test(dayKey)) {
     throw new Error(`dayIndex needs a YYYY-MM-DD day key, and got "${dayKey}"`);
   }
-  const utc = Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
-  return Math.floor(utc / DAY_MS);
+  return daysBetween('1970-01-01', dayKey);
 }
 
 /**

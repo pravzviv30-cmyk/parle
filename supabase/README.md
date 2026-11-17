@@ -283,6 +283,10 @@ set luvani.remove_learning_tables = 'yes';      -- 202608220001_down.sql
 
 Stop the webhook endpoint before you paste `202608300001_down.sql`.
 
+A refused file leaves its own transaction open and aborted, so the session refuses every
+later statement until you run `rollback;`. Run it before setting the right value and
+pasting the file again.
+
 Two pairs replace the same function as each other, so apply them newest first like
 everything else here. `202608270001_down.sql` and `202608250002_down.sql` are one pair:
 running the F75 one on its own, without the F116 one before it, is not a partial rollback

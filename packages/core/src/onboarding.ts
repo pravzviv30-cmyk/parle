@@ -1,7 +1,8 @@
 /** Authored first-use tasks. The same target, prompts and checks serve guest and offline practice. */
 import { normalise } from './lessons/types.ts';
-export const STARTER_GOALS = ['food', 'family', 'trip', 'moving', 'work', 'because'] as const;
-export type StarterGoal = (typeof STARTER_GOALS)[number];
+import { LEARNER_GOALS, type LearnerGoal } from './firstPractice.ts';
+export const STARTER_GOALS = LEARNER_GOALS;
+export type StarterGoal = LearnerGoal;
 export type StarterDrink = 'coffee' | 'tea';
 export interface StarterTask {
   id: string;
@@ -11,7 +12,6 @@ export interface StarterTask {
   model: string;
   meaning: string;
   starter: string;
-  accepts: readonly string[];
   success: string;
   correction: string;
 }
@@ -23,7 +23,6 @@ const task = (
   model: string,
   meaning: string,
   starter: string,
-  accepts: string[],
   success: string,
   correction: string,
 ): StarterTask => ({
@@ -34,7 +33,6 @@ const task = (
   model,
   meaning,
   starter,
-  accepts,
   success,
   correction,
 });
@@ -54,7 +52,6 @@ export function starterTasks(
         `Bonjour, je vais prendre un ${item}.`,
         `Hello, I will have a ${drink}.`,
         'Bonjour, je vais…',
-        [`un ${item}`, `du ${item}`],
         `You asked for a ${drink}.`,
         `Ask for a ${drink} with « un ${item} ». Add « bonjour » to greet the person.`,
       ),
@@ -66,7 +63,6 @@ export function starterTasks(
         'Un croissant, s’il vous plaît.',
         'A croissant, please.',
         'Un…',
-        ['un croissant'],
         'You asked for a croissant.',
         'Use « un croissant » for a croissant.',
       ),
@@ -78,7 +74,6 @@ export function starterTasks(
         'L’addition, s’il vous plaît.',
         'The bill, please.',
         'L’addition…',
-        ['addition', 'je peux payer', 'je voudrais payer'],
         'You asked to pay.',
         'Ask for the bill with « l’addition, s’il vous plaît ».',
       ),
@@ -92,7 +87,6 @@ export function starterTasks(
         'Ça va bien, merci. Et toi ?',
         'I’m well, thank you. And you?',
         'Ça va…',
-        ['ca va', 'je vais bien', 'bien merci'],
         'You answered the greeting.',
         'Answer with « ça va bien », then ask « et toi ? ».',
       ),
@@ -104,7 +98,6 @@ export function starterTasks(
         'Qu’est-ce que tu as fait ?',
         'What did you do?',
         'Qu’est-ce que…',
-        ['tu as fait', 'ta journee'],
         'You asked about their day.',
         'Ask « qu’est-ce que tu as fait ? ».',
       ),
@@ -116,7 +109,6 @@ export function starterTasks(
         'Demain, si tu veux.',
         'Tomorrow, if you like.',
         'Demain…',
-        ['demain', 'samedi', 'dimanche'],
         'You suggested a day to meet.',
         'Suggest a day, for example « demain ».',
       ),
@@ -130,7 +122,6 @@ export function starterTasks(
         'Où est la gare, s’il vous plaît ?',
         'Where is the station, please?',
         'Où est…',
-        ['ou est la gare', 'je cherche la gare'],
         'You asked where the station is.',
         'Ask « où est la gare, s’il vous plaît ? ».',
       ),
@@ -142,7 +133,6 @@ export function starterTasks(
         'Un billet pour Paris, s’il vous plaît.',
         'A ticket to Paris, please.',
         'Un billet…',
-        ['billet pour paris', 'je vais a paris'],
         'You asked to travel to Paris.',
         'Use « un billet pour Paris ».',
       ),
@@ -154,7 +144,6 @@ export function starterTasks(
         'Oui, j’ai une réservation.',
         'Yes, I have a booking.',
         'Oui, j’ai…',
-        ['une reservation'],
         'You said you have a booking.',
         'Say « oui, j’ai une réservation ».',
       ),
@@ -168,7 +157,6 @@ export function starterTasks(
         'Oui, je viens d’arriver.',
         'Yes, I’ve just arrived.',
         'Oui, je…',
-        ['je viens darriver', 'je suis nouveau', 'je suis nouvelle', 'j habite ici'],
         'You introduced yourself as a neighbour.',
         'Say « oui, je viens d’arriver ».',
       ),
@@ -180,7 +168,6 @@ export function starterTasks(
         'À quelle heure fermez-vous ?',
         'What time do you close?',
         'À quelle heure…',
-        ['quelle heure', 'vous fermez'],
         'You asked about closing time.',
         'Ask « à quelle heure fermez-vous ? ».',
       ),
@@ -192,7 +179,6 @@ export function starterTasks(
         'Oui, un sac, s’il vous plaît.',
         'Yes, a bag, please.',
         'Oui, un…',
-        ['oui', 'un sac'],
         'You asked for a bag.',
         'Say « oui, un sac, s’il vous plaît ».',
       ),
@@ -206,7 +192,6 @@ export function starterTasks(
         'Bonjour, oui. Enchanté.',
         'Hello, yes. Nice to meet you.',
         'Bonjour, oui…',
-        ['bonjour', 'enchante', 'enchantee'],
         'You greeted your colleague.',
         'Start with « bonjour ». Add « enchanté » or « enchantée » for nice to meet you.',
       ),
@@ -218,7 +203,6 @@ export function starterTasks(
         'Je travaille dans cette équipe.',
         'I work in this team.',
         'Je travaille…',
-        ['je travaille', 'mon equipe'],
         'You introduced your team.',
         'Start with « je travaille dans… ».',
       ),
@@ -230,7 +214,6 @@ export function starterTasks(
         'Vous pouvez m’aider, s’il vous plaît ?',
         'Can you help me, please?',
         'Vous pouvez…',
-        ['maider', 'aidez moi', 'aide moi'],
         'You asked your colleague for help.',
         'Ask « vous pouvez m’aider, s’il vous plaît ? ».',
       ),

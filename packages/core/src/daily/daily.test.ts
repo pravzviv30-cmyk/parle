@@ -1,10 +1,12 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 import { DAILY_WORDS, type DailyWord } from './words.ts';
 import { DAILY_SCENARIOS, SEED_TOPIC_MAX, seedTopicOf, type DailyScenario } from './scenarios.ts';
 import { dailyPick, dayIndex } from './pick.ts';
+import { addDays, daysBetween } from '../streak/dayKey.ts';
 import { wordTierFor, wordsForLevel, type WordTier } from './tier.ts';
 import { LEVEL_NAMES, LEVEL_THRESHOLDS, levelFor } from '../levels/levels.ts';
 import { MISSIONS } from '../missions/missions.ts';
@@ -830,6 +832,28 @@ describe('the day decides, and nothing is stored', () => {
     );
   });
 
+  test('a day key counts the same days from the epoch whichever module reads it', () => {
+    // Pinned on the parser dayIndex had before it shared the streak's (F1074).
+    assert.equal(dayIndex('1969-12-31'), -1, 'the day before the epoch counts back, not round');
+    assert.equal(dayIndex('1900-03-01'), -25508);
+    assert.equal(dayIndex('2000-02-29'), 11016);
+    assert.equal(dayIndex('2026-11-17'), 20774);
+    assert.equal(dayIndex('9999-12-31'), 2932896);
+    // A run of real days either side of two leap years and a clock change.
+    for (const start of ['1969-12-01', '2024-02-01', '2026-03-01', '2028-12-01']) {
+      for (let i = 0; i < 120; i += 1) {
+        const key = addDays(start, i);
+        assert.equal(dayIndex(key), daysBetween('1970-01-01', key), `${key} counts differently in daily and streak`);
+      }
+    }
+  });
+
+  test('dayIndex refuses an impossible date such as 2026-02-30', () => {
+    // A well-formed key that is not a calendar day used to count as 2 March.
+    assert.throws(() => dayIndex('2026-02-30'), RangeError);
+    assert.throws(() => dayIndex('2026-13-01'), RangeError);
+  });
+
   test('every day of a year lands on a real entry, and the sequence walks the whole pool', () => {
     // The modulo is written the long way in `pick.ts` for a reason: a negative
     // index reads off the front of the array and returns undefined, which is a
@@ -1252,5 +1276,19 @@ describe('the situations say what people say, and keep every id they shipped wit
         );
       }
     }
+  });
+});
+
+describe('the word pack is built the same way every launch — F1072', () => {
+  test("the word pack's ids, examples and order match the pinned snapshot", () => {
+    // Saved words are keyed by id, and the example is what the card shows, so
+    // a faster build has to produce this exact list. A real content change
+    // updates the hash on purpose.
+    const rows = DAILY_WORDS.map((w) => [w.id, w.exampleFr, w.exampleEn]);
+    assert.equal(rows.length, 1000);
+    assert.equal(
+      createHash('sha256').update(JSON.stringify(rows)).digest('hex'),
+      'f5865967e9571f7fb178b29753cbdbfc98ec3e5ede66ddd6791fdb9d9060bf2d',
+    );
   });
 });

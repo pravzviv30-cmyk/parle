@@ -38,8 +38,9 @@ import {
 import { STUCK_SILENCE_MS } from '@luvani/core';
 
 import { EVAL_CASES, type EvalCase } from './cases.ts';
-import { addUsage, evalCostUsd, ZERO_USAGE } from '../usage.ts';
+import { addUsage, evalCostLine, ZERO_USAGE } from '../usage.ts';
 import { openAiEvalClient, openAiEvalModel } from './openaiEval.ts';
+import { EVAL_ORDER, pickProvider } from './provider.ts';
 import { HESITATION_COMMENTARY } from './sessionChecks.ts';
 
 interface CaseResult {
@@ -54,7 +55,6 @@ interface CaseResult {
 }
 
 function pickClient(): { client: LlmClient; label: string; costModel: string } {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const groqKey = process.env.GROQ_API_KEY;
   const rawEffort = (process.env.BRAIN_EFFORT ?? '').toLowerCase();
@@ -72,20 +72,21 @@ function pickClient(): { client: LlmClient; label: string; costModel: string } {
       costModel: openAiEvalModel('turn'),
     };
   }
-  if ((choice === 'openai' || (choice === '' && !anthropicKey)) && openaiKey) {
-    const { client, costModel } = openAiEvalClient('turn', openaiKey);
+  const provider = pickProvider(process.env, EVAL_ORDER);
+  if (provider === 'openai') {
+    const { client, costModel } = openAiEvalClient('turn', openaiKey ?? '');
     return { client, label: `${costModel} · OpenAI Responses`, costModel };
   }
-  if ((choice === 'anthropic' || choice === '') && anthropicKey) {
+  if (provider === 'anthropic') {
     return {
       client: new AnthropicBrainClient(effort ? { effort } : {}),
       label: `routed: sonnet talker · opus analyst${effort ? ` · ${effort}` : ''}`,
       costModel: 'claude-sonnet-5',
     };
   }
-  if ((choice === 'groq' || choice === '') && groqKey) {
+  if (provider === 'groq') {
     return {
-      client: new OpenAiCompatBrainClient({ apiKey: groqKey }),
+      client: new OpenAiCompatBrainClient({ apiKey: groqKey ?? '' }),
       label: `${defaultModel()} · groq`,
       costModel: defaultModel(),
     };
@@ -122,7 +123,7 @@ async function runCase(client: LlmClient, testCase: EvalCase): Promise<CaseResul
   const elapsedMs = Date.now() - started;
   const { state: after, view } = integrateTurn(state, input, turn);
 
-  const hardViolations = hardRules(testCase, turn, view);
+  const hardViolations = hardRules(testCase, view);
   const misses = expectationMisses(testCase, turn, view, after.deferred.length, rescued);
 
   return {
@@ -137,7 +138,7 @@ async function runCase(client: LlmClient, testCase: EvalCase): Promise<CaseResul
   };
 }
 
-function hardRules(testCase: EvalCase, turn: TutorTurn, view: TurnView): string[] {
+function hardRules(testCase: EvalCase, view: TurnView): string[] {
   const violations: string[] = [];
 
   if (view.coachLine !== null) {
@@ -250,7 +251,7 @@ async function main(): Promise<void> {
   console.log(
     `${results.length - hardFailures.length - misses.length} ok · ${misses.length} expectation misses (judgment calls, read the transcripts) · ${hardFailures.length} hard failures`,
   );
-  console.log(`cost: ~$${evalCostUsd(totals, costModel).toFixed(2)} for the run\n`);
+  console.log(`cost: ${evalCostLine(totals, costModel, 2)} for the run\n`);
 
   process.exit(hardFailures.length > 0 ? 1 : 0);
 }
