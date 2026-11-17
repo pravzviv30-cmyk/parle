@@ -781,3 +781,64 @@ test('hook: gh api writes that merge or move refs deny, reads allow', () => {
     assert.equal(hookDecision(bash(cmd), fakeGit()), null, cmd);
   }
 });
+
+// ---- the guard reads past spelling tricks (F1057) ----
+
+test('a quoted, variable or aliased push subcommand is denied', () => {
+  for (const cmd of [
+    'git pu""sh',
+    "git p''ush origin claude/feat",
+    'git p\\ush',
+    'P=push; git $P',
+    'P=push; git "$P" origin main',
+    'git $(echo push)',
+    'git `echo push`',
+    'git "`echo push`" origin main',
+    'git -c alias.p=push p',
+    "git -c alias.ship='!git push' ship",
+    'git config alias.p push && git p',
+    'git config --global alias.ship "push origin HEAD" && git ship',
+  ]) {
+    // The plain `git push` here would be refused for having no stamp, so any spelling of it must be too.
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} hides a push the guard cannot read, so it must deny`);
+  }
+});
+
+test('a wrapper flag that takes a value does not hide the push behind it', () => {
+  for (const cmd of [
+    'env -u FOO git push',
+    'env --unset FOO git push',
+    'sudo -u me git push',
+    'sudo -g staff git push origin claude/feat',
+    'timeout -s KILL 10 git push',
+    'nice -n 5 git push',
+    'env -C /elsewhere git push',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} is a git push with no stamp, so it must deny`);
+  }
+  const [p] = findPushes('sudo -u me git push origin claude/feat', '/work');
+  assert.equal(p?.remote, 'origin', 'the value of -u is the user, not the command');
+  assert.deepEqual(p?.refspecs, ['claude/feat']);
+});
+
+test('a shift inside arithmetic does not hide the next command', () => {
+  for (const cmd of ['(( x << 2 ))\ngit push', 'echo $(( 1 << 2 ))\ngit push', '(( (1 + 2) << 3 )); git push']) {
+    // `<<` inside (( )) is a shift, so the next line is a command, not a here-document body.
+    assert.ok(hookDecision(bash(cmd), fakeGit()), JSON.stringify(cmd));
+  }
+  // A real here-document after the arithmetic is still data.
+  assert.equal(hookDecision(bash('(( x << 2 )); cat <<EOF\ngit push\nEOF'), fakeGit()), null);
+});
+
+test('git commands that only mention push are still allowed', () => {
+  for (const cmd of [
+    'git stash push -m x',
+    'git log --grep push',
+    'git commit -m "push later"',
+    'git status && echo push',
+    'git -c core.pager=cat log --grep push',
+    'git config alias.lg "log --oneline" && echo push',
+  ]) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} never publishes a commit, so it must not wedge the session`);
+  }
+});

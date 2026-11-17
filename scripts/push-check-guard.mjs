@@ -86,6 +86,10 @@ function tokenize(input) {
   // Here-document delimiters waiting for the end of the current line. A
   // heredoc body is data (a commit message, a doc), never a command.
   const heredocs = [];
+  // Paren depth, and the depth where an `((` arithmetic opened (null outside
+  // one): there `<<` is a shift, not a here-document.
+  let depth = 0;
+  let arithAt = null;
 
   const s = String(input);
   for (let i = 0; i < s.length; i++) {
@@ -114,7 +118,7 @@ function tokenize(input) {
       while (i + 1 < s.length && s[i + 1] !== '\n') i++;
     } else if (c === ' ' || c === '\t') {
       endWord();
-    } else if (c === '<' && s[i + 1] === '<' && s[i + 2] !== '<' && !inWord) {
+    } else if (c === '<' && s[i + 1] === '<' && s[i + 2] !== '<' && !inWord && arithAt === null) {
       // `<<EOF`, `<<-EOF`, `<<'EOF'`, `<< "EOF"`: remember the delimiter.
       let j = i + 2;
       const strip = s[j] === '-';
@@ -142,6 +146,15 @@ function tokenize(input) {
         }
       }
     } else if (c === '(' || c === ')' || c === '`') {
+      if (c === '(' && s[i + 1] === '(' && arithAt === null) arithAt = depth;
+      if (c === '(') depth++;
+      if (c === ')' && --depth <= arithAt) arithAt = null;
+      // An opening backtick leaves a mark in the word it interrupts, so
+      // `git pu\`echo sh\`` is seen as unreadable, the way `$(` already is.
+      if (c === '`' && !backtickOpen) {
+        word += c;
+        inWord = true;
+      }
       endCommand();
       if (c === '`') {
         commands.push({ paren: backtickOpen ? ')' : '(' });
@@ -187,6 +200,19 @@ const SHELLS = new Set(['sh', 'bash', 'zsh']);
 const GIT_GLOBAL_WITH_VALUE = new Set([
   '-C', '-c', '--git-dir', '--work-tree', '--namespace', '--super-prefix', '--config-env',
 ]);
+// Wrapper flags whose value is the next word. A value that changes directory
+// makes the command's directory unknown.
+const WRAPPER_FLAG_WITH_VALUE = {
+  env: new Set(['-u', '--unset', '-C', '--chdir']),
+  sudo: new Set(['-u', '--user', '-g', '--group', '-h', '--host', '-p', '--prompt', '-C', '--close-from', '-D', '--chdir', '-r', '--role', '-t', '--type', '-U', '--other-user', '-T', '--command-timeout']),
+  timeout: new Set(['-s', '--signal', '-k', '--kill-after']),
+  gtimeout: new Set(['-s', '--signal', '-k', '--kill-after']),
+  nice: new Set(['-n', '--adjustment']),
+  stdbuf: new Set(['-i', '--input', '-o', '--output', '-e', '--error']),
+};
+const WRAPPER_CHDIR = { env: new Set(['-C', '--chdir']), sudo: new Set(['-D', '--chdir']) };
+// Something only a shell can turn into a word.
+const SHELL_EXPANDS = /[$`]/;
 const PUSH_FLAG_WITH_VALUE = new Set([
   '-o', '--push-option', '--repo', '--receive-pack', '--exec',
 ]);
@@ -333,7 +359,8 @@ function apiWrites(args) {
 
 // Walk a shell command and report what the hook needs to judge:
 //   { kind: 'push', dir, dirKnown, movedBefore, ...parsed push args }
-//   { kind: 'opaque' }  eval/xargs wrapped around git push, which cannot be read
+//   { kind: 'opaque' }  eval/xargs wrapped around git push, or a git alias or
+//                       shell expansion that may be one, which cannot be read
 // `dir` tracks earlier `cd` and `git -C`; `dirKnown` is false once a directory
 // depends on the shell (`cd $(mktemp -d)`). `movedBefore` is true when an
 // earlier git command in the same call can move HEAD or a branch, which makes
@@ -355,16 +382,20 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     }
 
     let words = stripRedirects(item);
-    let afterWrapper = false;
+    let wrapper = null;
+    let wrapperMovedDir = false;
     while (words.length) {
       const w = words[0];
       if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w) || KEYWORDS.has(w)) {
         words = words.slice(1);
       } else if (WRAPPERS.has(w)) {
-        afterWrapper = true;
+        wrapper = w;
         words = words.slice(1);
-      } else if (afterWrapper && (w.startsWith('-') || /^\d+(\.\d+)?[smhd]?$/.test(w))) {
-        words = words.slice(1); // flags of env/sudo/command/etc., and timeout's duration
+      } else if (wrapper && (w.startsWith('-') || /^\d+(\.\d+)?[smhd]?$/.test(w))) {
+        // flags of env/sudo/command/etc., and timeout's duration
+        const takesValue = WRAPPER_FLAG_WITH_VALUE[wrapper]?.has(w);
+        if (WRAPPER_CHDIR[wrapper]?.has(w)) wrapperMovedDir = true;
+        words = words.slice(takesValue ? 2 : 1);
       } else {
         break;
       }
@@ -398,10 +429,12 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       }
     } else if (name === 'git') {
       let gitDir = state.dir;
-      let gitKnown = state.known;
+      let gitKnown = state.known && !wrapperMovedDir;
+      let aliased = false;
       let i = 0;
       for (; i < rest.length && rest[i].startsWith('-'); i++) {
         const flag = rest[i];
+        if ((flag === '-c' || flag === '--config-env') && /^alias\./i.test(rest[i + 1] ?? '')) aliased = true;
         if (flag === '-C') {
           if (rest[i + 1] !== undefined) {
             const next = afterCd(gitDir, gitKnown, [rest[++i]]);
@@ -413,7 +446,12 @@ export function analyzeCommand(command, baseCwd, parent = null) {
         }
       }
       const sub = rest[i];
-      if (sub === 'push') {
+      const args = rest.slice(i + 1);
+      const aliasAt = sub === 'config' ? args.findIndex((a) => /^alias\./i.test(a)) : -1;
+      if (aliased || (sub && SHELL_EXPANDS.test(sub)) || (aliasAt !== -1 && args.slice(aliasAt + 1).some((a) => /push/.test(a)))) {
+        // An alias or a shell expansion can turn into `push`; the guard cannot read which.
+        events.push({ kind: 'opaque' });
+      } else if (sub === 'push') {
         events.push({
           kind: 'push',
           dir: gitDir,
@@ -550,7 +588,8 @@ const AUTO_REASON =
 export function hookDecision(input, git) {
   if (!input || input.tool_name !== 'Bash') return null;
   const command = input.tool_input?.command;
-  if (typeof command !== 'string' || !/\b(push|gh|merge)\b/.test(command)) return null;
+  // Quotes and backslashes are gone by the time the shell runs it: `pu""sh` is `push`.
+  if (typeof command !== 'string' || !/\b(push|gh|merge)\b/.test(command.replace(/["'\\]/g, ''))) return null;
 
   const cwd = input.cwd || process.cwd();
   let denial = null;
