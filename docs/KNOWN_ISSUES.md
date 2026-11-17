@@ -8676,7 +8676,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   scene brief for the spine's next scene, with no picture, and the minutes line reads "About N min". A
   three-line daily scene is still seven minutes, and the scripted opener is about three, derived from
   its script.
-- verified-by: `every hour has exactly one subline`
+- note: 2026-11-17, the systemic pass (UI-023): the hour's line had no production caller left, so `greetingSubline` and its test went (founder, 2026-11-10); the greeting has no subline.
+- verified-by: `the greeting has no subline`
 - verified-by: `a three-line daily scene is about seven minutes, and an open mission is longer per beat`
 - verified-by: `a first run leads with the opener, as a brief: level, French title, can-do, lines and about three minutes`
 
@@ -8948,7 +8949,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/theme.ts:27
 - note: Stage 1 of revamp B. `theme.ts` names the five Outfit cuts (400 to 800) with the old font names kept as aliases, the STYLE §3 scale by token (hero 112, display 44, title 30, heading 20, frenchLg 28, french 20, body 17, label 16 sentence case, small 14, tab 12) with the French tokens kept by name in Outfit 600 and frenchLg still larger than heading, and radii card 24, feature 28, tile 20, field 16, pill 999. `App.tsx` loads exactly those five files and the Fraunces and DM Sans files leave the bundle; Acknowledgements credits Outfit under the OFL. `theme.test.ts` is rewritten to the new values and gains a check that the theme, the loader and the fonts folder agree.
 - verified-by: `Outfit is the only face, at the STYLE scale, and every French style is Outfit SemiBold`
-- verified-by: `B corners: card 24, feature 28, tile 20, field 16, pill 999, and the aliases point at them`
+- note: 2026-11-17, the systemic pass (UI-023, F990) replaced the radii with the scale card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill.
+- verified-by: `the radius scale is card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill`
 - verified-by: `the theme names the six Outfit cuts App.tsx loads, and the bundle carries no other face`
 - verified-by: `Acknowledgements credits Outfit under the OFL and names no retired face`
 
