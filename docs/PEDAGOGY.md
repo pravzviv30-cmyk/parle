@@ -12,7 +12,7 @@ conversation must let the learner author their own reply first.
 | rung | name | scripted lesson support |
 |---|---|---|
 | 1 | Echo | the whole French line, with its English meaning |
-| 2 | Cued | two or three French options, the answer said, typed or tapped |
+| 2 | Cued | two or three French options, the answer welcomed however it comes: said, typed or tapped |
 | 3 | Prompted | an English hint. No French words |
 | 4 | Free | nothing |
 

@@ -176,7 +176,7 @@ const INSTRUCTION_BY_RUNG: Record<Rung, string> = {
     'Show the French text with its English meaning. Do not ask them to produce anything new.',
   2:
     'Ask your question in French, then offer two or three short French replies they could give, each with its English meaning. ' +
-    'Invite their answer said, typed or tapped, and welcome whichever they choose.',
+    'Welcome their answer however it comes: said, typed or tapped.',
   3:
     'Ask your question in French. Tell them in English what to communicate, but do not give them the French words. ' +
     'Let them compose it themselves.',
