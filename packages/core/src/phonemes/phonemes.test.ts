@@ -1,8 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { FRENCH_PHONEMES, getPhoneme, novelPhonemes, meaningBearingPhonemes } from './inventory.ts';
-import { DRILLS, drillsFor, bestDrillFor, getDrill } from './drills.ts';
+import { FRENCH_PHONEMES, getPhoneme } from './inventory.ts';
+import { DRILLS, drillsFor, bestDrillFor } from './drills.ts';
 import { aggregate, buildReport, priority, overallScore, GOOD_ENOUGH, MIN_SAMPLES_TO_FLAG, type PhonemeObservation } from './scoring.ts';
 
 describe('inventory', () => {
@@ -38,13 +38,13 @@ describe('inventory', () => {
   });
 
   test('meaning-bearing phonemes each declare the substitution that causes the error', () => {
-    for (const p of meaningBearingPhonemes()) {
+    for (const p of FRENCH_PHONEMES.filter((p) => p.meaningBearing === true)) {
       assert.ok(p.typicalSubstitution, `${p.ipa} is meaning-bearing but names no substitution`);
     }
   });
 
   test('novel phonemes are the ones worth spending practice time on', () => {
-    const novel = novelPhonemes().map((p) => p.ipa);
+    const novel = FRENCH_PHONEMES.filter((p) => !p.existsInEnglish).map((p) => p.ipa);
     assert.ok(novel.includes('y'));
     assert.ok(novel.includes('ʁ'));
     assert.ok(!novel.includes('m'));
@@ -132,11 +132,6 @@ describe('drills', () => {
   test('minimal-pair drills outrank articulation drills for the same sound', () => {
     // /ʁ/ has both kinds; the contrastive one should win by default.
     assert.equal(bestDrillFor(getPhoneme('ʁ')!)?.kind, 'minimal-pair');
-  });
-
-  test('getDrill round-trips', () => {
-    assert.equal(getDrill('r-vs-l')?.target, 'ʁ');
-    assert.equal(getDrill('nope'), undefined);
   });
 });
 

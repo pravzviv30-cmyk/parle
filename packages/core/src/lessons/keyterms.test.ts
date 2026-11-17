@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CAFE_LESSON, lessonKeyterms, type Lesson } from '../index.ts';
+import { CAFE_LESSON, lessonKeyterms, recognitionPhrases, type Lesson } from '../index.ts';
 
 test('café keyterms keep the three question targets, without the question mark', () => {
   const keyterms = lessonKeyterms(CAFE_LESSON);
@@ -44,4 +44,13 @@ test('every café target survives the caps before any short form or option', () 
   assert.equal(CAFE_LESSON.turns.length, 12);
   assert.deepEqual(keyterms.slice(0, 12), CAFE_LESSON.turns.map(turn => turn.target.replace(/\s*\?$/, '')));
   assert.ok(keyterms.includes('Au revoir, madame'));
+});
+
+test('the keyterm list dedupes on the same key the recognition repair uses', () => {
+  const turn = CAFE_LESSON.turns[0]!;
+  const lines = ['Très bien, merci.', 'tres bien merci', 'TRÈS BIEN — MERCI !'];
+  // The repair's own phrase list treats these three lines as one.
+  assert.deepEqual(recognitionPhrases(lines), ['Très bien, merci.', 'Très bien']);
+  const lesson: Lesson = { ...CAFE_LESSON, turns: lines.map((target, n) => ({ ...turn, id: `t${n}`, target, accepts: [], options: [] })) };
+  assert.deepEqual(lessonKeyterms(lesson), ['Très bien, merci.', 'Très bien']);
 });
