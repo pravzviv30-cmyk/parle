@@ -2679,6 +2679,8 @@ const normalWord = (text: string) => text.normalize('NFC').toLocaleLowerCase('fr
 const known = new Set(AUTHORED_WORDS.map(w => normalWord(w.fr)));
 const additions: DailyWord[] = [];
 const contexts = DAILY_SCENARIOS.flatMap(s => s.lines);
+// Lowercased once, so the cheap substring test can skip the regex on lines that cannot match.
+const lowerContexts = contexts.map(line => line.fr.toLowerCase());
 for (const section of WORD_SECTIONS) {
   let abstractRange = false;
   for (const row of section.items.trim().split('\n')) {
@@ -2691,8 +2693,14 @@ for (const section of WORD_SECTIONS) {
     known.add(normalWord(fr));
     // A whole vocabulary item: "un bar" must not borrow a barbecue example.
     const escaped = fr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const exactWord = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'iu');
-    const example = contexts.find(line => exactWord.test(line.fr));
+    // The regex is built only once a line contains the word at all.
+    const lowerFr = fr.toLowerCase();
+    let exactWord: RegExp | undefined;
+    const example = contexts.find((line, i) => {
+      if (!lowerContexts[i]!.includes(lowerFr)) return false;
+      exactWord ??= new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'iu');
+      return exactWord.test(line.fr);
+    });
     additions.push({
       id: `word:pack-${normalWord(fr).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/œ/g, 'oe').replace(/[^a-z]+/g, '-')}`,
       fr, en, tier: section.tier,

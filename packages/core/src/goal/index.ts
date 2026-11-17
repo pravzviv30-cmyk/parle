@@ -1,7 +1,6 @@
 export {
   DAILY_GOAL_TIERS,
   isDailyGoalMinutes,
-  goalTierFor,
   goalProgressFrom,
   type DailyGoalTierId,
   type DailyGoalMinutes,

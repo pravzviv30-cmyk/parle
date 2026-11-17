@@ -28,7 +28,7 @@ import {
   type TurnQuality,
 } from '../ladder/ladder.ts';
 import { buildReport, type PhonemeObservation, type SessionPhonemeReport } from '../phonemes/scoring.ts';
-import { matchAcceptable, normalise, type Lesson, type LessonTurn } from '../lessons/types.ts';
+import { fillerOnly, matchAcceptable, type Lesson, type LessonTurn } from '../lessons/types.ts';
 
 /**
  * The point below which an utterance probably was not *understood*.
@@ -251,10 +251,12 @@ export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerIn
    * A turn that arrived through the speech path carrying no words is silence
    * that happened to trip the recogniser — a cough, a passing bus, the tutor's
    * own voice in a speakerphone. Grading it as a wrong answer scolds a learner
-   * who never said anything, so it becomes what it actually is.
+   * who never said anything, so it becomes what it actually is. Hesitation
+   * alone ("Alors...", "Euh.") is the same: thinking aloud, not an answer,
+   * unless the turn's own line is that word.
    */
   const input: LearnerInput =
-    given.type === 'spoke' && normalise(given.transcript).length === 0
+    given.type === 'spoke' && fillerOnly(given.transcript) && !matchAcceptable(turn, given.transcript).accepted
       ? { type: 'silence', durationMs: STUCK_SILENCE_MS }
       : given;
 
@@ -285,7 +287,7 @@ export function submitTurn(lesson: Lesson, state: SessionState, given: LearnerIn
       nearMiss = match.via === 'near';
       pronunciation = meanScore(input.phonemes);
       const quality = grade(wordsCorrect, pronunciation, nearMiss);
-      event = { type: 'spoke', quality };
+      event = { type: 'spoke', quality, assisted: state.directive.rescued };
 
       next.observations.push(...input.phonemes);
       next.learnerSpeakingSec += input.durationSec;

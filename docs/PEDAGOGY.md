@@ -12,7 +12,7 @@ conversation must let the learner author their own reply first.
 | rung | name | scripted lesson support |
 |---|---|---|
 | 1 | Echo | the whole French line, with its English meaning |
-| 2 | Cued | two or three French options, said aloud, never tapped silently |
+| 2 | Cued | two or three French options, the answer welcomed however it comes: said, typed or tapped |
 | 3 | Prompted | an English hint. No French words |
 | 4 | Free | nothing |
 
@@ -125,17 +125,29 @@ acceptable options:
 
 1. **exact** — after `normalise` (case, accents, apostrophes, punctuation).
 2. **filler** — the same line with hesitation stripped (`euh`, `bah`, `alors`…),
-   and only when the candidate does not itself contain that word.
+   and only when the candidate does not itself contain that word. The polite
+   set phrase "pas de problème" goes the same way (F1219, founder 2026-11-17).
 3. **typo** — one Damerau-Levenshtein edit across the line, the same window the
    typed drills use (`packages/core/src/text/distance.ts` — one implementation,
    shared, because forgiving a typed answer and failing the identical spoken one
    is indefensible).
 4. **content** — every meaning-bearing word present, small words loose, one edit
    per word, and no more than two extra words. The cap is what stops containment
-   accepting anything with the right word in it somewhere.
+   accepting anything with the right word in it somewhere. An added negation
+   (`ne`, `pas`, `non`, `jamais`) that the candidate does not carry refuses this
+   route, because it fits inside the allowance and says the opposite (F1068). A
+   line that carries its own negation still passes as written, and on a line that
+   already says no (`non`, `pas`, `jamais`, `rien`…) an added negation agrees with
+   it: a restored `ne`, or "non merci, pas de croissant" (F1196).
 
 Anything else that produced at least half the line's content words is `near`,
-which grades `partial` — it holds the rung. Below that is `poor`.
+which grades `partial` — it holds the rung. A candidate the learner negated with
+`ne`, `pas` or `jamais` never counts towards `near`; a stray `non` still can.
+Below that is `poor`.
+
+A spoken transcript of nothing but hesitation (`Alors...`, `Euh.`) never reaches
+the matcher unless the turn's own line is that word. `submitTurn` treats it as
+silence, the same as an empty transcript: the rescue, with the line (F1068).
 
 The pressure runs both ways and both directions are failures. Too strict and a
 beginner who said the right thing with an "euh" in front is told "Not quite" and

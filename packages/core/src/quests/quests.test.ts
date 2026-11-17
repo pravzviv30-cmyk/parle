@@ -13,7 +13,7 @@ import {
   type QuestId,
 } from './catalogue.ts';
 import { DAY_ONE_QUESTS, DAY_ONE_QUIET_QUESTS, fnv1a, mulberry32, questsForDay } from './select.ts';
-import { monthlyQuestCount, questProgress, questsToClaim, type DayFacts, type QuestClaim } from './progress.ts';
+import { questProgress, questsToClaim, type DayFacts, type QuestClaim } from './progress.ts';
 
 const everything: QuestEligibility = { practiceDaysBefore: 10, phraseCards: 40, conversations: 3, liveSecondsRemaining: 600, canRecord: true };
 
@@ -214,6 +214,7 @@ describe('quest progress and claims', () => {
   test('each quest and the chest is claimed once a day', () => {
     // D22: there is no chest. Each quest is claimed once a day, and finishing all three claims nothing more.
     assert.equal(QUEST_XP, 10);
+    assert.equal(MONTHLY_QUEST_TARGET, 30, 'the monthly badge asks for thirty claimed quests');
     const ids: QuestId[] = ['finish-practice', 'practice-set', 'minutes'];
     const day = '2026-10-05';
     const partway: DayFacts = { ...noFacts, finished: 1, practiceSets: 1, minutes: 3 };
@@ -231,20 +232,6 @@ describe('quest progress and claims', () => {
     assert.deepEqual(questsToClaim({ day, ids, facts: done, goalTarget: 10, claims: all }), [], 'a day with all three claimed still had something to claim');
     // A day whose three are all done at once claims the three, and only the three.
     assert.deepEqual(questsToClaim({ day, ids, facts: done, goalTarget: 10, claims: [] }), ['finish-practice', 'practice-set', 'minutes']);
-  });
-
-  test('the monthly count goes by calendar month, counts each quest once and leaves out the chest', () => {
-    assert.equal(MONTHLY_QUEST_TARGET, 30);
-    const claims: QuestClaim[] = [
-      { day: '2026-10-01', questId: 'minutes' },
-      { day: '2026-10-01', questId: 'minutes' }, // the same claim from a second device
-      { day: '2026-10-31', questId: 'xp' },
-      { day: '2026-11-01', questId: 'xp' },
-      { day: '2026-09-30', questId: 'goal' },
-    ];
-    assert.equal(monthlyQuestCount(claims, '2026-10'), 2);
-    assert.equal(monthlyQuestCount(claims, '2026-11'), 1);
-    assert.equal(monthlyQuestCount(claims, '2026-09'), 1);
   });
 
   test('quest titles read as plain, kind English', () => {

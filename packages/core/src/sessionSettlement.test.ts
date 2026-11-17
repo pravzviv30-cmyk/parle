@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readSettlementResult, sessionSettlementCopy } from './sessionSettlement.ts';
 import { decodeServerMessage, encodeMessage } from './protocol/protocol.ts';
+import { PLANS } from './metering/meter.ts';
 
 test('settlement rejects invented credit and impossible per-plan balances', () => {
   const valid = { kind: 'restored-current-period', refundedSeconds: 10, secondsRemaining: 290, plan: 'trial' };
@@ -26,4 +27,16 @@ test('only a validated settlement and recognized terminal failure cross the wire
   assert.equal((error('connection', false) as { terminal?: boolean }).terminal, undefined);
   assert.match(sessionSettlementCopy({ kind: 'historical-reversal', refundedSeconds: 90, secondsRemaining: 100, plan: 'trial' })!, /earlier allowance/);
   assert.doesNotMatch(sessionSettlementCopy({ kind: 'pending' })!, /are back|restored/);
+});
+
+// F1195. The plan names come from PLANS alone; results must not move for any input.
+test('settlement accepts each plan up to its own allowance and refuses a name that is not a plan', () => {
+  const base = { kind: 'charged', refundedSeconds: 0 };
+  for (const plan of ['trial', 'starter', 'regular'] as const) {
+    const cap = PLANS[plan].secondsPerPeriod;
+    assert.deepEqual(readSettlementResult({ ...base, plan, secondsRemaining: cap }), { ...base, plan, secondsRemaining: cap });
+    assert.equal(readSettlementResult({ ...base, plan, secondsRemaining: cap + 1 }), null, plan);
+  }
+  for (const plan of ['constructor', 'toString', '__proto__', '', 'hasOwnProperty'])
+    assert.equal(readSettlementResult({ ...base, plan, secondsRemaining: 0 }), null, plan);
 });

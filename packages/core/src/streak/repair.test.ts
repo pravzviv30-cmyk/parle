@@ -1,14 +1,14 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { dayRange, type DayKey } from './dayKey.ts';
+import { addDays, type DayKey } from './dayKey.ts';
 import { streakFrom, type StreakCover } from './streak.ts';
 import { REPAIR_EVERY_DAYS, REPAIR_MAX_GAP, REPAIR_PRACTICES, recentBreak, repairOffer, repairOfferWithLimit } from './repair.ts';
 
 process.env.TZ = 'Europe/Paris';
 
 const noon = (day: DayKey, minutes = 0) => Date.parse(`${day}T10:00:00Z`) + minutes * 60_000;
-const run = dayRange('2026-09-21', '2026-10-02'); // twelve days
+const run = Array.from({ length: 12 }, (_, i) => addDays('2026-09-21', i)); // twelve days
 
 describe('streak repair', () => {
   test('two finished practices within 48 hours bring a short gap back', () => {
@@ -91,7 +91,7 @@ describe('streak repair', () => {
     // The founder chose seven (D19); 0 still means unlimited for repairOfferWithLimit.
     assert.equal(REPAIR_EVERY_DAYS, 7);
     // A long run with one day already repaired on 15 September, then the 3rd of October got away.
-    const long = dayRange('2026-08-25', '2026-10-02').filter((day) => day !== '2026-09-15');
+    const long = Array.from({ length: 39 }, (_, i) => addDays('2026-08-25', i)).filter((day) => day !== '2026-09-15');
     const earlier: StreakCover = { day: '2026-09-15', kind: 'repair', at: 1 };
     const input = {
       practiceDays: [...long, '2026-10-04'],
@@ -109,9 +109,9 @@ describe('streak repair', () => {
     // 30 refuses it, because the last repair was 18 days before this gap.
     assert.equal(repairOfferWithLimit(input, 30), null);
     // A repair 30 or more days before the gap is far enough back.
-    const older = { ...input, practiceDays: [...dayRange('2026-08-25', '2026-10-02').filter((day) => day !== '2026-09-03'), '2026-10-04'], covers: [{ ...earlier, day: '2026-09-03' }] };
+    const older = { ...input, practiceDays: [...Array.from({ length: 39 }, (_, i) => addDays('2026-08-25', i)).filter((day) => day !== '2026-09-03'), '2026-10-04'], covers: [{ ...earlier, day: '2026-09-03' }] };
     assert.equal(repairOfferWithLimit(older, 30)?.ready, true);
-    const just = { ...input, practiceDays: [...dayRange('2026-08-25', '2026-10-02').filter((day) => day !== '2026-09-04'), '2026-10-04'], covers: [{ ...earlier, day: '2026-09-04' }] };
+    const just = { ...input, practiceDays: [...Array.from({ length: 39 }, (_, i) => addDays('2026-08-25', i)).filter((day) => day !== '2026-09-04'), '2026-10-04'], covers: [{ ...earlier, day: '2026-09-04' }] };
     assert.equal(repairOfferWithLimit(just, 30), null, 'twenty-nine days back is still within thirty');
 
     // Only a repair the streak used counts: one on a day another device shows was practised restored nothing.
@@ -127,7 +127,7 @@ describe('streak repair', () => {
     // covered 27 September is six days back and refused, 26 September is
     // seven days back and allowed.
     const offerWith = (repaired: string) => repairOffer({
-      practiceDays: [...dayRange('2026-08-25', '2026-10-02').filter((day) => day !== repaired), '2026-10-04'],
+      practiceDays: [...Array.from({ length: 39 }, (_, i) => addDays('2026-08-25', i)).filter((day) => day !== repaired), '2026-10-04'],
       covers: [{ day: repaired, kind: 'repair', at: 1 }],
       today: '2026-10-04',
       entitled: true,

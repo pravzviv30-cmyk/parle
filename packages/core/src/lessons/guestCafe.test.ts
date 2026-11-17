@@ -12,7 +12,7 @@ import {
   isGuestSceneTurnId,
   parseGuestSceneTurnIds,
 } from './guestCafe.ts';
-import { isAcceptable, phonemeCoverage } from './types.ts';
+import { matchAcceptable } from './types.ts';
 import { getPhoneme } from '../phonemes/inventory.ts';
 import * as core from '../index.ts';
 
@@ -77,14 +77,14 @@ describe('guest scene passes the catalogue lesson checks', () => {
 
   test('every focus phoneme is real, and every targeted phoneme is exercised', () => {
     for (const t of lesson.turns) for (const p of t.focusPhonemes) assert.ok(getPhoneme(p), `unknown /${p}/`);
-    const covered = phonemeCoverage(lesson);
+    const covered = [...new Set(lesson.turns.flatMap((t) => t.focusPhonemes))];
     for (const claimed of lesson.targetPhonemes) {
       assert.ok(covered.includes(claimed), `scene claims /${claimed}/ but no turn exercises it`);
     }
   });
 
   test('each scene turn accepts its own target line', () => {
-    for (const t of lesson.turns) assert.ok(isAcceptable(t, t.target), `${t.id} rejects its own target`);
+    for (const t of lesson.turns) assert.ok(matchAcceptable(t, t.target).accepted, `${t.id} rejects its own target`);
   });
 });
 

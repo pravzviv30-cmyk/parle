@@ -1,4 +1,4 @@
-import { recognitionPhrases } from '../speech/recognitionRepair.ts';
+import { recognitionPhrases, words } from '../speech/recognitionRepair.ts';
 import type { Lesson } from './types.ts';
 
 /**
@@ -29,7 +29,7 @@ export function lessonKeyterms(lesson: Lesson): string[] {
   const seen = new Set<string>(), result: string[] = [];
   let bytes = 0;
   for (const phrase of ordered) {
-    const key = phrase.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const key = words(phrase);
     const length = new TextEncoder().encode(phrase).length;
     if (!key || seen.has(key) || result.length >= 16 || bytes + length > 400) continue;
     seen.add(key); result.push(phrase); bytes += length;

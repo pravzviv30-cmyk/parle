@@ -44,11 +44,6 @@ export function isDailyGoalMinutes(value: unknown): value is DailyGoalMinutes {
   return DAILY_GOAL_TIERS.some((tier) => tier.minutes === value);
 }
 
-/** The tier for a stored target, or null for no goal or a value no tier has. */
-export function goalTierFor(minutes: number | null): DailyGoalTier | null {
-  return DAILY_GOAL_TIERS.find((tier) => tier.minutes === minutes) ?? null;
-}
-
 export interface GoalSitting {
   /** Epoch ms when the sitting finished. */
   at: number;

@@ -6869,12 +6869,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the card that dealt the permutation was retired with the Practice path and
   the primitive stayed in core, still exported and still tested, so both surface-level titles are
   re-pointed at the shuffle tests that hold the seeded order and the wrap.
-- verified-by: `the deal is a permutation: nothing added, nothing dropped, nothing repeated`
-- verified-by: `it actually shuffles, rather than handing back the pool in order`
-- verified-by: `walking the whole pool meets every item exactly once, then comes round`
-- verified-by: `it reads no clock and no global, so a test can hand it every input`
-- verified-by: `a position past the end wraps rather than falling off it`
-- verified-by: `the same seed deals the same order, and a different seed does not`
+- note: review C2 (2026-11-17, F1073): the shuffle primitive had no caller left and was removed
+  with its tests (it is in git history), so this claim is retired with it: there is no suggestion
+  card left to walk the pool in any order. The entry now points at the test that keeps the card
+  from coming back.
+- verified-by: `the path, the archive and the suggestion card stay gone from the sound-led page — F442`
 
 ### F451 — A beginner could be shown a situation pitched at somebody two levels up
 - severity: P2
@@ -13201,6 +13200,135 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/gate.mjs:1
 - note: Found by the coordinator, 2026-11-17. While landing S1a, a merge commit was made with `<<<<<<<`, `=======` and `>>>>>>>` lines left in docs/KNOWN_ISSUES.md, and the pre-commit `gate:fast` printed "fast checks green". The commit was amended before any push. Whether the full gate refuses it is unchecked. The ledger check should refuse any conflict marker line, in fast and full mode alike.
 - verified-by: `the ledger check refuses a file that holds merge conflict markers`
+
+### F1076 — A refused thin free window does not say when time comes back
+- severity: P2
+- status: [x]
+- where: packages/core/src/metering/meter.ts:378
+- note: C3-1. Production is patched by the token server's copy of the rule; core should be the one home. The builder confirmed the unreserved path is dev-only first: server.ts returns 503 without admission in production, and the guest grants pass a fixed fresh trial, so they are never refused. `tokens.test.ts` "a refusal with no known refill omits refillsAt" pinned the old gap for a thin trial window; that case is now its own test, "a thin free window refusal carries when the next free conversation is ready". `refusalRefill.ts` no longer keeps its copy of the rule: it asks core, with no session floor when the database refused as thin.
+- verified-by: `a free learner refused for a thin window is told when the next free conversation is ready`
+
+### F1077 — Metering and core barrels re-export names nothing imports, and voice comments describe an old roster
+- severity: P2
+- status: [x]
+- where: packages/core/src/metering/index.ts:8
+- note: C3-2 and the metering and index.ts parts of C3-3. Eleven barrel lines and five comments; no function is deleted.
+- verified-by: `the core barrels no longer re-export the unused metering helpers`
+
+### F1068 — A hesitation is graded as a mistake, and a negated line as the line
+- severity: P2
+- status: [x]
+- where: packages/core/src/session/session.ts:259
+- note: C1-1 and C1-4, each built only on the founder's yes. A filler-only transcript goes to matching and grades poor; "ne" and "pas" fit inside the two-extra-word allowance at lessons/types.ts:215. Accepted limit: a filler word that is a near miss of the line ("Bon" on a line "Bon appétit") becomes a silence rescue and drops a rung. No scripted line in CAFE_LESSON or GUEST_CAFE_SCENE contains a filler word today, so no learner reaches it.
+- verified-by: `a transcript of only hesitation sounds is treated as silence, not a wrong answer`
+- verified-by: `a negated line is not accepted as the line`
+- verified-by: `a line that carries its own negation is still accepted as written`
+
+### F1069 — A turn answered from a rescue's full line counts as unassisted
+- severity: P2
+- status: [x]
+- where: packages/core/src/ladder/ladder.ts:117
+- note: C1-2, built only on the founder's yes. The inflated rate feeds the lesson XP bonus, the recap line and the unaided week. Lesson path only; the brain's call goes to B4.
+- verified-by: `a good turn answered from a rescue's full line is not counted as unassisted`
+
+### F1070 — The rung-2 instruction tells the tutor the learner must speak
+- severity: P2
+- status: [x]
+- where: packages/core/src/ladder/ladder.ts:178
+- note: C1-3, a product decision. PEDAGOGY.md line 15 and line 359 disagree; the founder's wording replaces both.
+- verified-by: `no rung instruction tells the tutor the learner must speak aloud`
+
+### F1071 — Pedagogy exports only tests call, a false merge comment and a copied dedupe key
+- severity: P2
+- status: [x]
+- where: packages/core/src/lessons/keyterms.ts:30
+- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Three tests were deleted and eleven added across C1 and its follow-ups (F1196, push-check, code review, F1219); core went from 1152 to 1160, and the floor was not lowered.
+- verified-by: `the keyterm list dedupes on the same key the recognition repair uses`
+
+### F1196 — A formal "ne" added to a line that already carries "pas" is refused as a negation
+- severity: P2
+- status: [x]
+- where: packages/core/src/lessons/types.ts:225
+- note: The C1-4 guard refused any negation word the candidate lacked, one word at a time. Target "Je sais pas", learner says "Je ne sais pas": same meaning, graded near (accepted before C1-4). The guard now applies only to a candidate that does not already say no: one carrying a negation word (non, pas, ne, jamais) or rien forgives any added negation word, which in practice means a spaced ne or pas. An elided n' does nothing here: normalise joins it to the verb ("n'est" becomes "nest"), so the n in negationWords never reaches matchAcceptable; so "Non merci, pas de croissant" stays t5-croissant's "non merci" (push-check, 2026-11-17). Plus does not count, because it can mean more. The judge's first example, "Ce n'est pas grave" for "C'est pas grave", was near before C1-4 too: normalise joins n'est into nest and "cest" is under the five-letter typo floor, so it is an elision gap, not this guard. No scripted lesson has a dropped-ne target today. Found by work-judge (Fable 5.2), C1 round 1, 2026-11-17.
+- verified-by: `a formal ne added to a line that already carries pas is still the line`
+
+### F1199 — The added-negation guard cannot see an elided n' or a negator outside its word list
+- severity: P2
+- status: [ ]
+- where: packages/core/src/lessons/types.ts:225
+- note: Deferred, not built in C1. normalise joins n' to the verb ("n'aime" becomes "naime"), so the guard never sees it. Harmful direction: target "J'aime ça", said "Je n'aime plus ça", accepted via content, because naime is one edit from jaime and plus is not a guard word. Also accepted: "Je vois rien" for "Je vois" (rien, personne, aucun and plus are outside negationWords), and "Si tu ne viens jamais" for "Si jamais tu viens" (F1196 forgives ne beside a positive jamais). Harmless direction: "Ce n'est pas grave" for "C'est pas grave" grades near, because cest is under the five-letter typo floor. Separately, the typo route accepts "C'est non" for "C'est bon": the whole line is one edit away. It is a swapped word, not an added negation, and it happens on main too. No scripted line triggers any of these today. Founder, 2026-11-17: take jamais out of the restored-ne forgiveness; fix it with this entry. Found by work-judge (Fable 5.2), C1 follow-up, 2026-11-17.
+- verified-by: `an elided or unlisted negation added to a positive line is not the line, and an elided ne restored to a negated line is`
+
+### F1217 — Merging decks drops an assisted review when the grade counts tie
+- severity: P2
+- status: [ ]
+- where: packages/core/src/review/merge.ts:24
+- note: A card with reps 3 and due in 5 days gets an assisted good on the phone. It still has 3 grades, now due in 1 day. mergeDecks with the untouched copy keeps the 5-day copy and drops the phone's review. The practice grade path in apps/mobile/src/review/store.ts has no due check, so it is reachable. Present on main. Found by /code-review, C1 push-check, 2026-11-17.
+- verified-by: `an assisted review survives a merge with an untouched copy`
+
+### F1218 — The tutor agent decides scene, billing and answered status on the input type, not on what core counted
+- severity: P3
+- status: [ ]
+- where: services/tutor-agent/src/tutor.ts:932
+- note: Core now treats a filler-only reply ("Euh...") as silence, but tutor.ts still treats input.type === 'spoke' as a learner turn. It skips the scene's silence rule, adds one to learnerTurns, and marks the turn answered. On the guest scene, main and the branch give the same results, so this is not a regression. For the tutor-agent slice (B4). Found by /code-review, C1 push-check, 2026-11-17.
+- verified-by: `a filler-only reply counts as silence in the tutor agent's scene and turn counts`
+
+### F1219 — A right line with a self-correcting "non" is graded a miss
+- severity: P1
+- status: [x]
+- where: packages/core/src/lessons/types.ts:231
+- note: 6bf689ff drops every negated candidate from the near-miss score, and "non" is a negation word. On t2-order, "Un thé, non, un café, s'il vous plaît" and "Euh, non, un café s'il vous plaît" grade poor, drop rung 3 to 2, hold the turn and say "Almost. Listen once more." On t3-sur-place, "À emporter, non, sur place" does the same. Before 6bf689ff these were partial; on main they were good. Only a clause negation (ne, pas, jamais) should leave the near-miss score. "Pas de problème, un café s'il vous plaît" still graded poor after this fix. Founder, 2026-11-17: accept it. "Pas de problème" is now dropped like a filler unless the line itself carries it, so a right line after it is the line.
+- verified-by: `a self-correcting non on a right line is not graded a miss`
+- verified-by: `an added negation is not graded as carrying the meaning`
+- verified-by: `a polite "pas de problème" before the right line is still the line`
+
+### F1220 — A line that opens with "Non" and then states a positive accepts its opposite
+- severity: P2
+- status: [ ]
+- where: packages/core/src/lessons/types.ts:224
+- note: Deferred, not built in C1. bc8abaec treats any candidate holding non, pas, ne, jamais or rien as negative and forgives added negation words. Target "Non, je voudrais un café", said "Non, je ne voudrais pas un café": accepted via content. No scripted line has this shape today; the only negative candidates are "je ne comprends pas" and "non merci". Found by the work-judge, C1 push-check, 2026-11-17.
+- verified-by: `a line that opens with non and states a positive does not accept its negation`
+
+### F1072 — Importing core spends about a second building the word pack
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/words.ts:2700
+- note: C2-1. A Unicode regex runs against every scene line for every generated word at module load. The snapshot test is written and green before the change, and must still pass after it.
+- note: the snapshot pins the output, not the speed. The speed is measured, not pinned (a timing test would be flaky, F796). Import of `daily/words.ts` on the dev Mac, 2026-11-17: main 884-921 ms; with the substring prefilter 132-138 ms; with the regex also built only after a hit 83-88 ms (5 to 7 runs each).
+- verified-by: `the word pack's ids, examples and order match the pinned snapshot`
+
+### F1073 — The shuffle primitive has no caller, and daily comments describe retired code
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/scenarios.ts:138
+- note: C2-3 and the daily half of C2-7. `shuffle.ts`, its tests and its barrel line are deleted; the line above is the comment that last named `shuffledPick`. Core floor drops by 6 net across C2 (1152 to 1146): 9 tests deleted (8 shuffle, 1 monthly count), 3 added (the word-pack snapshot, the dayIndex characterization and the impossible-date test). F450 is re-pointed in the same PR.
+- verified-by: `the pick never reads the wall clock, only the moment it was handed`
+
+### F1074 — Day-key and week rules have second homes, beside exports only tests call
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/pick.ts:43
+- note: C2-4, C2-5, C2-6, C2-8 and the missions comment. The dayIndex characterization test is written first.
+- verified-by: `a day key counts the same days from the epoch whichever module reads it`
+- verified-by: `the week strip runs Monday to Sunday with today in it`
+- verified-by: `weeks start on Monday`
+
+### F1079 — Core root files carry a field, a method and five exports nothing reads
+- severity: P2
+- status: [x]
+- where: packages/core/src/onboarding.ts:7
+- note: `StarterTask.accepts` has no reader and disagrees with `checkStarter`; `ConversationTextBuffer.remove` (conversationText.ts:62) is called only by a test; `SERVICE_FAILURES`, `MAX_CAN_DO_SOURCES`, `MAX_CAN_DO_QUOTE_CHARS`, `CONVERSATION_TEXT_BYTES` and `isConversationTextLine` are exported with no importer. Zero tests deleted, floor unchanged.
+- verified-by: `every starter task accepts its own model and each listed variant, for every goal and both drinks`
+- verified-by: `core exports none of the five names nothing imports, and the text buffer has no remove`
+
+### F1195 — The six goals and the three plan names each have a second home in core
+- severity: P2
+- status: [x]
+- where: packages/core/src/sessionSettlement.ts:28
+- note: `STARTER_GOALS` (onboarding.ts:3) repeats `LEARNER_GOALS` in another order, and `readSessionSettlement` types the plan names twice beside `PLANS`, with a redundant global bound. Make each one list; settlement results must not change for any input.
+- verified-by: `starter goals and learner goals are one list`
+- verified-by: `settlement accepts each plan up to its own allowance and refuses a name that is not a plan`
+- verified-by: `settlement rejects invented credit and impossible per-plan balances`
 
 ### F1081 — Ten destructive rollbacks run without an interlock
 - severity: P2
