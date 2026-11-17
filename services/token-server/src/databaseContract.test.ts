@@ -1948,7 +1948,7 @@ describe('unjoined tutor start release (F955)', () => {
 describe('client table grants (F1080)', () => {
   const GRANTS = '20261117121000_client_table_grants.sql';
   const TABLES = ['conversation_packs', 'entitlements', 'learner_state', 'product_events'];
-  const PRIVILEGES = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'];
+  const PRIVILEGES = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN'];
   const POLICY_VERBS: Record<string, Record<string, string[]>> = {
     anon: { conversation_packs: [], entitlements: [], learner_state: [], product_events: [] },
     authenticated: {
