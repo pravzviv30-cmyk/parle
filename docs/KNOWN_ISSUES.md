@@ -12766,7 +12766,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1072 — Importing core spends about a second building the word pack
 - severity: P2
 - status: [x]
-- where: packages/core/src/daily/words.ts:2695
+- where: packages/core/src/daily/words.ts:2700
 - note: C2-1. A Unicode regex runs against every scene line for every generated word at module load. The snapshot test is written and green before the change, and must still pass after it.
 - verified-by: `the word pack's ids, examples and order match the pinned snapshot`
 
