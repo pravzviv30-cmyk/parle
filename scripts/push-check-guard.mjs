@@ -213,6 +213,8 @@ const WRAPPER_FLAG_WITH_VALUE = {
 const WRAPPER_CHDIR = { env: new Set(['-C', '--chdir']), sudo: new Set(['-D', '--chdir']) };
 // Something only a shell can turn into a word.
 const SHELL_EXPANDS = /[$`]/;
+// Environment variables that hand git config entries, an alias among them.
+const GIT_CONFIG_ENV = /^GIT_CONFIG_(COUNT|KEY_\d+|VALUE_\d+|PARAMETERS)=/;
 // An alias value that can publish, read as the command line it is: a shell alias (`!`)
 // runs its text, any other runs `git <value>`. Anything the reading finds counts.
 const aliasPublishes = (value, dir) => {
@@ -382,6 +384,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     dir: resolve(baseCwd),
     known: parent ? parent.known : true,
     moved: parent ? parent.moved : false,
+    configEnv: parent ? Boolean(parent.configEnv) : false,
   };
   const scopes = [];
   // Depth of a command that was only `$(` or a backtick: the next command at
@@ -401,6 +404,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     while (words.length) {
       const w = words[0];
       if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w) || KEYWORDS.has(w)) {
+        if (GIT_CONFIG_ENV.test(w)) state.configEnv = true;
         words = words.slice(1);
       } else if (WRAPPERS.has(w)) {
         wrapper = w;
@@ -446,6 +450,9 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     if (SHELL_EXPANDS.test(name) && (rest.includes('push') || rest.includes('merge'))) {
       events.push({ kind: 'opaque', unreadable: true });
     }
+    if ((head === 'export' || head === 'declare' || head === 'typeset') && rest.some((a) => GIT_CONFIG_ENV.test(a))) {
+      state.configEnv = true;
+    }
     if (head === 'cd' || head === 'pushd') {
       const next = afterCd(state.dir, state.known, rest);
       state.dir = next.dir;
@@ -455,7 +462,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
     } else if (SHELLS.has(name) && rest.some((a) => /^-[a-zA-Z]*c[a-zA-Z]*$/.test(a))) {
       const at = rest.findIndex((a) => /^-[a-zA-Z]*c[a-zA-Z]*$/.test(a));
       if (rest[at + 1] !== undefined) {
-        const inner = { dir: state.dir, known: state.known, moved: state.moved };
+        const inner = { dir: state.dir, known: state.known, moved: state.moved, configEnv: state.configEnv };
         events.push(...analyzeCommand(rest[at + 1], state.dir, inner));
         state.moved = state.moved || inner.moved;
       }
@@ -472,6 +479,8 @@ export function analyzeCommand(command, baseCwd, parent = null) {
         events.push({ kind: 'merge', dir: state.dir, dirKnown: state.known, ...parseMergeArgs(merge) });
       }
     } else if (name === 'git') {
+      // Config from the environment can define an alias the guard never sees.
+      if (state.configEnv) events.push({ kind: 'opaque', unreadable: true });
       let gitDir = state.dir;
       let gitKnown = state.known && !wrapperMovedDir;
       let aliased = false;

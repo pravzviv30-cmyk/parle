@@ -960,3 +960,17 @@ test('git and gh commands with a readable subcommand are still allowed', () => {
   assert.match(reason ?? '', /could not read/, 'a variable subcommand is denied with a reason that says to write it out');
   assert.doesNotMatch(reason ?? '', /Push blocked/, 'nothing was pushed, so the reason must not say a push was blocked');
 });
+
+test('a git command with alias config in its environment is denied', () => {
+  for (const cmd of [
+    'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push git p',
+    `GIT_CONFIG_PARAMETERS="'alias.p=push'" git p`,
+    'export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push; git p',
+    'env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.p GIT_CONFIG_VALUE_0=push git p',
+  ]) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} hands git config the guard never reads, which can define an alias for push, so it must deny`);
+  }
+  for (const cmd of ['GIT_CONFIG_NOSYSTEM=1 git status', 'GIT_CONFIG_GLOBAL=/dev/null git log', 'GIT_AUTHOR_NAME=x git commit -m y']) {
+    assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} sets no config entry, so it must not wedge the session`);
+  }
+});
