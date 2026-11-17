@@ -121,8 +121,8 @@ const byName = (name: string): Source => {
   return found;
 };
 
-/** AsyncStorage is plaintext. These two are the only files allowed to write to it. */
-const PLAINTEXT_WRITERS = new Set(['installation.ts', 'mockAdapter.ts', 'installHistory.ts', 'installHistory.native.ts']);
+/** AsyncStorage is plaintext. These are the only files allowed to write to it. */
+const PLAINTEXT_WRITERS = new Set(['installation.ts', 'mockAdapter.ts', 'installHistory.ts']);
 
 describe('auth token hygiene — what a static walk can prove without a device', () => {
   test('the walk actually covers the auth layer', () => {
@@ -169,7 +169,7 @@ describe('auth token hygiene — what a static walk can prove without a device',
       }
     }
 
-    for (const name of ['installHistory.ts', 'installHistory.native.ts']) {
+    for (const name of ['installHistory.ts']) {
       assert.match(byName(name).code, /AsyncStorage\.setItem\([^,]+, 'yes'\)/);
       assert.doesNotMatch(byName(name).code, /SupabaseClient|getAccessToken|authorization|identityToken/);
     }
@@ -264,6 +264,16 @@ describe('auth token hygiene — what a static walk can prove without a device',
       /AsyncStorage\.setItem\(KEY, created\)/,
       'and that random value is the only thing installation.ts is allowed to persist',
     );
+  });
+
+  test('the used-before hint is kept only in storage that uninstalling removes', () => {
+    // iOS keeps Keychain items after an uninstall, so a hint kept there made a
+    // reinstalled phone look returning (F960). AsyncStorage goes with the app.
+    assert.equal(sources.some((s) => s.name === 'installHistory.native.ts'), false, 'no platform keeps its own copy of the hint');
+    const hint = byName('installHistory.ts');
+    assert.match(hint.code, /INSTALL_HISTORY_KEY = '@luvani\/has-used-app\/v1'/);
+    assert.match(hint.code, /AsyncStorage\.setItem\(INSTALL_HISTORY_KEY, 'yes'\)/);
+    assert.doesNotMatch(hint.code, /SecureStore|luvani\.has-used-app/);
   });
 
   test('a bearer token leaves the auth layer only in an authorization header', () => {
