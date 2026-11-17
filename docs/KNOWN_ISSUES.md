@@ -12791,7 +12791,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: packages/core/src/lessons/keyterms.ts:30
-- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Three tests were deleted and nine added across C1 and its follow-ups (F1196, push-check, code review); core went from 1152 to 1158, and the floor was not lowered.
+- note: C1-6 (less PHONEME_COUNT), C1-7 and the keyterms half of C1-8. The characterization test is written and green before the change. Three tests were deleted and ten added across C1 and its follow-ups (F1196, push-check, code review, F1219); core went from 1152 to 1159, and the floor was not lowered.
 - verified-by: `the keyterm list dedupes on the same key the recognition repair uses`
 
 ### F1196 — A formal "ne" added to a line that already carries "pas" is refused as a negation
@@ -12824,8 +12824,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1219 — A right line with a self-correcting "non" is graded a miss
 - severity: P1
-- status: [ ]
-- where: packages/core/src/lessons/types.ts:227
+- status: [x]
+- where: packages/core/src/lessons/types.ts:228
 - note: 6bf689ff drops every negated candidate from the near-miss score, and "non" is a negation word. On t2-order, "Un thé, non, un café, s'il vous plaît" and "Euh, non, un café s'il vous plaît" grade poor, drop rung 3 to 2, hold the turn and say "Almost. Listen once more." On t3-sur-place, "À emporter, non, sur place" does the same. Before 6bf689ff these were partial; on main they were good. Only a clause negation (ne, pas, jamais) should leave the near-miss score. "Pas de problème, un café s'il vous plaît" still grades poor after this fix; the founder decides that one.
 - verified-by: `a self-correcting non on a right line is not graded a miss`
 - verified-by: `an added negation is not graded as carrying the meaning`
