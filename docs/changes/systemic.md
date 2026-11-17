@@ -93,8 +93,14 @@ Contract approval, 2026-11-17: Today's hero buttons move from `BButton` to
   labels (they were already word-only quiet actions); `boldChoiceTone` in
   `onboarding/boldChoices.ts` has no caller; `AccountField`'s Show button corner;
   `HomeTab.test` pins QuestsCard's old literal and needs `...corner.card`.
-- **For the orchestrator after step 4:** delete the `PHRASEBOOK_TITLE` header in
+- **Done by the orchestrator in `0231a334`:** the `PHRASEBOOK_TITLE` header left
   `dev/OnboardingPreview.tsx`'s `quiet-phrasebook` branch.
+- **After step 8, by the orchestrator:** the `feature` alias's last two callers (the
+  Practice and Streak skeletons) moved to `radius.card` and the alias went; DESIGN.md
+  lost its MorphButton and TutorCard entries.
+- **Left on purpose:** the tab bar's 5 literals (`nav/LuvaniTabBar.tsx`, `TabPill.tsx`,
+  `TabGlyph.tsx`) match DESIGN.md's tab-bar spec (capsule 32, cells 20), which the
+  tab-tap lane owns; moving them is a follow-up for that section, not this pass.
 - `TutorMemoryScreen`'s "OutlineButton" is `SettingsFormAction` under an alias and
   stays.
 
@@ -127,13 +133,13 @@ reach except F999's: Card/Tile/Hero 60 or fewer, Button/Pill 21.
 
 | Count | Before (`c986b4eb`) | After |
 |---|---|---|
-| Literal `borderRadius: <digit>` lines | 241 | pending step 8 |
-| Eyebrow uses | 73 (27 + 46) | pending step 8 |
-| Exported `*Card`, `*Tile`, `*Hero` | 65 | pending step 8 |
-| Exported `*Button`, `*Pill` | 23 | pending step 8 |
-| Exported `*Row` | 32 | pending step 8 |
-| Files mentioning `ScrollScreen` | 66 | pending step 8 |
-| Choice components | 2 | pending step 8 |
+| Literal `borderRadius: <digit>` lines | 241 | 52 (51 non-zero: 46 in onboarding, 5 in the tab bar; 1 is a zero) |
+| Eyebrow uses | 73 (27 + 46) | 45 (20 + 25) |
+| Exported `*Card`, `*Tile`, `*Hero` | 65 | 59 |
+| Exported `*Button`, `*Pill` | 23 | 21 |
+| Exported `*Row` | 32 | 32 |
+| Files mentioning `ScrollScreen` | 66 | 66 |
+| Choice components | 2 | 1 |
 
 ## Execution log
 
