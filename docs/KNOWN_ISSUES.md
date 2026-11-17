@@ -6869,12 +6869,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: revamp A (2026-09): the card that dealt the permutation was retired with the Practice path and
   the primitive stayed in core, still exported and still tested, so both surface-level titles are
   re-pointed at the shuffle tests that hold the seeded order and the wrap.
-- verified-by: `the deal is a permutation: nothing added, nothing dropped, nothing repeated`
-- verified-by: `it actually shuffles, rather than handing back the pool in order`
-- verified-by: `walking the whole pool meets every item exactly once, then comes round`
-- verified-by: `it reads no clock and no global, so a test can hand it every input`
-- verified-by: `a position past the end wraps rather than falling off it`
-- verified-by: `the same seed deals the same order, and a different seed does not`
+- note: review C2 (2026-11-17, F1073): the shuffle primitive had no caller left and was removed
+  with its tests (it is in git history), so this claim is retired with it: there is no suggestion
+  card left to walk the pool in any order. The entry now points at the test that keeps the card
+  from coming back.
+- verified-by: `the path, the archive and the suggestion card stay gone from the sound-led page — F442`
 
 ### F451 — A beginner could be shown a situation pitched at somebody two levels up
 - severity: P2
@@ -13284,3 +13283,27 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: packages/core/src/lessons/types.ts:224
 - note: Deferred, not built in C1. bc8abaec treats any candidate holding non, pas, ne, jamais or rien as negative and forgives added negation words. Target "Non, je voudrais un café", said "Non, je ne voudrais pas un café": accepted via content. No scripted line has this shape today; the only negative candidates are "je ne comprends pas" and "non merci". Found by the work-judge, C1 push-check, 2026-11-17.
 - verified-by: `a line that opens with non and states a positive does not accept its negation`
+
+### F1072 — Importing core spends about a second building the word pack
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/words.ts:2700
+- note: C2-1. A Unicode regex runs against every scene line for every generated word at module load. The snapshot test is written and green before the change, and must still pass after it.
+- note: the snapshot pins the output, not the speed. The speed is measured, not pinned (a timing test would be flaky, F796). Import of `daily/words.ts` on the dev Mac, 2026-11-17: main 884-921 ms; with the substring prefilter 132-138 ms; with the regex also built only after a hit 83-88 ms (5 to 7 runs each).
+- verified-by: `the word pack's ids, examples and order match the pinned snapshot`
+
+### F1073 — The shuffle primitive has no caller, and daily comments describe retired code
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/scenarios.ts:138
+- note: C2-3 and the daily half of C2-7. `shuffle.ts`, its tests and its barrel line are deleted; the line above is the comment that last named `shuffledPick`. Core floor drops by 6 net across C2 (1152 to 1146): 9 tests deleted (8 shuffle, 1 monthly count), 3 added (the word-pack snapshot, the dayIndex characterization and the impossible-date test). F450 is re-pointed in the same PR.
+- verified-by: `the pick never reads the wall clock, only the moment it was handed`
+
+### F1074 — Day-key and week rules have second homes, beside exports only tests call
+- severity: P2
+- status: [x]
+- where: packages/core/src/daily/pick.ts:43
+- note: C2-4, C2-5, C2-6, C2-8 and the missions comment. The dayIndex characterization test is written first.
+- verified-by: `a day key counts the same days from the epoch whichever module reads it`
+- verified-by: `the week strip runs Monday to Sunday with today in it`
+- verified-by: `weeks start on Monday`

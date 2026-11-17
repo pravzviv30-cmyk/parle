@@ -2,7 +2,6 @@ export {
   MISSIONS,
   FIRST_MISSION,
   getMission,
-  missionPhraseKeys,
   missionStates,
   independenceFrom,
   isEarned,

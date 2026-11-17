@@ -17,7 +17,7 @@
  * rule below be tested across midnight, daylight saving and a leap day.
  */
 
-import { addDays, daysBetween, daysInMonth, isDayKey, weekdayIndex, type DayKey } from './dayKey.ts';
+import { addDays, daysBetween, daysInMonth, isDayKey, mondayOf, weekdayIndex, type DayKey } from './dayKey.ts';
 
 export type CoverKind = 'freeze' | 'repair' | 'travel';
 
@@ -247,7 +247,7 @@ function stateOf(days: Days, day: DayKey): { state: DayState; cover: CoverKind |
 /** This calendar week, Monday first, with today in it. */
 export function weekStripFrom(input: StreakInput): WeekCell[] {
   const days = daysOf(input);
-  const monday = addDays(days.today, -weekdayIndex(days.today));
+  const monday = mondayOf(days.today);
   return WEEKDAY_LETTERS.map((label, i) => {
     const day = addDays(monday, i);
     return { day, label, name: WEEKDAY_NAMES[i]!, ...stateOf(days, day) };
