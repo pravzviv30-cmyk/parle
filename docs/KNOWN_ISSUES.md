@@ -12800,3 +12800,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: packages/core/src/lessons/types.ts:218
 - note: The C1-4 guard refused any negation word the candidate lacked, one word at a time. Target "Je sais pas", learner says "Je ne sais pas": same meaning, graded near (accepted before C1-4). An added ne or n' is now forgiven when the candidate carries pas, jamais or rien; not plus, which can mean more. The judge's first example, "Ce n'est pas grave" for "C'est pas grave", was near before C1-4 too: normalise joins n'est into nest and "cest" is under the five-letter typo floor, so it is an elision gap, not this guard. No scripted lesson has a dropped-ne target today. Found by work-judge (Fable 5.2), C1 round 1, 2026-11-17.
 - verified-by: `a formal ne added to a line that already carries pas is still the line`
+
+### F1199 — The added-negation guard cannot see an elided n' or a negator outside its word list
+- severity: P2
+- status: [ ]
+- where: packages/core/src/lessons/types.ts:221
+- note: Deferred, not built in C1. normalise joins n' to the verb ("n'aime" becomes "naime"), so the guard never sees it. Harmful direction: target "J'aime ça", said "Je n'aime plus ça", accepted via content, because naime is one edit from jaime and plus is not a guard word. Also accepted: "Je vois rien" for "Je vois" (rien, personne, aucun and plus are outside negationWords), and "Si tu ne viens jamais" for "Si jamais tu viens" (F1196 forgives ne beside a positive jamais). Harmless direction: "Ce n'est pas grave" for "C'est pas grave" grades near, because cest is under the five-letter typo floor. No scripted line triggers any of these today. Founder to decide whether jamais stays in the F1196 exception. Found by work-judge (Fable 5.2), C1 follow-up, 2026-11-17.
+- verified-by: `an elided or unlisted negation added to a positive line is not the line, and an elided ne restored to a negated line is`
