@@ -865,3 +865,21 @@ test('an alias whose value merges a pull request is denied', () => {
     assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} hides a merge the guard cannot read, so it must deny`);
   }
 });
+
+test('env -S attached to its value or inside a flag cluster is judged as a push', () => {
+  for (const cmd of ['env -S"git push origin main"', "env -S'git push origin main'", 'env -iS "git push origin main"', 'env -uS git push']) {
+    const d = hookDecision(bash(cmd), fakeGit());
+    assert.match(d?.reason ?? '', /no push check/, `${cmd} runs git push, so it is decided like the plain push`);
+  }
+  const [p] = findPushes('env -S"git push origin main"', '/work');
+  assert.equal(p?.remote, 'origin', 'an attached split string is read as the command line it is');
+  assert.deepEqual(p?.refspecs, ['main']);
+});
+
+test('a config-env alias in the equals form is denied', () => {
+  for (const cmd of ['A=push git --config-env=alias.p=A p', 'git --config-env=ALIAS.p=A p && echo push']) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} defines an alias from a variable the guard cannot read, so it must deny`);
+  }
+  assert.equal(hookDecision(bash('git --config-env=core.pager=P log --grep push'), fakeGit()), null,
+    'a config-env that sets no alias only reads history, so it must not wedge the session');
+});

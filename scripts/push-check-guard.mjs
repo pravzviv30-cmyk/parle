@@ -393,7 +393,22 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       } else if (WRAPPERS.has(w)) {
         wrapper = w;
         words = words.slice(1);
-      } else if (wrapper === 'env' && (w === '-S' || w === '--split-string' || w.startsWith('--split-string='))) {
+      } else if (wrapper === 'env' && /^-[^-]/.test(w)) {
+        // A short cluster such as `-iS"git push"`: walk its letters. `u`, `C`, `P` and `S`
+        // take the rest of the cluster, or the next word, as their value.
+        let consumed = 1;
+        let split = null;
+        for (let k = 1; k < w.length; k++) {
+          if (!'uCPS'.includes(w[k])) continue;
+          const attached = w.slice(k + 1);
+          if (!attached) consumed = 2;
+          if (w[k] === 'C') wrapperMovedDir = true;
+          // `env -S "git push"`: the value is a command line of its own.
+          if (w[k] === 'S') split = attached || (words[1] ?? '');
+          break;
+        }
+        words = [...(split === null ? [] : splitCommands(split).flat()), ...words.slice(consumed)];
+      } else if (wrapper === 'env' && (w === '--split-string' || w.startsWith('--split-string='))) {
         // `env -S "git push"`: the value is a command line of its own.
         const line = w.includes('=') ? w.slice(w.indexOf('=') + 1) : (words[1] ?? '');
         words = [...splitCommands(line).flat(), ...words.slice(w.includes('=') ? 1 : 2)];
@@ -443,6 +458,7 @@ export function analyzeCommand(command, baseCwd, parent = null) {
         // `--config-env` names a variable, so its alias value cannot be read at all.
         const alias = /^alias\./i.test(rest[i + 1] ?? '');
         if (alias && (flag === '--config-env' || (flag === '-c' && ALIAS_PUBLISHES.test(rest[i + 1])))) aliased = true;
+        if (/^--config-env=alias\./i.test(flag)) aliased = true;
         if (flag === '-C') {
           if (rest[i + 1] !== undefined) {
             const next = afterCd(gitDir, gitKnown, [rest[++i]]);
