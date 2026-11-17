@@ -13196,3 +13196,17 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/gate.mjs:1
 - note: Found by the coordinator, 2026-11-17. While landing S1a, a merge commit was made with `<<<<<<<`, `=======` and `>>>>>>>` lines left in docs/KNOWN_ISSUES.md, and the pre-commit `gate:fast` printed "fast checks green". The commit was amended before any push. Whether the full gate refuses it is unchecked. The ledger check should refuse any conflict marker line, in fast and full mode alike.
 - verified-by: `the ledger check refuses a file that holds merge conflict markers`
+
+### F1076 — A refused thin free window does not say when time comes back
+- severity: P2
+- status: [x]
+- where: packages/core/src/metering/meter.ts:378
+- note: C3-1. Production is patched by the token server's copy of the rule; core should be the one home. The builder confirmed the unreserved path is dev-only first: server.ts returns 503 without admission in production, and the guest grants pass a fixed fresh trial, so they are never refused. `tokens.test.ts` "a refusal with no known refill omits refillsAt" pinned the old gap for a thin trial window; that case is now its own test, "a thin free window refusal carries when the next free conversation is ready". `refusalRefill.ts` no longer keeps its copy of the rule: it asks core, with no session floor when the database refused as thin.
+- verified-by: `a free learner refused for a thin window is told when the next free conversation is ready`
+
+### F1077 — Metering and core barrels re-export names nothing imports, and voice comments describe an old roster
+- severity: P2
+- status: [x]
+- where: packages/core/src/metering/index.ts:8
+- note: C3-2 and the metering and index.ts parts of C3-3. Eleven barrel lines and five comments; no function is deleted.
+- verified-by: `the core barrels no longer re-export the unused metering helpers`
