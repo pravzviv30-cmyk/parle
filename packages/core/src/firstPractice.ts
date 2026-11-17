@@ -20,12 +20,11 @@ export interface FirstPracticeBrief {
   minutes: 5 | 10 | 15 | 20 | null;
   tutorVoice: TutorVoiceKey;
 }
-const GOALS = LEARNER_GOALS;
 const member = (value: unknown, values: readonly unknown[]) => value === null || values.includes(value);
 export function parseFirstPracticeBrief(value: unknown): FirstPracticeBrief | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return;
   const b = value as Record<string, unknown>;
-  if (b.version !== 1 || !Array.isArray(b.goals) || b.goals.length > 6 || !b.goals.every(g => GOALS.includes(g))
+  if (b.version !== 1 || !Array.isArray(b.goals) || b.goals.length > 6 || !b.goals.every(g => LEARNER_GOALS.includes(g))
     || (b.interests !== undefined && (!Array.isArray(b.interests) || b.interests.length > 4 || !b.interests.every(i => ['food', 'travel', 'music', 'everyday'].includes(i))))
     || !member(b.level, ['zero', 'few', 'getby', 'confident']) || !member(b.confidence, ['hesitant', 'trying', 'comfortable'])
     || !member(b.focus, ['listening', 'speaking', 'words']) || !member(b.minutes, [5, 10, 15, 20]) || !isTutorVoiceKey(b.tutorVoice)) return;
