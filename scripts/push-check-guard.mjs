@@ -406,8 +406,8 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w) || KEYWORDS.has(w)) {
         if (GIT_CONFIG_ENV.test(w)) state.configEnv = true;
         words = words.slice(1);
-      } else if (WRAPPERS.has(w)) {
-        wrapper = w;
+      } else if (WRAPPERS.has(baseName(w))) {
+        wrapper = baseName(w);
         words = words.slice(1);
       } else if (wrapper === 'env' && /^-[^-]/.test(w)) {
         // A short cluster such as `-iS"git push"`: walk its letters. `u`, `C`, `P` and `S`
@@ -435,6 +435,15 @@ export function analyzeCommand(command, baseCwd, parent = null) {
         words = words.slice(takesValue ? 2 : 1);
       } else {
         break;
+      }
+    }
+    // A wrapper flag the tables do not know leaves its value at the head (`sudo -nu me
+    // git push`). Rather than chase every flag, go to the first git or gh word after it.
+    if (wrapper && words.length) {
+      const first = baseName(words[0]);
+      if (!['cd', 'pushd', 'popd', 'eval', 'xargs', 'git', 'gh'].includes(first) && !SHELLS.has(first)) {
+        const at = words.findIndex((w) => baseName(w) === 'git' || baseName(w) === 'gh');
+        if (at > 0) words = words.slice(at);
       }
     }
     if (substAt !== null && scopes.length === substAt) {
@@ -509,6 +518,9 @@ export function analyzeCommand(command, baseCwd, parent = null) {
       const aliasAt = sub === 'config' ? args.findIndex((a) => /^alias\./i.test(a)) : -1;
       if (aliased || (sub && SHELL_EXPANDS.test(sub)) || (aliasAt !== -1 && aliasPublishes(args.slice(aliasAt + 1).join(' '), gitDir))) {
         // An alias or a shell expansion can turn into `push`; the guard cannot read which.
+        events.push({ kind: 'opaque', unreadable: true });
+      } else if (sub === 'send-pack' || (sub === 'subtree' && args.includes('push'))) {
+        // These publish commits without `push` in the subcommand place.
         events.push({ kind: 'opaque', unreadable: true });
       } else if (sub === 'push' && /[$`]$/.test(rest[rest.length - 1])) {
         // `git push $(echo origin) main`: the substitution cuts the arguments short.

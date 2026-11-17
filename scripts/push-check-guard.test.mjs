@@ -974,3 +974,26 @@ test('a git command with alias config in its environment is denied', () => {
     assert.equal(hookDecision(bash(cmd), fakeGit()), null, `${cmd} sets no config entry, so it must not wedge the session`);
   }
 });
+
+test('a wrapper named by its path does not hide the push behind it', () => {
+  for (const cmd of ['/usr/bin/env git push', '/usr/bin/env -S "git push"', '/usr/bin/sudo git push', '/usr/bin/time git push']) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} runs git push, so it is decided like the plain push`);
+  }
+});
+
+test('a wrapper flag the tables do not know does not hide the push behind it', () => {
+  for (const cmd of ['sudo -nu me git push', 'sudo -Hu root git push', 'sudo -iu me git push', 'exec -a foo git push', 'command time -o /dev/null git push']) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} runs git push, so it is decided like the plain push`);
+  }
+  assert.equal(findPushes('sudo -nu me git push origin claude/feat', '/work')[0]?.remote, 'origin',
+    'the push behind a clustered sudo flag is read with its own remote');
+  assert.equal(hookDecision(bash('timeout 5 echo "run git push"'), fakeGit()), null, 'a quoted mention of git push is an argument, not a command');
+  assert.equal(hookDecision(bash('time grep -rn git scripts'), fakeGit()), null, 'searching for the word git runs no git command');
+});
+
+test('git send-pack and git subtree push are denied', () => {
+  for (const cmd of ['git send-pack origin main', 'git subtree push --prefix=x origin main']) {
+    assert.ok(hookDecision(bash(cmd), fakeGit()), `${cmd} publishes commits without push in the subcommand place, so it must deny`);
+  }
+  assert.equal(hookDecision(bash('git subtree split --prefix=x'), fakeGit()), null, 'a subtree split only writes local history');
+});
