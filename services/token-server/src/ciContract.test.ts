@@ -506,7 +506,18 @@ describe('the ci contract', () => {
 
       const entry = lock.packages[`node_modules/${record.module}`];
       assert.ok(entry, `${where}: the lockfile does not carry this package, so the record is stale`);
-      assert.equal(
+      // An accepted record may list each exact version installed (picomatch 4 and the 2.x micromatch needs).
+      const listed: unknown = record.lockedAt;
+      if (Array.isArray(listed)) {
+        assert.equal(record.decision, 'accepted', `${where}: only an accepted record may list several versions`);
+        assert.ok(listed.includes(entry.version), `${where}: recorded at ${listed.join(', ')} but the lockfile now carries ${entry.version}`);
+        for (const version of listed) {
+          assert.ok(
+            Object.entries(lock.packages).some(([key, row]) => (key === `node_modules/${record.module}` || key.endsWith(`/node_modules/${record.module}`)) && row.version === version),
+            `${where}: ${version} is listed but no installed copy carries it, so the record is stale`,
+          );
+        }
+      } else assert.equal(
         entry.version,
         record.lockedAt,
         `${where}: recorded at ${record.lockedAt} but the lockfile now carries ${entry.version}. ` +

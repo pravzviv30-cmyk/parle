@@ -7,6 +7,8 @@ const date = value => {
   const parsed = Date.parse(`${value}T00:00:00Z`);
   return Number.isFinite(parsed) && new Date(parsed).toISOString().slice(0, 10) === value ? parsed : NaN;
 };
+/** lockedAt is one exact version, or a non-empty list of them when the tree installs several copies. */
+const versions = value => typeof value === 'string' ? [value] : Array.isArray(value) && value.length > 0 && value.every(item => typeof item === 'string') ? value : null;
 
 export function evaluateAudit(record, lock, report, now = Date.now()) {
   const problems = [];
@@ -16,11 +18,11 @@ export function evaluateAudit(record, lock, report, now = Date.now()) {
   }
   const decisions = new Map();
   for (const decision of record.advisories) {
-    if (!decision || typeof decision.module !== 'string' || typeof decision.lockedAt !== 'string' || !Array.isArray(decision.advisories) || decisions.has(decision.module) || !['accepted', 'fixed'].includes(decision.decision)) {
+    if (!decision || typeof decision.module !== 'string' || !versions(decision.lockedAt) || !Array.isArray(decision.advisories) || decisions.has(decision.module) || !['accepted', 'fixed'].includes(decision.decision)) {
       problems.push('duplicate or malformed advisory decision'); continue;
     }
     decisions.set(decision.module, decision);
-    if (lock.packages[`node_modules/${decision.module}`]?.version !== decision.lockedAt) problems.push(`${decision.module}: reviewed lock version changed`);
+    if (!versions(decision.lockedAt).includes(lock.packages[`node_modules/${decision.module}`]?.version)) problems.push(`${decision.module}: reviewed lock version changed`);
     if (!Array.isArray(decision.advisories) || decision.advisories.length === 0 || decision.advisories.some(url => !GHSA.test(url))) problems.push(`${decision.module}: advisory IDs missing/malformed`);
     if (decision.decision === 'accepted') {
       const reviewed = date(decision.reviewed), expires = date(decision.expires);
@@ -41,7 +43,7 @@ export function evaluateAudit(record, lock, report, now = Date.now()) {
       const explicitlyApproved = decision?.decision === 'accepted' && decision.advisories.includes(advisory.url) && range(decision.advisoryRanges?.[advisory.url]) === range(advisory.range) && decision.severity === advisory.severity;
       if (decision?.decision === 'accepted' && decision.advisories.includes(advisory.url) && !explicitlyApproved) problems.push(`${name}: reviewed advisory range changed (${advisory.url})`);
       if (HIGH.has(advisory.severity) && !explicitlyApproved) problems.push(`${name}: unreviewed ${advisory.severity} advisory (${advisory.url})`);
-      if (explicitlyApproved && row.nodes.some(node => lock.packages[node]?.version !== decision.lockedAt)) problems.push(`${name}: vulnerable installed copy is outside the reviewed exact version`);
+      if (explicitlyApproved && row.nodes.some(node => !versions(decision.lockedAt).includes(lock.packages[node]?.version))) problems.push(`${name}: vulnerable installed copy is outside the reviewed exact version`);
     }
   }
   for (const decision of decisions.values()) {
