@@ -1,9 +1,11 @@
 /**
  * The drill-authoring eval: generated batches through core's deterministic
- * linter. Duolingo's accepted-answer sets are expert-curated; ours are
- * model-authored with a hard gate, and this run measures how much survives
- * the gate. Below the threshold, the generation prompt needs work before the
- * feature is worth its tokens.
+ * linter and then the production filter (`groundedDrills`, F1124). Duolingo's
+ * accepted-answer sets are expert-curated; ours are model-authored with a hard
+ * gate, and this run measures how much survives what a learner would see. It
+ * prints both counts; the verdict rests on the production one. Below the
+ * threshold, the generation prompt needs work before the feature is worth its
+ * tokens.
  *
  *   npm run eval:drills -w @luvani/brain-playground
  */
@@ -18,9 +20,9 @@ import {
   buildSystemBlocks,
   type LlmClient,
 } from '@luvani/brain';
-import { validateExercise } from '@luvani/core';
 
 import { addUsage, evalCostLine, ZERO_USAGE } from '../usage.ts';
+import { drillCounts } from './drillCounts.ts';
 import { openAiEvalClient } from './openaiEval.ts';
 import { EVAL_ORDER, pickProvider } from './provider.ts';
 
@@ -88,29 +90,23 @@ async function main(): Promise<void> {
     });
     usage = addUsage(usage, result.usage);
 
-    const total = result.batch.exercises.length;
-    let clean = 0;
-    const valid: (typeof result.batch.exercises)[number][] = [];
-    const reasons = new Map<string, number>();
-    for (const exercise of result.batch.exercises) {
-      const verdict = validateExercise(exercise);
-      if (verdict.ok) {
-        clean += 1;
-        valid.push(exercise);
-      }
-      else for (const reason of verdict.reasons) reasons.set(reason, (reasons.get(reason) ?? 0) + 1);
-    }
+    const { total, basic, kept: valid, reasons } = drillCounts(result.batch.exercises, profile.input);
 
-    const share = total === 0 ? 0 : clean / total;
+    const share = total === 0 ? 0 : valid.length / total;
     const kinds = new Set(valid.map((exercise) => exercise.kind));
     const difficulties = new Set(valid.map((exercise) => exercise.difficulty));
     const varied = kinds.size >= 3 && difficulties.has('recognition') && difficulties.has('production');
     const seconds = ((Date.now() - started) / 1000).toFixed(1);
     const ok = total >= 6 && total <= 14 && share >= ACCEPT_THRESHOLD && varied;
     if (!ok) failed = true;
-    console.log(`${ok ? 'ok  ' : 'FAIL'}  ${profile.label}: ${clean}/${total} clean (${seconds}s)`);
+    console.log(
+      `${ok ? 'ok  ' : 'FAIL'}  ${profile.label}: ${basic}/${total} pass the basic check, ${valid.length}/${total} survive the production filter (${seconds}s)`,
+    );
     for (const [reason, count] of [...reasons.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)) {
       console.log(`        ${count}× ${reason}`);
+    }
+    if (basic > valid.length) {
+      console.log(`        ${basic - valid.length}× dropped by the production filter (ungrounded phrase, repeated id, unsafe or oversized text)`);
     }
     if (total < 6 || total > 14) console.log(`        batch size ${total}, want 6-14`);
     if (!varied) {

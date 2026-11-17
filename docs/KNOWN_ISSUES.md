@@ -12779,6 +12779,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: B5-2. A Groq run prints the fallback rate as if it were real.
 - verified-by: `an eval cost line says when the model has no price row`
 
+### F1124 — The drill eval counts exercises production would drop
+- severity: P2
+- status: [x]
+- where: services/brain-playground/src/eval/drillEval.ts:88
+- note: B5-3. Class (b): file only on a founder yes. The eval applies `validateExercise` alone; production applies `groundedDrills`.
+- verified-by: `drill eval counts an ungrounded exercise as rejected`
+
 ### F1125 — The provider choice is hand-copied across the playground tools
 - severity: P2
 - status: [x]
