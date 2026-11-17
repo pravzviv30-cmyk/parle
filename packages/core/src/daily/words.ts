@@ -2693,9 +2693,14 @@ for (const section of WORD_SECTIONS) {
     known.add(normalWord(fr));
     // A whole vocabulary item: "un bar" must not borrow a barbecue example.
     const escaped = fr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const exactWord = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'iu');
+    // The regex is built only once a line contains the word at all.
     const lowerFr = fr.toLowerCase();
-    const example = contexts.find((line, i) => lowerContexts[i]!.includes(lowerFr) && exactWord.test(line.fr));
+    let exactWord: RegExp | undefined;
+    const example = contexts.find((line, i) => {
+      if (!lowerContexts[i]!.includes(lowerFr)) return false;
+      exactWord ??= new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'iu');
+      return exactWord.test(line.fr);
+    });
     additions.push({
       id: `word:pack-${normalWord(fr).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/œ/g, 'oe').replace(/[^a-z]+/g, '-')}`,
       fr, en, tier: section.tier,
