@@ -1103,14 +1103,17 @@ the new look, listed at the end, and they go with their call sites.
   Selected is the `tabSelected` violet pill under the cell with the Linear glyph in
   `tabGlyphSelected` sun and the word in `tabLabel` cream at Outfit Bold;
   unselected is the Linear glyph and the word in cream at Outfit Medium on the
-  ink. Only the pill moves (`nav/TabPill.tsx`, UI-018): it slides to a tapped
-  tab on the fast beat, and a sideways drag from any tab moves it to
+  ink. Only the pill moves (`nav/TabPill.tsx`, UI-018): pressing in on another
+  tab springs it there on the snap spring with one selection tick, the sun glyph
+  and bold word moving with it, and a press that slides off puts it back (F981);
+  a sideways drag from any tab moves it to
   another (F963), a selection tick as the drag starts and at each cell it crosses,
   landing like a tap; under Reduce Motion it jumps. A still long press is never
   claimed, so the Large Content Viewer keeps working. When a tab becomes the selected one its
   icon lifts once in `nav/TabGlyph.tsx` (up 2pt, home on the pop spring; one
-  drawing, never scaled, so it stays sharp), never on launch or on a tap of
-  the open tab, and under Reduce Motion it does not move. The Practice
+  drawing, never scaled, so it stays sharp), which since F981 is on press-in
+  of a closed tab and again on the open tab when that press is cancelled; never
+  on launch or on a tap of the open tab, and under Reduce Motion it does not move. The Practice
   dot is 6pt sun, so it reads on the ink, and pops in once when practice
   becomes due while the bar is open. Cells keep the 62pt floor and labels wrap
   at large text: from a 1.3 reading size each cell takes a fixed fifth. The
@@ -1810,7 +1813,7 @@ to its description.
 | press | 0.30 s | 0.70 | 439 | 29.3 | the press |
 | pop | 0.35 s | 0.55 | 322 | 19.7 | the select pop, chips, medals, numbers |
 | settle | 0.50 s | 0.85 | 158 | 21.4 | bars and cards |
-| snap | 0.20 s | 0.80 | 987 | 50.3 | detents |
+| snap | 0.20 s | 0.80 | 987 | 50.3 | detents, the tab pill (F981) |
 
 ### The press
 
