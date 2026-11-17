@@ -24,6 +24,7 @@ import { friendly, deletionFailure, reauthenticationLine, GOOGLE_NOT_CONFIGURED,
 import { createProviderAvailability } from './providerStatus.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createSecureSessionStorage } from './secureSessionStorage.ts';
+import { clearOnFreshInstall } from './freshInstall.ts';
 import { installationId } from './installation.ts';
 import { ensureAuthRandom } from './cryptoRandom.ts';
 import { NATIVE_EMAIL_CALLBACK, observeEmailCallbacks } from './emailCallback.ts';
@@ -45,7 +46,7 @@ function toUser(session: Session | null): AuthUser | null {
 
 export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter {
   if (Platform.OS !== 'web') ensureAuthRandom(globalThis, Crypto.getRandomValues);
-  const nativeSessionStorage = createSecureSessionStorage(
+  let nativeSessionStorage = createSecureSessionStorage(
     {
       getItem: (key) => SecureStore.getItemAsync(key),
       setItem: (key, value) =>
@@ -56,6 +57,8 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
     },
     AsyncStorage,
   );
+  // The Keychain outlives an uninstall on iOS only; a reinstall must not restore the last person (F960).
+  if (Platform.OS === 'ios') nativeSessionStorage = clearOnFreshInstall(nativeSessionStorage, AsyncStorage);
   const client: SupabaseClient = createClient(url, anonKey, {
     auth: {
       ...(Platform.OS !== 'web' ? { storage: nativeSessionStorage } : {}),
