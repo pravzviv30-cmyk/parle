@@ -2,9 +2,12 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { CAFE_LESSON, LESSONS, getLesson } from './index.ts';
-import { isAcceptable, matchAcceptable, normalise, phonemeCoverage } from './types.ts';
+import { matchAcceptable, normalise, type Lesson, type LessonTurn } from './types.ts';
 import { getPhoneme } from '../phonemes/inventory.ts';
 import { drillsFor } from '../phonemes/drills.ts';
+
+const isAcceptable = (turn: LessonTurn, spoken: string) => matchAcceptable(turn, spoken).accepted;
+const phonemeCoverage = (lesson: Lesson) => [...new Set(lesson.turns.flatMap((t) => t.focusPhonemes))];
 
 describe('lesson structure', () => {
   test('lesson ids are unique and resolvable', () => {

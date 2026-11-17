@@ -17,9 +17,7 @@ export {
   type GuestSceneTurnId,
 } from './guestCafe.ts';
 export {
-  phonemeCoverage,
   normalise,
-  isAcceptable,
   matchAcceptable,
   type AcceptanceMatch,
   type AcceptanceRoute,

@@ -71,11 +71,6 @@ export interface Lesson {
   turns: LessonTurn[];
 }
 
-/** Every distinct hard phoneme a lesson actually exercises across its turns. */
-export function phonemeCoverage(lesson: Lesson): string[] {
-  return [...new Set(lesson.turns.flatMap((t) => t.focusPhonemes))];
-}
-
 /**
  * Normalise a spoken transcript for comparison against `accepts`.
  *
@@ -223,9 +218,4 @@ export function matchAcceptable(turn: LessonTurn, spoken: string): AcceptanceMat
   // either, and grading it the same way as one is how a learner who was almost
   // right learns to stop trying.
   return { accepted: false, via: best >= NEAR_MISS_SHARE ? 'near' : 'none' };
-}
-
-/** Did the learner produce an acceptable reply for this turn? */
-export function isAcceptable(turn: LessonTurn, spoken: string): boolean {
-  return matchAcceptable(turn, spoken).accepted;
 }

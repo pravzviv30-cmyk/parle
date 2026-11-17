@@ -21,9 +21,9 @@
  * deciding a learner's review history across two devices whose clocks disagree
  * — the one input this merge should never trust.
  *
- * It does carry something better. `applyGrade` increments exactly one of
- * `reps` (good, easy) or `lapses` (again) on every single grade, so
- * `reps + lapses` is a **count of grades applied** — monotone by construction,
+ * It does carry something better. `applyGrade` increments at most one of
+ * `reps` (good, easy) or `lapses` (again) on each grade, and an assisted good
+ * increments neither, so `reps + lapses` counts grades applied — monotone,
  * immune to skew, and already on disk. Both copies descend from one ancestor,
  * so the copy with more grades is strictly the copy that was reviewed more
  * recently, and it holds the other's history plus its own. `gradesApplied` is

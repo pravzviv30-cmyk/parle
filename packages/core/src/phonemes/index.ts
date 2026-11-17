@@ -2,8 +2,6 @@ export {
   FRENCH_PHONEMES,
   PHONEME_COUNT,
   getPhoneme,
-  novelPhonemes,
-  meaningBearingPhonemes,
   type Phoneme,
   type PhonemeClass,
   type Difficulty,
@@ -11,7 +9,7 @@ export {
 
 export { focusDrillSteps, type FocusStep } from './focusSteps.ts';
 
-export { DRILLS, getDrill, drillsFor, bestDrillFor, type Drill, type DrillKind, type DrillWord, type MinimalPair } from './drills.ts';
+export { DRILLS, drillsFor, bestDrillFor, type Drill, type DrillKind, type DrillWord, type MinimalPair } from './drills.ts';
 
 export {
   aggregate,
