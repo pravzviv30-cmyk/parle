@@ -1,6 +1,10 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { suiteProblems, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems, PROOF_FLOOR_KEY, workspaceKeys, belowFloor } from './gateChecks.mjs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { suiteProblems, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems, PROOF_FLOOR_KEY, workspaceKeys, belowFloor, trackedTestFiles } from './gateChecks.mjs';
 
 /** A node:test summary block as the spec reporter prints it. */
 const summary = ({ tests = 3, pass = 3, fail = 0, cancelled = 0, skipped = 0 } = {}) =>
@@ -109,5 +113,26 @@ describe('gate — the release and provider proofs are counted like the workspac
     assert.deepEqual(workspaceKeys({ '@luvani/core': 1152, [PROOF_FLOOR_KEY]: 359, '@luvani/mobile': 4112 }),
       ['@luvani/core', '@luvani/mobile'],
       'npm test --workspace on the proof floor would fail as an unknown workspace, so only @ keys run');
+  });
+});
+
+describe('gate — only what git carries is judged as unrun', () => {
+  test('an untracked test file in the checkout does not fail the gate', () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'gate-tracked-'));
+    try {
+      const env = { ...process.env };
+      for (const key of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY', 'GIT_COMMON_DIR']) delete env[key];
+      execFileSync('git', ['init', '-q'], { cwd: root, env });
+      mkdirSync(path.join(root, 'src'));
+      writeFileSync(path.join(root, 'src', 'kept.test.ts'), '');
+      mkdirSync(path.join(root, 'sites'));
+      writeFileSync(path.join(root, 'sites', 'draft.test.ts'), '');
+      writeFileSync(path.join(root, 'src', 'kept.ts'), '');
+      execFileSync('git', ['add', 'src'], { cwd: root, env });
+      assert.deepEqual(trackedTestFiles(root), ['src/kept.test.ts'],
+        'CI only ever sees tracked files, so another session\'s untracked draft must not turn this checkout red');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

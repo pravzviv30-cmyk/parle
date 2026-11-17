@@ -48,7 +48,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { passingTestTitles } from './gateReporter.mjs';
 import { evaluateAudit } from './dependencyAudit.mjs';
-import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems, PROOF_FLOOR_KEY, workspaceKeys, belowFloor } from './gateChecks.mjs';
+import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems, PROOF_FLOOR_KEY, workspaceKeys, belowFloor, trackedTestFiles } from './gateChecks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FLOORS_PATH = path.join(ROOT, 'scripts', 'gate.floors.json');
@@ -255,7 +255,7 @@ for (const rel of onDisk) {
   for (const problem of focusProblems(rel, readFileSync(path.join(ROOT, rel), 'utf8'))) fail('hygiene', problem);
 }
 
-// Every test file must be matched by a floored workspace's test glob or be in the
+// Every tracked test file must be matched by a floored workspace's test glob or be in the
 // release/provider proof list, or it never runs.
 const workspaceDirs = {};
 for (const parent of ['packages', 'apps', 'services']) {
@@ -269,7 +269,7 @@ const floored = Object.keys(floors)
   .filter((name) => workspaceDirs[name])
   .map((name) => ({ dir: workspaceDirs[name].dir, glob: workspaceDirs[name].script.match(/"([^"]*\.test\.[^"]*)"/)?.[1] ?? '' }))
   .filter(({ glob }) => glob);
-for (const rel of unrunTestFiles(onDisk, floored, releaseProofTests)) {
+for (const rel of unrunTestFiles(trackedTestFiles(ROOT), floored, releaseProofTests)) {
   fail('hygiene', `${rel}: no floored workspace's test glob matches it and it is not in the gate's release/provider proof list, so it never runs`);
 }
 

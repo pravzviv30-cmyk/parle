@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+
 /**
  * The gate's pure checks. `gate.mjs` cannot be imported without running the whole gate,
  * so the decisions it makes on text live here, where `gateChecks.test.mjs` can feed them
@@ -125,4 +127,17 @@ export function workspaceKeys(floors) {
 export function belowFloor(name, count, floor) {
   if (typeof floor !== 'number') return [`${name}: no floor recorded in scripts/gate.floors.json — run npm run gate:bless`];
   return count < floor ? [`${name}: ${count} tests ran, floor is ${floor}. A suite is missing, not merely failing.`] : [];
+}
+
+/**
+ * Test files git carries under root, relative with forward slashes. Tracked only, because CI
+ * sees nothing else: another session's untracked draft must not turn a checkout red.
+ */
+export function trackedTestFiles(root) {
+  const env = { ...process.env };
+  for (const key of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY', 'GIT_COMMON_DIR']) delete env[key];
+  return execFileSync('git', ['ls-files', '-z'], { cwd: root, env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    .split('\0')
+    .filter((file) => isTestFile(file))
+    .sort();
 }
