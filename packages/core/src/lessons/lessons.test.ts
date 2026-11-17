@@ -202,6 +202,14 @@ describe('answer matching', () => {
     assert.equal(isAcceptable(t, 'pas un croissant'), false, 'a positive order made negative is still refused');
   });
 
+  test('an added negation is not graded as carrying the meaning', () => {
+    // "That lands. The meaning is there." must never answer the opposite sentence.
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns[0]!, 'pas bonjour'), { accepted: false, via: 'none' });
+    assert.deepEqual(matchAcceptable(CAFE_LESSON.turns[1]!, 'je ne voudrais pas un café'), { accepted: false, via: 'none' });
+    const croissant = CAFE_LESSON.turns.find((x) => x.id === 't5-croissant')!;
+    assert.ok(isAcceptable(croissant, 'Non merci, pas de croissant'), 'a decline that agrees with the line is still the line');
+  });
+
   test('a half-said line is a near miss, not an unrelated answer', () => {
     const t = CAFE_LESSON.turns[1]!;
     const match = matchAcceptable(t, 'un café');

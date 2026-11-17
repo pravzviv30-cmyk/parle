@@ -223,7 +223,8 @@ export function matchAcceptable(turn: LessonTurn, spoken: string): AcceptanceMat
     if (hits === wanted && !negated && contentWords(heard).length <= wanted + EXTRA_WORD_ALLOWANCE) {
       return { accepted: true, via: 'content' };
     }
-    if (wanted > 0) best = Math.max(best, hits / wanted);
+    // The opposite sentence is not a near miss of the line.
+    if (wanted > 0 && !negated) best = Math.max(best, hits / wanted);
   }
 
   // Half the line is not the line — but it is not "je voudrais un éléphant"

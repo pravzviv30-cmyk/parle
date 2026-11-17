@@ -140,7 +140,8 @@ acceptable options:
    it: a restored `ne`, or "non merci, pas de croissant" (F1196).
 
 Anything else that produced at least half the line's content words is `near`,
-which grades `partial` — it holds the rung. Below that is `poor`.
+which grades `partial` — it holds the rung. A candidate the learner negated never
+counts towards `near`. Below that is `poor`.
 
 A spoken transcript of nothing but hesitation (`Alors...`, `Euh.`) never reaches
 the matcher unless the turn's own line is that word. `submitTurn` treats it as
