@@ -13437,3 +13437,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: deployment/deletion-journal/schema.sql:20
 - note: Found by design-architect while writing the journal-removal contract, 2026-11-18. SQLite's REPLACE conflict resolution deletes the old row without firing delete triggers unless recursive_triggers is on, so an `INSERT OR REPLACE` into records would remove an entry inside its keep period. The Worker only ever uses `ON CONFLICT(name) DO NOTHING` (no REPLACE anywhere in the lane), so it is not reachable today; a test should keep it that way. An `INSERT` that supplies a backdated `completed_at` is not guarded either: the Worker never sets `completed_at` on insert, and doing so needs raw D1 access, which can also drop the triggers, so it is the same class.
 - verified-by: `no journal statement uses REPLACE, so no entry can be replaced inside its keep period`
+
+### F1261 — The recovery drill cannot see a journal rolled back between the sequence read and the replay's seal
+- severity: P2
+- status: [ ]
+- where: deployment/recoveryDrill.mjs:35
+- note: Work-judge (Fable 5.2), 2026-11-18, push-check round of journal-removal lane 1. `journalRecordsAfter >= journalSnapshotRecords` only covers rows lost after the seal. If the journal is restored to an earlier point after `journalSequenceBefore` is read and before the replay seals, the snapshot is smaller, the replay's rejected PUTs lift the sequence past its old value, and the drill passes (sequence 9 read, journal restored to 7 rows, seal 7, sequence 14, count 7). Only an independently derived `deletionsExpected` catches it. Needs a deliberate mid-drill restore of the journal; the contract claimed no more than `after >= before`. Candidate: read the sequence and seal in one step, or record the snapshot's high water and require it to be at least `journalSequenceBefore`.
+- verified-by: `the recovery drill refuses a journal rolled back between the sequence read and the replay's seal`
