@@ -11765,7 +11765,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   Migration 47 replaces both: an unclaimed row on a newly recorded device becomes a fresh free
   conversation, and on a device that already had one it stays spent while the claim still
   returns true. No row can hold a live reservation before the reset (it is created spent at the
-  cap and admission refuses under 120 s). Not applied to staging; that needs its own founder yes.
+  cap and admission refuses under 120 s). 2026-11-18: applied to staging (`wtexbzuyfersdtiekrvp`) on the founder's yes, see `supabase/README.md` row 47.
   Closed here, no new id.
 - verified-by: `a trial row begun by a purchase becomes a refilling free conversation at its first device claim`
 - verified-by: `a purchase-first row on a device that already had a free conversation stays spent`
@@ -13583,7 +13583,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: supabase/migrations/202608220001_luvani_learning.sql:1
-- note: (b), founder Q2 (2026-11-17, "remove the unused table rights") after probes P1 to P3, `security-engineer`. Only RLS guarded `entitlements`, `learner_state`, `product_events` and `conversation_packs`, and RLS does not gate TRUNCATE; staging probe P1 showed `anon` and `authenticated` holding all seven privileges it checked on exactly these four, and probe C1 showed MAINTAIN too, so all eight. No reachable path today (PostgREST exposes no TRUNCATE). 2026-11-17: fixed in `supabase/migrations/20261117121000_client_table_grants.sql`: revoke all from both roles, then grant `authenticated` exactly its policy verbs; `anon` gets nothing, `service_role` untouched. The app's only direct table call is `learner_state` sync, which keeps all four verbs; the token server writes events and packs with the service role. The migration refuses to commit if either role still holds anything else on the four tables (MAINTAIN included), which catches a grant to PUBLIC, a column grant, or one recorded under another grantor that the revoke cannot remove. Rollback `supabase/rollback/20261117121000_down.sql`, interlock `luvani.rollback_client_grants`. NOT applied to staging: needs its own founder yes, as a single file while 42 stays held. New tables are tracked as F1241.
+- note: (b), founder Q2 (2026-11-17, "remove the unused table rights") after probes P1 to P3, `security-engineer`. Only RLS guarded `entitlements`, `learner_state`, `product_events` and `conversation_packs`, and RLS does not gate TRUNCATE; staging probe P1 showed `anon` and `authenticated` holding all seven privileges it checked on exactly these four, and probe C1 showed MAINTAIN too, so all eight. No reachable path today (PostgREST exposes no TRUNCATE). 2026-11-17: fixed in `supabase/migrations/20261117121000_client_table_grants.sql`: revoke all from both roles, then grant `authenticated` exactly its policy verbs; `anon` gets nothing, `service_role` untouched. The app's only direct table call is `learner_state` sync, which keeps all four verbs; the token server writes events and packs with the service role. The migration refuses to commit if either role still holds anything else on the four tables (MAINTAIN included), which catches a grant to PUBLIC, a column grant, or one recorded under another grantor that the revoke cannot remove. Rollback `supabase/rollback/20261117121000_down.sql`, interlock `luvani.rollback_client_grants`. 2026-11-18: applied to staging (`wtexbzuyfersdtiekrvp`) on the founder's yes, as a single file with 42 still held, see `supabase/README.md` row 48. New tables are tracked as F1241.
 - verified-by: `anon and authenticated hold only the verbs their policies use on the four client tables`
 - verified-by: `the client grants migration refuses to finish while a client role keeps a privilege outside its policy verbs`
 
@@ -13597,9 +13597,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: supabase/migrations/20261003234853_privacy_maintenance_workflows.sql:3
-- note: PRODUCT, founder Q3 (2026-11-17): 30 days. (b), `privacy-safety-engineer`. Extend `run_data_retention_v1`; tombstones are documented, not expired. 2026-11-17: fixed in migration 49 (`supabase/migrations/20261117122000_erasure_job_retention.sql`), which adds one bounded batch removing finished `account_erasure_jobs` rows 30 days after `completed_at`; its rollback sits behind `luvani.rollback_erasure_retention`. No reader treats a finished job as evidence: the deletion endpoint answers `completed` and `gone` the same way, and journal replay accepts both. `conversation_practice_tombstones` stay, with the reason in docs/PRIVACY_AND_SAFETY.md. NOT applied to staging; that needs a founder yes. The learner-facing notice names no period for erasure records; adding one is the founder's call.
+- note: PRODUCT, founder Q3 (2026-11-17): 30 days. (b), `privacy-safety-engineer`. Extend `run_data_retention_v1`; tombstones are documented, not expired. 2026-11-17: fixed in migration 49 (`supabase/migrations/20261117122000_erasure_job_retention.sql`), which adds one bounded batch removing finished `account_erasure_jobs` rows 30 days after `completed_at`; its rollback sits behind `luvani.rollback_erasure_retention`. No reader treats a finished job as evidence: the deletion endpoint answers `completed` and `gone` the same way, and journal replay accepts both. `conversation_practice_tombstones` stay, with the reason in docs/PRIVACY_AND_SAFETY.md. 2026-11-18: applied to staging (`wtexbzuyfersdtiekrvp`) on the founder's yes, see `supabase/README.md` row 49. The learner-facing notice names no period for erasure records; adding one is the founder's call.
 - verified-by: `a finished erasure job is removed once its keep period has passed`
 - verified-by: `retention removes at most one batch of finished erasure jobs per run`
+
+### F1083 — The staging record describes another project and a schema six migrations old
+- severity: P2
+- status: [ ]
+- where: supabase/staging-verification.json:5
+- note: Founder Q4 sets when; needs probe P0 and a hosted capture. `data-engineer`. Regenerate the record and the runbook's opening paragraph together. The test ties the two to each other, not to the migration folder. 2026-11-18: the runbook's opening paragraph now names `wtexbzuyfersdtiekrvp` with 48 migrations applied and 42 held, and says the JSON is the 2026-10-07 capture of `cfimkuustkhthujdpjlq`. The regeneration is blocked while migration 42 is held, because `scripts/verifyCurrentHostedSchema.mjs` requires the hosted migration history to equal every source migration (and the expected catalog includes 42's table). It unblocks once 42 is applied, or through a held-migration rule in the verifier, which is its own decision.
+- verified-by: `the staging record and the runbook name the same project and migration count`
 
 ### F1244 — The interlock and restored body on the migration 49 rollback are not pinned by a test
 - severity: P2
