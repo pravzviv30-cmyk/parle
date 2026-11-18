@@ -140,6 +140,15 @@ and `journalSequenceAfter`. Removal lowers `totalRecords`, but never this number
 npx wrangler@4.92.0 d1 execute luvani-deletion-journal --remote --command "SELECT seq FROM sqlite_sequence WHERE name='records'"
 ```
 
+Every rejected duplicate `PUT` also advances the sequence, and the replay re-records every job, so the sequence alone can
+hide lost rows. Also record the replay report's `verifiedSnapshot.totalRecords` as `journalSnapshotRecords` and, while
+that snapshot is still unexpired (removal is held), the record count as `journalRecordsAfter`. The drill refuses a count
+below the snapshot's:
+
+```sh
+npx wrangler@4.92.0 d1 execute luvani-deletion-journal --remote --command "SELECT COUNT(*) FROM records"
+```
+
 ## Cost and scale
 
 Free plan limits (check the current Cloudflare pricing page): 100,000 Worker requests a day, about 10 ms of CPU per

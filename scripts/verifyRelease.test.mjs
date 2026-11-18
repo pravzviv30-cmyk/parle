@@ -148,7 +148,7 @@ test('actual captured evidence bytes, branch protection, exact CI and hosted cat
 test('recovery inventory refuses missing Storage bodies, deletion gap and invalid timing',()=>{
   const reviewed=name=>({name,status:'passed',evidenceUrl:url,sha256:hash(name)});
   const drill={version:1,isolatedTarget:true,sourceProjectRef:'source',targetProjectRef:'isolated',approvedRpoSeconds:60,approvedRtoSeconds:120,
-    observedRpoSeconds:30,deletionsExpected:2,deletionsReplayed:2,journalSequenceBefore:2,journalSequenceAfter:2,backupTakenAt:new Date(now-60_000).toISOString(),
+    observedRpoSeconds:30,deletionsExpected:2,deletionsReplayed:2,journalSequenceBefore:2,journalSequenceAfter:2,journalSnapshotRecords:2,journalRecordsAfter:2,backupTakenAt:new Date(now-60_000).toISOString(),
     coverage:COVERAGE.map(reviewed),phases:PHASES.map((name,i)=>({...reviewed(name),startedAt:new Date(now+i*1000).toISOString(),completedAt:new Date(now+(i+1)*1000).toISOString()}))};
   assert.equal(verifyDrill(drill).observedRtoSeconds,7);
   for(const mutate of [d=>d.coverage=d.coverage.filter(x=>x.name!=='storageMetadataAndBodies'),d=>d.deletionsReplayed=1,
@@ -161,7 +161,7 @@ test('the recovery drill accepts a journal that shrank by removal and refuses a 
   const day=24*60*60_000,replayStart=now+3*1000;
   // Removal shrank the journal from 9 entries to 6, but the AUTOINCREMENT sequence never goes down.
   const drill={version:1,isolatedTarget:true,sourceProjectRef:'source',targetProjectRef:'isolated',approvedRpoSeconds:60,approvedRtoSeconds:120,
-    observedRpoSeconds:30,deletionsExpected:6,deletionsReplayed:6,journalSequenceBefore:9,journalSequenceAfter:9,
+    observedRpoSeconds:30,deletionsExpected:6,deletionsReplayed:6,journalSequenceBefore:9,journalSequenceAfter:9,journalSnapshotRecords:6,journalRecordsAfter:6,
     backupTakenAt:new Date(replayStart-35*day).toISOString(),
     coverage:COVERAGE.map(reviewed),phases:PHASES.map((name,i)=>({...reviewed(name),startedAt:new Date(now+i*1000).toISOString(),completedAt:new Date(now+(i+1)*1000).toISOString()}))};
   assert.equal(PHASES[3],'replayPostBackupDeletions');
@@ -176,7 +176,7 @@ test('the recovery drill measures the keep period to the end of the replay, a da
   const reviewed=name=>({name,status:'passed',evidenceUrl:url,sha256:hash(name)});
   const day=24*60*60_000,replayStart=now+3*1000,replayEnd=now+4*1000;
   const drill={version:1,isolatedTarget:true,sourceProjectRef:'source',targetProjectRef:'isolated',approvedRpoSeconds:60,approvedRtoSeconds:120,
-    observedRpoSeconds:30,deletionsExpected:6,deletionsReplayed:6,journalSequenceBefore:9,journalSequenceAfter:9,
+    observedRpoSeconds:30,deletionsExpected:6,deletionsReplayed:6,journalSequenceBefore:9,journalSequenceAfter:9,journalSnapshotRecords:6,journalRecordsAfter:6,
     backupTakenAt:new Date(replayEnd-36*day+1).toISOString(),
     coverage:COVERAGE.map(reviewed),phases:PHASES.map((name,i)=>({...reviewed(name),startedAt:new Date(now+i*1000).toISOString(),completedAt:new Date(now+(i+1)*1000).toISOString()}))};
   assert.equal(drill.phases[3].startedAt,new Date(replayStart).toISOString());
@@ -187,6 +187,20 @@ test('the recovery drill measures the keep period to the end of the replay, a da
       for(let i=4;i<PHASES.length;i++){d.phases[i].startedAt=new Date(late+(i-4)*1000).toISOString();d.phases[i].completedAt=new Date(late+(i-3)*1000).toISOString();}
       d.approvedRtoSeconds=3*60*60;}]) {
     const d=structuredClone(drill);mutate(d);assert.throws(()=>verifyDrill(d),/keep period/);
+  }
+});
+test('the recovery drill refuses a journal that lost rows while the replay\'s rejected PUTs pushed the sequence past its old value',()=>{
+  const reviewed=name=>({name,status:'passed',evidenceUrl:url,sha256:hash(name)});
+  const day=24*60*60_000;
+  // Each rejected duplicate PUT advances sqlite_sequence, so 9 -> 11 here says nothing about rows lost; the count after the replay does.
+  const drill={version:1,isolatedTarget:true,sourceProjectRef:'source',targetProjectRef:'isolated',approvedRpoSeconds:60,approvedRtoSeconds:120,
+    observedRpoSeconds:30,deletionsExpected:6,deletionsReplayed:6,journalSequenceBefore:9,journalSequenceAfter:11,journalSnapshotRecords:6,journalRecordsAfter:6,
+    backupTakenAt:new Date(now-day).toISOString(),
+    coverage:COVERAGE.map(reviewed),phases:PHASES.map((name,i)=>({...reviewed(name),startedAt:new Date(now+i*1000).toISOString(),completedAt:new Date(now+(i+1)*1000).toISOString()}))};
+  assert.equal(verifyDrill(drill).deletionsReplayed,6);
+  for(const [mutate,message] of [[d=>d.journalRecordsAfter=5,/Post-backup deletion replay incomplete/],
+    [d=>delete d.journalRecordsAfter,/journalRecordsAfter/],[d=>delete d.journalSnapshotRecords,/journalSnapshotRecords/]]) {
+    const d=structuredClone(drill);mutate(d);assert.throws(()=>verifyDrill(d),message);
   }
 });
 test('maintenance refuses missing external journal and other roles cannot receive its key',()=>{
