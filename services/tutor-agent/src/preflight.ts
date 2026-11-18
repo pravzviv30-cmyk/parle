@@ -702,11 +702,20 @@ export function preflight(env: Env = process.env, exit: (code: number) => never 
     const brain = selectedBrain(env);
     let safeServer = false;
     try { const url = new URL(env.TOKEN_SERVER_URL ?? ''); safeServer = url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash; } catch { /* invalid */ }
-    if (!safeServer || (env.LUVANI_AGENT_SECRET ?? '').length < 32 || (env.TUTOR_LLM ?? '').trim().toLowerCase() !== 'openai' || brain !== 'openai'
-      || selectedVoiceVendor(env) !== 'elevenlabs'
-      || env.LUVANI_TTS_MISS_TRANSPORT === 'ws' || env.TYPESAFE_API_KEY?.trim()
-      || env.LUVANI_AUDIO_SCORING === '1' && (env.LUVANI_SCORING_VENDOR !== 'speechace' || !env.SPEECHACE_API_KEY?.trim())) {
-      console.error('[luvani:agent] Production requires an HTTPS token API, a strong agent secret and TUTOR_LLM=openai.');
+    // F1108: each refusal is named, so the operator sees which setting to fix. Names only, never values.
+    const checks: Array<[string, boolean]> = [
+      ['TOKEN_SERVER_URL', !safeServer],
+      ['LUVANI_AGENT_SECRET', (env.LUVANI_AGENT_SECRET ?? '').length < 32],
+      ['TUTOR_LLM', (env.TUTOR_LLM ?? '').trim().toLowerCase() !== 'openai' || brain !== 'openai'],
+      ['LUVANI_TTS_VENDOR', selectedVoiceVendor(env) !== 'elevenlabs'],
+      ['LUVANI_TTS_MISS_TRANSPORT', env.LUVANI_TTS_MISS_TRANSPORT === 'ws'],
+      ['TYPESAFE_API_KEY', !!env.TYPESAFE_API_KEY?.trim()],
+      ['LUVANI_SCORING_VENDOR', env.LUVANI_AUDIO_SCORING === '1' && env.LUVANI_SCORING_VENDOR !== 'speechace'],
+      ['SPEECHACE_API_KEY', env.LUVANI_AUDIO_SCORING === '1' && !env.SPEECHACE_API_KEY?.trim()],
+    ];
+    const failed = checks.filter(([, refused]) => refused).map(([name]) => name);
+    if (failed.length) {
+      console.error(`[luvani:agent] Cannot start. Production refuses these settings: ${failed.join(', ')} (services/tutor-agent/.env).`);
       exit(1); return;
     }
     if (env.LUVANI_AUDIO_SCORING === '1') {

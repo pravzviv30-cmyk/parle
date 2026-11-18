@@ -97,3 +97,31 @@ test('the bound lesson and convo quotes both carry a scoring component whenever 
     }
   }
 });
+
+test('a production refusal names the setting that caused it', () => {
+  const env = { NODE_ENV: 'production', LUVANI_TYPED_ONLY: '1', LIVEKIT_URL: 'wss://example.livekit.cloud', LIVEKIT_API_KEY: 'example-key', LIVEKIT_API_SECRET: 'example-secret', OPENAI_API_KEY: 'example-key', TUTOR_LLM: 'openai', TOKEN_SERVER_URL: 'https://api.example.com', LUVANI_AGENT_SECRET: 'example-strong-secret-for-local-test-only' };
+  const names = ['TOKEN_SERVER_URL', 'LUVANI_AGENT_SECRET', 'TUTOR_LLM', 'LUVANI_TTS_VENDOR', 'LUVANI_TTS_MISS_TRANSPORT', 'TYPESAFE_API_KEY', 'LUVANI_SCORING_VENDOR', 'SPEECHACE_API_KEY'];
+  const cases: Array<[Record<string, string>, string[]]> = [
+    [{ TOKEN_SERVER_URL: 'http://private-host.example:8787' }, ['TOKEN_SERVER_URL']],
+    [{ LUVANI_AGENT_SECRET: 'private-short-secret' }, ['LUVANI_AGENT_SECRET']],
+    [{ TUTOR_LLM: 'groq' }, ['TUTOR_LLM']],
+    [{ LUVANI_TTS_VENDOR: 'fish' }, ['LUVANI_TTS_VENDOR']],
+    [{ LUVANI_TTS_MISS_TRANSPORT: 'ws' }, ['LUVANI_TTS_MISS_TRANSPORT']],
+    [{ TYPESAFE_API_KEY: 'private-typesafe-value' }, ['TYPESAFE_API_KEY']],
+    [{ LUVANI_AUDIO_SCORING: '1', LUVANI_SCORING_VENDOR: 'private-vendor', SPEECHACE_API_KEY: 'private-speechace-value' }, ['LUVANI_SCORING_VENDOR']],
+    [{ LUVANI_AUDIO_SCORING: '1', LUVANI_SCORING_VENDOR: 'speechace' }, ['SPEECHACE_API_KEY']],
+    [{ TOKEN_SERVER_URL: 'http://private-host.example:8787', TYPESAFE_API_KEY: 'private-typesafe-value' }, ['TOKEN_SERVER_URL', 'TYPESAFE_API_KEY']],
+  ];
+  const stop = () => { throw new Error('refused'); };
+  const errors: unknown[][] = [], error = console.error;
+  console.error = (...args: unknown[]) => { errors.push(args); };
+  try {
+    for (const [override, failed] of cases) {
+      errors.length = 0;
+      assert.throws(() => preflight({ ...env, ...override }, stop, () => false), /refused/, JSON.stringify(override));
+      const printed = errors.map(args => args.map(String).join(' ')).join('\n');
+      for (const name of names) assert.equal(printed.includes(name), failed.includes(name), `${name} in ${printed}`);
+      assert.ok(!printed.includes('private'), printed);
+    }
+  } finally { console.error = error; }
+});

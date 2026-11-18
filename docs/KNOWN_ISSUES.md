@@ -13752,3 +13752,19 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `uses Luna for a live turn, strict structured output, and a developer channel for app context`
 - verified-by: `the scene frame schema the brain sends is pinned byte for byte`
 - verified-by: `the Anthropic turn schema is pinned byte for byte, as zod 3 sent it`
+
+### F1108 — One production preflight message answers for eight different refusals
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/preflight.ts:705
+- note: B3a-6, part A. The message names three causes and is printed for eight. It names the failed settings, never their values. No input is newly accepted or refused.
+- note: Fixed 2026-11-18 on claude/review-b3a. The `||` chain is a list of eight named checks (the two TUTOR_LLM conditions share one name, and the scoring condition is split into LUVANI_SCORING_VENDOR and SPEECHACE_API_KEY), and the refusal prints only the failed names.
+- verified-by: `a production refusal names the setting that caused it`
+
+### F1109 — The voice proxy carries a cap that cannot bind, a comment describes a shared process, and the verify harness imports an undeclared package
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/paidVoiceProxy.ts:48
+- note: B3a-4, B3a-5 and B3a-9, part A, plus the B3a-8 deletion if the founder chooses it. No test dies and the floor is unchanged.
+- verified-by: `four HTTP transports maximum; session cancellation releases them without a fifth effect`
+- verified-by: `two streams maximum and global/per-connection PCM duration cannot be exceeded`
