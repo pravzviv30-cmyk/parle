@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { outputFormat } from './outputFormat.ts';
 
 import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';
 import { ReplyFirstTurnSchema, TurnSchema } from '../contract/schemas.ts';
@@ -177,7 +177,7 @@ describe('OpenAI Responses brain — which model answers, and how hard it thinks
     assert.equal(text.verbosity, 'low', 'reduce generated detail only on the live route measured in the room');
     assert.deepEqual(turn, answer, 'support, translations, findings and practice remain the full canonical turn');
     assert.equal(text.format.strict, true);
-    assert.deepEqual(text.format.schema, (zodOutputFormat(TurnSchema) as { schema?: unknown }).schema);
+    assert.deepEqual(text.format.schema, (outputFormat(TurnSchema) as { schema?: unknown }).schema);
     assert.equal(body.instructions, [REQUEST.system.persona, REQUEST.system.pack, REQUEST.system.contract].join('\n\n'));
     assert.equal(body.store, false);
     assert.equal(body.max_output_tokens, DEFAULT_ROUTING.turn.maxTokens, 'brevity is not a truncation cap');
@@ -428,7 +428,7 @@ describe('the prompt cache is pinned, not left to the vendor to guess', () => {
           type: 'json_schema',
           name: 'luvani_tutor_turn',
           strict: true,
-          schema: (zodOutputFormat(TurnSchema) as { schema?: unknown }).schema,
+          schema: (outputFormat(TurnSchema) as { schema?: unknown }).schema,
         },
       },
     });

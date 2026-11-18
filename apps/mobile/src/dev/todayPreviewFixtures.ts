@@ -116,7 +116,6 @@ export const TODAY_PREVIEW_SCENE = {
 export const TODAY_PREVIEW_FIX = {
   english: 'I would like a coffee, please.',
   after: "Your line from Friday and Émilie's version show after you try",
-  locked: false,
 } as const;
 
 export const TODAY_PREVIEW_PHRASE = { id: 'preview-phrase', fr: 'Je voudrais un café, s’il vous plaît.', en: 'I would like a coffee, please.' } as const;
