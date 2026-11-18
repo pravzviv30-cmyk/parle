@@ -22,7 +22,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { outputFormat } from './outputFormat.ts';
 
 import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema, withMissingGoalObservation } from '../contract/schemas.ts';
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
@@ -281,7 +281,7 @@ function outputConfig(
     | typeof FixLineVerdictSchema,
   effort: BrainEffort | undefined,
 ): Record<string, unknown> {
-  const format = zodOutputFormat(schema);
+  const format = outputFormat(schema);
   if (schema === TurnSchema) {
     // SDK parse runs before parsed_output reaches us. Keep the advertised
     // schema strict while applying the same absent-only compatibility here.

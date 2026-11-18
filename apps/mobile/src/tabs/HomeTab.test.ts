@@ -931,22 +931,22 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(FLAT, /if \(row === 'scene'\) return <NextTaskCard key="scene" vivid placement="row" last=\{last\} starter=\{starterFor\} \/>;/);
   });
 
-  test('one fix to try is English first, attempt first, names the day where known, and goes through the lock seam', () => {
+  test('one fix to try is English first, attempt first, names the day where known, and opens the drill with no lock (founder, 2026-11-18)', () => {
     assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
-    assert.match(FLAT, /const fix = fixFrom === null \? null : oneFix\(\{ \.\.\.fixFrom, tutorName, access: locks\.access \}\);/);
+    assert.match(FLAT, /const fix = fixFrom === null \? null : oneFix\(\{ \.\.\.fixFrom, tutorName \}\);/);
     assert.match(FLAT, /replay: madeFromConversations\(\{ packs: fetched, marks, deck, checks, bank, now \}\)\?\.replay \?\? null, deck, bank, packs: fetched, now/, 'the fix cannot name the day of the conversation');
     // UI-015: the fix is the hero card's body, built once as fixHero.
     // T5: HomeTab hands the fix to home/TodayHeroes.tsx FixHero (shared with the
-    // preview) and keeps the lock seam; the card's words are pinned in that part.
+    // preview); the card's words are pinned in that part. Founder 2026-11-18:
+    // the one fix is free on every plan, so the tap opens the drill, never the Wall.
     const built = flat(between(SCREEN, 'const fixHero = ', '\n  const loading', 'the fix card is built once'));
-    assert.match(built, /fix !== null && \( <FixHero fix=\{fix\} onTry=\{\(\) => tapThrough\(locks\.access, fix\.feature, locks\.open, \(\) => nav\.navigate\(fix\.route\.screen, fix\.route\.params\)\)\} \/>/, 'a locked fix does not open the Wall');
+    assert.match(built, /fix !== null && \( <FixHero fix=\{fix\} onTry=\{\(\) => nav\.navigate\(fix\.route\.screen, fix\.route\.params\)\} \/>/, 'the free one fix goes through the Wall');
     const heroesSrc = stripComments(read('../home/TodayHeroes.tsx'));
     const card = flat(between(heroesSrc, 'export function FixHero(', 'export function TodayFailedHero(', 'the fix card is a shared part'));
     assert.match(card, /\{fix\.english\}/);
     assert.match(card, /\{fix\.after\}/);
     assert.doesNotMatch(card, /quote|better|why/, 'the fix card shows the learner\'s line or the better one before a try');
-    assert.match(card, /\{fix\.locked && <View style=\{st\.lockRow\}><LockBadge feature="fixes" said \/><\/View>\}/, 'the lock is not drawn from the seam');
-    assert.match(card, /accessibilityLabel=\{fix\.locked \? lockSaid\(TODAY_COPY\.fixAction, 'fixes', true\) : undefined\}/);
+    assert.doesNotMatch(card, /LockBadge|lockSaid|fix\.locked/, 'the free one fix draws or says a lock');
     assert.match(card, /onPress=\{onTry\}/, 'the fix button does not press through what the screen hands it');
     assert.match(card, /<View \{\.\.\.decorative\}><OutlineLock size=\{18\} color=\{t\.muted\} \/><\/View>/, 'the outline lock beside the line is not hidden from a screen reader');
     // F991: the lipped ink primary.

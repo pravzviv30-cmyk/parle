@@ -113,39 +113,14 @@
         {
           "module": "zod",
           "severity": "high",
-          "decision": "accepted",
-          "lockedAt": "3.25.76",
+          "decision": "fixed",
+          "lockedAt": "4.6.7",
           "advisories": [
             "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5"
           ],
-          "chain": "@luvani/brain -> zod; @luvani/tutor-agent -> zod, @livekit/agents, openai; @anthropic-ai/sdk -> zod; expo -> @expo/cli -> zod",
-          "reachability": "not reached from caller input. Checked 2026-11-02: only packages/brain source imports zod; services/tutor-agent and services/token-server define no zod schemas, and token-server request bodies are not validated with zod. The one constrained collection is ScenarioFrameSchema.beats .min(1) (plus a numeric min/max in typesafe.ts), and those schemas parse LLM structured output from Anthropic or OpenAI, bounded by the request token limit, not learner or caller payloads. Dependencies use of zod (SDK tool schemas, LiveKit, Expo CLI) was not audited line by line.",
-          "why": "Fixed only in 4.6.6, a major upgrade. Our ^3.24.1 ranges could move, but @anthropic-ai/sdk, openai, @livekit/agents and @expo/cli all declare zod 3 ranges, so a fix needs a coordinated zod 4 migration. Revisit with the zod 4 migration, and before any zod schema with collection limits validates caller input. Re-reviewed 2026-11-16: GHSA-mrhx-c7xc-m3w5 is unchanged and not withdrawn, 3.25.76 is still the newest zod 3, only eight packages/brain files import zod (as zod/v4), and the only collection limit is still ScenarioFrameSchema.beats .min(1) on model output.",
-          "reviewed": "2026-11-16",
-          "expires": "2026-12-16",
-          "advisoryRanges": {
-            "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5": "<4.6.6"
-          }
-        },
-        {
-          "module": "picomatch",
-          "severity": "high",
-          "decision": "accepted",
-          "lockedAt": [
-            "4.0.5",
-            "2.3.2"
-          ],
-          "advisories": [
-            "https://github.com/advisories/GHSA-fc5q-39xc-vjpf"
-          ],
-          "chain": "expo -> @expo/cli -> picomatch 4.0.5; expo -> @expo/metro-config -> picomatch; expo -> @expo/metro -> metro-file-map -> micromatch -> picomatch 2.3.2; @expo/cli -> @expo/metro-file-map -> jest-worker -> jest-util -> picomatch 2.3.2; react-native -> tinyglobby (and fdir) -> picomatch 4.0.5",
-          "reachability": "build and dev time only. Checked 2026-11-17: no source file under apps/mobile/src, packages, services or scripts imports picomatch, micromatch, tinyglobby or fdir, and no service lists them as a runtime dependency. The glob patterns they compile come from our own bundler and tooling config, never from learner or caller input, so the ReDoS on single-branch repeated extglobs needs a hostile pattern in our own repo.",
-          "why": "No patched release exists: on 2026-11-17 GHSA-fc5q-39xc-vjpf was widened to <=4.0.7, 4.0.7 is the latest picomatch and first_patched_version is null. Two exact versions are installed (4.0.5 at the top level, 2.3.2 under micromatch and jest-util) and cannot be unified, because micromatch 4 declares picomatch ^2, so this record lists both. Founder accepted it for 30 days on 2026-11-17. Revisit when a patched picomatch is published, or at the next Expo or React Native upgrade.",
-          "reviewed": "2026-11-17",
-          "expires": "2026-12-17",
-          "advisoryRanges": {
-            "https://github.com/advisories/GHSA-fc5q-39xc-vjpf": "<=4.0.7"
-          }
+          "chain": "@luvani/brain -> zod; @luvani/brain -> @anthropic-ai/sdk -> zod (optional peer); @luvani/tutor-agent -> zod; @luvani/tutor-agent -> @livekit/agents, @livekit/agents-plugin-openai, openai -> zod (peer); @livekit/agents -> zod-to-json-schema -> zod (peer)",
+          "reachability": "not reached from caller input. Checked 2026-11-02: only packages/brain source imports zod; services/tutor-agent and services/token-server define no zod schemas, and token-server request bodies are not validated with zod. The one constrained collection is ScenarioFrameSchema.beats .min(1) (plus a numeric min/max in typesafe.ts), and those schemas parse LLM structured output from Anthropic or OpenAI, bounded by the request token limit, not learner or caller payloads. Dependencies use of zod (SDK tool schemas, LiveKit) was not audited line by line.",
+          "resolution": "2026-11-18: GHSA-mrhx-c7xc-m3w5 is fixed only in 4.6.6 and later; no zod 3 release is patched (3.25.76 is the last 3.x). Every dependent already accepts zod 4: @anthropic-ai/sdk 0.117.1 peer ^3.25.0 || ^4.0.0 (optional), openai 6.49.0 peer ^3.25 || ^4.0, @livekit/agents and @livekit/agents-plugin-openai 1.9.0 peer ^3.25.76 || ^4.1.8, zod-to-json-schema 3.25.2 peer ^3.25.28 || ^4. The one hard zod 3 pin, @expo/cli ^3.25.76, left with the Expo 57.0.27 to 57.0.33 patch update (F1256): @expo/cli 57.0.33 and later declare no zod. @luvani/brain and @luvani/tutor-agent moved their own range from ^3.24.1 to ^4.6.6, and npm locked one copy, node_modules/zod 4.6.7, with no override. No zod import migration: all eight packages/brain files that import zod already import zod/v4, as does the Anthropic SDK helper, and zod 4.6.7 still exports ./v4. One source change: zod 4.6 writes a nullable primitive as a type array, so packages/brain/src/llm/outputFormat.ts turns it back into the zod 3 anyOf form at the four adapters (F1258)."
         }
       ]
     }
