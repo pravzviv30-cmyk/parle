@@ -2,7 +2,7 @@
  * F953: on iOS 27, an app built with the iOS 27 SDK that has not adopted the UIScene life
  * cycle is killed at launch. Expo 57 ships the scene delegate but its prebuild template does
  * not wire it, so `plugins/withSceneLifecycle.js` does. The AppDelegate fixture is Expo
- * 57.0.27's template verbatim (node_modules/expo/template.tgz).
+ * 57.0.27's template verbatim, re-diffed unchanged against 57.0.33 on 2026-11-18 (node_modules/expo/template.tgz).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -54,5 +54,5 @@ test('the scene life cycle plugin is registered, wires both mods, and its fixtur
   assert.equal(typeof config.mods?.ios?.infoPlist, 'function', 'the Info.plist mod is not registered');
   assert.equal(typeof config.mods?.ios?.appDelegate, 'function', 'the AppDelegate mod is not registered');
   const expo = JSON.parse(readFileSync(new URL('../../../../node_modules/expo/package.json', import.meta.url), 'utf8'));
-  assert.equal(expo.version, '57.0.27', 'Expo changed: re-diff test/expo57-AppDelegate.swift against node_modules/expo/template.tgz, then update this version');
+  assert.equal(expo.version, '57.0.33', 'Expo changed: re-diff test/expo57-AppDelegate.swift against node_modules/expo/template.tgz, then update this version');
 });

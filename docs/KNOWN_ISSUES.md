@@ -13640,9 +13640,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1256 — The Expo CLI still pins zod 3, which blocks every zod fix
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: package-lock.json:6071
 - note: @expo/cli 57.0.28 declares zod ^3.25.76; 57.0.33 dropped it. The narrow move is ruled out by the registry, not by npm (deploy-engineer, 2026-11-18): @expo/cli 57.0.33 and later need @expo/prebuild-config ^57.0.20, whose only releases need expo-modules-autolinking ~57.0.17 or ~57.0.18, and the lock holds 57.0.14. So the CLI cannot move without native build tooling. The founder allowed the Expo patch update as the fallback ("Allow it if needed", 2026-11-18), as its own PR ahead of the zod record: `npm update expo` 57.0.27 to 57.0.33 inside apps/mobile's ~57.0.27. It moves expo-modules-jsi off the patched 57.1.1, so the last two tests apply; the fingerprint runtime version likely changes, so existing preview builds need a new build before they take OTA updates again.
+- note: Fixed 2026-11-18 on claude/expo-patch: `npm update expo -w @luvani/mobile` picked 57.0.33 and @expo/cli 57.0.34, which declares no zod (51 lock entries moved, all Expo, Babel and Metro tooling; react and react-native unchanged). expo-modules-jsi 57.1.3 still signs its intermediate framework, so scripts/patchExpoModulesJsi.mjs lists it. The picomatch record needed no edit. The fingerprint changed (0d7bfd3c to 507fa36e, from native module sources), so preview builds need a rebuild before they take OTA updates. The Expo 57.0.33 AppDelegate template matches test/expo57-AppDelegate.swift, so sceneLifecycle.test.ts pins 57.0.33. Root zod stays 3.25.76 until part 2.
 - verified-by: `the Expo CLI no longer depends on zod`
 - verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
 - verified-by: `the locked expo-modules-jsi is a version the iOS signing workaround has been checked against`
