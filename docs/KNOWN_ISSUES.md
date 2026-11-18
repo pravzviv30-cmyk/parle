@@ -12719,7 +12719,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P3
 - status: [x]
 - where: package.json:82 (the @expo/config-plugins record; decode-uri-component :97, zod :114)
-- note: founder, 2026-11-16. @expo/config-plugins 57.0.13 (still SDK 57) moved to xcode 4.0.0, which drops uuid, so a lockfile-only update fixed it and an iOS prebuild still writes the project. decode-uri-component 0.2.2 and zod 3.25.76 have no compatible fix and unchanged reachability; renewed inside audit:ci's 30-day window, and fixed later with the react-navigation, SDK 58 and zod 4 upgrades.
+- note: founder, 2026-11-16. @expo/config-plugins 57.0.13 (still SDK 57) moved to xcode 4.0.0, which drops uuid, so a lockfile-only update fixed it and an iOS prebuild still writes the project. decode-uri-component 0.2.2 and zod 3.25.76 have no compatible fix and unchanged reachability; renewed inside audit:ci's 30-day window, and fixed later with the react-navigation, SDK 58 and zod 4 upgrades. Update 2026-11-18: decode-uri-component is fixed by F1254 (lockfile only, @react-navigation/core 7.25.0); zod is still accepted.
 - verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
 - verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
 
@@ -13405,3 +13405,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/nav/linking.test.ts:31
 - note: Core 7.25.0 parses queries in-house. The probe found identical results on nine inputs except that keys are no longer sorted on the way out. One test: repeated keys, plus signs, UTF-8, a malformed percent sequence and a 20,000-character percent run round-trip through the app's own linking config, with a time bound. It is a characterisation test and passes on both versions, so it has no failing-first step. frontend-engineer, plus the web build and Playwright smoke.
 - verified-by: `a deep link query round-trips through the navigation parser that replaced query-string`
+
+### F1259 — F1006 still said decode-uri-component had no fix and gave no pointer to F1254
+- severity: P2
+- status: [x]
+- where: docs/KNOWN_ISSUES.md:12722
+- note: Found by work-judge (Fable 5.2), audit fix slice A, 2026-11-18. The contract asked for a one-line pointer on F1006; it now says decode-uri-component is fixed by F1254 and zod is still accepted. Docs only; the title below is the existing test that holds the record.
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
