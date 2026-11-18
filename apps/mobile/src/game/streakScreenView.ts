@@ -108,7 +108,7 @@ export interface StreakScreenView {
    * The B-Streak freeze card (2026-10-20 UI-008): "1 streak freeze ready",
    * "Free with every account" on the free plan (D23) or the banked line (D27),
    * the paragraph, and the trial pill's line only below two freezes and while
-   * no repair is open. Null while the plan is unknown, as `freezes` is.
+   * no repair is open and no spent line shows. Null while the plan is unknown, as `freezes` is.
    */
   freezeCard: { title: string; sub: string; line: string; returns: string | null; upsell: string | null } | null;
   /** The B-Streak milestone row: "7 days: a whole week of French", its bar and "3 of 7 days". No reward line: none is stored. */
@@ -265,15 +265,22 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
         })()
       : null;
 
+  // The free learner's one line: only below two freezes, once no repair is
+  // open (spent inside its 30 days), and only just after a streak ended (D4, D26).
+  const repairForSubscribers =
+    view.protection !== null && view.protection.cap < FREEZE_CAP && view.repair === null && recentBreak(input) !== null
+      ? { line: GAME_COPY.streak.repairForSubscribers, action: GAME_COPY.seePlans }
+      : null;
+
   const freezeCard =
     freezes === null
       ? null
       : {
           title: freezes.held > 0 ? copy.card.ready(freezes.held) : copy.card.inUse(freezes.max),
           sub: view.freezeBanked ? copy.card.banked : freezes.max <= 1 ? copy.card.free : copy.card.plan,
-          line: copy.card.line(freezes.max),
+          line: copy.card.line(view.freezeBanked ? freezes.max + 1 : freezes.max),
           returns: freezes.returns,
-          upsell: freezes.max < FREEZE_CAP && view.repair === null ? copy.card.upsell : null,
+          upsell: freezes.max < FREEZE_CAP && view.repair === null && repairForSubscribers === null ? copy.card.upsell : null,
         };
 
   const offer = view.protection?.repair === true ? view.repair : null;
@@ -286,13 +293,6 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
           done: offer.done,
           needed: offer.needed,
         }
-      : null;
-
-  // The free learner's one line: only below two freezes, once no repair is
-  // open (spent inside its 30 days), and only just after a streak ended (D4, D26).
-  const repairForSubscribers =
-    view.protection !== null && view.protection.cap < FREEZE_CAP && view.repair === null && recentBreak(input) !== null
-      ? { line: GAME_COPY.streak.repairForSubscribers, action: GAME_COPY.seePlans }
       : null;
 
   const milestones = STREAK_MILESTONES.map((days, index): MilestoneView => {

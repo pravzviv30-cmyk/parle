@@ -986,6 +986,17 @@ describe('free earn-back and the banked freeze (F1267, F1269)', () => {
     assert.deepEqual((await loadGame()).covers.map((cover) => [cover.day, cover.kind]), [[addDays(TODAY, -13), 'repair']], 'a free learner was repaired twice inside 30 days');
   });
 
+  test('an unknown plan writes no repair, though core reads its 0 days as no limit', async () => {
+    const UNKNOWN: BillingFacts = { plan: 'unknown', lapsed: false, secondsRemaining: 0, canStart: false };
+    pin({ billing: () => UNKNOWN });
+    // The same break the free learner repairs above.
+    for (let n = 12; n >= 3; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.equal(await recordActivity('drill', 10, NOW - DAY, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    assert.ok(await drill(NOW, 10));
+    assert.deepEqual((await loadGame()).covers, [], 'an unknown plan was repaired');
+  });
+
   test('settle spends a banked freeze on the day the reminder planner said it would cover', async () => {
     pin({ billing: () => FREE });
     const yesterday = addDays(TODAY, -1);
