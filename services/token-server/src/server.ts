@@ -330,7 +330,7 @@ function installationChecks(req: IncomingMessage, rule: RateLimitRule): readonly
 
 const readJson = readRequestJson;
 
-const server = createServer(protectHttpHandler(async (req, res) => {
+const server = createServer({ connectionsCheckingInterval: 5_000 }, protectHttpHandler(async (req, res) => {
   observeRequest(req, res);
   if (draining && req.url !== '/health') return json(res, 503, { error: 'service draining' });
   if (activeResponses.size >= 128 && req.url !== '/health' && req.url !== '/ready') return json(res, 503, { error: 'service busy' });

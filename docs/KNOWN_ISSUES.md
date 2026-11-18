@@ -13772,7 +13772,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1100 — The header and request deadlines fire up to 30 s late
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:1243
 - note: B2-3. Node checks both deadlines on a 30 s sweep that server.ts never shortens, so a stalled body holds one of the 128 busy slots for up to 60 s. A 5 s sweep makes the stated 10 s and 30 s real. It does not bound the stall attack; that is handed to B1 behind a staging probe.
 - verified-by: `the server sweeps stalled connections every few seconds, so its header and request deadlines hold`

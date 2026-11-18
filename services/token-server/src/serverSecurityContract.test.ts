@@ -118,3 +118,10 @@ test('every write endpoint carries a rate limit', () => {
     assert.match(body, /withinLimits\(|handleDrillJudge\(|handleDrillScore\(|handleDrillTranscribe\(/, `${match[2]} has no bounded handler`);
   }
 });
+
+test('the server sweeps stalled connections every few seconds, so its header and request deadlines hold', () => {
+  // Node checks headersTimeout and requestTimeout only on its connections sweep (30 s by default),
+  // so a 30 s requestTimeout could let a stalled body hold a slot for up to 60 s.
+  assert.match(server, /const server = createServer\(\{ connectionsCheckingInterval: 5_000 \}, protectHttpHandler\(/);
+  assert.match(server, /server\.headersTimeout = 10_000;\nserver\.requestTimeout = 30_000;/);
+});
