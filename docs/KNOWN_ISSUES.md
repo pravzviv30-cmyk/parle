@@ -13389,3 +13389,19 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/rollback/20261117122000_down.sql:9
 - note: Found by push-reviewer, D1 PR D, 2026-11-17. Deleting the interlock block left databaseContract.test.ts at 43 of 43. 2026-11-17: fixed; the named test replays through 49, sees the rollback refuse without `luvani.rollback_erasure_retention` and leave 49's body, then with it compares `md5(prosrc)`, grants, settings and security definer to a replay that stops before 49. Deleting the interlock block in place turns it red.
 - verified-by: `the retention rollback refuses without its interlock and restores the earlier body`
+
+### F1254 — decode-uri-component leaves the tree: @react-navigation/core 7.25.0 no longer uses query-string
+- severity: P1
+- status: [ ]
+- where: package.json:97
+- note: GHSA-qr28-fpjm-wq7f (high) and GHSA-vcc3-ghjq-m6fr (moderate). Core 7.22.1 dropped query-string; native 7.3.16 allows ^7.21.12, so `npm update @react-navigation/core` is lockfile only (8 entries). The record becomes fixed, keyed on @react-navigation/core with removedPackages. The closure floor at ciContract.test.ts:374 needs this module named, because its closure is 6. deploy-engineer.
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+- verified-by: `an unknown address goes Home rather than to the plans page`
+
+### F1255 — Deep-link queries are not pinned against the parser that replaced query-string
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/nav/linking.test.ts:31
+- note: Core 7.25.0 parses queries in-house. The probe found identical results on nine inputs except that keys are no longer sorted on the way out. One test: repeated keys, plus signs, UTF-8, a malformed percent sequence and a 20,000-character percent run round-trip through the app's own linking config, with a time bound. It is a characterisation test and passes on both versions, so it has no failing-first step. frontend-engineer, plus the web build and Playwright smoke.
+- verified-by: `a deep link query round-trips through the navigation parser that replaced query-string`
