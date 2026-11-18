@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-const { evaluateAudit } = await import(new URL('../../../scripts/dependencyAudit.mjs', import.meta.url).href);
+const { evaluateAudit, auditSummary } = await import(new URL('../../../scripts/dependencyAudit.mjs', import.meta.url).href);
 const first = 'https://github.com/advisories/GHSA-aaaa-bbbb-cccc';
 const second = 'https://github.com/advisories/GHSA-dddd-eeee-ffff';
 const now = Date.parse('2026-10-04T12:00:00Z');
@@ -55,4 +55,10 @@ test('a listed lockedAt is unique, accepted-only and fully installed', () => {
   assert.ok(check(fixed).some(item => item.includes('malformed')));
   const absent = fixture();(absent.record.advisories[0] as { lockedAt: unknown }).lockedAt = ['1.0.0', '9.9.9'];
   assert.ok(check(absent).includes('fixture: listed version 9.9.9 is not installed'));
+});
+
+test('a clean audit with no accepted high root says so instead of naming an empty list', () => {
+  assert.equal(auditSummary({ critical: 0, high: 0, moderate: 15 }, []), 'audit: 0 critical, 0 high, 15 moderate — no accepted high roots.');
+  assert.equal(auditSummary({ high: 24, moderate: 14 }, ['picomatch']),
+    'audit: 0 critical, 24 high, 14 moderate — every high root is one of picomatch, each recorded with a reachability argument.');
 });

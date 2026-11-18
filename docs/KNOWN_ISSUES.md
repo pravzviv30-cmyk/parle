@@ -9824,7 +9824,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
 - note: 4 October 2026: adding expo-updates 57.0.24 triggered a fresh certificate-verifier review. Its Forge-dependent imports remain CLI-only; the mobile client does not import them, and iOS native verification uses Apple Security. The revised client/runtime boundary test passes; custom update signing remains unconfigured and the temporary exception's expiry is unchanged.
 - note: 6 October 2026: aligning the app with Expo SDK 57.0.27 moved expo-updates to 57.0.25 and repeated the version-specific review. Its only code change from 57.0.24 is the build-time createManifestForBuildAsync asset-hash index; Forge-dependent imports remain in the CLI's two code-signing commands, iOS verification still uses SecKeyVerifySignature, and node-forge 1.4.0 is still the latest release. The pinned version moved with the review; the exception's review date and expiry are unchanged.
-- note: 18 November 2026: aligning the app with Expo SDK 57.0.33 moved expo-updates to 57.0.28 and repeated the version-specific review. Its code changes from 57.0.25 are Android assets moved into place atomically after the hash check (and an on-disk asset reused only when its hash matches), and download progress sent to JavaScript in 1% steps on both platforms. Forge-dependent imports remain in the CLI's two code-signing commands, and iOS verification still uses SecKeyVerifySignature. The pinned version moved with the review; the picomatch exception's review date and expiry are unchanged.
+- note: 18 November 2026: aligning the app with Expo SDK 57.0.33 moved expo-updates to 57.0.28 and repeated the version-specific review. Its code changes from 57.0.25 are Android assets moved into place atomically after the hash check (and an on-disk asset reused only when its hash matches), and download progress sent to JavaScript in 1% steps on both platforms. Forge-dependent imports remain in the CLI's two code-signing commands, and iOS verification still uses SecKeyVerifySignature. The pinned version moved with the review; the picomatch exception's review date and expiry are unchanged. Its glob dependency moved from ^13.0.0 to ^14.0.3 (a nested glob 14.0.6), imported only by the build-time utils/vcs.
 - verified-by: `unpatched build-tool exceptions cannot enter service runtimes or the mobile update client`
 
 ### F712 — The generated iOS ignore rule excluded the handwritten Walk module
@@ -12938,7 +12938,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P3
 - status: [x]
 - where: package.json:82 (the @expo/config-plugins record; decode-uri-component :97, zod :114)
-- note: founder, 2026-11-16. @expo/config-plugins 57.0.13 (still SDK 57) moved to xcode 4.0.0, which drops uuid, so a lockfile-only update fixed it and an iOS prebuild still writes the project. decode-uri-component 0.2.2 and zod 3.25.76 have no compatible fix and unchanged reachability; renewed inside audit:ci's 30-day window, and fixed later with the react-navigation, SDK 58 and zod 4 upgrades. Update 2026-11-18: decode-uri-component is fixed by F1254 (lockfile only, @react-navigation/core 7.25.0); zod is still accepted.
+- note: founder, 2026-11-16. @expo/config-plugins 57.0.13 (still SDK 57) moved to xcode 4.0.0, which drops uuid, so a lockfile-only update fixed it and an iOS prebuild still writes the project. decode-uri-component 0.2.2 and zod 3.25.76 have no compatible fix and unchanged reachability; renewed inside audit:ci's 30-day window, and fixed later with the react-navigation, SDK 58 and zod 4 upgrades. Update 2026-11-18: decode-uri-component is fixed by F1254 (lockfile only, @react-navigation/core 7.25.0). Update 2026-11-18: zod is fixed by F1257 (one copy, 4.6.7, no zod import migration; the wire-form seam is F1258), after F1256 moved @expo/cli off zod 3.
 - verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
 - verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
 
@@ -13694,6 +13694,29 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Work-judge (Fable 5.2), 2026-11-18, push-check round of journal-removal lane 1. `journalRecordsAfter >= journalSnapshotRecords` only covers rows lost after the seal. If the journal is restored to an earlier point after `journalSequenceBefore` is read and before the replay seals, the snapshot is smaller, the replay's rejected PUTs lift the sequence past its old value, and the drill passes (sequence 9 read, journal restored to 7 rows, seal 7, sequence 14, count 7). Only an independently derived `deletionsExpected` catches it. Needs a deliberate mid-drill restore of the journal; the contract claimed no more than `after >= before`. Candidate: read the sequence and seal in one step, or record the snapshot's high water and require it to be at least `journalSequenceBefore`.
 - verified-by: `the recovery drill refuses a journal rolled back between the sequence read and the replay's seal`
 
+### F1262 — Enums in the brain's structured-output schemas are not enforced by either provider
+- severity: P2
+- status: [ ]
+- where: packages/brain/node_modules/@anthropic-ai/sdk/src/lib/transform-json-schema.ts:112
+- note: api-engineer, 2026-11-18, found while proving F1258. The Anthropic SDK's transform keeps only the keywords it knows (`type`, `properties`, `required`, `items`, `anyOf`, supported `format`, `minItems` of 0 or 1) and writes every other keyword into `description` as text, `enum` included. So a field like `CoachItem.kind` reaches Anthropic as `{"type":"string","description":"{enum: [...]}"}`, and OpenAI gets the same, because `packages/brain/src/llm/openaiResponses.ts:241` builds its strict schema with the same `zodOutputFormat`. This is the same on zod 3.25.76 and 4.6.7 (6 demoted enums in the captured OpenAI turn body under both), so it is not a zod regression. What catches a wrong enum today is our own zod parse after the call: `packages/brain/src/llm/anthropic.ts:288` (turn) and the SDK's `zodObject.safeParse` at `packages/brain/node_modules/@anthropic-ai/sdk/helpers/zod.js:33` (other activities) on Anthropic, and `packages/brain/src/llm/openaiResponses.ts:493` on OpenAI. A slip is a paid `BrainParseError`, not a constrained decode. Candidate: re-attach `enum` after the SDK transform in the brain's schema conversion. That is a wire change for both providers, so it needs a live check before it lands.
+- verified-by: `every enum the brain sends reaches the provider as an enum, not as description text`
+
+### F1263 — The zod audit record says the fix needed no source changes, but F1258 added the wire-form seam
+- severity: P2
+- status: [x]
+- where: package.json:123
+- note: Work-judge (Fable 5.2), 2026-11-18, slice B part 2. The zod record's resolution said "Zero source changes" and F1006 said "no source change", while the same diff added packages/brain/src/llm/outputFormat.ts at four adapters because zod 4.6 writes nullable primitives as a type array and the founder chose to keep the zod 3 wire form. Fixed: the record, F1006, F1258's title and RISK_REGISTER now name the seam. Copy only.
+- verified-by: `nullable fields reach the provider as anyOf with null, as on zod 3`
+
+### F1264 — GitHub withdrew the picomatch advisory, so its accepted record went stale and failed audit:ci
+- severity: P2
+- status: [x]
+- where: services/token-server/src/ciContract.test.ts:462
+- note: deploy-engineer, 2026-11-18. GHSA-fc5q-39xc-vjpf was withdrawn at 15:38 UTC (`withdrawn_at` on GitHub's advisory API; npm audit then reported 0 high), so `audit:ci` failed everywhere with "picomatch: accepted advisory no longer reported", CI's gate job on main included. Following the braces precedent (GHSA-vfj7-8cjw-p6xm, withdrawn 2026-10-23), the picomatch record is deleted and ciContract pins the exact versions with a dated comment: 4.0.5 at the top level, 2.3.2 under micromatch and jest-util, and no other picomatch version in the lockfile. It also asserts picomatch carries no record. The tooling-boundary test still keeps picomatch, micromatch, tinyglobby and fdir out of service runtimes and source imports. A new picomatch advisory is an unreviewed root and fails audit:ci. `audit:ci`: 0 critical, 0 high, 15 moderate.
+- verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
+- verified-by: `unpatched build-tool exceptions cannot enter service runtimes or the mobile update client`
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+
 ### F1256 — The Expo CLI still pins zod 3, which blocks every zod fix
 - severity: P1
 - status: [x]
@@ -13704,3 +13727,28 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
 - verified-by: `the locked expo-modules-jsi is a version the iOS signing workaround has been checked against`
 - verified-by: `the installed expo-modules-jsi build leaves its intermediate framework unsigned`
+
+### F1257 — zod moves to 4.6.7 as the only installed copy and its audit record becomes fixed
+- severity: P1
+- status: [x]
+- where: package.json:114
+- note: GHSA-mrhx-c7xc-m3w5, fixed only in 4.6.6 and later; no zod 3 is patched. Ranges at packages/brain/package.json:23 and services/tutor-agent/package.json:28 go to ^4.6.6; every other dependent's peer range already accepts 4. The in-place exemption at ciContract.test.ts:374 and :382 extends from adm-zip to zod. Depends on F1256. deploy-engineer.
+- note: Fixed 2026-11-18 on claude/audit-zod, on top of F1256's Expo alignment. Both ranges went to ^4.6.6 and `npm install` moved three lock entries against claude/expo-patch's lock: node_modules/zod 3.25.76 to 4.6.7 and the two workspace ranges. One installed copy, no override, and no zod source migration (brain already imports zod/v4; the wire-form seam is F1258). The zod record is fixed, keyed in place with adm-zip in ciContract's inPlaceFixes. `audit:ci` exits zero: 0 critical, 24 high, 14 moderate, with picomatch the only accepted high root. After F1264 removed the withdrawn picomatch record: 0 critical, 0 high, 15 moderate.
+- verified-by: `every locked zod is at or above the patched 4.6.6 and there is exactly one copy`
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+
+### F1258 — Structured outputs are proven on zod 4.6.7 with no zod import migration
+- severity: P1
+- status: [x]
+- where: packages/brain/src/contract/schemas.test.ts:91
+- note: Brain imports zod/v4 in eight files and the Anthropic helper imports zod/v4. The probe passed 822 of 822 and typecheck on 4.6.7, unedited. One new test asserts that brain and the helper resolve the same zod file, because two copies is the failure the probe produced when @expo/cli was left behind. api-engineer; any source change the suites force goes here and nowhere else.
+- note: Fixed 2026-11-18 on claude/audit-zod, zod 4.6.7 in place. zod 4.6 writes a nullable primitive as `type: ["string","null"]` where 3.25.76 wrote `anyOf` with `{type:"null"}`, which moved the pinned OpenAI turn body (47558a3a to 0aee68b9). The founder chose to keep the old wire form (2026-11-18), so the brain converts every schema through one seam, packages/brain/src/llm/outputFormat.ts, which turns each `type` array back into `anyOf` in the same key position. The four adapters (Anthropic, OpenAI Responses, OpenAI-compatible, Claude CLI) call it instead of `zodOutputFormat`. The turn body hashes to 47558a3a again, and 20 of the 21 brain schemas are byte-identical to the 3.25.76 captures. The other one, ScenarioFrameSchema, differs only in `$defs` layout: 4.6.7 extracts the beat object into a sixth definition and renumbers the refs. That reaches the frame request on every provider, but it means the same thing, and undoing it is more than this seam, so it is left. The founder accepted on 2026-11-18 that ScenarioFrameSchema alone moves one object into a sixth `$defs` entry under zod 4: same meaning, same construct, pinned by `the scene frame schema the brain sends is pinned byte for byte`. `nullable fields reach the provider as anyOf with null, as on zod 3` drives all seven requests through all four adapters (35 sends) and refuses any `type` array. No live provider call was made: OpenAI's own SDK emits the type-array form in strict mode, but nothing installed documents Anthropic's acceptance of it, and there is no Anthropic key locally.
+- verified-by: `nullable fields reach the provider as anyOf with null, as on zod 3`
+- verified-by: `the brain and the Anthropic helper convert schemas with the same zod instance`
+- verified-by: `the floor travels to the model, not just to our own parse`
+- verified-by: `every generated object forbids unknown properties and requires every key`
+- verified-by: `the strict JSON schema sent to the model follows the order`
+- verified-by: `uses Luna for a live turn, strict structured output, and a developer channel for app context`
+- verified-by: `the scene frame schema the brain sends is pinned byte for byte`
+- verified-by: `the Anthropic turn schema is pinned byte for byte, as zod 3 sent it`

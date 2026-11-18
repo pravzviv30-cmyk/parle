@@ -56,3 +56,9 @@ export function evaluateAudit(record, lock, report, now = Date.now()) {
   }
   return { problems: [...new Set(problems)], accepted: [...decisions.values()].filter(decision => decision.decision === 'accepted').map(decision => decision.module) };
 }
+
+/** The line a clean audit prints. With no accepted root it says so rather than naming an empty list. */
+export function auditSummary(totals, accepted) {
+  const counts = `audit: ${totals.critical ?? 0} critical, ${totals.high ?? 0} high, ${totals.moderate ?? 0} moderate — `;
+  return accepted.length === 0 ? `${counts}no accepted high roots.` : `${counts}every high root is one of ${accepted.join(', ')}, each recorded with a reachability argument.`;
+}
