@@ -13085,7 +13085,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1300 — The HTTP survival proof fails at random when the server cuts off an oversized upload
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: scripts/verifyHttpBoundary.mjs:19
 - note: The server answers 413 and destroys the request while the harness is still writing its 2 MB body, so `exchange` rejects with EPIPE or ECONNRESET and the harness prints FAIL though the child is healthy. Measured 5 of 80 runs at 8 in parallel, and 1 of 7 beside five sibling proof files.
 - verified-by: `an upload the server cuts off mid-body counts as refused, not as a harness failure`

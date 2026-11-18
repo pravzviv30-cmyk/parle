@@ -1,9 +1,9 @@
 /** Full API child-process survival proof. No credentials, database or provider calls. */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { request } from 'node:http';
 import { createConnection } from 'node:net';
 import { fileURLToPath } from 'node:url';
+import { exchange } from './httpBoundaryExchange.mjs';
 
 const cwd = fileURLToPath(new URL('../', import.meta.url));
 const proc = spawn(process.execPath, ['--experimental-strip-types', 'services/token-server/src/server.ts'], {
@@ -16,15 +16,8 @@ let log = '';
 proc.stdout.on('data', chunk => { log = (log + chunk.toString()).slice(-8192); const found = log.match(/token server on http:\/\/localhost:(\d+)/); if (found) port = Number(found[1]); });
 proc.stderr.on('data', chunk => { log = (log + chunk.toString()).slice(-8192); });
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-function exchange(path, body, headers = {}) {
-  return new Promise((resolve, reject) => {
-    const req = request({ hostname: '127.0.0.1', port, path, method: 'POST', headers }, res => {
-      res.resume(); res.once('end', () => resolve(res.statusCode));
-    });
-    req.setTimeout(3000, () => req.destroy(new Error('fixture timeout')));
-    req.once('error', reject); req.end(body);
-  });
-}
+// An oversized upload may be refused with 413 or cut off mid-body; both mean refused.
+const refused = status => assert.ok(status === 413 || status === 'reset', `expected 413 or a reset, got ${status}`);
 async function health() {
   assert.equal(proc.exitCode, null);
   assert.equal((await fetch(`http://127.0.0.1:${port}/health`, { signal: AbortSignal.timeout(1000) })).status, 200);
@@ -34,27 +27,27 @@ try {
   assert.ok(port > 0, 'child API must publish its actual ephemeral port');
   await health();
   for (const body of ['null', '[]', '42', '{']) {
-    assert.equal(await exchange('/session/start', body, { 'content-type': 'application/json' }), 400);
+    assert.equal(await exchange(port, '/session/start', body, { 'content-type': 'application/json' }), 400);
     await health();
   }
-  assert.equal(await exchange('/drill/score', Buffer.alloc(2 * 1024 * 1024 + 1), {
+  refused(await exchange(port, '/drill/score', Buffer.alloc(2 * 1024 * 1024 + 1), {
     'x-luvani-user': 'synthetic-learner', 'x-luvani-reference': 'bonjour', 'content-length': String(2 * 1024 * 1024 + 1),
-  }), 413);
+  }));
   await health();
-  assert.equal(await exchange('/drill/score', Buffer.alloc(2 * 1024 * 1024 + 1), {
+  refused(await exchange(port, '/drill/score', Buffer.alloc(2 * 1024 * 1024 + 1), {
     'x-luvani-user': 'synthetic-learner', 'x-luvani-reference': 'bonjour', 'transfer-encoding': 'chunked',
-  }), 413);
+  }));
   await health();
   for (const path of ['/drill/transcribe', '/drill/judge', '/drill/fix-line', '/phrase-audio/manifest']) {
     const limit = path === '/drill/transcribe' ? 2 * 1024 * 1024 : 4096;
     for (const framing of [{ 'content-length': String(limit + 1) }, { 'transfer-encoding': 'chunked' }]) {
-      assert.equal(await exchange(path, Buffer.alloc(limit + 1), {
+      refused(await exchange(port, path, Buffer.alloc(limit + 1), {
         'x-luvani-user': 'synthetic-learner', ...framing,
-      }), 413);
+      }));
       await health();
     }
   }
-  assert.equal(await exchange('/health', '', { host: '%' }), 400);
+  assert.equal(await exchange(port, '/health', '', { host: '%' }), 400);
   await health();
   const socket = createConnection({ host: '127.0.0.1', port });
   socket.on('error', () => {});
