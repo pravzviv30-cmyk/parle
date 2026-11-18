@@ -40,8 +40,9 @@ describe('addresses', () => {
   });
 
   // F1255: @react-navigation/core 7.22.1 replaced query-string with its own parser. This
-  // pins what the app's map reads and writes, and passes on both parsers. The one change
-  // the old one made, sorting keys on the way out, is deliberately not asserted here.
+  // pins what the app's map reads and writes. Every case but the last passes on both parsers;
+  // the last is the advisory's own shape and fails on the old one. The other change the old
+  // parser made, sorting keys on the way out, is deliberately not asserted here.
   test('a deep link query round-trips through the navigation parser that replaced query-string', () => {
     const config = linking.config as Parameters<typeof defaultStateFromPath>[1];
     const params = (path: string) => resolve(path)?.routes[0]?.params;
@@ -57,10 +58,11 @@ describe('addresses', () => {
     assert.deepEqual(params('/drill?q=&flag'), { q: '', flag: null }, 'an empty value and a bare key survive');
     assert.deepEqual(params(back('/drill?q=&flag')), { q: '', flag: null }, 'compared as params, because the old parser sorted keys');
     assert.deepEqual(params('/drill?a[]=1'), { 'a[]': '1' }, 'brackets are part of the key, not an array');
-    // The quadratic decode the advisory describes: a 20,000-character percent run stays bounded.
+    // GHSA-qr28-fpjm-wq7f: undecodable %XX runs sent decode-uri-component into its slow
+    // fallback, about 1.5 s for this input on core 7.21.12. Core 7.25.0 parses it in well under 1 ms.
     const started = performance.now();
-    assert.equal((params(`/drill?q=${'%'.repeat(20_000)}`) as { q?: string }).q?.length, 20_000);
-    assert.ok(performance.now() - started < 1_000, 'a long run of percent signs took over a second to parse');
+    assert.equal((params(`/drill?q=${'%FF'.repeat(400)}`) as { q?: string }).q, '%FF'.repeat(400));
+    assert.ok(performance.now() - started < 200, 'a run of undecodable percent sequences took over 200 ms to parse');
   });
 });
 
