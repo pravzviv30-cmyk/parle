@@ -10,7 +10,7 @@
 
 import { createHash } from 'node:crypto';
 
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { outputFormat } from './outputFormat.ts';
 
 import { MemoryExtractionSchema, ReplyFirstTurnSchema, ScenarioFrameSchema, TurnSchema, turnSchemasFor, withMissingGoalObservation } from '../contract/schemas.ts';
 import type { EarlySpokenTurn, MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
@@ -238,7 +238,7 @@ interface ResponsesPayload {
 }
 
 function schemaJson(schema: ContractSchema): unknown {
-  const format = zodOutputFormat(schema) as { schema?: unknown };
+  const format = outputFormat(schema) as { schema?: unknown };
   return format.schema ?? format;
 }
 
