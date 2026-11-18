@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { outputFormat } from '../llm/outputFormat.ts';
 
 import {
   EarlySpokenTurnSchema, MemoryExtractionSchema, ReplyFirstEarlySpokenTurnSchema, ReplyFirstTurnSchema, ScenarioFrameSchema, TurnSchema, turnSchemasFor,
@@ -97,7 +97,7 @@ describe('a scene with no beats is refused at the contract — an empty spine we
     // every other value into a prose description — so `.min(1)` is enforced
     // server-side, while `.min(3)` would quietly become a suggestion and turn a
     // model slip into a hard parse failure for no gain.
-    const wire = zodOutputFormat(ScenarioFrameSchema) as unknown as {
+    const wire = outputFormat(ScenarioFrameSchema) as unknown as {
       schema: { properties: Record<string, { minItems?: number }> };
     };
     assert.equal(
@@ -111,7 +111,7 @@ describe('a scene with no beats is refused at the contract — an empty spine we
 describe('the schemas are safe for structured outputs', () => {
   test('every generated object forbids unknown properties and requires every key', () => {
     // The API demands additionalProperties: false and treats every property as
-    // required. zodOutputFormat produces the JSON schema the request will carry,
+    // required. outputFormat produces the JSON schema the request will carry,
     // so this asserts on exactly what the server will see.
     for (const [name, schema] of [
       ['tutor_turn', TurnSchema],
@@ -119,7 +119,7 @@ describe('the schemas are safe for structured outputs', () => {
       ['memory_extraction', MemoryExtractionSchema],
       ['drill_batch', DrillBatchSchema],
     ] as const) {
-      const format = zodOutputFormat(schema);
+      const format = outputFormat(schema);
       const text = JSON.stringify(format);
       assert.ok(text.includes('"additionalProperties":false'), `${name} allows unknown properties`);
 
@@ -143,7 +143,7 @@ describe('the schemas are safe for structured outputs', () => {
       ['memory_extraction (openerFr/openerEn)', MemoryExtractionSchema],
       ['drill_batch (repeat-this ipa)', DrillBatchSchema],
     ] as const) {
-      const text = JSON.stringify(zodOutputFormat(schema));
+      const text = JSON.stringify(outputFormat(schema));
       assert.ok(/"null"/.test(text), `expected null unions in ${name}`);
     }
   });
@@ -204,7 +204,7 @@ describe('the reply-first turn order', () => {
 
   test('the strict JSON schema sent to the model follows the order', () => {
     const order = (schema: typeof TurnSchema | typeof ReplyFirstTurnSchema) =>
-      Object.keys((zodOutputFormat(schema as never) as unknown as { schema: { properties: object } }).schema.properties);
+      Object.keys((outputFormat(schema as never) as unknown as { schema: { properties: object } }).schema.properties);
     assert.deepEqual(order(TurnSchema), DEFAULT_ORDER);
     assert.deepEqual(order(ReplyFirstTurnSchema), REPLY_FIRST_ORDER);
   });
