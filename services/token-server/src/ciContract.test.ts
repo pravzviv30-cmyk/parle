@@ -107,6 +107,9 @@ interface Lockfile {
 const decisions = manifest.luvani?.dependencyAudit?.advisories ?? [];
 const accepted = decisions.filter((d) => d.decision === 'accepted');
 const fixed = decisions.filter((d) => d.decision === 'fixed');
+// Fixed by moving the package itself to a patched release, so nothing left the tree and the
+// walk from it can be short: adm-zip (an override), zod (4.6.7 has no dependencies at all).
+const inPlaceFixes = new Set(['adm-zip', 'zod']);
 
 /**
  * The lines of the workflow that actually execute something. YAML is parsed by hand
@@ -372,7 +375,7 @@ describe('the ci contract', () => {
       const closure = dependencyClosure(key);
       // @react-navigation/core's whole closure is 6 packages once query-string is gone.
       assert.ok(
-        record.module === 'adm-zip' || (record.module === '@react-navigation/core' && closure.size >= 4) || closure.size >= 10,
+        inPlaceFixes.has(record.module) || (record.module === '@react-navigation/core' && closure.size >= 4) || closure.size >= 10,
         `the dependency walk from ${record.module} reached only ${closure.size} packages, ` +
           'which means the walk is broken rather than the chain being clean',
       );
@@ -380,7 +383,7 @@ describe('the ci contract', () => {
       // A fixed image-size advisory is not a promise that every future advisory
       // elsewhere in Metro's tree is fixed. Those roots still face audit:ci's
       // independent decision, version and reachability checks.
-      assert.ok(record.module === 'adm-zip' || record.removedPackages?.length, `${record.module} names no dependency its fix removed`);
+      assert.ok(inPlaceFixes.has(record.module) || record.removedPackages?.length, `${record.module} names no dependency its fix removed`);
       for (const removed of record.removedPackages ?? []) {
         for (const [resolvedKey, resolved] of closure) {
           assert.ok(
@@ -456,9 +459,9 @@ describe('the ci contract', () => {
     // node-forge: patched in 1.4.2 (2026-11-02), so it carries no record.
     assert.equal(lock.packages[forge]?.version, '1.4.2');
     assert.equal(resolveFrom(certificates, 'node-forge'), forge);
-    // Neither has a live advisory, so neither carries a record. A fixed record needs a removed
-    // dependency (see the fixable-chain test), which a version bump of a leaf package is not.
-    // A new advisory on either is an unreviewed root and fails audit:ci.
+    // Neither has a live advisory, so neither carries a record. A version bump that fixes a live
+    // advisory can be a fixed record (adm-zip and zod are, as in-place fixes); these two had
+    // nothing left to fix. A new advisory on either is an unreviewed root and fails audit:ci.
     for (const name of ['braces', 'node-forge']) {
       assert.equal(decisions.find((item) => item.module === name), undefined, `${name} has no live advisory to record`);
     }
@@ -472,6 +475,18 @@ describe('the ci contract', () => {
       const entry = lock.packages[key];
       const edges = { ...(entry?.dependencies ?? {}), ...(entry?.optionalDependencies ?? {}) };
       assert.equal(edges.zod, undefined, `${key} ${entry?.version} still declares zod ${edges.zod}`);
+    }
+  });
+
+  test('every locked zod is at or above the patched 4.6.6 and there is exactly one copy', () => {
+    // GHSA-mrhx-c7xc-m3w5 is fixed only in 4.6.6; no zod 3 is patched. Two copies is how the
+    // fix fails quietly: a nested 4.x beside a root 3.x still leaves the advisory installed (F1257).
+    const copies = Object.entries(lock.packages).filter(([key]) => key === 'node_modules/zod' || key.endsWith('/node_modules/zod'));
+    assert.deepEqual(copies.map(([key]) => key), ['node_modules/zod'], 'zod must be installed once, at the root');
+    const version = copies[0]?.[1].version ?? '0.0.0';
+    assert.ok(atLeast(version, '4.6.6'), `the locked zod is ${version}; 4.6.6 is the first patched release`);
+    for (const workspace of ['packages/brain', 'services/tutor-agent']) {
+      assert.match(lock.packages[workspace]?.dependencies?.zod ?? '', /^\^4\./, `${workspace} still declares a zod 3 range`);
     }
   });
 
