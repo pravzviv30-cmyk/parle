@@ -92,3 +92,21 @@ test('journal bounds both response bytes and headers/body deadlines even if tran
   await assert.rejects(deletionJournal(config,async()=>new Promise(()=>{}),{timeoutMs:5}).record(user),/timeout/);
   await assert.rejects(deletionJournal(config,async()=>new Response(new ReadableStream({pull:()=>new Promise(()=>{})})),{timeoutMs:5}).record(user),/timeout/);
 });
+
+test("complete marks the entry for the user's keyed name and fails closed on any answer but 204",async()=>{
+  const {objects,request}=store();await deletionJournal(config,request).record(user);
+  const [name]=[...objects.keys()];const marks:string[]=[];let status=204;
+  const marking:typeof fetch=async(url,init)=>{
+    const parsed=new URL(String(url));
+    if(!parsed.pathname.endsWith('/completion'))return request(url,init);
+    assert.equal(init?.method,'POST');assert.equal(init?.body,undefined);assert.equal(parsed.search,'');
+    assert.equal((init?.headers as Record<string,string>).authorization,`Bearer ${config.token}`);assert.equal(init?.redirect,'error');
+    marks.push(parsed.pathname);return new Response(null,{status});
+  };
+  const journal=deletionJournal(config,marking);
+  await journal.complete(user.toUpperCase());await journal.complete(user);
+  assert.deepEqual(marks,[`/erasure/records/${name}/completion`,`/erasure/records/${name}/completion`]);
+  for(status of [200,201,404,405,412,500])await assert.rejects(journal.complete(user),/journal-complete-unavailable/);
+  await assert.rejects(deletionJournal(config,async()=>{throw new Error('offline');}).complete(user));
+  await assert.rejects(journal.complete('not-a-user'),/invalid-erasure-owner/);assert.equal(marks.length,8);
+});

@@ -3,7 +3,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {deletionJournal} from '../services/token-server/src/deletionJournal.ts';
+import {deletionJournal,JOURNAL_KEEP_DAYS} from '../services/token-server/src/deletionJournal.ts';
 import {privacyJobs} from '../services/token-server/src/privacyJobs.ts';
 import {tutorSessionRpc} from '../services/shared/tutorLifecycle.ts';
 import {paidAdmissionRpc} from '../services/shared/paidAdmission.ts';
@@ -15,6 +15,8 @@ export function validateReplayInputs(env,evidence,now=Date.now()) {
     || evidence.sourceAdmissionOff!==true || typeof evidence.reviewedBy!=='string' || !evidence.reviewedBy.trim() || evidence.reviewedBy.length>120
     || !/^[a-f0-9]{64}$/.test(evidence.evidenceSha256??'') || !Number.isFinite(Date.parse(evidence.expiresAt)) || Date.parse(evidence.expiresAt)<=now
     || Date.parse(evidence.expiresAt)>now+24*60*60_000)throw new Error('current source freeze/cutover evidence required');
+  const backup=Date.parse(evidence.backupTakenAt);
+  if(typeof evidence.backupTakenAt!=='string' || !Number.isFinite(backup) || backup>now || now-backup>=JOURNAL_KEEP_DAYS*24*60*60_000)throw new Error('backup taken inside the journal keep period required');
   const url=new URL(evidence.evidenceUrl);if(url.protocol!=='https:' || url.username || url.password)throw new Error('HTTPS freeze evidence required');
   return {target,source};
 }
