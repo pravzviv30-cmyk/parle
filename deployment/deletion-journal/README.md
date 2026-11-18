@@ -40,7 +40,8 @@ All requests need `Authorization: Bearer <JOURNAL_TOKEN>`, or they get 401. The 
   It returns 201 with `{version:1, snapshotId, project, totalRecords, keysSha256, expiresAt}`. A snapshot freezes the
   rowid high-water mark. `keysSha256` is SHA-256 of the raw 32-byte names, in ascending order, at or below that mark.
   The snapshot expires after 24 hours. Sealing again while no record has been added or removed returns the same
-  unexpired snapshot (identical body) and does not re-read the table.
+  unexpired snapshot (identical body). It counts the records at or below the mark to confirm none has gone, but does
+  not list or hash them again.
 - `GET /snapshots/<id>/records[?after=<hex>]` returns up to 100 ascending names greater than `after`. `nextCursor` is
   the last name on the page when more remain, otherwise null. An unknown snapshot gets 404, an expired one gets 410.
 
@@ -142,10 +143,11 @@ npx wrangler@4.92.0 d1 execute luvani-deletion-journal --remote --command "SELEC
 
 Free plan limits (check the current Cloudflare pricing page): 100,000 Worker requests a day, about 10 ms of CPU per
 request, 5 GB D1 storage, 5M rows read and 100k rows written a day. One erasure costs about 3 requests and 2 rows
-written (the record, its readback and its completion mark), and the daily cron one more write per removal. A replay costs one seal, plus a page request for every 100 records and a GET for each record.
+written (the record, its readback and its completion mark), and the daily cron reads the table once and writes once per removal. A replay costs one seal, plus a page request for every 100 records and a GET for each record.
 
 The seal is the only heavy request. It reads the sealed names already sorted by SQL, decodes them into one buffer with a
 lookup table and hashes once. In Node that takes about 1 ms for 5,000 names (see the timing line in the
-test output), and repeated seals at an unchanged high water are free. Beta scale is tiny: deletions number in the
+test output), and a repeated seal at an unchanged high water only counts the rows: it reads each once but
+hashes nothing. Beta scale is tiny: deletions number in the
 dozens, so expect zero cost. If the journal ever reaches hundreds of thousands of records, Workers Paid ($5 a month)
 raises the CPU limit and the D1 read allowance.
