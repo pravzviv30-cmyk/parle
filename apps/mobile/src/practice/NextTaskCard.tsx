@@ -27,8 +27,7 @@ import { goalOf } from '../onboarding/goalLine.ts';
 import { startAtOf } from '../profile/practicePreferences.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { loadDeck } from '../review/store.ts';
-import { offeredReview, reviewOffer, type ReviewOffer } from '../review/freeTier.ts';
-import { useFeatureLocks } from '../purchases/useFeatureLocks.ts';
+import { reviewOffer } from '../review/freeTier.ts';
 import { loadDrillBank } from '../drill/store.ts';
 import { loadConversationPacks } from '../conversationPacks/store.ts';
 import { loadPracticeSession } from './sessionStore.ts';
@@ -67,7 +66,6 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   const nav = useNavigation<{ navigate(screen: string, params?: object): void }>();
   const { live } = useLive();
   const { user } = useAuth();
-  const locks = useFeatureLocks(user?.id ?? null);
   const { profile } = useProfile();
   const t = useB();
   const owner = scopeGeneration();
@@ -80,7 +78,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   const [billingRead, setBillingRead] = useState<{ scope: number; live: boolean; billing: HomeBilling | null; answered: boolean } | null>(null);
   const billing = billingRead?.billing ?? null;
   const billingAnswered = billingRead?.answered ?? false;
-  const [value, setValue] = useState<{ scope: number; now: number; card: PracticeCard | null; deck: readonly ReviewCard[]; offer: ReviewOffer; hero: HomeMission | null; buildsOn: string | null; levelIndex: number } | null>(null);
+  const [value, setValue] = useState<{ scope: number; now: number; card: PracticeCard | null; deck: readonly ReviewCard[]; offer: ReviewCard | null; hero: HomeMission | null; buildsOn: string | null; levelIndex: number } | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useFocusEffect(useCallback(() => {
@@ -125,7 +123,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   // on the hero card's ground in the theme's ink.
   // Review as a lead's door is Today's own review row: drawn only when Review
   // has something to deal, and named as the row is (round 3).
-  const reviewDoor = value === null ? null : reviewRow(value.deck, value.now, locks.access('conversationPractice'));
+  const reviewDoor = value === null ? null : reviewRow(value.deck, value.now);
   const cafeOffered = value !== null && offlineOffer(value.levelIndex) === 'cafe';
   const plansBody = (onSun: boolean) => <PlansLeadBody onSun={onSun} body={plansLeadBody(billing)} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onCafe={cafeOffered ? () => navigateOwned('DailyPractice', { id: DEMO_REPLY_ID, mode: 'shadowing' }) : undefined} onReview={cafeOffered || reviewDoor === null ? undefined : () => navigateOwned('Review')} reviewLabel={reviewDoor?.title} />;
   const plansCard = <ColourCard ground="sun">{plansBody(true)}</ColourCard>;
@@ -206,9 +204,8 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
       <Text style={[type.small, { color: paper.onInk }]}>{card.noMinutes}</Text>
     </ColourCard>;
   }
-  // Home offers only what Review will deal: a free learner's conversation
-  // phrases wait for the trial, so the card falls through to the next free step.
-  const review = offeredReview(value.offer, locks.access('conversationPractice'));
+  // Home offers what Review will deal, the same on every plan (REV-003).
+  const review = value.offer;
   const kind = nextTaskKind({ kind: 'none', fallback: 'first' }, live, billing, !vivid && review !== null);
   if (kind === 'review' && review !== null) return <ColourCard ground="blue">
     <Text accessibilityRole="header" style={[type.heading, { color: paper.onInk }]}>Ready for review</Text>

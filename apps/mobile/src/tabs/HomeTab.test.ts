@@ -920,7 +920,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(PARTS, /usesChip: \{[^}]*paddingVertical: 5, paddingHorizontal: 10, \.\.\.corner\.inset \}/);
     // The engine is still main's lock-aware NextTaskCard.
     const task = read('../practice/NextTaskCard.tsx');
-    assert.match(task, /const review = offeredReview\(value\.offer, locks\.access\('conversationPractice'\)\);/);
+    assert.match(task, /const review = value\.offer;/);
     assert.match(task, /<MissionHero hero=\{value\.hero\} vivid=\{vivid\} buildsOn=\{vivid \? value\.buildsOn : null\} \/>/);
     assert.match(task, /buildsOn: buildsOn\(packs, hero\)/);
     // 2026-10-29 (F934), re-pinned for UI-015: the lead is the hero when there

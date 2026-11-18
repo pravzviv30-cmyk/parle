@@ -27,7 +27,7 @@ import {
 } from '@luvani/core';
 
 import type { FeatureAccess, LockedFeature } from '../access/featureAccess.ts';
-import { dealForTier, offeredReview, reviewOffer } from '../review/freeTier.ts';
+import { dealForTier } from '../review/freeTier.ts';
 import { latestReadyPack } from '../conversationPacks/model.ts';
 import { goalPickLine } from '../onboarding/goalLine.ts';
 import { dayWord } from '../journey/journeyView.ts';
@@ -145,12 +145,10 @@ export function aboutMinutes(minutes: number): string {
 /**
  * The review row (F934; reverses UI-008's "review off Today", DECISIONS
  * 2026-10-29): drawn only when Review would deal cards, by Review's own deal
- * (`dealForTier`), so a free learner with only conversation phrases due is
- * offered nothing Review would hold back.
+ * (`dealForTier`), the same on every plan (REV-003).
  */
-export function reviewRow(deck: readonly ReviewCard[], now: number, lock: Parameters<typeof dealForTier>[2]): { title: string; line: string; count: number } | null {
-  if (offeredReview(reviewOffer(deck, now), lock) === null) return null;
-  const count = dealForTier(deck, now, lock).due.length;
+export function reviewRow(deck: readonly ReviewCard[], now: number): { title: string; line: string; count: number } | null {
+  const count = dealForTier(deck, now).due.length;
   if (count === 0) return null;
   return { title: count === 1 ? 'Review 1 phrase' : `Review ${count} phrases`, line: aboutMinutes(2), count };
 }
