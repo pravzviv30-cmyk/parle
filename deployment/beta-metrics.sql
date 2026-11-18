@@ -83,6 +83,9 @@ group by 1 order by 1;
 --      days, but activeDays is never pruned, so day 0 survives.
 --    - Every path is checked for its type and every day key for a real date,
 --      so a malformed payload adds no day instead of failing the report.
+--    - A day after tomorrow (a phone clock set ahead) is dropped, so it cannot
+--      read as a return. One day of slack is kept because local days can be
+--      ahead of UTC.
 with day_keys as (
   select ls.user_id,
          case when jsonb_typeof(d) = 'string' then d #>> '{}' end as day_key
@@ -114,7 +117,7 @@ with day_keys as (
            then make_date(substr(day_key, 1, 4)::int, substr(day_key, 6, 2)::int, 1) + (substr(day_key, 9, 2)::int - 1) end as day
   from day_keys
 ), practice as (
-  select distinct user_id, day from dated where to_char(day, 'YYYY-MM-DD') = day_key
+  select distinct user_id, day from dated where to_char(day, 'YYYY-MM-DD') = day_key and day <= current_date + 1
 ), first_day as (
   select user_id, min(day) as day0 from practice group by user_id
 ), returned as (
@@ -297,7 +300,8 @@ order by grouping(p.plan), 1, 2;
 --    'trial' is a store trial. Otherwise a period of 45 days or less is a
 --    month, a longer one a year, and 'unknown' has no period start. Days left
 --    run to the end of the current allowance window, or of the period when the
---    row stores no window end, as a year's last window does.
+--    row stores no window end, as a year's last window does. A window that has
+--    ended and not been refilled yet has 0 days left.
 --
 --    Honest limits:
 --    - A mid-window snapshot of the current window, so it reads lower than the
@@ -311,7 +315,7 @@ with live as (
               when e.period_end - e.period_start <= interval '45 days' then 'month' else 'year' end as period,
          (luvani_private.tutor_cap_v1(e.plan) - e.withheld_seconds) / 60.0 as allowance_minutes,
          greatest(e.seconds_used - e.withheld_seconds, 0) / 60.0 as used_minutes,
-         extract(epoch from coalesce(e.allowance_window_end, e.period_end) - now()) / 86400 as days_left
+         greatest(extract(epoch from coalesce(e.allowance_window_end, e.period_end) - now()) / 86400, 0) as days_left
   from public.entitlements e
   where e.plan in ('starter', 'regular') and e.period_end > now()
 )

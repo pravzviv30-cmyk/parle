@@ -152,6 +152,10 @@ function report() {
     await state(id(8), 'profile', { motivation: 'because' });
     await state(id(8), 'activity', { version: 2, activeDays: ['2026-02-31', 42, 'not-a-day', '0000-01-01'], entries: [{ at: 'x', xp: 5 }, 7, { at: 1e300, xp: 1 }, { at: at(0), xp: '5' }] });
     await state(id(8), 'game', { sittings: 'nope' });
+    // 9 (unknown, no profile): day 0 forty days ago and a skewed phone clock's day in 2099, which is no return.
+    await state(id(9), 'activity', { version: 2, entries: [], activeDays: [dayKey(at(0)), '2099-01-01'] });
+    // 10 (unknown, no profile): first practised exactly 7 days ago, so it is in the D1 and D7 denominators.
+    await state(id(10), 'activity', { version: 2, entries: [], activeDays: [dayKey(now - 7 * DAY)] });
 
     // Account status (F1275), net price (F1276) and minutes (F1277).
     const entitlement = (user, row) => db.query(
@@ -159,8 +163,8 @@ function report() {
        values($1,$2,$3,$4,$5,$6,$7,$8)`,
       [user, row.plan, row.used ?? 0, row.start ?? null, row.end ?? null, row.window ?? null, row.withheld ?? 0, row.lapsed ?? false]);
     const iso = (ms) => new Date(ms).toISOString();
-    // 11: paying, monthly Core, 90 of 300 minutes, 20 days left.
-    await entitlement(id(11), { plan: 'starter', used: 5400, start: iso(now - 10 * DAY), end: iso(now + 20 * DAY) });
+    // 11: paying, monthly Core, 90 of 300 minutes, mid-window with 3 days left in the window (20 in the period).
+    await entitlement(id(11), { plan: 'starter', used: 5400, start: iso(now - 10 * DAY), end: iso(now + 20 * DAY), window: iso(now + 3 * DAY) });
     // 12: store trial on Max. 30000 s withheld, so the allowance is 100 minutes and 20 minutes are used.
     await entitlement(id(12), { plan: 'regular', used: 31200, withheld: 30000, start: iso(now - 2 * DAY), end: iso(now + 5 * DAY) });
     // 13: lapsed. 14: a paid period that ended and has not been lapsed yet. 15: free.
@@ -169,6 +173,8 @@ function report() {
     await entitlement(id(15), { plan: 'trial', used: 60 });
     // 16: paying, yearly Max in its last window (allowance_window_end null), 150 of 600 minutes, 25 days left.
     await entitlement(id(16), { plan: 'regular', used: 9000, start: iso(now - 340 * DAY), end: iso(now + 25 * DAY) });
+    // 17: paying, monthly Max, nothing used, its window ended a day ago and the renewal sweep has not refilled it yet.
+    await entitlement(id(17), { plan: 'regular', start: iso(now - 10 * DAY), end: iso(now + 20 * DAY), window: iso(now - DAY) });
 
     // Wall funnel (F1278). 21: a refused showing that buys, then a settings showing that leaves unchanged.
     const event = (user, name, properties, minute) => db.query('insert into public.product_events(user_id,name,properties,occurred_at) values($1,$2,$3,$4)',
@@ -183,6 +189,13 @@ function report() {
     await event(id(21), 'wall_left', { entry: 'settings', outcome: 'unchanged', destination: 'back' }, 11);
     // 22: a refused showing and nothing after.
     await event(id(22), 'wall_shown', { entry: 'refused', pages: 4 }, 20);
+    // 23: a settings showing that saw only the yours page and cancelled a purchase: neither plans nor done.
+    await event(id(23), 'wall_shown', { entry: 'settings', pages: 1 }, 30);
+    await event(id(23), 'wall_page_seen', { page: 'yours', index: 0 }, 31);
+    await event(id(23), 'purchase_settled', { plan: 'regular', outcome: 'cancelled' }, 32);
+    // 24: a wall event that landed before its first wall_shown belongs to no showing, so no door is blank.
+    await event(id(24), 'wall_page_seen', { page: 'plans', index: 3 }, 40);
+    await event(id(24), 'wall_shown', { entry: 'settings', pages: 1 }, 41);
 
     const sql = await statements();
     const results = [];
@@ -202,11 +215,12 @@ test('beta-metrics.sql: a learner with offline sittings on days 1 and 7 counts a
   }));
   // deadline: 4 (game sittings, back on days 1 and 7) and 6 (activeDays, back on day 30, so on or after 1 and 7 too).
   // hobby: 5 (back on day 1; the zero-XP day 8 entry does not count). 8 is malformed and has no day at all.
-  // unknown: 7 first practised today, so it is in no denominator.
+  // unknown: 7 first practised today, so it is in no denominator. 9's 2099 day is no return. 10's day 0 is exactly
+  // 7 days ago, so it counts toward D1 and D7 but not D30.
   assert.deepEqual(rows, [
     { cohort: 'deadline', eligibleD1: 2, d1: 100, eligibleD7: 2, d7: 100, eligibleD30: 2, d30: 50 },
     { cohort: 'hobby', eligibleD1: 1, d1: 100, eligibleD7: 1, d7: 0, eligibleD30: 1, d30: 0 },
-    { cohort: 'unknown', eligibleD1: 0, d1: null, eligibleD7: 0, d7: null, eligibleD30: 0, d30: null },
+    { cohort: 'unknown', eligibleD1: 2, d1: 0, eligibleD7: 2, d7: 0, eligibleD30: 1, d30: 0 },
   ]);
   // The same columns as the billed query 2, which has no rows here because nobody has session_usage.
   assert.deepEqual(results[2].fields.map((f) => f.name), results[1].fields.map((f) => f.name));
@@ -223,18 +237,20 @@ test('beta-metrics.sql: the cohort follows the goal Settings wrote, and a cleare
 
 test('beta-metrics.sql: paying accounts are counted apart from store trials', async () => {
   const { results } = await report();
-  // Six accounts: 11 and 16 paying, 12 in a store trial, 13 lapsed, 14 ended and not yet lapsed, 15 free.
+  // Seven accounts: 11, 16 and 17 paying, 12 in a store trial, 13 lapsed, 14 ended and not yet lapsed, 15 free.
   assert.deepEqual(results[7].rows.map((r) => ({ status: r.status, accounts: num(r.accounts), pct: num(r.pct) })), [
-    { status: 'free', accounts: 1, pct: 16.7 },
-    { status: 'lapsed', accounts: 1, pct: 16.7 },
-    { status: 'paid period ended, not yet lapsed', accounts: 1, pct: 16.7 },
-    { status: 'paying', accounts: 2, pct: 33.3 },
-    { status: 'store trial', accounts: 1, pct: 16.7 },
+    { status: 'free', accounts: 1, pct: 14.3 },
+    { status: 'lapsed', accounts: 1, pct: 14.3 },
+    { status: 'paid period ended, not yet lapsed', accounts: 1, pct: 14.3 },
+    { status: 'paying', accounts: 3, pct: 42.9 },
+    { status: 'store trial', accounts: 1, pct: 14.3 },
   ]);
 });
 
 test("beta-metrics.sql: the net price estimate uses core's list prices and the Small Business rate", async () => {
   const { sql, results } = await report();
+  const netGap = results[11].rows.find((r) => r.number === 'net average price (8)').gap;
+  assert.match(netGap, new RegExp(`\\b${Math.round(STORE_FEE_RATES.smallBusiness * 100)} percent Small Business fee`));
   // The inline price list is core's, number for number.
   const prices = Object.fromEntries([...sql[8].matchAll(/\('(starter|regular)', '(month|year)', ([\d.]+)\)/g)].map((m) => [`${m[1]} ${m[2]}`, Number(m[3])]));
   assert.deepEqual(prices, {
@@ -242,12 +258,13 @@ test("beta-metrics.sql: the net price estimate uses core's list prices and the S
     'regular month': PLANS.regular.priceUsd, 'regular year': YEARLY_PLANS.regular.priceUsd,
   });
   assert.equal(Number(sql[8].match(/fee\(rate\) as \(values \(([\d.]+)\)/)[1]), STORE_FEE_RATES.smallBusiness);
-  // Monthly Core: 14.99 * 0.85 = 12.7415. Yearly Max: 169 * 0.85 / 12 = 11.9708.
-  // Per payer over both: (12.7415 + 11.9708) / 2 = 12.3562.
+  // Monthly Core: 14.99 * 0.85 = 12.7415. Yearly Max: 169 * 0.85 / 12 = 11.9708. Monthly Max: 24.99 * 0.85 = 21.2415.
+  // Per payer over all three: (12.7415 + 11.9708 + 21.2415) / 3 = 15.3179.
   assert.deepEqual(results[8].rows.map((r) => ({ plan: r.plan, period: r.period, payers: num(r.payers), net: num(r.est_net_monthly_usd_per_payer) })), [
+    { plan: 'regular', period: 'month', payers: 1, net: 21.24 },
     { plan: 'regular', period: 'year', payers: 1, net: 11.97 },
     { plan: 'starter', period: 'month', payers: 1, net: 12.74 },
-    { plan: 'all payers', period: 'all', payers: 2, net: 12.36 },
+    { plan: 'all payers', period: 'all', payers: 3, net: 15.32 },
   ]);
 });
 
@@ -258,11 +275,13 @@ test('beta-metrics.sql: minutes used against the allowance leave out the withhel
     avgPct: num(r.avg_used_pct), medianPct: num(r.median_used_pct), daysLeft: num(r.avg_days_left),
   }));
   // 12: (36000 - 30000) / 60 = 100 min allowed, (31200 - 30000) / 60 = 20 used. 16: 36000 / 60 = 600, 150 used, a year
-  // although its window end is null. 11: 18000 / 60 = 300, 90 used. 14 has ended and is not in a window.
+  // although its window end is null. 11: 18000 / 60 = 300, 90 used, 3 days to its window end, not 20 to its period end.
+  // 17: 600 allowed, none used, its window ended a day ago, so 0 days left, never negative. 14 has ended and is not in a window.
   assert.deepEqual(rows, [
+    { plan: 'regular', period: 'month', learners: 1, allowance: 600, used: 0, avgPct: 0, medianPct: 0, daysLeft: 0 },
     { plan: 'regular', period: 'trial', learners: 1, allowance: 100, used: 20, avgPct: 20, medianPct: 20, daysLeft: 5 },
     { plan: 'regular', period: 'year', learners: 1, allowance: 600, used: 150, avgPct: 25, medianPct: 25, daysLeft: 25 },
-    { plan: 'starter', period: 'month', learners: 1, allowance: 300, used: 90, avgPct: 30, medianPct: 30, daysLeft: 20 },
+    { plan: 'starter', period: 'month', learners: 1, allowance: 300, used: 90, avgPct: 30, medianPct: 30, daysLeft: 3 },
   ]);
 });
 
@@ -273,7 +292,7 @@ test('beta-metrics.sql: the wall funnel is split by door, and a purchase stays w
     started: num(r.purchase_started), done: num(r.settled_done), granted: num(r.left_granted),
   })), [
     { entry: 'refused', showings: 2, learners: 2, plans: 1, selected: 1, started: 1, done: 1, granted: 1 },
-    { entry: 'settings', showings: 1, learners: 1, plans: 0, selected: 0, started: 0, done: 0, granted: 0 },
+    { entry: 'settings', showings: 3, learners: 3, plans: 0, selected: 0, started: 0, done: 0, granted: 0 },
   ]);
 });
 
@@ -292,5 +311,5 @@ test('beta-metrics.sql: the report says which numbers it cannot measure and whic
   assert.match(index['paid conversion (7)'].gap, /trial/);
   // Read-only: nothing here changed a table.
   const count = async (table) => Number((await db.query(`select count(*) as n from public.${table}`)).rows[0].n);
-  assert.deepEqual([await count('learner_state'), await count('entitlements'), await count('product_events')], [13, 6, 9]);
+  assert.deepEqual([await count('learner_state'), await count('entitlements'), await count('product_events')], [15, 7, 14]);
 });
