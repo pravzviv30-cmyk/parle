@@ -1117,8 +1117,13 @@ finds nothing to echo, and the early reply is spoken without it. The full turn s
 carries the coach items to the screen as before (founder accepted this trade, 2026-11-07),
 and a reply that was spoken early without a recast is not recast by the full turn, so the
 screen shows the words heard without a disagreement. A reply-first turn that reached for
-English is not spoken early at all: its French hand-back rides an inline coach item, so
-the full turn speaks it as before and the head start is lost only on those turns. `scripts/measureLiveTurn.mjs` reads the
+English waits for its coach: its French hand-back rides an inline coach item, so the
+watcher hands over a second time when the top-level `coach` array closes (F983) and the
+tutor speaks then, hand-back first. With the coach in hand the rung decides exactly as the
+full turn would. Whichever hand-over speaks first wins; the second never says another
+line, including on the retried attempt. Measured 2026-11-17 on a developer Mac
+(`docs/live-latency-evidence/2026-11-17-voice-latency-local.md`): the coach closes about
+1.8 to 3.0 s before the whole turn on English-reach cases. `scripts/measureLiveTurn.mjs` reads the
 switch from the env file it is given. Both this switch and the service tier below are part
 of the brain quote's configuration identity (`services/shared/paidExecution.ts`), so on
 staging they go on only together with quotes generated with the same `STAGING_ENV` in
@@ -1150,6 +1155,70 @@ first audio frame arrives at p50 329 ms (p95 380) once the connection is warm, t
 miss transport's at p50 437 ms (p95 554), and the socket also delivers a sentence whole, so the
 `ws` knob buys nothing here and stays a dev-only setting; the paid proxy gets no websocket
 route for it.
+
+**The tutor's words with its voice (F988, VOICE-024).** When `speakEarly` speaks, it
+publishes `{ t: 'tutor-line', textTurnId, narration, coach, reply }` in the same step as
+the `say`: the narration as the view will show it, the coach line only when it is spoken
+(an English reach or a way back), and the reply's speaker and French. The id is allocated
+there and the turn's `convo` view reuses it, so the app adds the lines once and fills in the
+English when the view lands. The view itself (English, support, goal ticks) still waits for
+`await this.checkpoint()`. A refused checkpoint after an early line publishes no view: the
+learner has heard and seen the French, and the room ends as before. Every view carries
+`coachSpoken: true` when its coach line was spoken, so the app shows it as a tutor line
+before the reply (the coach notice stays, founder 2026-11-17).
+
+**Join-time warm-ups (F984).**
+- *Voice connection:* after the paid proxy is built in a spoken session, `agent.ts` calls
+  `proxy.preconnect()`. It sends one `HEAD https://api.elevenlabs.io/`, a constant URL with
+  no headers and no body, `redirect: 'error'`, a 3 s timeout, under the proxy's signal, at
+  most once per proxy and unawaited, through the same fetch the paid transport uses (no
+  dispatcher of its own). It carries no key, so it is outside the paid gate and spends no
+  effect. Measured from a developer Mac (2026-11-17): cold 330 ms p50, warm reuse about
+  180 ms; connect plus TLS there is only about 36 ms, so the staging gap (1,312 ms opening
+  first byte against 385 to 505 ms) is decided at the device session. Node's fetch drops an
+  idle socket after about 4 s, so the warm connection helps only a first line said soon after
+  join.
+- *Brain cache:* `LUVANI_BRAIN_WARMUP=1` (opt-in, default off; founder yes 2026-11-17, Q2)
+  makes `openScene()` fire one discarded turn call per session, after the opening is said,
+  unawaited and outside the queue, under the session's live-work signal with the turn
+  deadline, and not when closing for time. It is built by the same `turnRequest` helper as
+  every real turn, with input `{ type: 'silence' }` and a no-op `onSpokenFields` exactly
+  when real turns stream, so its paid identity is the session's own. It spends 1 of the 66
+  turn effects (2 after a 429). Usage is metered as a `turn`; a failure is metered and
+  logged as `[luvani:brain-warmup] failed` and nothing else: no recovery line, no view, no
+  state, timing or bridge change. Measured 2026-11-17: the first call of a run had 0 of
+  7,172 input tokens cached and its first token at 3.9 s, against a warmed p50 near 1.1 s
+  with 6,300 to 7,000 cached.
+
+**The learner's own words, live (F985 to F987), behind `LUVANI_LEARNER_CAPTIONS=1`**
+(opt-in, default off; unset is today's behaviour exactly). `learnerCaptions.ts` sits in the
+`sttNode` observer chain on both branches.
+- *Captions:* each interim, preflight or final event publishes `{ t: 'transcript', final:
+  false, text }` with the finals not yet taken plus the current interim, only when the text
+  changed, at most four frames a second (a trailing frame carries the latest text) and 500
+  bytes (the newest words kept). The segment buffer holds at most 32 finals and is emptied at
+  every hook exit, which logs `[luvani:captions] frames=<n>` with no words. Every hook exit
+  publishes the final line or clears the caption with an empty `final: false`. Typed and
+  ended sessions publish none.
+- *Join:* `joinHeard` rebuilds the committed text from the captured finals: at a split it
+  drops a trailing `--`, `...` or `…` and lowercases the next segment's first letter unless
+  the previous one ends in `.`, `!` or `?`; inside a segment a standalone `--` goes and the
+  next initial is lowercased. Acronyms and the English "I" keep their capitals. It is used
+  only when the plain space-join of the finals equals the SDK's text; otherwise the SDK's
+  text keeps everything but the dashes. The same text reaches the screen, the repair step and
+  the brain. A proper noun that starts a segment is lowercased (accepted).
+- *Overheard:* SDK 1.9 drops a turn committed while an uninterruptible line plays ("skipping
+  user input") after clearing its buffer. When the next committed text is exactly a trailing
+  run of the captured finals, the finals before it were dropped. They pass `handleSafety`
+  first, then are published as `{ t: 'overheard', text, turnId }` before the turn's own line.
+  They are never sent to the brain nor counted in `learnerTurns` (founder 2026-11-17, Q4:
+  shown, not answered), and `[luvani:overheard] n=<dropped finals>` is logged with no words.
+  An app that predates the tag drops it. Words never followed by a committed turn stay a
+  caption until the next exit clears it.
+
+**Mission keyterms in conversations (F989)** are waiting on the quote cap: the conversation
+quote already holds 15 components and `paid_quote_valid_v1` allows 16, so they come back as
+their own change. Conversations still pass no keyterms.
 
 `eleven_v4_turbo` first audio, measured 2026-11-08 by `scripts/ttsV4TurboCheck.mjs`
 (evidence `docs/live-latency-evidence/2026-11-08-v4-turbo-first-audio.json`). Voice

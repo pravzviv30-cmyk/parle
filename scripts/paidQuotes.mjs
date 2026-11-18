@@ -248,6 +248,8 @@ export async function sttShapesFor(env) {
  *   Effects: OpenAiResponsesBrainClient retries a 429 once, so each brain call is 2 effects.
  *     convo turns: 66 = two full components (100,000 / 3,000 output tokens = 33 each). That is 40 turns
  *       (4/min measured, VOICE-008) plus 26 retries or extra turns; a quote holds at most 16 components.
+ *       The join-time brain warm-up (F984, LUVANI_BRAIN_WARMUP) is one of those 66: 1 turn effect per
+ *       conversation, 2 after a 429. It sends the session's own turn body, so it needs no component of its own.
  *     frames: 4 scenes x 2 = 8. curate/extract/drills: once at close x 2.
  *     live chat (lesson, preemptive generation on, vendor maxRetry 1): 60 (12-turn lesson, replays, speculative calls).
  *   A component holds at most 100,000 output tokens and 2 MiB of input (paid_quote_valid_v1),

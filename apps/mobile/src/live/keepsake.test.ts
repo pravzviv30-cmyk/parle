@@ -51,6 +51,17 @@ describe('your lines', () => {
     assert.deepEqual(lines, ['Sur place, s’il vous plaît.', 'Je vous dois combien ?', 'Merci, bonne journée.']);
     assert.deepEqual(keepsakeLines([turn('tutor', 'Bonjour !')]), [], 'a line the tutor said was kept as the learner\'s');
   });
+
+  test('the keepsake leaves out lines said over the tutor', () => {
+    // F988: an overheard line was captured over the tutor's voice and may be the
+    // tutor's own speakerphone echo, so it is never kept as the learner's.
+    const lines = keepsakeLines([
+      { id: 'l1', who: 'learner', fr: 'Un café, s’il vous plaît.' },
+      { id: 'overheard:t2', who: 'learner', fr: 'Et avec ceci ?' },
+      { id: 'l3', who: 'learner', fr: 'C’est tout, merci.' },
+    ]);
+    assert.deepEqual(lines, ['Un café, s’il vous plaît.', 'C’est tout, merci.']);
+  });
 });
 
 describe('next time', () => {

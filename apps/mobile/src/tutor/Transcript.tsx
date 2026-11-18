@@ -1,4 +1,4 @@
-import { transcriptTail, replyAnnouncement } from './transcriptTail.ts';
+import { transcriptTail, nextReplyAnnouncement, readsAsFrench, type ReplyAnnounced } from './transcriptTail.ts';
 import type { CorrectionReasonId } from '@luvani/core';
 /**
  * The conversation as a thread.
@@ -90,7 +90,7 @@ function Line({
   });
   const body = (
     <>
-      <Text {...frenchText} accessibilityLiveRegion={announceReply && isLastTutorLine ? 'polite' : 'none'} style={[boldType.body, { color: learner ? c.white : c.ink }]}>{turn.fr}</Text>
+      <Text {...(readsAsFrench(turn) ? frenchText : {})} accessibilityLiveRegion={announceReply && isLastTutorLine ? 'polite' : 'none'} style={[boldType.body, { color: learner ? c.white : c.ink }]}>{turn.fr}</Text>
       {turn.frWritten && turn.frWritten !== turn.fr ? (
         <Text style={[type.small, { color: learner ? paper.onInk : paper.inkSoft, marginTop: space(0.5) }]}>{turn.frWritten}</Text>
       ) : null}
@@ -220,12 +220,13 @@ export function Transcript({
     if (!focusActive) { scroll.cancelFocus(); return; }
     scroll.focus(focusMessageId, focusRevision);
   }, [scroll, focusRevision, focusActive]);
-  const announcedTutor = useRef<string | null>(null);
+  const announcedTutor = useRef<ReplyAnnounced | null>(null);
   useEffect(() => {
-    if (latest.tutor === null || announcedTutor.current === latest.tutor.id) return;
-    announcedTutor.current = latest.tutor.id;
-    if (announceReply && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(replyAnnouncement(latest.tutor, tutorName));
-  }, [lastTutorId, announceReply, tutorName]);
+    const next = nextReplyAnnouncement(latest.tutor, tutorName, announcedTutor.current);
+    if (next === null) return;
+    announcedTutor.current = next.announced;
+    if (announceReply && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(next.say);
+  }, [lastTutorId, latest.tutor?.en, announceReply, tutorName]);
 
   return (
     <View style={st.frame}>

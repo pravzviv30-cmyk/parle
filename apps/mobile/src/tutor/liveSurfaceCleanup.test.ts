@@ -16,8 +16,8 @@ test('conversation opening and recap timeout use committed state without resetti
 
 test('the conversation announces only its newest typed tutor reply',()=>{
  assert.doesNotMatch(transcript,/\[\.\.\.turns\]\.reverse\(\)/);
- assert.match(transcript,/AccessibilityInfo\.announceForAccessibility\(replyAnnouncement\(latest\.tutor, tutorName\)\)/);
- assert.match(transcript,/announcedTutor\.current === latest\.tutor\.id/);
+ assert.match(transcript,/AccessibilityInfo\.announceForAccessibility\(next\.say\)/);
+ assert.match(transcript,/nextReplyAnnouncement\(latest\.tutor, tutorName, announcedTutor\.current\)/);
  assert.match(transcript,/Platform\.OS === 'ios'/);
  assert.match(transcript,/accessibilityLiveRegion=\{announceReply && isLastTutorLine \? 'polite' : 'none'\}/);
  const room=readFileSync(new URL('../live/C2LiveRoom.tsx',import.meta.url),'utf8');

@@ -25,7 +25,7 @@ import { HIT, bType, decorative, frenchText, type, corner, radius } from '../the
 import { BSpeaker } from '../today/TodayParts.tsx';
 import { recastView } from '../tutor/recastLabel.ts';
 import { replayEar } from '../tutor/replayEar.ts';
-import { replyAnnouncement, transcriptTail } from '../tutor/transcriptTail.ts';
+import { nextReplyAnnouncement, readsAsFrench, transcriptTail, type ReplyAnnounced } from '../tutor/transcriptTail.ts';
 import { createTranscriptScrollController, latestSentMessageId } from './c2TranscriptPolicy.ts';
 import { notebookLines, type NotebookItem } from './notebookView.ts';
 import type { TurnLine } from './turns.ts';
@@ -78,13 +78,13 @@ export function NotebookLine({ item, tutorName, latestCorrection, onReplay, tuto
   }
   if (item.kind === 'tutor') {
     if (item.emphasis === 'older') {
-      return <Text {...frenchText} accessibilityLabel={`${tutorName}: ${item.fr}`} style={[type.frenchSm, { color: t.muted }]}>{item.fr}</Text>;
+      return <Text {...(readsAsFrench(item) ? frenchText : {})} accessibilityLabel={`${tutorName}: ${item.fr}`} style={[type.frenchSm, { color: t.muted }]}>{item.fr}</Text>;
     }
     const ear = replayEar({ isLastTutorLine: true, canReplay: onReplay !== undefined, sounding: tutorSpeaking });
     return (
       <View style={s.newest}>
         <View style={s.newestWords}>
-          <Text {...frenchText} accessibilityLiveRegion={announce ? 'polite' : 'none'} style={[fitDisplay(item.fr), { color: t.text }]}>{item.fr}</Text>
+          <Text {...(readsAsFrench(item) ? frenchText : {})} accessibilityLiveRegion={announce ? 'polite' : 'none'} style={[fitDisplay(item.fr), { color: t.text }]}>{item.fr}</Text>
           {item.en ? <Text style={[type.body, { color: t.muted }]}>{item.en}</Text> : null}
         </View>
         {ear !== 'hidden' && onReplay ? (
@@ -159,13 +159,14 @@ export function NotebookSheet({ turns, partialTranscript, transcriptVisible, tut
     if (!focusActive) { scroll.cancelFocus(); return; }
     scroll.focus(focusMessageId, focusRevision);
   }, [scroll, focusRevision, focusActive]);
-  const announcedTutor = useRef<string | null>(null);
+  const announcedTutor = useRef<ReplyAnnounced | null>(null);
   useEffect(() => {
-    if (latest.tutor === null || announcedTutor.current === latest.tutor.id) return;
-    announcedTutor.current = latest.tutor.id;
-    if (announceReply && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(replyAnnouncement(latest.tutor, tutorName));
+    const next = nextReplyAnnouncement(latest.tutor, tutorName, announcedTutor.current);
+    if (next === null) return;
+    announcedTutor.current = next.announced;
+    if (announceReply && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(next.say);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastTutorId, announceReply, tutorName]);
+  }, [lastTutorId, latest.tutor?.en, announceReply, tutorName]);
   return (
     <>
       <ScrollView

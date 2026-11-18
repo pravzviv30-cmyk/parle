@@ -25,6 +25,8 @@ export function thinkingAfter(thinking: boolean, message: ServerMessage): boolea
     case 'opening':
     case 'recap':
     case 'summary':
+    // The reply, sent with its voice ahead of the view (F988).
+    case 'tutor-line':
       return false;
 
     // "I cannot answer that one" is an answer. The session is still live and the
@@ -58,6 +60,10 @@ export function thinkingAfter(thinking: boolean, message: ServerMessage): boolea
     // about whether an answer has come.
     case 'wrap-up':
     case 'held-turn':
+      return thinking;
+
+    // Words said over the tutor (F987): shown, never answered, so no wait.
+    case 'overheard':
       return thinking;
   }
 }
