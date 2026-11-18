@@ -91,6 +91,8 @@ Rules:
 
 #### 2.4 Earn-back (recommended; needs founder approval, §13)
 
+**Superseded (2026-11-18).** This `earned` cover was never built. Earn-back is the repair cover (D19, D23), which the free plan now earns once every 30 days (D26), and a day with two practices banks a freeze instead (D27). See [README.md](README.md) Part 1 and DECISIONS.md REV-004. The text below is kept as history.
+
 `core/streak/cover.ts` `earnBackOffer({practiceDays, covers, today, sittingsToday})` offers to bring a streak back when:
 - exactly one uncovered day was missed and it is yesterday;
 - the run before it was at least 3 days;

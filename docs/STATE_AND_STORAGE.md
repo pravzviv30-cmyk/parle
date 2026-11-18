@@ -400,6 +400,9 @@ core from these facts and the activity log every time.
 | `badges` | a badge id and the moment it was earned, or null when counted from older practice | union by id, a dated award beats null, then the earliest | never aged; 500 ids |
 | `seen` | a celebration key already played, anywhere | union by key, the earliest | latest 800 keys, with durable milestone/level/badge/purchase keys ranked ahead of day-scoped keys |
 
+A banked freeze (D27) has no field: core reads it from the finished sittings (two on one
+day) and the resolved `freeze` covers each time, so nothing new is stored or synced.
+
 Every rule is a set union or a maximum, every collision is settled by a total order and
 every bound keeps the last rows of a sorted set ranked by identity, so the merge is
 commutative, associative and idempotent; `policy.test.ts` and `game/model.test.ts`

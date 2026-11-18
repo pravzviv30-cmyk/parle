@@ -42,7 +42,9 @@ import { settleGuestHandoff } from './guestHandoff.ts';
 import { emptyGame, readGame, type StoredGame } from './model.ts';
 import { beginSettle, configureGameEnvironment, finishSettle, readGameFacts, settleSitting } from './settle.ts';
 import { addClaims, addCovers, loadGame, setQuestDay } from './store.ts';
-import { NO_OUTSIDE_FACTS, badgeFactsFrom, gameViewFrom, type BillingFacts } from './view.ts';
+import { NO_OUTSIDE_FACTS, badgeFactsFrom, finishedSittings, gameViewFrom, type BillingFacts } from './view.ts';
+import { LOCAL_CALENDAR, emptyLog, freezeProtectionOf, planReminders } from '../reminders/plan.ts';
+import { STREAK_SAVE_LINES } from '../reminders/reminder.ts';
 
 function installDisk(): Map<string, string> {
   const map = new Map<string, string>();
@@ -951,5 +953,72 @@ describe('F918 minutes', () => {
     seen = await surfaces();
     assert.deepEqual(seen.goal, { number: '5', of: '/5', label: 'minutes' });
     assert.equal(seen.journey.value, '5');
+  });
+});
+
+describe('free earn-back and the banked freeze (F1267, F1269)', () => {
+  const FREE: BillingFacts = { plan: 'trial', lapsed: false, secondsRemaining: 0, canStart: false };
+
+  test("a free learner's second practice in the window repairs the run, and not a second time inside 30 days", async () => {
+    pin({ billing: () => FREE });
+    // Ten days ending three days ago, two days ago missed, yesterday practised:
+    // today's practice is the second in the window, so it completes the repair.
+    for (let n = 12; n >= 3; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.equal(await recordActivity('drill', 10, NOW - DAY, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    const repaired = await drill(NOW, 10);
+    assert.ok(repaired);
+    assert.deepEqual((await loadGame()).covers.map((cover) => [cover.day, cover.kind]), [[addDays(TODAY, -2), 'repair']], 'a free learner could not earn the run back');
+    assert.equal(repaired.streak.restoredBy, 'repair');
+
+    // The same break, but a repair restored a day 13 days ago: inside the free
+    // 30 days, so nothing is offered and nothing is written.
+    uid = nextUid();
+    setActiveUser(uid);
+    for (let n = 25; n >= 14; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.equal(await addCovers([{ day: addDays(TODAY, -13), kind: 'repair', at: NOW - 12 * DAY }]), 'durable');
+    for (let n = 12; n >= 3; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.equal(await recordActivity('drill', 10, NOW - DAY, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    assert.equal(gameViewFrom(await readGameFacts(NO_OUTSIDE_FACTS, FREE), TODAY).repair, null, 'the view offered a second free repair inside 30 days');
+    const again = await drill(NOW, 10);
+    assert.ok(again);
+    assert.deepEqual((await loadGame()).covers.map((cover) => [cover.day, cover.kind]), [[addDays(TODAY, -13), 'repair']], 'a free learner was repaired twice inside 30 days');
+  });
+
+  test('settle spends a banked freeze on the day the reminder planner said it would cover', async () => {
+    pin({ billing: () => FREE });
+    const yesterday = addDays(TODAY, -1);
+    const SAVE = new Set(STREAK_SAVE_LINES.map((line) => line.id));
+    // A free learner's one freeze covered five days ago and is still out. Three
+    // days ago held one practice, or two (`banked`). Yesterday went by.
+    const run = async (banked: boolean) => {
+      uid = nextUid();
+      setActiveUser(uid);
+      for (const d of [6, 4, 3, 2]) assert.equal(await recordActivity('drill', 10, NOW - d * DAY, { finished: true }), 'durable');
+      if (banked) assert.equal(await recordActivity('drill', 10, NOW - 3 * DAY + HOUR, { finished: true }), 'durable');
+      assert.equal(await addCovers([{ day: addDays(TODAY, -5), kind: 'freeze', at: NOW - 4 * DAY }]), 'durable');
+      assert.equal(await setProtectedSince(addDays(TODAY, -20)), 'durable');
+      // Yesterday morning's plan, from the facts the planner reads.
+      const facts = await readGameFacts(NO_OUTSIDE_FACTS, null);
+      const slots = planReminders({
+        now: NOW - DAY - 3 * HOUR,
+        calendar: LOCAL_CALENDAR,
+        choice: { enabled: true, time: 'evening' },
+        finishes: finishedSittings(facts).map((sitting) => sitting.at),
+        practiceDays: facts.practiceDays,
+        covers: facts.game.covers,
+        tutor: 'Céline',
+        log: emptyLog(),
+        freezes: freezeProtectionOf(await loadGameLocal()),
+      });
+      assert.equal(slots[0]?.day, yesterday);
+      assert.ok(await seedExistingLearner());
+      assert.ok(await drill(NOW, 10));
+      return { saveLine: SAVE.has(slots[0]!.line), coveredYesterday: (await loadGame()).covers.some((cover) => cover.day === yesterday && cover.kind === 'freeze') };
+    };
+
+    assert.deepEqual(await run(true), { saveLine: false, coveredYesterday: true }, 'the bank and the reminder disagreed');
+    assert.deepEqual(await run(false), { saveLine: true, coveredYesterday: false }, 'without a bank the reminder and the streak disagreed');
   });
 });

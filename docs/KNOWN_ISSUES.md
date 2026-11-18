@@ -13798,7 +13798,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P1
 - status: [ ]
 - where: apps/mobile/src/game/streakScreenView.ts:289
-- note: A free learner with an open repair sees the repair card and no plan line. With the repair spent and a recent break, the one line and See plans say the true rule. The freeze card upsell stays for free learners, keyed on the cap. A banked freeze is named in the card's existing sub line.
+- note: A free learner with an open repair sees the repair card and no plan line. With the repair spent and a recent break, the one line and See plans say the true rule. The freeze card upsell stays for free learners, keyed on the cap, and is hidden while a repair is open (founder Q4, 2026-11-18). A banked freeze is named in the card's existing sub line.
 - verified-by: `a free learner earning a repair sees the repair card and no plan line`
 - verified-by: `a free learner whose repair is spent sees the one calm line and See plans`
 - verified-by: `the freeze card says when one freeze is banked`

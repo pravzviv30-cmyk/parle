@@ -2554,3 +2554,43 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     onboarding build, from the Mascots board drawing.
 - Consequence: the onboarding build waits on the mascot session, the baseline and
   a timing of the café scene. Toast gains its first pose.
+
+## REV-004 — Free earn-back once every 30 days, and a freeze banked by a two-practice day
+
+- Date: 2026-11-18
+- Status: accepted (amends D4, D19 and D23; recorded as D26 and D27 in
+  [docs/come-alive/README.md](docs/come-alive/README.md); supersedes
+  [game.md](docs/come-alive/game.md) §2.4)
+- Decision: the founder chose, in chat, after the `/forge` contract
+  `.forge/earn-back-bank/contract.md`:
+  - **Free earn-back (D26).** The free and lapsed plans repair a streak once
+    every 30 days (`FREE_REPAIR_EVERY_DAYS`); paid plans stay at once every 7
+    (D19). The same window and two practices earn it. A repair used under any
+    plan counts against the current plan's limit.
+  - **Bank a freeze (D27).** A day with two finished practices banks one
+    freeze above the plan's cap, one slot only. It is spent first, and earned
+    again no sooner than 7 days after the day it covered. It never covers a
+    day before it was earned, and an unknown plan holds none.
+  - **Copy.** The spent line reads "You can repair a streak once every 30
+    days. Paid plans add a second freeze and a repair every week." The freeze
+    card's plan row reads "A second freeze and a repair every week", its sub
+    line "One is banked from a day with two practices", and its paragraph
+    ends "Two practices in one day bank one more." The plans page says "Paid
+    plans add a second streak freeze and a streak repair every week."
+  - **No plan at the moment of loss.** While a free learner's repair is open,
+    the Streak screen shows the repair card and no plan line or plan row.
+- Reason: a learner who slips keeps a way back that is paid for in practice,
+  not money. Two practices in a day buy one spare day of cover. The 7-day
+  refill stops a run being carried on alternate days.
+- Consequence:
+  - No stored change, no migration, no new cover kind: the bank is read from
+    synced sittings and covers, and settle and the reminder planner read the
+    same rule (`freezeCoverDays`), so the D25 save line moves a day later
+    when a freeze is banked.
+  - Two-practice days from before the update count, a one-time gift.
+  - The paid edge is now a weekly repair against every 30 days, and the second
+    freeze.
+  - No notification names a repair or the bank.
+  - Tests: core `repair.test.ts`, `freeze.test.ts`; mobile `settle.test.ts`,
+    `streakScreenView.test.ts`, `guilt.test.ts`, `reminders/plan.test.ts`,
+    `capabilities.test.ts` (F1265 to F1272).
