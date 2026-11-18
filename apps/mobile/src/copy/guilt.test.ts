@@ -26,7 +26,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { BANNED_IN_COPY, BANNED_IN_STREAK_COPY, RETIRED_FROM_BAN, guiltIn, streakGuiltIn } from './guilt.ts';
+import { BANNED_IN_COPY, BANNED_IN_STREAK_COPY, RETIRED_FROM_BAN, STREAK_BAN_EXEMPTIONS, guiltIn, streakGuiltIn } from './guilt.ts';
 
 /**
  * Every word a Luvani surface has ever banned, written down with its origin.
@@ -151,6 +151,9 @@ describe('the words no Luvani surface may say', () => {
       'midnight',
       'before it ends',
       'save your streak',
+      // Added 2026-11-18 with the D25 exemption: the counted form ("Save your
+      // 12-day streak"), which the number used to split past the phrase above.
+      ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => `save your ${digit}`),
       'disappear',
       'miss you',
       'ignor',
@@ -168,6 +171,24 @@ describe('the words no Luvani surface may say', () => {
     ]) {
       assert.ok(BANNED_IN_STREAK_COPY.includes(word), `streak copy may now say "${word}"`);
     }
+    // An exemption is not a retirement: the word stays banned on every streak
+    // surface, and only the lines named here may say it, by a dated decision.
+    assert.deepEqual(
+      STREAK_BAN_EXEMPTIONS,
+      [
+        {
+          words: ['save your streak', ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => `save your ${digit}`)],
+          lines: 'STREAK_SAVE_LINES',
+          by: 'founder decision 2026-11-18: save-your-streak reminders',
+        },
+      ],
+      'a second streak word gained an exemption. That needs its own founder decision, recorded here.',
+    );
+    for (const word of STREAK_BAN_EXEMPTIONS.flatMap(({ words }) => words)) {
+      assert.ok(BANNED_IN_STREAK_COPY.includes(word), `"${word}" is exempted but no longer banned anywhere else`);
+    }
+    // Saving something that is not a streak is fine on any surface.
+    assert.equal(streakGuiltIn('Save your progress.'), undefined);
 
     // Facts: a count, a day, a lifetime total, a calm word about repair.
     for (const line of [
@@ -195,6 +216,9 @@ describe('the words no Luvani surface may say', () => {
     // Threats: the countdown, the loss, the plea, the sad face in words.
     for (const line of [
       'Save your streak before midnight',
+      // D25 lets only the reminder's save lines say it (STREAK_BAN_EXEMPTIONS).
+      'Save your streak',
+      'Save your 12-day streak',
       "Don't lose your streak",
       'Don’t lose your streak',
       'Your streak is at risk',

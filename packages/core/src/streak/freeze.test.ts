@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { addDays, type DayKey } from './dayKey.ts';
 import { monthFrom, streakFrom, type StreakCover } from './streak.ts';
-import { FREE_FREEZE_CAP, FREEZE_CAP, FREEZE_RETURN_DAYS, freezesHeld, freezesToApply, nextFreezeReturn } from './freeze.ts';
+import { FREE_FREEZE_CAP, FREEZE_CAP, FREEZE_RETURN_DAYS, freezeCoverDays, freezesHeld, freezesToApply, nextFreezeReturn } from './freeze.ts';
 import { recentBreak, repairOffer } from './repair.ts';
 import { travelCover } from './travel.ts';
 
@@ -191,5 +191,41 @@ describe('a free learner holds one freeze (D23)', () => {
     assert.deepEqual(freezesToApply(FREE_FREEZE_CAP, { ...at, protectedSince: '2026-10-04' }), []);
     assert.deepEqual(freezesToApply(FREE_FREEZE_CAP, { ...at, protectedSince: null }), []);
     assert.deepEqual(freezesToApply(FREE_FREEZE_CAP, { ...at, protectedSince: '2026-10-03' }), ['2026-10-03']);
+  });
+});
+
+describe('freezeCoverDays: the one freeze rule settle and the reminder share (T1.2)', () => {
+  // settle.ts's branch before the move, kept here so the two can never drift.
+  const oldBranch = (cap: number, paidSince: DayKey | null, protectedSince: DayKey | null, input: { practiceDays: DayKey[]; covers: StreakCover[]; today: DayKey }) => {
+    const paid = cap >= FREEZE_CAP;
+    const both = paid ? freezesToApply(cap, { ...input, protectedSince: paidSince }) : [];
+    return both.length > 0 ? both : freezesToApply(Math.min(cap, FREE_FREEZE_CAP), { ...input, protectedSince });
+  };
+
+  test('gives the same days as settle gave, across caps, start days and gaps', () => {
+    const run = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'];
+    const starts: (DayKey | null)[] = [null, '2026-09-01', '2026-10-05', '2026-10-06'];
+    let checked = 0;
+    for (const cap of [0, FREE_FREEZE_CAP, FREEZE_CAP]) {
+      for (const paidSince of starts) {
+        for (const protectedSince of starts) {
+          for (const gapDays of [0, 1, 2, 3]) {
+            const today = addDays('2026-10-04', gapDays + 1);
+            const input = { practiceDays: run, covers: [] as StreakCover[], today };
+            assert.deepEqual(freezeCoverDays({ cap, paidSince, protectedSince }, input), oldBranch(cap, paidSince, protectedSince, input));
+            checked += 1;
+          }
+        }
+      }
+    }
+    assert.equal(checked, 192);
+  });
+
+  test('a paid plan covers two days; a free learner covers one; nothing covers before its start', () => {
+    const input = { practiceDays: ['2026-10-01', '2026-10-02', '2026-10-03'], covers: [] as StreakCover[] };
+    assert.deepEqual(freezeCoverDays({ cap: FREEZE_CAP, paidSince: '2026-09-01', protectedSince: '2026-09-01' }, { ...input, today: '2026-10-06' }), ['2026-10-04', '2026-10-05']);
+    assert.deepEqual(freezeCoverDays({ cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: '2026-09-01' }, { ...input, today: '2026-10-05' }), ['2026-10-04']);
+    assert.deepEqual(freezeCoverDays({ cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: '2026-09-01' }, { ...input, today: '2026-10-06' }), []);
+    assert.deepEqual(freezeCoverDays({ cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: '2026-10-05' }, { ...input, today: '2026-10-05' }), []);
   });
 });
