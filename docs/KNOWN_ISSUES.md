@@ -13063,7 +13063,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1063 — The WAV writer and reader each have three homes
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/quietSpeechHelpers.mjs:263
 - note: S1b-3. The two `readWav` copies throw a RangeError on an odd-length data chunk where `parseWav` truncates.
 - verified-by: `a WAV with an odd-length data chunk parses without throwing`

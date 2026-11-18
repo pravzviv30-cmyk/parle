@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS } from '../services/tutor-agent/src/voice.ts';
-import { CAP, EXPERIMENTS, LINES, MODELS, buildDesign, buildHtml, buildPlan, estimateTotal, modelIdOf, requestBody, scoreResults, settingsOf, speakingRates, wavFromPcm } from './ttsBlindCheck.mjs';
+import { CAP, EXPERIMENTS, LINES, MODELS, buildDesign, buildHtml, buildPlan, estimateTotal, modelIdOf, requestBody, scoreResults, settingsOf, speakingRates } from './ttsBlindCheck.mjs';
+import { wavFromPcm } from './quietSpeechHelpers.mjs';
 import * as blind from './ttsBlindCheck.mjs';
 import * as speed from './measureVoiceSpeed.mjs';
 import { spawnSync } from 'node:child_process';
@@ -79,7 +80,7 @@ test('tts blind check scoring maps A and B back to the right model', () => {
 
 test('tts blind check writes a valid wav and reports speaking rate per model', () => {
   const pcm = Buffer.alloc(44100);
-  const wav = wavFromPcm(pcm);
+  const wav = wavFromPcm(pcm, 22050);
   assert.equal(wav.length, 44 + pcm.length);
   assert.equal(wav.toString('ascii', 0, 4), 'RIFF');
   assert.equal(wav.toString('ascii', 36, 40), 'data');

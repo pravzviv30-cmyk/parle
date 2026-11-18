@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 
+import { readWav } from './measureHalfCascade.mjs';
+
 import {
-  applyGain, dbToGain, energyFilterSends, normaliseWords, pinkNoise, rmsLinear, slug, toDbfs, wordAccuracy, wordErrorRate,
+  applyGain, dbToGain, energyFilterSends, normaliseWords, pinkNoise, rmsLinear, slug, toDbfs, wavBytes, wordAccuracy, wordErrorRate,
 } from './quietSpeechHelpers.mjs';
 
 test('gain in dB: -20 dB is a tenth, and applyGain clips to int16', () => {
@@ -44,4 +49,14 @@ test('energy filter replay drops quiet frames once the 1 s cooldown is spent', (
   assert.equal(energyFilterSends(quiet, { warm: true }).filter(Boolean).length, 0);
   const loud = new Int16Array(16000).fill(1000); // RMS 0.03
   assert.ok(energyFilterSends(loud).every(Boolean));
+});
+
+test('a WAV with an odd-length data chunk parses without throwing', () => {
+  const wav = wavBytes(Int16Array.from([1000, -1000, 7]), 16000);
+  wav.writeUInt32LE(5, 40); // data chunk claims 5 bytes: two whole samples and half of a third
+  const path = join(mkdtempSync(join(tmpdir(), 'odd-wav-')), 'odd.wav');
+  writeFileSync(path, wav);
+  const { rate, pcm } = readWav(path);
+  assert.equal(rate, 16000);
+  assert.deepEqual([...pcm], [1000, -1000]);
 });

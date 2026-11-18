@@ -24,7 +24,7 @@ import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS, STREAMING_LATENCY, OUTPUT_ENCODING } from '../services/tutor-agent/src/voiceConfiguration.ts';
 import { CAFE_LESSON } from '../packages/core/src/lessons/cafe.ts';
-import { wordAccuracy, median } from './quietSpeechHelpers.mjs';
+import { wavFromPcm, wordAccuracy, median } from './quietSpeechHelpers.mjs';
 
 export const CAP = 1000;
 export const HEADROOM = 500;
@@ -63,16 +63,6 @@ export function buildPlan() {
   })));
 }
 export const estimateTotal = plan => plan.reduce((n, p) => n + p.estimate, 0);
-
-/** 44-byte RIFF header plus 16-bit mono PCM. */
-export function wavFromPcm(pcm, sampleRate = SAMPLE_RATE) {
-  const header = Buffer.alloc(44);
-  header.write('RIFF', 0); header.writeUInt32LE(36 + pcm.length, 4); header.write('WAVE', 8);
-  header.write('fmt ', 12); header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22);
-  header.writeUInt32LE(sampleRate, 24); header.writeUInt32LE(sampleRate * 2, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34);
-  header.write('data', 36); header.writeUInt32LE(pcm.length, 40);
-  return Buffer.concat([header, pcm]);
-}
 
 /** Derived numbers for one clip, from PCM bytes and the billed credits. */
 export function clipStats({ bytes, chars: n, credits }) {
@@ -218,7 +208,7 @@ async function main(argv) {
       if (!response.ok) throw new Error(`Synthesis HTTP ${response.status} for ${clip.name}; no retry.`);
       const pcm = Buffer.from(await response.arrayBuffer());
       if (pcm.length < 2205 || pcm.length % 2 !== 0) throw new Error(`Invalid PCM result for ${clip.name}; no retry.`);
-      writeFileSync(resolve(DESTINATION, clip.file), wavFromPcm(pcm));
+      writeFileSync(resolve(DESTINATION, clip.file), wavFromPcm(pcm, SAMPLE_RATE));
       const costName = ['character-cost', 'x-character-count'].find(name => response.headers.get(name) !== null) ?? null;
       const cost = costName ? Number(response.headers.get(costName)) : null;
       const credits = Number.isFinite(cost) && cost >= 0 ? cost : null;

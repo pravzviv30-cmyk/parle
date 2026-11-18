@@ -18,6 +18,7 @@ import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING } from '../services/tutor-agent/src/voice.ts';
+import { wavFromPcm } from './quietSpeechHelpers.mjs';
 
 export const CAP = 3600;
 export const HEADROOM = 500;
@@ -96,16 +97,6 @@ export function buildDesign(plan = buildPlan(), { rng = Math.random, newId = ran
     key.pairs[pairId] = { voice: ordered[0].voice, line: ordered[0].line, A: ordered[0].model.id, B: ordered[1].model.id, clipA: ids[0], clipB: ids[1] };
   }
   return { pairs, clips, key };
-}
-
-/** 44-byte RIFF header plus 16-bit mono PCM. */
-export function wavFromPcm(pcm, sampleRate = SAMPLE_RATE) {
-  const header = Buffer.alloc(44);
-  header.write('RIFF', 0); header.writeUInt32LE(36 + pcm.length, 4); header.write('WAVE', 8);
-  header.write('fmt ', 12); header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22);
-  header.writeUInt32LE(sampleRate, 24); header.writeUInt32LE(sampleRate * 2, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34);
-  header.write('data', 36); header.writeUInt32LE(pcm.length, 40);
-  return Buffer.concat([header, pcm]);
 }
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -371,7 +362,7 @@ async function main(argv) {
       if (!response.ok) throw new Error(`Synthesis HTTP ${response.status}; no retry.`);
       const pcm = Buffer.from(await response.arrayBuffer());
       if (pcm.length < 2205 || pcm.length % 2 !== 0) throw new Error('Invalid PCM result; no retry.');
-      writeFileSync(resolve(DESTINATION, clip.file), wavFromPcm(pcm));
+      writeFileSync(resolve(DESTINATION, clip.file), wavFromPcm(pcm, SAMPLE_RATE));
       const costName = ['character-cost', 'x-character-count'].find(name => response.headers.get(name) !== null) ?? null;
       const cost = costName ? Number(response.headers.get(costName)) : null;
       Object.assign(clip, {

@@ -279,6 +279,16 @@ export function wavBytes(pcm, rate) {
   return Buffer.concat([h, data]);
 }
 
+/** 44-byte RIFF header plus 16-bit mono PCM, from raw PCM bytes. */
+export function wavFromPcm(pcm, sampleRate) {
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0); header.writeUInt32LE(36 + pcm.length, 4); header.write('WAVE', 8);
+  header.write('fmt ', 12); header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(sampleRate, 24); header.writeUInt32LE(sampleRate * 2, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34);
+  header.write('data', 36); header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+}
+
 /** Reads a 16-bit PCM WAV (first channel if stereo). */
 export function parseWav(buf) {
   let off = 12;
