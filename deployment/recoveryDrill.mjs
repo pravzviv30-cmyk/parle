@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validHash } from '../scripts/verifyRelease.mjs';
+import { JOURNAL_KEEP_DAYS } from './deletion-journal/store.ts';
 export const COVERAGE=['applicationSchemasAndData','authUsersAndSessions','rolesAclsAndDefaults','migrationHistory',
   'extensionsAndEncryptionKeys','storageMetadataAndBodies','platformAndProviderConfiguration','immutableReleaseArtifacts',
   'offBackupDeletionJournal'];
@@ -24,10 +25,20 @@ export function verifyDrill(drill) {
     if(!Number.isFinite(start) || !Number.isFinite(end) || end<start || (last!==undefined && start<last))throw new Error('Invalid restore phase timing');
     first??=start;last=end;
   }
-  for(const key of ['approvedRpoSeconds','approvedRtoSeconds','observedRpoSeconds','deletionsExpected','deletionsReplayed','journalHighWaterBefore','journalHighWaterAfter'])if(!Number.isSafeInteger(drill[key]) || drill[key]<0)throw new Error(`Missing measured ${key}`);
+  for(const key of ['approvedRpoSeconds','approvedRtoSeconds','observedRpoSeconds','deletionsExpected','deletionsReplayed','journalSequenceBefore','journalSequenceAfter','journalSnapshotRecords','journalRecordsAfter'])if(!Number.isSafeInteger(drill[key]) || drill[key]<0)throw new Error(`Missing measured ${key}`);
   const observedRtoSeconds=Math.ceil((last-first)/1000);
   if(drill.approvedRpoSeconds<1 || drill.approvedRtoSeconds<1 || drill.observedRpoSeconds>drill.approvedRpoSeconds || observedRtoSeconds>drill.approvedRtoSeconds)throw new Error('Measured recovery exceeds approved target');
-  if(drill.deletionsReplayed!==drill.deletionsExpected || drill.journalHighWaterAfter<drill.journalHighWaterBefore)throw new Error('Post-backup deletion replay incomplete');
+  // The journal's AUTOINCREMENT sequence: removal never lowers it, so a drop means the journal itself was rolled back.
+  // Rejected re-record PUTs also advance it, so the count after the replay must still hold the sealed snapshot's records:
+  // removal is held while that snapshot is live.
+  if(drill.deletionsReplayed!==drill.deletionsExpected || drill.journalSequenceAfter<drill.journalSequenceBefore || drill.journalRecordsAfter<drill.journalSnapshotRecords)throw new Error('Post-backup deletion replay incomplete');
+  // The journal keeps an entry JOURNAL_KEEP_DAYS after its erasure, so only a backup younger than that can be replayed whole.
+  // Removal is held only once the replay seals, so measure to the phase's end, a day short for the daily cron.
+  const replay=drill.phases[PHASES.indexOf('replayPostBackupDeletions')];
+  const backup=typeof drill.backupTakenAt==='string'?Date.parse(drill.backupTakenAt):NaN,replayStart=Date.parse(replay.startedAt);
+  if(!Number.isFinite(backup))throw new Error('Missing measured backupTakenAt');
+  if(backup>replayStart)throw new Error('backupTakenAt is after the replay phase');
+  if(Date.parse(replay.completedAt)-backup>=(JOURNAL_KEEP_DAYS-1)*24*60*60*1000)throw new Error('Backup is older than the deletion journal keep period');
   return {observedRtoSeconds,observedRpoSeconds:drill.observedRpoSeconds,deletionsReplayed:drill.deletionsReplayed,targetProjectRef:drill.targetProjectRef,
     verification:'operator evidence inventory only; actual restore/checks require independent review'};
 }
@@ -37,7 +48,7 @@ async function main(args) {
   const pending=name=>({name,status:'pending',evidenceUrl:null,sha256:null});
   await writeFile(resolve(args[1]),`${JSON.stringify({version:1,sourceProjectRef:null,targetProjectRef:null,isolatedTarget:false,
     approvedRpoSeconds:null,approvedRtoSeconds:null,observedRpoSeconds:null,deletionsExpected:null,deletionsReplayed:null,
-    journalHighWaterBefore:null,journalHighWaterAfter:null,coverage:COVERAGE.map(pending),
+    journalSequenceBefore:null,journalSequenceAfter:null,journalSnapshotRecords:null,journalRecordsAfter:null,backupTakenAt:null,coverage:COVERAGE.map(pending),
     phases:PHASES.map(name=>({...pending(name),startedAt:null,completedAt:null}))},null,2)}\n`,{flag:'wx',mode:0o600});
   console.log('Drill template created with every phase pending. No restore performed.');
 }

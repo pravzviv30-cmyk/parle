@@ -13638,6 +13638,61 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found by work-judge (Fable 5.2), audit fix slice A, 2026-11-18. The contract asked for a one-line pointer on F1006; it now says decode-uri-component is fixed by F1254 and zod is still accepted. Docs only; the title below is the existing test that holds the record.
 - verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
 
+### F1245 — The journal cannot tell a finished erasure from one in flight
+- severity: P1
+- status: [x]
+- where: deployment/deletion-journal/worker.ts:70
+- note: Founder, 2026-11-18, option A. Lane 1. Add `completed_at`, stamped by the store on `POST /records/<name>/completion`; a repeat moves it forward; the client never supplies the time.
+- verified-by: `completion is stamped by the store, repeats move it forward, and an unknown record is 404`
+- verified-by: `the D1 store passes the completion, removal and seal checks on real SQLite`
+
+### F1246 — The schema refuses every delete, so an entry can never be removed
+- severity: P1
+- status: [x]
+- where: deployment/deletion-journal/schema.sql:15
+- note: Lane 1. Replace the two record triggers with `records_completion_only` and `records_delete_after_keep`; add `migrate-0002-removal.sql` (new triggers created before old ones are dropped) and `rollback-0002-removal.sql`. Name `BACKUP_WINDOW_DAYS`, `JOURNAL_MARGIN_DAYS`, `JOURNAL_KEEP_DAYS` in store.ts.
+- verified-by: `the schema lets a record change only by a completion stamped now, and refuses delete until 37 days after it`
+- verified-by: `the migration turns the old schema into schema.sql without an unguarded moment, and the rollback restores it`
+- verified-by: `the keep period is the backup window plus thirty days in code, schema and migration`
+
+### F1247 — Nothing removes a journal entry once its keep period has passed
+- severity: P1
+- status: [x]
+- where: deployment/deletion-journal/worker.ts:116
+- note: Lane 1. `removeDue()` on the store, a `scheduled` handler, and a daily cron in wrangler.toml. It skips while any snapshot is unexpired.
+- verified-by: `cleanup removes only records completed more than the keep period ago`
+- verified-by: `cleanup waits while a sealed snapshot is unexpired, so a listing in progress stays whole`
+- verified-by: `the scheduled handler runs the cleanup and wrangler.toml declares its cron`
+
+### F1248 — Seal would reuse a snapshot that removal has made stale
+- severity: P1
+- status: [x]
+- where: deployment/deletion-journal/d1.ts:28
+- note: Lane 1. Reuse is keyed on high water alone; after a removal the old count and hash fail every replay for up to 24 hours. Add the count check; give memoryStore a sequence that never goes down (memoryStore.ts:16).
+- verified-by: `seal never reuses a snapshot that removal has made stale`
+- verified-by: `a replay after removal verifies and applies exactly the entries that remain`
+
+### F1249 — The recovery drill fails a journal that shrank by legitimate removal
+- severity: P1
+- status: [x]
+- where: deployment/recoveryDrill.mjs:30
+- note: Lane 1. Replace `journalHighWaterBefore/After` with `journalSequenceBefore/After` (AUTOINCREMENT sequence) and a required `backupTakenAt` inside `JOURNAL_KEEP_DAYS` of the replay phase. Update README :86-92 and BACKEND_RELEASE_RUNBOOK :19, :104.
+- verified-by: `the recovery drill accepts a journal that shrank by removal and refuses a sequence that went backwards or a backup older than the keep period`
+
+### F1260 — INSERT OR REPLACE would get past the journal's delete trigger
+- severity: P2
+- status: [ ]
+- where: deployment/deletion-journal/schema.sql:20
+- note: Found by design-architect while writing the journal-removal contract, 2026-11-18. SQLite's REPLACE conflict resolution deletes the old row without firing delete triggers unless recursive_triggers is on, so an `INSERT OR REPLACE` into records would remove an entry inside its keep period. The Worker only ever uses `ON CONFLICT(name) DO NOTHING` (no REPLACE anywhere in the lane), so it is not reachable today; a test should keep it that way. An `INSERT` that supplies a backdated `completed_at` is not guarded either: the Worker never sets `completed_at` on insert, and doing so needs raw D1 access, which can also drop the triggers, so it is the same class.
+- verified-by: `no journal statement uses REPLACE, so no entry can be replaced inside its keep period`
+
+### F1261 — The recovery drill cannot see a journal rolled back between the sequence read and the replay's seal
+- severity: P2
+- status: [ ]
+- where: deployment/recoveryDrill.mjs:35
+- note: Work-judge (Fable 5.2), 2026-11-18, push-check round of journal-removal lane 1. `journalRecordsAfter >= journalSnapshotRecords` only covers rows lost after the seal. If the journal is restored to an earlier point after `journalSequenceBefore` is read and before the replay seals, the snapshot is smaller, the replay's rejected PUTs lift the sequence past its old value, and the drill passes (sequence 9 read, journal restored to 7 rows, seal 7, sequence 14, count 7). Only an independently derived `deletionsExpected` catches it. Needs a deliberate mid-drill restore of the journal; the contract claimed no more than `after >= before`. Candidate: read the sequence and seal in one step, or record the snapshot's high water and require it to be at least `journalSequenceBefore`.
+- verified-by: `the recovery drill refuses a journal rolled back between the sequence read and the replay's seal`
+
 ### F1256 — The Expo CLI still pins zod 3, which blocks every zod fix
 - severity: P1
 - status: [x]

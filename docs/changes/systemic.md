@@ -1,7 +1,7 @@
 # The systemic pass
 
-- Status: built on `claude/systemic`; landing after the founder's OK on the after shots
-- Updated: 2026-11-17
+- Status: landed by PR #12 as `008d6bc8` (2026-11-18)
+- Updated: 2026-11-18
 - Checkout / starting revision: `Luvani-worktrees/systemic`, cut at `c986b4eb`
 - Owner / integrator: the systemic pass orchestrator session
 - Existing programme / contract: `/forge` contract `.forge/systemic-pass/contract.md`
@@ -165,7 +165,9 @@ reach except F999's: Card/Tile/Hero 60 or fewer, Button/Pill 21.
 - The founder's OK on the after shots: "OK, land it" (2026-11-17, on the board's
   "After: as built" page).
 - Landing disposition: LAND after the gate and `/push-check --main`, by PR.
-- Next task: the gate, then the founder's OK, push-check and the PR.
+- Next task: none in this change. The founder's answers on the push-check proposals are in
+  DESIGN_PARTNERSHIP.md (four queued for a board, the Plan label folded into onboarding's
+  build, the dark offline drawing queued for the dark board).
 - Push-check findings left out of scope on purpose (2026-11-17), each older than this
   pass: the `state-offline` drawing is light-only on the dark card (it already showed
   on main's device-offline lead; the dark rows of 2026-11-07 go to their own dark
