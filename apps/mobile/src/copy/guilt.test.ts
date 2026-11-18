@@ -26,7 +26,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { BANNED_IN_COPY, BANNED_IN_STREAK_COPY, RETIRED_FROM_BAN, guiltIn, streakGuiltIn } from './guilt.ts';
+import { BANNED_IN_COPY, BANNED_IN_STREAK_COPY, RETIRED_FROM_BAN, RETIRED_FROM_STREAK_BAN, guiltIn, streakGuiltIn } from './guilt.ts';
 
 /**
  * Every word a Luvani surface has ever banned, written down with its origin.
@@ -166,7 +166,19 @@ describe('the words no Luvani surface may say', () => {
       'in danger',
       'going out',
     ]) {
+      // A word retired by a recorded founder decision is checked below instead.
+      if (RETIRED_FROM_STREAK_BAN.some((retired) => retired.word === word)) continue;
       assert.ok(BANNED_IN_STREAK_COPY.includes(word), `streak copy may now say "${word}"`);
+    }
+    // The streak list's retired words cannot grow quietly either. "save your
+    // streak" left on 2026-11-18 (D25) for the one save line; every other word stays.
+    assert.deepEqual(
+      RETIRED_FROM_STREAK_BAN,
+      [{ word: 'save your streak', by: 'founder decision 2026-11-18: save-your-streak reminders' }],
+      'a second word left the streak ban list. That needs its own founder decision, recorded here.',
+    );
+    for (const { word } of RETIRED_FROM_STREAK_BAN) {
+      assert.ok(!BANNED_IN_STREAK_COPY.includes(word), `"${word}" is retired but still banned`);
     }
 
     // Facts: a count, a day, a lifetime total, a calm word about repair.

@@ -121,8 +121,11 @@ Two hard behavioural commitments, both derived from confirmed research:
   without adding to it, and a used freeze comes back a week later. For a free
   learner a missed day the freeze cannot cover starts a new run. Just after a run ends, a free learner sees one
   calm line on the Streak screen and a way to see plans:
-  "Subscribers can repair a streak within 2 days." There is no notification
-  about it, no countdown, and never "save your streak".
+  "Subscribers can repair a streak within 2 days." Repair never has a
+  notification or a countdown. One reminder may say "Save your 12-day streak"
+  (D25, 2026-11-18): it takes the place of that day's one reminder, never adds
+  one, and comes only on a run of three days or more when no freeze would
+  cover the day. It never counts down and never names a plan or a repair.
 
   Streak copy states facts ("Your 12-day streak is waiting") and never threatens:
   no loss, no "at risk", no "last chance", no countdowns, no sad faces. Every

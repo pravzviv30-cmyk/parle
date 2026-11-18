@@ -36,7 +36,7 @@ import {
   type ReminderLog,
   type ReminderSlot,
 } from './plan.ts';
-import { MILESTONE_EVE_LINE, PAUSE_LINE, REMINDER_COPY, REMINDER_LINES, ROUTINE_LINES, STREAK_LINES } from './reminder.ts';
+import { MILESTONE_EVE_LINE, PAUSE_LINE, REMINDER_COPY, REMINDER_LINES, ROUTINE_LINES, STREAK_LINES, STREAK_SAVE_LINES } from './reminder.ts';
 
 /** A calendar with no time zone, so every day is 24 hours and the test reads the same anywhere. */
 const UTC: Calendar = {
@@ -222,7 +222,8 @@ describe('the reminder planner — F771', () => {
     // today's phrase, the pause note opens Settings, and the rest open Home.
     for (const line of REMINDER_LINES) {
       const words = `${line.title({ n: 3, lifetime: 3, tutor: 'Marie' })} ${line.body({ n: 3, lifetime: 3, tutor: 'Marie' })}`;
-      const expected = /phrase/i.test(words) ? 'daily-phrase' : line.id === 'pause' ? 'settings' : 'home';
+      // A save line always opens today's phrase, the quickest practice there is (T1.2).
+      const expected = /phrase/i.test(words) || STREAK_SAVE_LINES.includes(line) ? 'daily-phrase' : line.id === 'pause' ? 'settings' : 'home';
       assert.equal(line.open, expected, `"${words}" opens ${line.open}`);
     }
     assert.deepEqual(routeForReminder('daily-phrase', 'phrase-123'), { name: 'DailyPractice', params: { id: 'phrase-123' } });
@@ -425,5 +426,66 @@ describe('only what the phone held counts — F771 review', () => {
     assert.match(planner, /schedule: \(mode\) => replanReminders\(\{ tutor, choice: yes\(mode\) \}\),/, 'the ask plans without its choice, so a fresh yes can be read as a pause');
     assert.match(planner, /save: \(reminder\) => \(reminder\.enabled \? saveReminder\(yes\(reminder\.time\)\) : saveReminder\(stored \?\? reminder\)\),/);
     assert.match(planner, /const step = replanStep\(\{ now, choice, chosenNow: options\.choice !== undefined, permitted, log: stored, held \}\);/);
+  });
+});
+
+describe('the save line: only on a real cliff, inside the one slot (T1.2, D25)', () => {
+  const FREE = { cap: 1, paidSince: null, protectedSince: '2026-09-01' };
+  const SAVE = new Set(STREAK_SAVE_LINES.map((line) => line.id));
+  const saves = (slots: readonly ReminderSlot[]) => slots.filter((slot) => SAVE.has(slot.line));
+  // Four days kept, the last by a freeze still within its seven days: none held.
+  const spent = { practiceDays: [day(-4), day(-3), day(-2)], covers: [{ day: day(-1), kind: 'freeze' as const, at: 0 }] };
+
+  test('(a) a projected cliff with today unpractised is the save line, opening today\'s phrase', () => {
+    const slots = planReminders(input({ ...spent, freezes: FREE }));
+    assert.equal(slots[0]?.day, TODAY);
+    assert.ok(SAVE.has(slots[0]!.line), `today said ${slots[0]?.line}`);
+    assert.equal(slots[0]?.open, 'daily-phrase');
+    assert.match(`${slots[0]?.title}`, /\b3[- ]day/);
+    assert.equal(saves(slots).length, 1, 'a save line after the run had already ended');
+  });
+
+  test('(b) a freeze that would cover the day means no save line that day', () => {
+    const slots = planReminders(input({ practiceDays: [day(-3), day(-2), day(-1)], freezes: FREE }));
+    assert.equal(slots[0]?.day, TODAY);
+    assert.ok(!SAVE.has(slots[0]!.line), 'a save line on a day the held freeze covers');
+  });
+
+  test('(c) plan unknown, or a guest, gets no save line', () => {
+    assert.deepEqual(saves(planReminders(input({ ...spent }))), []);
+    assert.deepEqual(saves(planReminders(input({ ...spent, guest: true }))), []);
+  });
+
+  test('(d) a learner who asked for lines without their streak gets no save line', () => {
+    assert.deepEqual(saves(planReminders(input({ ...spent, freezes: FREE, choice: { enabled: true, time: 'evening', mentionStreak: false } }))), []);
+  });
+
+  test('(e) a run under three gets no save line', () => {
+    assert.deepEqual(saves(planReminders(input({ practiceDays: [day(-1)], freezes: FREE }))), []);
+    assert.deepEqual(saves(planReminders(input({ practiceDays: [day(-2)], covers: [{ day: day(-1), kind: 'freeze', at: 0 }], freezes: FREE }))), []);
+  });
+
+  test('(f) the fifth unanswered slot is still the pause note, and a paused learner gets nothing', () => {
+    const slots = planReminders(input({ ...spent, freezes: FREE }));
+    assert.equal(slots.length, UNANSWERED_LIMIT + 1);
+    assert.equal(slots[UNANSWERED_LIMIT]?.line, 'pause');
+    assert.deepEqual(planReminders(input({ ...spent, freezes: FREE, choice: { enabled: true, time: 'evening', paused: true } })), []);
+  });
+
+  test('(g) with a held free freeze, D+1 projects the run alive through it and D+2 is the save line', () => {
+    const slots = planReminders(input({ practiceDays: [day(-2), day(-1), TODAY], freezes: FREE }));
+    const next = slots.find((slot) => slot.day === day(1))!;
+    const after = slots.find((slot) => slot.day === day(2))!;
+    assert.ok(STREAK_LINES.some((line) => line.id === next.line) || next.line === MILESTONE_EVE_LINE.id, `D+1 said ${next.line}`);
+    assert.ok(SAVE.has(after.line), `D+2 said ${after.line}: the projection forgot the freeze D+1 would spend`);
+    assert.match(after.title, /\b3[- ]day/);
+  });
+
+  test('(h) still exactly one practice:{day} slot per day', () => {
+    for (const over of [{ ...spent, freezes: FREE }, { practiceDays: [day(-2), day(-1), TODAY], freezes: FREE }]) {
+      const slots = planReminders(input(over));
+      assert.deepEqual(slots.map((slot) => slot.id), slots.map((slot) => `practice:${slot.day}`));
+      assert.equal(new Set(slots.map((slot) => slot.day)).size, slots.length);
+    }
   });
 });

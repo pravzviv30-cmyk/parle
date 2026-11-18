@@ -467,7 +467,7 @@ With "Mention my streak" off, every day uses the routine copy. Freezes and plans
 **`@/copy/guilt.ts`:**
 - Remove `'streak'` from `BANNED_IN_COPY` (`:33`) and add `RETIRED_FROM_BAN = [{ word: 'streak', by: 'founder decision 2026-10-04: a full daily streak' }]`.
 - Keep every shaming word.
-- Add `BANNED_IN_STREAK_COPY = [...BANNED_IN_COPY, 'at risk', 'last chance', 'hurry', 'ends tonight', 'midnight', 'before it ends', 'save your streak', 'disappear', 'miss you', 'ignor', 'disappoint', 'shame', 'sad', 'hours left', 'minutes left']`. It applies only to `game/copy.ts` and the nudge copy. It is kept separate so that words like "protect" in privacy copy are not swept up.
+- Add `BANNED_IN_STREAK_COPY = [...BANNED_IN_COPY, 'at risk', 'last chance', 'hurry', 'ends tonight', 'midnight', 'before it ends', 'disappear', 'miss you', 'ignor', 'disappoint', 'shame', 'sad', 'hours left', 'minutes left']` (later additions in `guilt.ts`; 'save your streak' left it by D25, 2026-11-18, recorded in `RETIRED_FROM_STREAK_BAN`). It applies only to `game/copy.ts` and the nudge copy. It is kept separate so that words like "protect" in privacy copy are not swept up.
 
 **`@/progress/today.ts` and its test: delete.** It has no importer and no pinned titles. Its single job, sittings today, becomes the `practise-twice` quest. Update the comment citations in `@/progress/evidence.ts:7`, `@/myfrench/copy.ts:20`, `momentum.ts:133`, `guilt.ts:30` and `reminder.ts:55`.
 

@@ -31,11 +31,15 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { guiltIn as guiltOf, streakGuiltIn as streakGuiltOf } from '../copy/guilt.ts';
+
 import {
   DEFAULT_REMINDER_MODE,
   DEFAULT_REMINDER_TIME,
   REMINDER_COPY,
   REMINDER_EXPLAIN,
+  REMINDER_LINES,
+  STREAK_SAVE_LINES,
   REMINDER_OFF,
   REMINDER_PAUSED,
   REMINDER_PAUSED_VALUE,
@@ -234,7 +238,8 @@ const PLANNER = 'ReminderPlanner.tsx';
  * works out a level, `game/display.test.ts`).
  */
 const READERS: Readonly<Record<string, readonly string[]>> = {
-  [PLANNER]: ['../game/settle.ts', '../game/view.ts', '../onboarding/guestModel.ts', '../onboarding/guestPractice.ts'],
+  // gameLocal.ts for paidSince and protectedSince only: the freezes the save line reads (T1.2).
+  [PLANNER]: ['../game/gameLocal.ts', '../game/settle.ts', '../game/view.ts', '../onboarding/guestModel.ts', '../onboarding/guestPractice.ts'],
   'todayPhrase.ts': ['../game/settle.ts', '../game/view.ts'],
 };
 
@@ -406,6 +411,34 @@ describe('what a reminder is not allowed to know', () => {
         sources.some((source) => pattern.test(source)),
         `the practice ban names ${symbol}, which no longer exists. A ban on a renamed symbol is a ban on nothing.`,
       );
+    }
+  });
+});
+
+describe('the save lines (T1.2, D25)', () => {
+  test('three of them, scanned, and they never name a plan, a repair, a time or a countdown', () => {
+    assert.equal(STREAK_SAVE_LINES.length, 3);
+    assert.ok(STREAK_SAVE_LINES.every((line) => REMINDER_LINES.includes(line)), 'a save line the guilt scans never read');
+    for (const line of STREAK_SAVE_LINES) {
+      assert.equal(line.open, 'daily-phrase');
+      for (const n of [3, 4, 6, 29, 99, 364]) {
+        for (const words of [line.title({ n, lifetime: n, tutor: 'Marie' }), line.body({ n, lifetime: n, tutor: 'Marie' })]) {
+          assert.equal(streakGuiltOf(words), undefined, `a streak nag: ${words}`);
+          assert.equal(guiltOf(words), undefined, `guilt: ${words}`);
+          assert.doesNotMatch(words, /plan|subscri|repair|minute|hour|tonight|midnight|\d+:\d+|left|before/i, `a plan, a repair, a time or a countdown: ${words}`);
+          assert.doesNotMatch(words, /\b1 days\b/);
+        }
+      }
+    }
+  });
+
+  test('"save your" is said by the save lines and nothing else', () => {
+    for (const line of REMINDER_LINES) {
+      const words = [1, 3, 29].map((n) => `${line.title({ n, lifetime: n, tutor: 'Marie' })} ${line.body({ n, lifetime: n, tutor: 'Marie' })}`).join(' ');
+      if (!STREAK_SAVE_LINES.includes(line)) assert.doesNotMatch(words, /save your/i, `${line.id} says "save your"`);
+    }
+    for (const copy of REMINDER_COPY) {
+      if (/save your/i.test(copy)) assert.match(copy, /^Save your \d+-day streak$/);
     }
   });
 });

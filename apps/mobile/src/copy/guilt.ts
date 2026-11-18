@@ -62,6 +62,16 @@ export const RETIRED_FROM_BAN: readonly { readonly word: string; readonly by: st
 ];
 
 /**
+ * Words that left the stricter streak list below, each by a founder decision.
+ * Kept apart from RETIRED_FROM_BAN, whose words were on the shared list.
+ * "save your streak" left for the one save line (D25), which comes only when no
+ * freeze would cover the day and never counts down, names a plan or a repair.
+ */
+export const RETIRED_FROM_STREAK_BAN: readonly { readonly word: string; readonly by: string }[] = [
+  { word: 'save your streak', by: 'founder decision 2026-11-18: save-your-streak reminders' },
+];
+
+/**
  * The stricter list for streak, goal, quest and reminder copy: everything no
  * surface may say, plus the countdown, the plea and the sad face in words.
  *
@@ -86,7 +96,6 @@ export const BANNED_IN_STREAK_COPY: readonly string[] = [
   'ends tonight',
   'midnight',
   'before it ends',
-  'save your streak',
   'disappear',
   'miss you',
   'ignor',

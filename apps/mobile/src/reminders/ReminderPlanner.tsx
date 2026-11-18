@@ -34,9 +34,10 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
-import { DEFAULT_TUTOR_VOICE, tutorVoice, type DayKey, type StreakCover } from '@luvani/core';
+import { DEFAULT_TUTOR_VOICE, FREE_FREEZE_CAP, FREEZE_CAP, tutorVoice, type DayKey, type FreezeProtection, type StreakCover } from '@luvani/core';
 
 import { useProfile } from '../app/ProfileContext.tsx';
+import { loadGameLocal } from '../game/gameLocal.ts';
 import { onSettled, readGameFacts } from '../game/settle.ts';
 import { NO_OUTSIDE_FACTS, finishedSittings } from '../game/view.ts';
 import { guestPracticeDays } from '../onboarding/guestModel.ts';
@@ -123,6 +124,19 @@ async function accountFacts(): Promise<PracticeFacts | null> {
   }
 }
 
+/**
+ * What this phone first saw of the learner's freezes (`gameLocal.ts`): a paid
+ * plan holds two, a protected free learner one, and anything else is unknown,
+ * so no save line. No billing call; it says only what this phone saw.
+ */
+async function freezeFacts(): Promise<FreezeProtection | undefined> {
+  const local = await loadGameLocal().catch(() => null);
+  if (local === null) return undefined;
+  if (local.paidSince !== null) return { cap: FREEZE_CAP, paidSince: local.paidSince, protectedSince: local.protectedSince };
+  if (local.protectedSince !== null) return { cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: local.protectedSince };
+  return undefined;
+}
+
 /** A guest's facts: the days a practice was saved as finished, and nothing else. */
 async function guestFacts(): Promise<PracticeFacts> {
   const guest = await loadGuestPractice();
@@ -194,6 +208,7 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
   if (choice === null) return 'failed';
 
   const facts = await accountFacts();
+  const freezes = await freezeFacts();
   const tutor = options.tutor ?? tutorNameOf(await loadProfile().catch(() => null));
   let log: ReminderLog = step.log;
   if (visiting()) log = noteOpened(log, now, LOCAL_CALENDAR);
@@ -204,6 +219,7 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
     finishes: facts?.finishes ?? [],
     practiceDays: facts?.practiceDays ?? [],
     covers: facts?.covers ?? [],
+    ...(freezes !== undefined ? { freezes } : {}),
     tutor,
     log,
     todayUnknown: facts === null,

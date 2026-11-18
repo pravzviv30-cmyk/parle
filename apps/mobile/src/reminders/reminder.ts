@@ -16,7 +16,10 @@
  * - **No shame.** Every line here states only the learner's own counts (their
  *   streak, their days practised) and names the tutor they chose. Nothing
  *   threatens, counts down or pleads: every line passes `guiltIn` and
- *   `streakGuiltIn` (copy/guilt.ts), and nothing reads yesterday or a loss.
+ *   `streakGuiltIn` (copy/guilt.ts), and nothing reads yesterday. The one
+ *   exception to "no loss" is the save line (D25, 2026-11-18): it takes the
+ *   day's one slot only when no freeze would cover the day, and never counts
+ *   down or names a plan or a repair.
  * - **No badge.** The count never goes on the app icon (`schedule.native.ts`).
  * - **It pauses itself.** After four reminders in a row go unanswered (no
  *   practice, no tap, no visit to the app after it arrived), the fifth slot is
@@ -226,6 +229,33 @@ export const MILESTONE_EVE_LINE: ReminderLine = {
 };
 
 /**
+ * The save set (founder decision D25, 2026-11-18): it takes the day's one slot
+ * only when the run is three days or more and no freeze would cover the day
+ * (`plan.ts`). It names the run and the tutor, never a plan, a repair, a time
+ * or a countdown, and opens today's phrase, the quickest practice there is.
+ */
+export const STREAK_SAVE_LINES: readonly ReminderLine[] = [
+  {
+    id: 'streak-save-phrase',
+    open: 'daily-phrase',
+    title: ({ n }) => `Save your ${n}-day streak`,
+    body: ({ tutor }) => `${tutor} has today's phrase ready. A quick one keeps it going.`,
+  },
+  {
+    id: 'streak-save-review',
+    open: 'daily-phrase',
+    title: ({ n }) => `Save your ${n}-day streak`,
+    body: ({ tutor }) => `A short review counts too. ${tutor} is here.`,
+  },
+  {
+    id: 'streak-save-keep',
+    open: 'daily-phrase',
+    title: ({ n }) => `Keep your ${days(n)} going`,
+    body: ({ tutor }) => `Today's phrase is quick, and ${tutor} is ready.`,
+  },
+];
+
+/**
  * The routine set, for a day with no run to mention (or a learner who asked
  * for lines without their streak). The third is offered only once there is a
  * practice day to count, and states that count and nothing about a run.
@@ -271,7 +301,7 @@ export const GUEST_PAUSE_LINE: ReminderLine = {
 };
 
 /** Every line a reminder can be, for the scans. */
-export const REMINDER_LINES: readonly ReminderLine[] = [...STREAK_LINES, MILESTONE_EVE_LINE, ...ROUTINE_LINES, PAUSE_LINE, GUEST_PAUSE_LINE];
+export const REMINDER_LINES: readonly ReminderLine[] = [...STREAK_LINES, MILESTONE_EVE_LINE, ...STREAK_SAVE_LINES, ...ROUTINE_LINES, PAUSE_LINE, GUEST_PAUSE_LINE];
 
 /** A line with its facts filled in. */
 export function reminderMessage(line: ReminderLine, facts: LineFacts): ReminderContent {
