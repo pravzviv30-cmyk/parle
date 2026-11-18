@@ -61,7 +61,7 @@ test('current scene keyterms update the active session without changing paid or 
 
 test('scripted lessons and scenes build recognition with one fixed keyterm list, on and off the proxy; convo gets none; Flux carries the same list as keyterms', () => {
   const source = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
-  assert.match(source, /const lesson = scene \? sceneLesson\(scene\) : CAFE_LESSON;/);
+  assert.match(source, /lesson = roomLesson\(meta\.mode, scene, meta\.lessonId\);/);
   assert.match(source, /const keyterm = isConvo \? \[\] : lessonKeyterms\(lesson\);/);
   // Construction only: the keyterms sit before the proxy options, so both paths carry them.
   assert.match(source, /recognition.flux\s*\? new deepgram.STTv2\(\{ \.\.\.recognition.options, \.\.\.\(keyterm.length \? \{ keyterms: keyterm \} : \{\}\), \.\.\.\(proxy \?[\s\S]*?: new deepgram.STT\(\{ \.\.\.recognition.options, \.\.\.\(keyterm.length \? \{ keyterm \} : \{\}\), \.\.\.\(proxy \?/);

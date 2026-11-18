@@ -60,12 +60,13 @@ export const KEEPSAKE_COPY = {
 /**
  * The lines the learner said, as they said them: their own French, the last few
  * of the conversation, once each, in the order they came. Nothing the tutor or
- * the narrator said is theirs to keep.
+ * the narrator said is theirs to keep, and nor is a line overheard over the
+ * tutor (`overheard:` id), which may be the tutor's own echo (F988).
  */
-export function keepsakeLines(turns: readonly Pick<TurnLine, 'who' | 'fr'>[]): string[] {
+export function keepsakeLines(turns: readonly (Pick<TurnLine, 'who' | 'fr'> & { id?: string })[]): string[] {
   const said: string[] = [];
   for (const turn of turns) {
-    if (turn.who !== 'learner') continue;
+    if (turn.who !== 'learner' || turn.id?.startsWith('overheard:')) continue;
     const line = turn.fr.trim();
     if (line.length === 0) continue;
     const at = said.indexOf(line);

@@ -85,6 +85,8 @@ export interface ConvoView {
   sceneReply: ConvoSpeakerLine;
   /** The one spoken coaching line this turn, or null when coaching deferred. */
   coachLine: string | null;
+  /** The coach line was spoken aloud (an English reach or a way back), so it is a tutor line too. Absent otherwise. */
+  coachSpoken?: true;
   /**
    * The corrections behind the coach line, quote and better form intact, so
    * the app can show the recast instead of only saying it. Research on
@@ -257,6 +259,20 @@ export type ServerMessage =
   | { t: 'held-turn'; state: HeldTurnState }
   /** Recognized learner speech; interpreted marks a contextual spelling repair. */
   | { t: 'transcript'; text: string; final: boolean; input?: 'typed' | 'spoken'; turnId?: string; interpreted?: boolean }
+  /**
+   * Words the learner said over an uninterruptible tutor line, which the voice
+   * pipeline dropped (F987). Shown, never answered, never counted as a reply.
+   * Its own tag rather than a flag on `transcript`, so an app that predates it
+   * drops it whole instead of counting it as a turn.
+   */
+  | { t: 'overheard'; text: string; turnId: string }
+  /**
+   * The tutor's line, sent with the early voice so the words do not trail it
+   * (F988). `textTurnId` is the id the later `convo` view reuses; the view
+   * still brings the English, support and goal ticks. An old app drops it and
+   * waits for the view, as today.
+   */
+  | { t: 'tutor-line'; textTurnId: string; narration: ConvoSpeakerLine | null; coach: string | null; reply: Pick<ConvoSpeakerLine, 'speaker' | 'fr'> }
   /** The lesson is over. Carries the end card. */
   | { t: 'summary'; summary: SessionSummary }
   /** Free conversation: render this turn. The convo analog of `prompt`. */
@@ -491,7 +507,7 @@ export function decodeClientMessage(payload: Uint8Array): ClientMessage | null {
   return message === null ? null : asTheAgentReadsIt(message);
 }
 
-const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'safety', 'error', 'settlement', 'can-do-evidence', 'correction-reason', 'wrap-up', 'held-turn']);
+const SERVER_TAGS = new Set(['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'safety', 'error', 'settlement', 'can-do-evidence', 'correction-reason', 'wrap-up', 'held-turn', 'overheard', 'tutor-line']);
 const CLIENT_TAGS = new Set(['ready', 'help', 'skip', 'choice', 'hear', 'slower', 'english', 'say', 'typing', 'moment', 'mode', 'tap-to-send', 'send', 'leave']);
 const HELD_TURN_STATE_TAGS: ReadonlySet<string> = new Set(HELD_TURN_STATES);
 const SAFETY_CATEGORY_TAGS: ReadonlySet<string> = new Set(SAFETY_CATEGORIES);
@@ -526,6 +542,20 @@ function asTheAppReadsIt(message: ServerMessage): ServerMessage | null {
   if (message.t === 'held-turn') {
     const state = (message as { state: unknown }).state;
     return typeof state === 'string' && HELD_TURN_STATE_TAGS.has(state) ? { t: 'held-turn', state: state as HeldTurnState } : null;
+  }
+  if (message.t === 'overheard') {
+    const { text, turnId } = message as { text: unknown; turnId: unknown };
+    return typeof text === 'string' && typeof turnId === 'string' ? message : null;
+  }
+  // Dropped whole when unreadable: the view that follows still shows the line.
+  if (message.t === 'tutor-line') {
+    const { textTurnId, narration, coach, reply } = message as { textTurnId: unknown; narration: unknown; coach: unknown; reply: unknown };
+    const readable = typeof textTurnId === 'string'
+      && (narration === null || isSpeakerLine(narration))
+      && (coach === null || typeof coach === 'string')
+      && typeof reply === 'object' && reply !== null
+      && typeof (reply as { speaker: unknown }).speaker === 'string' && typeof (reply as { fr: unknown }).fr === 'string';
+    return readable ? message : null;
   }
   if (message.t === 'correction-reason') {
     const evidence = readCorrectionReason(message.evidence);
@@ -574,6 +604,12 @@ function asTheAppReadsIt(message: ServerMessage): ServerMessage | null {
   }
 
   return message;
+}
+
+function isSpeakerLine(value: unknown): value is ConvoSpeakerLine {
+  if (typeof value !== 'object' || value === null) return false;
+  const { speaker, fr, frWritten, en } = value as Record<string, unknown>;
+  return typeof speaker === 'string' && typeof fr === 'string' && (frWritten === null || typeof frWritten === 'string') && typeof en === 'string';
 }
 
 /**

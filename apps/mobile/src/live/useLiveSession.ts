@@ -65,7 +65,7 @@ import {
 } from './failure.ts';
 import { ownLeaseRetry } from './ownLease.ts';
 import { pushTurn, type TurnLine } from './turns.ts';
-import { missionRoleLine, sceneTurns } from './roleLine.ts';
+import { missionRoleLine, sceneTurns, tutorLineTurns } from './roleLine.ts';
 import { learnerLine } from './leaveKeepingWork.ts';
 import { nextStart, standDown, startStillOwns, NO_START } from './startOwnership.ts';
 import { thinkingAfter } from './thinking.ts';
@@ -1321,6 +1321,17 @@ export function useLiveSession(
               setLastTranscript(msg.text);
               addTurn(learnerLine({ fr: msg.text, frWritten: null, en: msg.input === 'spoken' && msg.interpreted === true ? 'Interpreted from your speech' : null }, choosingRef.current));
             } else setPartialTranscript(msg.text);
+            break;
+          case 'overheard':
+            // F987: words said over an uninterruptible tutor line. Shown, never
+            // answered: no scene reply, no reply clock, no contribution.
+            addTurn(learnerLine({ fr: msg.text, frWritten: null, en: null }, choosingRef.current), `overheard:${msg.turnId}`);
+            break;
+          case 'tutor-line':
+            // F988: the tutor's words with its voice. The view after the
+            // checkpoint reuses these ids and only fills in the English.
+            for (const turn of tutorLineTurns(msg, roleShownRef.current ? null : missionRoleLine(missionId, tutorVoice))) addTurn(turn.line, turn.id);
+            roleShownRef.current = true;
             break;
           case 'summary':
             setSummary(msg.summary);

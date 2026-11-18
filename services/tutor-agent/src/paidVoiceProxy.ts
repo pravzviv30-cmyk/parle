@@ -35,7 +35,11 @@ export interface PaidVoiceProxyOptions {
 export interface PaidVoiceProxy {
   deepgramBaseURL:string; elevenlabsBaseURL:string; anthropicBaseURL:string; openaiBaseURL:string;
   close():Promise<void>;
+  /** F984: warm the TLS connection to ElevenLabs; keyless and bodiless, so outside the gate and spending no effect. */
+  preconnect():void;
 }
+/** A constant origin, never built from input: the preconnect can only ever reach this. */
+const ELEVEN_ORIGIN='https://api.elevenlabs.io/',PRECONNECT_TIMEOUT_MS=3000;
 const BODY_LIMIT=2*1024*1024, WS_REPLY_LIMIT=128*1024, BUFFER_LIMIT=256*1024;
 /** Deepgram keyterm prompting (nova-3 only): Luvani's own caps, matching recognitionPhrases. */
 const KEYTERM_COUNT=16, KEYTERM_CHARS=100, KEYTERM_BYTES=400;
@@ -141,7 +145,14 @@ export async function createPaidVoiceProxy(options:PaidVoiceProxyOptions):Promis
   const transport=paidProviderFetch(options.gate,options.request??fetch,30000);
   const connector=options.websocketConnector??((url,config)=>new Ws(url,config));
   const sockets=new Set<VendorSocket>(),controllers=new Set<AbortController>();
-  let activeHttp=0,activeStreams=0,totalAudioBytes=0,closed=false;
+  let activeHttp=0,activeStreams=0,totalAudioBytes=0,closed=false,preconnected=false;
+  // The same fetch the paid transport uses (no dispatcher of its own), so the
+  // warmed connection is the one the first TTS request reuses.
+  const preconnect=():void=>{
+    if(preconnected || signal.aborted)return;preconnected=true;
+    void (options.request??fetch)(ELEVEN_ORIGIN,{method:'HEAD',redirect:'error',signal:AbortSignal.any([signal,AbortSignal.timeout(PRECONNECT_TIMEOUT_MS)])})
+      .then(response=>{void response.body?.cancel().catch(()=>{});},()=>{});
+  };
   const wss=new Ws.WebSocketServer({noServer:true,maxPayload:BUFFER_LIMIT,perMessageDeflate:false});
   const server=createServer({maxHeaderSize:8192},(req,res)=>{void http(req,res).catch(()=>refused(res));});
   server.maxConnections=8;server.requestTimeout=10000;server.headersTimeout=5000;server.keepAliveTimeout=1000;
@@ -260,6 +271,6 @@ export async function createPaidVoiceProxy(options:PaidVoiceProxyOptions):Promis
   try{await new Promise<void>((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',()=>{server.removeListener('error',reject);resolve();});});
     if(closed || signal.aborted)throw new Error('session-stopped');
     const origin=`http://127.0.0.1:${(server.address() as AddressInfo).port}${prefix}`;
-    return {deepgramBaseURL:origin.replace(/^http/,'ws')+'/deepgram',elevenlabsBaseURL:origin+'/elevenlabs/v1',anthropicBaseURL:origin+'/anthropic',openaiBaseURL:origin+'/openai/v1',close};
+    return {deepgramBaseURL:origin.replace(/^http/,'ws')+'/deepgram',elevenlabsBaseURL:origin+'/elevenlabs/v1',anthropicBaseURL:origin+'/anthropic',openaiBaseURL:origin+'/openai/v1',close,preconnect};
   }catch(error){await close();throw error;}
 }
