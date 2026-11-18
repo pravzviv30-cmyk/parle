@@ -90,8 +90,9 @@ Gaps inside a card are the card's own. Today's sky tiles sit 16 above the hero.
   title on Today (UI-023): the title stands alone and one meta line sits under
   it. The hero is one of these:
   - **The fix** (only with a fix, and only when the drill would open on an
-    exercise that hides the French): the lock when locked, the English line as
-    the header that leads, "One fix: how would you say this in French?", the
+    exercise that hides the French): free on every plan, with no lock and a tap
+    that opens the drill (REV-002, founder 2026-11-18), the English line as the
+    header that leads, "One fix: how would you say this in French?", the
     inset panel saying what shows after the try ("Your line from {day} and
     {tutor}'s version show after you try" when the day is known), and the
     lipped "Say it better, then compare".

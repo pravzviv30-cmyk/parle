@@ -931,7 +931,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(FLAT, /if \(row === 'scene'\) return <NextTaskCard key="scene" vivid placement="row" last=\{last\} starter=\{starterFor\} \/>;/);
   });
 
-  test('one fix to try is English first, attempt first, names the day where known, and goes through the lock seam', () => {
+  test('one fix to try is English first, attempt first, names the day where known, and opens the drill with no lock (founder, 2026-11-18)', () => {
     assert.match(FLAT, /const locks = useFeatureAccess\(user\?\.id\);/);
     assert.match(FLAT, /const fix = fixFrom === null \? null : oneFix\(\{ \.\.\.fixFrom, tutorName \}\);/);
     assert.match(FLAT, /replay: madeFromConversations\(\{ packs: fetched, marks, deck, checks, bank, now \}\)\?\.replay \?\? null, deck, bank, packs: fetched, now/, 'the fix cannot name the day of the conversation');

@@ -58,7 +58,7 @@ Top to bottom, at 375 (320 in brackets where it differs):
    - **Layout** (`statTileLayout`): side by side at 375; coin above the number at 320, where "minutes" cannot sit beside the coin; three full-width rows at accessibility text sizes.
    - **Loading:** three sky-chip blocks of the tile size. **Unread:** no tiles, never a nought.
 3. **Hero card**, overlapping the sky: `card`, radius 28 (`radius.feature`), padding 16/18, a 2pt `line` lift. Exactly one of:
-   - **Fix** (when `oneFix` has one): "One fix to try" in `link`, "How would you say this in French?" `muted`, the English in `bold20`, the locked note when locked, and "Say it better, then compare" (primary, mic) through the lock seam.
+   - **Fix** (when `oneFix` has one): "How would you say this in French?" `muted`, the English in `bold20`, and "Say it better, then compare" (primary, mic), which opens the drill on every plan (REV-002, founder 2026-11-18; the label over it was retired in F996).
    - **Scene** (`SceneLead` restyled): a 108x84 art tile on `butter`, "Next scene, 2 of 3" in `link`, the title in `stat24`-size bold, "About 3 minutes" `muted`, then Start speaking (primary, 54) and Type instead (underlined link, Speak instead for a typing learner). Checking and tutor unreachable (`heldBack`, with retry) keep their states.
    - **Plans, held (out of time, lapsed), starter, explore, offline (local):** the same words and actions as today, on the hero's ground instead of their own card.
    - **Failed read:** "Your next scene could not be loaded." with Practise today's phrase and Try loading my scenes again.

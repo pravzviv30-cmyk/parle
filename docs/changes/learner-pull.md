@@ -24,7 +24,7 @@ Today, against the video's six steps:
 | Paved path | `todayLead` picks one next action. Once a free learner is out of time, the big button is "See the plans" (`practice/NextTaskCard.tsx:222`), and Speak has only that door (`tabs/TutorTab.tsx:317`). |
 | Slot machine | Refused: "no random rewards". |
 | Bottomless pit | The recap's "Next:" is a label, not a door (`recap/RecapParts.tsx:54-57`). Offline end cards end on Done. |
-| Piggy bank | Phrases, postcards and scenes are kept. For free learners, D24 locks review of conversation phrases, Your fixes and Then and now. Today's fix hero is locked and opens the Wall (`home/todayView.ts:365`). |
+| Piggy bank | Phrases, postcards and scenes are kept. For free learners, D24 locks review of conversation phrases, Your fixes and Then and now. Until T1.1, Today's fix hero was locked for free learners and opened the Wall. |
 
 The pieces:
 
@@ -182,7 +182,7 @@ Draft lines, for founder approval:
 2. "Save your 12-day streak" / "A short review counts too. Léa is here."
 3. "Keep your 12 days going" / "Today's phrase takes a minute, and Léa is ready."
 
-Acceptance — `plan.test.ts`:
+Acceptance, in `plan.test.ts`:
 - (a) a cliff day sends save;
 - (b) a freeze held sends none;
 - (c) an unknown plan sends none;
@@ -353,6 +353,7 @@ Show a fix only when its line was heard clearly, using per-turn STT confidence i
 | Date | Task | Result | Next |
 |---|---|---|---|
 | 2026-11-18 | T1.1 | Founder approved F1 in chat. frontend-engineer building in `Luvani-worktrees/free-fix`, test first. | Review, gate, `/push-check`, `/land` |
+| 2026-11-18 | T1.1 | Built and committed (3ae5647d). Gate green, 7,946 tests. Push-check: browser pass on `?preview=today-fix` at 375 and 320, light and dark, clean. Reviewers found only low items: stale test names, a dead test field, DESIGN.md and today-sky.md still describing the lock. All fixed. Four design proposals logged in DESIGN_PARTNERSHIP.md. Out of scope, written up: `dev/todayPreviewFixtures.ts` uses the fix's sentence as today's phrase, so the preview shows the answer one row down; whether real data can do the same is unchecked (proposal row "fix and phrase on the same line"). | `/security-review`, stamp, PR |
 
 ## Landing
 
