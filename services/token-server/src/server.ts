@@ -782,6 +782,7 @@ const server = createServer({ connectionsCheckingInterval: 5_000 }, protectHttpH
           const status = ['exhausted', 'insufficient-for-session', 'subscription-lapsed'].includes(reservation.reason)
             ? 402 : reservation.reason === 'session-active' ? 409 : 503;
           const refillsAt = status === 402 ? refusalRefillsAt(reservation.reason, entitlement) : undefined;
+          if (status === 402) void recordMinutesRefusal(eventSink, userId, body.analyticsAllowed, entitlement, reservation.reason);
           return json(res, status, { error: reservation.reason, message: refusalMessage(reservation.reason, entitlement), ...(refillsAt ? { refillsAt } : {}), plans: PLANS });
         }
         admitted = reservation;

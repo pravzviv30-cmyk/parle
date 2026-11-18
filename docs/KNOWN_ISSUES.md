@@ -13765,7 +13765,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1099 — minutes_refused is never recorded in production
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/server.ts:781
 - note: B2-2, part B, built only on the founder's yes. Production refusals come from the database reservation, which returns before the recorder. The notice and PRIVACY_AND_SAFETY.md already name the event. The test also proves a session-active refusal and a learner with analytics off record nothing.
 - verified-by: `a refused reservation records minutes_refused when analytics is allowed`
