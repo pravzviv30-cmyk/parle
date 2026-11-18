@@ -47,7 +47,7 @@ import { readFileSync, writeFileSync, readdirSync, lstatSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { passingTestTitles } from './gateReporter.mjs';
-import { evaluateAudit } from './dependencyAudit.mjs';
+import { auditSummary, evaluateAudit } from './dependencyAudit.mjs';
 import { suiteSummary, suiteProblems, VERIFIED_BY, malformedVerifiedBy, isTestFile, focusProblems, unrunTestFiles, REQUIRED_COMMANDS, guardWiringProblems, PROOF_FLOOR_KEY, workspaceKeys, belowFloor, trackedTestFiles } from './gateChecks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -145,10 +145,7 @@ if (auditOnly) {
   const { problems, accepted } = evaluateAudit(record, lock, report);
   const totals = report.metadata?.vulnerabilities ?? {};
   if (problems.length === 0) {
-    console.log(
-      `audit: ${totals.critical ?? 0} critical, ${totals.high ?? 0} high, ${totals.moderate ?? 0} moderate — ` +
-        `every high root is one of ${accepted.join(', ')}, each recorded with a reachability argument.`,
-    );
+    console.log(auditSummary(totals, accepted));
     process.exit(0);
   }
   console.error(`audit: ${problems.length} unaccepted finding${problems.length === 1 ? '' : 's'}\n`);
