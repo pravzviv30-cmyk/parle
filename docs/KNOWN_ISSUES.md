@@ -13708,6 +13708,15 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Work-judge (Fable 5.2), 2026-11-18, slice B part 2. The zod record's resolution said "Zero source changes" and F1006 said "no source change", while the same diff added packages/brain/src/llm/outputFormat.ts at four adapters because zod 4.6 writes nullable primitives as a type array and the founder chose to keep the zod 3 wire form. Fixed: the record, F1006, F1258's title and RISK_REGISTER now name the seam. Copy only.
 - verified-by: `nullable fields reach the provider as anyOf with null, as on zod 3`
 
+### F1264 — GitHub withdrew the picomatch advisory, so its accepted record went stale and failed audit:ci
+- severity: P2
+- status: [x]
+- where: services/token-server/src/ciContract.test.ts:462
+- note: deploy-engineer, 2026-11-18. GHSA-fc5q-39xc-vjpf was withdrawn at 15:38 UTC (`withdrawn_at` on GitHub's advisory API; npm audit then reported 0 high), so `audit:ci` failed everywhere with "picomatch: accepted advisory no longer reported", CI's gate job on main included. Following the braces precedent (GHSA-vfj7-8cjw-p6xm, withdrawn 2026-10-23), the picomatch record is deleted and ciContract pins the exact versions with a dated comment: 4.0.5 at the top level, 2.3.2 under micromatch and jest-util, and no other picomatch version in the lockfile. It also asserts picomatch carries no record. The tooling-boundary test still keeps picomatch, micromatch, tinyglobby and fdir out of service runtimes and source imports. A new picomatch advisory is an unreviewed root and fails audit:ci. `audit:ci`: 0 critical, 0 high, 15 moderate.
+- verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
+- verified-by: `unpatched build-tool exceptions cannot enter service runtimes or the mobile update client`
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+
 ### F1256 — The Expo CLI still pins zod 3, which blocks every zod fix
 - severity: P1
 - status: [x]
@@ -13724,7 +13733,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [x]
 - where: package.json:114
 - note: GHSA-mrhx-c7xc-m3w5, fixed only in 4.6.6 and later; no zod 3 is patched. Ranges at packages/brain/package.json:23 and services/tutor-agent/package.json:28 go to ^4.6.6; every other dependent's peer range already accepts 4. The in-place exemption at ciContract.test.ts:374 and :382 extends from adm-zip to zod. Depends on F1256. deploy-engineer.
-- note: Fixed 2026-11-18 on claude/audit-zod, on top of F1256's Expo alignment. Both ranges went to ^4.6.6 and `npm install` moved three lock entries against claude/expo-patch's lock: node_modules/zod 3.25.76 to 4.6.7 and the two workspace ranges. One installed copy, no override, and no zod source migration (brain already imports zod/v4; the wire-form seam is F1258). The zod record is fixed, keyed in place with adm-zip in ciContract's inPlaceFixes. `audit:ci` exits zero: 0 critical, 24 high, 14 moderate, with picomatch the only accepted high root.
+- note: Fixed 2026-11-18 on claude/audit-zod, on top of F1256's Expo alignment. Both ranges went to ^4.6.6 and `npm install` moved three lock entries against claude/expo-patch's lock: node_modules/zod 3.25.76 to 4.6.7 and the two workspace ranges. One installed copy, no override, and no zod source migration (brain already imports zod/v4; the wire-form seam is F1258). The zod record is fixed, keyed in place with adm-zip in ciContract's inPlaceFixes. `audit:ci` exits zero: 0 critical, 24 high, 14 moderate, with picomatch the only accepted high root. After F1264 removed the withdrawn picomatch record: 0 critical, 0 high, 15 moderate.
 - verified-by: `every locked zod is at or above the patched 4.6.6 and there is exactly one copy`
 - verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
 - verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`

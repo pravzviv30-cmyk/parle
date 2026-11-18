@@ -459,10 +459,19 @@ describe('the ci contract', () => {
     // node-forge: patched in 1.4.2 (2026-11-02), so it carries no record.
     assert.equal(lock.packages[forge]?.version, '1.4.2');
     assert.equal(resolveFrom(certificates, 'node-forge'), forge);
-    // Neither has a live advisory, so neither carries a record. A version bump that fixes a live
-    // advisory can be a fixed record (adm-zip and zod are, as in-place fixes); these two had
-    // nothing left to fix. A new advisory on either is an unreviewed root and fails audit:ci.
-    for (const name of ['braces', 'node-forge']) {
+    // picomatch: GHSA-fc5q-39xc-vjpf withdrawn 2026-11-18, so it carries no record; a new picomatch
+    // advisory is an unreviewed root and fails audit:ci. Pinned so a move is seen: 4.0.5 at the top
+    // level and 2.3.2 under micromatch (which needs ^2) and jest-util.
+    assert.equal(lock.packages['node_modules/picomatch']?.version, '4.0.5');
+    const matcherPicomatch = resolveFrom(matcher, 'picomatch');
+    assert.ok(matcherPicomatch, 'the watcher glob matcher resolves picomatch');
+    assert.equal(lock.packages[matcherPicomatch]?.version, '2.3.2');
+    const picomatchCopies = Object.entries(lock.packages).filter(([key]) => key.endsWith('node_modules/picomatch'));
+    assert.deepEqual([...new Set(picomatchCopies.map(([, entry]) => entry.version))].sort(), ['2.3.2', '4.0.5'], 'a new picomatch version entered the lockfile');
+    // None has a live advisory, so none carries a record. A version bump that fixes a live
+    // advisory can be a fixed record (adm-zip and zod are, as in-place fixes); these three had
+    // nothing left to fix. A new advisory on any is an unreviewed root and fails audit:ci.
+    for (const name of ['braces', 'node-forge', 'picomatch']) {
       assert.equal(decisions.find((item) => item.module === name), undefined, `${name} has no live advisory to record`);
     }
   });
