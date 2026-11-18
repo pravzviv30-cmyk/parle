@@ -314,3 +314,11 @@ describe('the month is seven columns, header and days alike', () => {
     assert.doesNotMatch(parts, /weekday: \{[^}]*(flexBasis|width)/, 'the header letters carry a width rule of their own');
   });
 });
+
+describe('the Streak screen draws the one freeze mark (T3.1)', () => {
+  const parts = readFileSync(new URL('./StreakParts.tsx', import.meta.url), 'utf8');
+  test('it imports FreezeMark from the game art and keeps no outlined snowflake of its own', () => {
+    assert.match(parts, /import \{ FreezeMark \} from '\.\/art\/FreezeMark\.tsx';/);
+    assert.doesNotMatch(parts, /Snowflake|stroke=/);
+  });
+});
