@@ -117,8 +117,11 @@ export class RedisGuestStore implements GuestStore {
     this.token = token;
     this.request = request;
   }
+  // A row holds one agent body of at most 160 KB (server.ts readJson). GET returns it as a JSON string inside
+  // JSON: escaping doubles each quote or backslash, and an encoder that writes \uXXXX can make one byte six.
+  // 6 x 160 KB = 960 KB, which leaves 64 KB of the 1 MiB cap for the rest of the row and the wrapper.
   private async command(command: unknown[]): Promise<unknown> {
-    return upstashCommand(this.request, this.url, this.token, command, () => new Error('guest store unavailable'));
+    return upstashCommand(this.request, this.url, this.token, command, () => new Error('guest store unavailable'), 1024 * 1024);
   }
   async create(key: string, row: GuestRecord): Promise<boolean> {
     const result = await this.command([

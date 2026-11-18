@@ -13623,6 +13623,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [x]
 - where: services/token-server/src/rateLimit.ts:106
 - note: B1-2. One upstashCommand helper over boundedFetchJson replaces the copies in rateLimit.ts (two), onboardingGuest.ts, guestSceneAdmission.ts and guestSpeechAdmission.ts. The first two tests are characterization, written and green before the refactor. The founder chose "Treat as service failure" on 2026-11-18, so the lease copy joined too: a store error on acquire is now a failure (the route's internal error), not a 409 busy session.
+- note: Accepted difference 3 of the B1 contract: UpstashRateLimiter's error for a 200 carrying `error` changed from "distributed rate limiter returned an invalid decision" to "distributed rate limiter returned 200". Both refuse.
 - verified-by: `each Upstash adapter posts its command as JSON with the bearer token`
 - verified-by: `an Upstash failure keeps each adapter's own error wording`
 - verified-by: `every Upstash command goes through one bounded helper that refuses a redirect and an oversized answer`
@@ -13637,9 +13638,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1093 — A guest row can be accepted at up to 160 KB but is read back through a 64 KB cap
 - severity: P2
-- status: [ ]
-- where: services/token-server/src/upstash.ts:12
-- note: Found by the B1 judge, 2026-11-18. The agent guest route reads a 160 KB body (server.ts:392) and stores its baseline pack in the guest row. upstashCommand refuses a Redis answer over 64 KB, so a row above that makes every later get throw and the guest cannot fetch results or claim. No honest input is known to reach it; a real guest pack was not measured. Either refuse a baseline that would push the row past the read cap at write time, or raise the cap for the guest store to match the route.
+- status: [x]
+- where: services/token-server/src/onboardingGuest.ts:124
+- note: Found by the B1 judge, 2026-11-18, as a regression this branch introduced (before B1 there was no read cap). The agent guest route reads a 160 KB body (server.ts:392) and stores its baseline pack in the guest row. Redis GET answers the row as a JSON string inside JSON, so each quote or backslash doubles, and the 64 KB cap applied after that escaping: an all-quote row failed from about 32 KB raw (2 x 32,762 bytes plus the 13-byte wrapper passes 65,536), and mixed quote-heavy rows of about 35 to 55 KB, all well under 64 KB raw. Every later get, update, claimGuest and shrinkClaimed then threw network-response-limit for the row's 30-day TTL. No honest input is known to reach it; a real guest pack was not measured.
+- note: Fixed in B1, 2026-11-18. upstashCommand takes an optional maxBytes (default 64 KB, unchanged for every other adapter) and RedisGuestStore reads with 1 MiB. Arithmetic: a row is one body of at most 160 KB plus a small rest (a checkpoint replaces the baseline, it never accumulates). Plain escaping is at most 2x, about 320 KB (the test's 160 KB quote row answers 327,521 bytes). An encoder that writes \uXXXX for HTML or non-ASCII characters can reach 6x, 960 KB, which still leaves 64 KB of the 1 MiB cap for the rest of the row and the wrapper. Whether Upstash escapes that way was not checked.
 - verified-by: `a guest row the agent route accepts can always be read back`
 
 ### F1094 — Stalled request bodies can hold the busy cap for 30 to 35 s

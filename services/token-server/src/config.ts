@@ -89,8 +89,8 @@ export function productionConfigurationProblems(env: ServerEnvironment): string[
   const billingValues = billing.filter(Boolean).length;
   // The optional product ids are optional on their own (D16), but any one without
   // the five above is a partial configuration like any other.
-  const yearlyValues = [env.REVENUECAT_STARTER_WEEKLY_PRODUCT_ID, env.REVENUECAT_STARTER_YEARLY_PRODUCT_ID, env.REVENUECAT_REGULAR_YEARLY_PRODUCT_ID].filter(Boolean).length;
-  if ((billingValues > 0 || yearlyValues > 0) && billingValues !== billing.length) {
+  const optionalValues = [env.REVENUECAT_STARTER_WEEKLY_PRODUCT_ID, env.REVENUECAT_STARTER_YEARLY_PRODUCT_ID, env.REVENUECAT_REGULAR_YEARLY_PRODUCT_ID].filter(Boolean).length;
+  if ((billingValues > 0 || optionalValues > 0) && billingValues !== billing.length) {
     problems.push('complete RevenueCat billing configuration');
   }
   return problems;

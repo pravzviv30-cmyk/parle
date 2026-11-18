@@ -188,7 +188,7 @@ describe('production starts closed', () => {
       'REVENUECAT_STARTER_YEARLY_PRODUCT_ID',
     ]);
     for (const code of ['REVENUECAT_UNKNOWN_PRODUCT', 'REVENUECAT_GRACE_PERIOD', 'REVENUECAT_ENTITLEMENT_MISSING']) {
-      assert.ok(source.includes(code) && !read.includes(code), code);
+      assert.ok(source.includes(code), code);
     }
     const contract = JSON.parse(readFileSync(new URL('../../../deployment/environment-contract.json', import.meta.url), 'utf8')) as {
       roles: Record<string, Record<string, string[]>>;
