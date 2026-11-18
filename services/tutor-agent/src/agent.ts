@@ -53,11 +53,10 @@ import { buildTTS, resolveTutorVoice } from './voice.ts';
 import { formatCostLine } from './ttsCache.ts';
 import { resumePaidRuntime } from './paidRuntime.ts';
 import { createPaidVoiceProxy, type PaidVoiceProxy } from './paidVoiceProxy.ts';
-import { admitGuestRoom, armSceneHardStop, createGuestSceneGate, sceneLesson } from './guestSceneGate.ts';
+import { admitGuestRoom, armSceneHardStop, createGuestSceneGate, roomLesson } from './guestSceneGate.ts';
 import { ELEVEN_VOICES, MODEL as TTS_MODEL, tutorSpeedFor } from './voiceConfiguration.ts';
 
 import {
-  CAFE_LESSON,
   encodeMessage,
   lessonKeyterms,
   TOPIC_CLIENT,
@@ -183,16 +182,15 @@ export default defineAgent({
     // Every guest and scene rule, decided before any claim or vendor work.
     const room = admitGuestRoom(meta, process.env);
     const { guestKey, scene, firstPractice } = room;
-    const lesson = scene ? sceneLesson(scene) : CAFE_LESSON;
-    if (meta.lessonId && meta.lessonId !== lesson.id) {
-      console.warn('[luvani] signed lesson differs from the worker catalogue');
-    }
     const fixture = meta.lifecycleVersion !== 1 && legacyRuntimeFixture(process.env);
     if (meta.lifecycleVersion !== 1 && !fixture) throw new Error('authoritative signed tutor lifecycle is required');
     // One line per session naming the exit that fired (sessionExit.ts); made
     // before the claim so a session that fails to start still logs one.
     const exit = new SessionExit();
     ctx.addShutdownCallback(async () => { exit.log(); });
+    // The signed lesson, or a refused room (F968), before any claim.
+    let lesson: Lesson;
+    try { lesson = roomLesson(meta.mode, scene, meta.lessonId); } catch (error) { exit.mark('start'); throw error; }
     const lifecycle = fixture ? undefined : await claimSessionLifecycle({
       userId: participant.identity, sessionId: meta.sessionId, roomName: ctx.room.name ?? '',
       mode: meta.mode as TutorSessionIdentity['mode'],
@@ -236,6 +234,8 @@ export default defineAgent({
       // Only the two voice keys reach this proxy; no model key is handed over.
       proxy = await createPaidVoiceProxy({ gate: sceneGate.gate, speechAllowList: sceneGate.admitsText, signal: lifecycle.signal, maximumSessionMillis: maximumSessionSec * 1000, credentials: { deepgram: process.env.DEEPGRAM_API_KEY, elevenlabs: process.env.ELEVEN_API_KEY } });
     }
+    // F984: the first spoken line otherwise pays a cold TLS handshake. Unawaited and free.
+    if (proxy && !voiceless) proxy.preconnect();
     // Clamped, not trusted: the value is server-signed, but a rung outside the
     // ladder would still put createSession into a state that cannot exist.
     const startRung =

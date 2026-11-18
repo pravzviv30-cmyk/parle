@@ -862,3 +862,47 @@ describe('tap-to-send', () => {
     assert.equal(decodeServerMessage(encodeMessage({ t: 'tap-to-send', on: true })), null);
   });
 });
+
+describe('the tutor line arrives with its voice, and overheard words are their own frame', () => {
+  test('the tutor-line frame and coachSpoken pass the decoder', () => {
+    const frame: ServerMessage = {
+      t: 'tutor-line', textTurnId: 'turn-7',
+      narration: { speaker: 'narration', fr: 'Le serveur revient.', frWritten: null, en: 'The waiter comes back.' },
+      coach: 'Dites « un café ».',
+      reply: { speaker: 'Karim', fr: 'Ça marche !' },
+    };
+    assert.deepEqual(decodeServerMessage(encodeMessage(frame)), frame);
+    const bare: ServerMessage = { t: 'tutor-line', textTurnId: 'turn-8', narration: null, coach: null, reply: { speaker: 'Karim', fr: 'Voilà.' } };
+    assert.deepEqual(decodeServerMessage(encodeMessage(bare)), bare);
+    for (const raw of [
+      '{"t":"tutor-line","narration":null,"coach":null,"reply":{"speaker":"Karim","fr":"x"}}',
+      '{"t":"tutor-line","textTurnId":"a","narration":null,"coach":null}',
+      '{"t":"tutor-line","textTurnId":"a","narration":null,"coach":null,"reply":{"speaker":"Karim"}}',
+      '{"t":"tutor-line","textTurnId":"a","narration":null,"coach":3,"reply":{"speaker":"Karim","fr":"x"}}',
+      '{"t":"tutor-line","textTurnId":"a","narration":{"speaker":"narration"},"coach":null,"reply":{"speaker":"Karim","fr":"x"}}',
+    ]) assert.equal(decodeServerMessage(new TextEncoder().encode(raw)), null, raw);
+
+    const view = convoView({ textTurnId: 'turn-7', coachLine: 'Dites « un café ».', coachSpoken: true });
+    const decoded = decodeServerMessage(encodeMessage({ t: 'convo', view }));
+    assert.ok(decoded && decoded.t === 'convo');
+    assert.equal(decoded.view.coachSpoken, true);
+    assert.equal((decodeServerMessage(encodeMessage({ t: 'convo', view: convoView() })) as { view: ConvoView }).view.coachSpoken, undefined);
+  });
+
+  /** Every server tag an app that shipped before F987 knows. Frozen: a later tag is not in it. */
+  const PRE_OVERHEARD_SERVER_TAGS = ['prompt', 'feedback', 'speaking', 'transcript', 'summary', 'convo', 'opening', 'recap', 'practice', 'drills', 'safety', 'error', 'settlement', 'can-do-evidence', 'correction-reason', 'wrap-up', 'held-turn'];
+
+  test('an overheard line is its own frame that an old decoder ignores', () => {
+    const frame: ServerMessage = { t: 'overheard', text: 'Here we go.', turnId: 'heard-3' };
+    assert.deepEqual(decodeServerMessage(encodeMessage(frame)), frame);
+    // Not a flagged transcript: an old app counts every final transcript as a reply.
+    assert.ok(!PRE_OVERHEARD_SERVER_TAGS.includes(frame.t), 'an old build has never heard of this tag');
+    // And a tag a decoder has never heard of decodes to null: the old app drops it whole.
+    const fromTheFuture = new TextEncoder().encode(JSON.stringify({ ...frame, t: 'overheard-v2' }));
+    assert.equal(decodeServerMessage(fromTheFuture), null);
+    for (const raw of ['{"t":"overheard","turnId":"a"}', '{"t":"overheard","text":"x"}', '{"t":"overheard","text":2,"turnId":"a"}']) {
+      assert.equal(decodeServerMessage(new TextEncoder().encode(raw)), null, raw);
+    }
+    assert.equal(decodeClientMessage(encodeMessage(frame)), null, 'the app cannot send one');
+  });
+});

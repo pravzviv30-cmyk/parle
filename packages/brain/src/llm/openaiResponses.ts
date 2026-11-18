@@ -84,7 +84,9 @@ export interface OpenAiResponsesConfig {
    * "1" writes `coach` after `sceneReply` in the live turn so the spoken French
    * streams sooner (the early speech then carries no recast echo). Opt-in,
    * default off. Falls back to `LUVANI_TURN_REPLY_FIRST`; anything but "1" is off.
-   * Spoken English-reach turns wait for the full turn under reply-first (convo.ts speakEarly).
+   * The early hand-over then fires twice: at the reply without `coach`, and
+   * again when `coach` closes, carrying it (F983), so an English-reach turn can
+   * speak before the whole turn lands. The request body is the same either way.
    */
   turnReplyFirst?: string;
   /** Per-activity effort and size. Defaults to the shared table, env applied. */
@@ -466,10 +468,12 @@ export class OpenAiResponsesBrainClient implements LlmClient {
 
     const payload = watcher
       ? await this.postStreaming(body, request.signal, (delta) => {
-        const early = watcher.feed(delta);
-        if (early === null) return;
-        // The caller's business. A throw there must not cost the learner the turn.
-        try { request.onSpokenFields?.(early); } catch { /* the full turn still lands */ }
+        // Every hand-over: the reply, and under reply-first the coach after it,
+        // which can land in the same delta, hence the drain.
+        for (let early = watcher.feed(delta); early !== null; early = watcher.feed('')) {
+          // The caller's business. A throw there must not cost the learner the turn.
+          try { request.onSpokenFields?.(early); } catch { /* the full turn still lands */ }
+        }
       })
       : await this.post(body, request.signal);
 

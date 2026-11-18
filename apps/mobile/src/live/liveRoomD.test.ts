@@ -77,7 +77,7 @@ describe('the room parts, from source', () => {
     const notebook = stripComments(read('./NotebookParts.tsx'));
     assert.match(notebook, /accessibilityLabel=\{`Hear that line again: \$\{item\.fr\}`\}/);
     assert.match(notebook, /You, still listening/);
-    assert.match(notebook, /announceReply && Platform\.OS === 'ios'\) AccessibilityInfo\.announceForAccessibility\(replyAnnouncement\(latest\.tutor, tutorName\)\)/);
+    assert.match(notebook, /announceReply && Platform\.OS === 'ios'\) AccessibilityInfo\.announceForAccessibility\(next\.say\)/);
     assert.match(notebook, /accessibilityLabel="Your conversation so far"/);
     assert.match(notebook, /accessibilityLabel="Why this form\?" accessibilityState=\{\{ expanded \}\}/);
     assert.match(notebook, /<BubbleIn who=/);
