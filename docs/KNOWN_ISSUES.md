@@ -13402,8 +13402,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1255 — Deep-link queries are not pinned against the parser that replaced query-string
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/nav/linking.test.ts:31
-- note: Core 7.25.0 parses queries in-house. The probe found identical results on nine inputs except that keys are no longer sorted on the way out. One test: repeated keys, plus signs, UTF-8, a malformed percent sequence and a 20,000-character percent run round-trip through the app's own linking config, with a time bound. It is a characterisation test and passes on both versions, so it has no failing-first step. frontend-engineer, plus the web build and Playwright smoke.
+- where: apps/mobile/src/nav/linking.test.ts:46
+- note: Core 7.25.0 parses queries in-house. The probe found identical results on nine inputs except that keys are no longer sorted on the way out. One test: repeated keys, plus signs, UTF-8, a malformed percent sequence, empty and bare keys and a[] round-trip through the app's own linking config, and pass on both versions. Its last case is the advisory's own shape, '%FF'.repeat(400), which must parse back unchanged within 200 ms: about 1.4 s on core 7.21.12 with query-string 7.1.3 (fails), under 1 ms on 7.25.0 (passes). Key order on the way out is compared as params, not as a string. frontend-engineer, plus the web build and Playwright smoke.
 - verified-by: `a deep link query round-trips through the navigation parser that replaced query-string`
 
 ### F1259 — F1006 still said decode-uri-component had no fix and gave no pointer to F1254
