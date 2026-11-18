@@ -5,6 +5,7 @@ import { RedisGuestSceneLedger } from './guestSceneAdmission.ts';
 import { RedisGuestSpeechLedger } from './guestSpeechAdmission.ts';
 import { RedisGuestStore } from './onboardingGuest.ts';
 import { UpstashRateLimiter, UpstashSessionLeaseStore } from './rateLimit.ts';
+import { upstashCommand } from './upstash.ts';
 
 const BASE = 'https://redis.example';
 const TOKEN = 'test-token';
@@ -85,5 +86,19 @@ describe('Upstash REST adapters', () => {
     for (const adapter of adapters.filter((a) => !a.wording.endsWith('returned'))) {
       await assert.rejects(adapter.run(fake(json(200, { error: 'ERR wrong type' }))), { message: adapter.wording }, adapter.name);
     }
+  });
+
+  test('every Upstash command goes through one bounded helper that refuses a redirect and an oversized answer', async () => {
+    const oversized = () => new Response(JSON.stringify({ result: 'a'.repeat(64 * 1024) }), { status: 200 });
+    for (const adapter of adapters.filter((a) => a.converted)) {
+      const seen: Seen[] = [];
+      await adapter.run(fake(json(200, adapter.ok), seen));
+      assert.equal(seen[0]!.init.redirect, 'error', adapter.name);
+      await assert.rejects(adapter.run(fake(oversized)), adapter.name);
+    }
+    const seen: Seen[] = [];
+    assert.equal(await upstashCommand(fake(json(200, { result: 'OK' }), seen), BASE, TOKEN, ['PING'], (s) => new Error(`x ${s}`)), 'OK');
+    assert.equal(seen[0]!.init.redirect, 'error');
+    await assert.rejects(upstashCommand(fake(oversized), BASE, TOKEN, ['PING'], (s) => new Error(`x ${s}`)));
   });
 });

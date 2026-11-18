@@ -2,6 +2,8 @@ import { createHmac } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { isIP } from 'node:net';
 
+import { upstashCommand } from './upstash.ts';
+
 export interface RateLimitRule {
   name: string;
   limit: number;
@@ -103,22 +105,14 @@ export class UpstashRateLimiter implements RateLimiter {
   }
 
   async consume(rule: RateLimitRule, signal: string): Promise<RateLimitDecision> {
-    const response = await this.fetcher(this.url, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${this.token}`,
-        'content-type': 'application/json',
-      },
-      signal: AbortSignal.timeout(3_000),
-      body: JSON.stringify(['EVAL', CONSUME_SCRIPT, '1', `luvani:limit:${rule.name}:${signal}`, String(rule.windowSec)]),
-    });
-    if (!response.ok) throw new Error(`distributed rate limiter returned ${response.status}`);
-    const body = (await response.json()) as { result?: unknown };
-    if (!Array.isArray(body.result) || body.result.length !== 2) {
+    const result = await upstashCommand(this.fetcher, this.url, this.token,
+      ['EVAL', CONSUME_SCRIPT, '1', `luvani:limit:${rule.name}:${signal}`, String(rule.windowSec)],
+      (status) => new Error(`distributed rate limiter returned ${status}`));
+    if (!Array.isArray(result) || result.length !== 2) {
       throw new Error('distributed rate limiter returned an invalid decision');
     }
-    const used = Number(body.result[0]);
-    const ttl = Number(body.result[1]);
+    const used = Number(result[0]);
+    const ttl = Number(result[1]);
     if (!Number.isFinite(used) || !Number.isFinite(ttl)) {
       throw new Error('distributed rate limiter returned a non-numeric decision');
     }

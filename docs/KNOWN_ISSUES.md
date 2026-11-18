@@ -13619,7 +13619,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1091 — The Upstash REST command is written five times, none through the bounded fetch
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/rateLimit.ts:106
 - note: B1-2. One upstashCommand helper over boundedFetchJson replaces the copies in rateLimit.ts (two), onboardingGuest.ts, guestSceneAdmission.ts and guestSpeechAdmission.ts. The first two tests are characterization, written and green before the refactor. The lease copy joins only if the founder says yes to question 1; its test is then added to this entry.
 - verified-by: `each Upstash adapter posts its command as JSON with the bearer token`

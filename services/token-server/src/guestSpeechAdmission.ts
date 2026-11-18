@@ -12,6 +12,7 @@
  * Only counters are kept, under hashed signals. No audio, text, address or
  * installation value is stored here.
  */
+import { upstashCommand } from './upstash.ts';
 
 export interface GuestSpeechLimits {
   /** Reserved per take: the native capture stops at twenty seconds. */
@@ -143,16 +144,7 @@ export class RedisGuestSpeechLedger implements GuestSpeechLedger {
     this.request = request;
   }
   private async command(command: readonly string[]): Promise<unknown> {
-    const response = await this.request(this.url, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' },
-      body: JSON.stringify(command),
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!response.ok) throw new Error('guest speech ledger unavailable');
-    const body = (await response.json()) as { result?: unknown; error?: unknown };
-    if (body.error) throw new Error('guest speech ledger unavailable');
-    return body.result;
+    return upstashCommand(this.request, this.url, this.token, command, () => new Error('guest speech ledger unavailable'));
   }
   private ordered(keys: GuestSpeechKeys): string[] {
     return SCOPES.map((scope) => keys[scope]);
