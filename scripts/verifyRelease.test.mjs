@@ -162,7 +162,7 @@ test('the recovery drill accepts a journal that shrank by removal and refuses a 
   // Removal shrank the journal from 9 entries to 6, but the AUTOINCREMENT sequence never goes down.
   const drill={version:1,isolatedTarget:true,sourceProjectRef:'source',targetProjectRef:'isolated',approvedRpoSeconds:60,approvedRtoSeconds:120,
     observedRpoSeconds:30,deletionsExpected:6,deletionsReplayed:6,journalSequenceBefore:9,journalSequenceAfter:9,
-    backupTakenAt:new Date(replayStart-37*day+1).toISOString(),
+    backupTakenAt:new Date(replayStart-35*day).toISOString(),
     coverage:COVERAGE.map(reviewed),phases:PHASES.map((name,i)=>({...reviewed(name),startedAt:new Date(now+i*1000).toISOString(),completedAt:new Date(now+(i+1)*1000).toISOString()}))};
   assert.equal(PHASES[3],'replayPostBackupDeletions');
   assert.equal(verifyDrill(drill).deletionsReplayed,6);
@@ -170,6 +170,23 @@ test('the recovery drill accepts a journal that shrank by removal and refuses a 
     [d=>d.backupTakenAt=new Date(replayStart-37*day).toISOString(),/keep period/],[d=>delete d.backupTakenAt,/Missing measured backupTakenAt/],
     [d=>d.backupTakenAt='not a time',/Missing measured backupTakenAt/],[d=>d.backupTakenAt=new Date(replayStart+1).toISOString(),/backupTakenAt is after the replay phase/]]) {
     const d=structuredClone(drill);mutate(d);assert.throws(()=>verifyDrill(d),message);
+  }
+});
+test('the recovery drill measures the keep period to the end of the replay, a day short for the daily removal',()=>{
+  const reviewed=name=>({name,status:'passed',evidenceUrl:url,sha256:hash(name)});
+  const day=24*60*60_000,replayStart=now+3*1000,replayEnd=now+4*1000;
+  const drill={version:1,isolatedTarget:true,sourceProjectRef:'source',targetProjectRef:'isolated',approvedRpoSeconds:60,approvedRtoSeconds:120,
+    observedRpoSeconds:30,deletionsExpected:6,deletionsReplayed:6,journalSequenceBefore:9,journalSequenceAfter:9,
+    backupTakenAt:new Date(replayEnd-36*day+1).toISOString(),
+    coverage:COVERAGE.map(reviewed),phases:PHASES.map((name,i)=>({...reviewed(name),startedAt:new Date(now+i*1000).toISOString(),completedAt:new Date(now+(i+1)*1000).toISOString()}))};
+  assert.equal(drill.phases[3].startedAt,new Date(replayStart).toISOString());
+  assert.equal(verifyDrill(drill).deletionsReplayed,6);
+  for(const mutate of [d=>d.backupTakenAt=new Date(replayEnd-36*day).toISOString(),
+    // Inside 37 days when the replay starts, past it by the time the replay seals: the 03:17 cron may already have removed entries.
+    d=>{const late=replayStart+2*60*60_000;d.backupTakenAt=new Date(replayStart-37*day+60*60_000).toISOString();d.phases[3].completedAt=new Date(late).toISOString();
+      for(let i=4;i<PHASES.length;i++){d.phases[i].startedAt=new Date(late+(i-4)*1000).toISOString();d.phases[i].completedAt=new Date(late+(i-3)*1000).toISOString();}
+      d.approvedRtoSeconds=3*60*60;}]) {
+    const d=structuredClone(drill);mutate(d);assert.throws(()=>verifyDrill(d),/keep period/);
   }
 });
 test('maintenance refuses missing external journal and other roles cannot receive its key',()=>{

@@ -130,7 +130,8 @@ The triggers allow only completion marks and removals past the keep period, so t
 Travel is there for a lost or corrupted database.
 
 An entry outlives every backup that could hold its account, but only a backup younger than 37 days is covered. Never
-restore the main database from anything older; the drill refuses it through `backupTakenAt`.
+restore the main database from anything older; the drill refuses it through `backupTakenAt`. Removal is held only once
+the replay seals, so the drill measures to the end of the replay phase and allows 36 days, a day short for the daily cron.
 
 For `deployment/recoveryDrill.mjs`, record the journal sequence before and after the replay as `journalSequenceBefore`
 and `journalSequenceAfter`. Removal lowers `totalRecords`, but never this number:

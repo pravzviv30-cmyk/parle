@@ -31,10 +31,12 @@ export function verifyDrill(drill) {
   // The journal's AUTOINCREMENT sequence: removal never lowers it, so a drop means the journal itself was rolled back.
   if(drill.deletionsReplayed!==drill.deletionsExpected || drill.journalSequenceAfter<drill.journalSequenceBefore)throw new Error('Post-backup deletion replay incomplete');
   // The journal keeps an entry JOURNAL_KEEP_DAYS after its erasure, so only a backup younger than that can be replayed whole.
-  const backup=typeof drill.backupTakenAt==='string'?Date.parse(drill.backupTakenAt):NaN,replayStart=Date.parse(drill.phases[PHASES.indexOf('replayPostBackupDeletions')].startedAt);
+  // Removal is held only once the replay seals, so measure to the phase's end, a day short for the daily cron.
+  const replay=drill.phases[PHASES.indexOf('replayPostBackupDeletions')];
+  const backup=typeof drill.backupTakenAt==='string'?Date.parse(drill.backupTakenAt):NaN,replayStart=Date.parse(replay.startedAt);
   if(!Number.isFinite(backup))throw new Error('Missing measured backupTakenAt');
   if(backup>replayStart)throw new Error('backupTakenAt is after the replay phase');
-  if(replayStart-backup>=JOURNAL_KEEP_DAYS*24*60*60*1000)throw new Error('Backup is older than the deletion journal keep period');
+  if(Date.parse(replay.completedAt)-backup>=(JOURNAL_KEEP_DAYS-1)*24*60*60*1000)throw new Error('Backup is older than the deletion journal keep period');
   return {observedRtoSeconds,observedRpoSeconds:drill.observedRpoSeconds,deletionsReplayed:drill.deletionsReplayed,targetProjectRef:drill.targetProjectRef,
     verification:'operator evidence inventory only; actual restore/checks require independent review'};
 }
