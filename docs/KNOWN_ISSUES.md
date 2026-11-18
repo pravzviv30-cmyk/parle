@@ -13107,7 +13107,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1303 — The harness can be killed before its signal handler exists, and its test fails at random
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: scripts/verifyHttpBoundary.mjs:15
 - note: The SIGTERM and SIGINT handlers are registered after `spawn`, so a signal sent as soon as the child is visible kills the harness by default action and leaks the child. `a harness stopped by SIGTERM takes its API child down with it` failed 3 of 120 runs at 8 in parallel with `{ code: null, signal: 'SIGTERM' }`.
 - verified-by: `a harness stopped by SIGTERM takes its API child down with it`

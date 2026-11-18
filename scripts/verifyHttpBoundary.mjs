@@ -6,13 +6,13 @@ import { fileURLToPath } from 'node:url';
 import { exchange } from './httpBoundaryExchange.mjs';
 
 const cwd = fileURLToPath(new URL('../', import.meta.url));
+// A timeout kill skips the finally below, so the child would outlive the harness.
+for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => { proc.kill('SIGKILL'); process.exit(1); });
 const proc = spawn(process.execPath, ['--experimental-strip-types', 'services/token-server/src/server.ts'], {
   cwd, env: { PATH: process.env.PATH, PORT: '0', NODE_ENV: 'development', LUVANI_LOCAL_DEVELOPMENT: '1',
     LIVEKIT_API_KEY: 'example-local-key', LIVEKIT_API_SECRET: 'example-local-secret-for-signing-only',
     LIVEKIT_URL: 'ws://localhost:7880', DOTENV_CONFIG_PATH: '/dev/null' }, stdio: ['ignore', 'pipe', 'pipe'],
 });
-// A timeout kill skips the finally below, so the child would outlive the harness.
-for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => { proc.kill('SIGKILL'); process.exit(1); });
 let port;
 let log = '';
 proc.stdout.on('data', chunk => { log = (log + chunk.toString()).slice(-8192); const found = log.match(/token server on http:\/\/localhost:(\d+)/); if (found) port = Number(found[1]); });
