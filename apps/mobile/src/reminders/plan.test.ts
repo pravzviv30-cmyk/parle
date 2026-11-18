@@ -40,7 +40,7 @@ import {
   type ReminderLog,
   type ReminderSlot,
 } from './plan.ts';
-import { MILESTONE_EVE_LINE, PAUSE_LINE, REMINDER_COPY, REMINDER_LINES, ROUTINE_LINES, STREAK_LINES, STREAK_SAVE_LINES } from './reminder.ts';
+import { MILESTONE_EVE_LINE, PAUSE_LINE, REMINDER_COPY, REMINDER_LINES, ROUTINE_LINES, STREAK_LINES, STREAK_SAVE_LINES, reminderMessage } from './reminder.ts';
 
 /** A calendar with no time zone, so every day is 24 hours and the test reads the same anywhere. */
 const UTC: Calendar = {
@@ -486,6 +486,32 @@ describe('the save line: only on a real cliff, inside the one slot (T1.2, D25)',
     assert.ok(STREAK_LINES.some((line) => line.id === next.line) || next.line === MILESTONE_EVE_LINE.id, `D+1 said ${next.line}`);
     assert.ok(SAVE.has(after.line), `D+2 said ${after.line}: the projection forgot the freeze D+1 would spend`);
     assert.match(after.title, /\b3[- ]day/);
+  });
+
+  test('the save line waits one more day when a freeze is banked', () => {
+    // As (g), but yesterday held two practices: the bank covers D+1, the free
+    // freeze D+2, so D+3 is the first cliff (F1269).
+    const banked = planReminders(input({ practiceDays: [day(-2), day(-1), TODAY], finishes: [at(day(-1), 9), at(day(-1), 19)], freezes: FREE }));
+    const said = (d: number) => banked.find((slot) => slot.day === day(d))!.line;
+    assert.ok(!SAVE.has(said(2)), `D+2 said ${said(2)}: the planner forgot the banked freeze`);
+    assert.ok(SAVE.has(said(3)), `D+3 said ${said(3)}`);
+  });
+
+  test('a freeze banked three weeks ago still moves the save line', () => {
+    // As (g), with the two practices 20 days back: past the smart time's 14 days, still banked.
+    const old = planReminders(input({ practiceDays: [day(-20), day(-2), day(-1), TODAY], finishes: [at(day(-20), 9), at(day(-20), 19)], freezes: FREE }));
+    const said = (d: number) => old.find((slot) => slot.day === day(d))!.line;
+    assert.ok(!SAVE.has(said(2)), `D+2 said ${said(2)}: the planner forgot a bank older than 14 days`);
+    assert.ok(SAVE.has(said(3)), `D+3 said ${said(3)}`);
+  });
+
+  test('no reminder line names a repair or a banked freeze', () => {
+    for (const line of REMINDER_LINES) {
+      for (const n of [0, 3, 12]) {
+        const message = reminderMessage(line, { n, lifetime: n, tutor: 'Céline' });
+        assert.doesNotMatch(`${message.title} ${message.body}`, /repair|bank|freeze|bring back|\bearn/i, `${line.id} names a repair or a freeze`);
+      }
+    }
   });
 
   test('(h) still exactly one practice:{day} slot per day', () => {

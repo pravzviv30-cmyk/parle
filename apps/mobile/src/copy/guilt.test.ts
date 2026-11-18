@@ -27,6 +27,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { BANNED_IN_COPY, BANNED_IN_STREAK_COPY, RETIRED_FROM_BAN, STREAK_BAN_EXEMPTIONS, guiltIn, streakGuiltIn } from './guilt.ts';
+import { GAME_COPY } from '../game/copy.ts';
+import { INCLUSIONS } from '../purchases/capabilities.ts';
 
 /**
  * Every word a Luvani surface has ever banned, written down with its origin.
@@ -127,6 +129,24 @@ describe('the words no Luvani surface may say', () => {
     );
   });
 
+  test('the earn-back and banked-freeze lines pass both guilt ban lists', () => {
+    // F1271: the approved lines (founder, 2026-11-18), read from where they live.
+    const card = GAME_COPY.streakScreen.card;
+    const lines = [GAME_COPY.streak.repairForSubscribers, card.upsell, card.banked, card.line(1), card.line(2), INCLUSIONS.streak];
+    assert.deepEqual(lines.slice(0, 3), [
+      'You can repair a streak once every 30 days. Paid plans add a second freeze and a repair every week.',
+      'A second freeze and a repair every week',
+      'One is banked from a day with two practices',
+    ]);
+    for (const line of [card.line(1), card.line(2)]) assert.match(line, /A used freeze comes back a week later\. Two practices in one day bank one more\.$/);
+    for (const line of lines) {
+      assert.equal(guiltIn(line), undefined, `"${line}" trips "${guiltIn(line) ?? ''}"`);
+      assert.equal(streakGuiltIn(line), undefined, `"${line}" trips "${streakGuiltIn(line) ?? ''}"`);
+      assert.doesNotMatch(line, /[—–]/, `"${line}" carries a dash`);
+      assert.doesNotMatch(line, /\b(?:hours?|minutes? left|tonight|hurry|last chance|before midnight|ends? (?:soon|today))\b/i, `"${line}" counts down`);
+    }
+  });
+
   test('streak copy states facts and never threatens', () => {
     // F718, founder decision D2 (2026-10-04): a full daily streak that never
     // shames. The word came off the shared list; the threat did not. Streak
@@ -199,7 +219,7 @@ describe('the words no Luvani surface may say', () => {
       'Practised today. That makes 30 days in a row.',
       '214 practice days so far',
       'Start a new streak today',
-      'Subscribers get a second freeze and can repair a streak within 2 days.',
+      'You can repair a streak once every 30 days. Paid plans add a second freeze and a repair every week.',
       'Your freeze is in use. It comes back on Saturday 10 October.',
       'Léa has a phrase for you.',
       // Lines the streak screen is specified to say (docs/come-alive/game.md),

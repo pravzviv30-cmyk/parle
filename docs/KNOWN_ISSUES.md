@@ -13756,6 +13756,150 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the scene frame schema the brain sends is pinned byte for byte`
 - verified-by: `the Anthropic turn schema is pinned byte for byte, as zod 3 sent it`
 
+### F1273 — Retention counts billed voice sessions only, so a learner who practises offline reads as gone
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:69
+- note: Add statement 2b: practice-day D1/D7/D30 by cohort from `activity.data.activeDays`, `activity.data.entries` with xp above 0, and `game.data.sittings`. Rows: one learner with game sittings only on days 0, 1 and 7 and no `session_usage`; one with activity entries only; one with `activeDays` only; one with a malformed payload that must not fail the statement.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: a learner with offline sittings on days 1 and 7 counts as retained by practice day`
+
+### F1274 — The cohort reads motivation while Settings writes onboardingGoal
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:31
+- note: The view reads `onboardingGoal` when the key is present and `motivation` only when it is absent. Rows: motivation trip with goal edited to food reads hobby; goal cleared to null reads unknown; an older profile with motivation only keeps its cohort.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the cohort follows the goal Settings wrote, and a cleared goal is unknown`
+
+### F1275 — No query tells a paying account from a store trial
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:238
+- note: Statement 7 from `entitlements`: paying (live paid row, `withheld_seconds` 0), store trial (live paid row, withheld above 0), lapsed, paid period ended and not yet lapsed, free. One synthetic row per status, with hand-computed percentages.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: paying accounts are counted apart from store trials`
+
+### F1276 — No net price figure exists
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:265
+- note: Statement 8: payers by plan and period, and one estimated net monthly dollars per payer at list price less the Small Business fee, yearly divided by 12. The test pins the inline price list to core's `PLANS`, `YEARLY_PLANS` and `STORE_FEE_RATES`, and hand-computes one monthly Core payer plus one yearly Max payer.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the net price estimate uses core's list prices and the Small Business rate`
+
+### F1277 — Minutes used against the allowance are not reported per plan and period
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:296
+- note: Statement 9 per plan and period (trial, month, year, unknown). Used is `seconds_used - withheld_seconds`; the allowance is `luvani_private.tutor_cap_v1(plan) - withheld_seconds`. Rows include a store trial whose withheld part must not count as use, and a yearly row in its last window with a null `allowance_window_end` that must still read year.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: minutes used against the allowance leave out the withheld part, per plan and period`
+
+### F1278 — The wall funnel cannot be read by door
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:331
+- note: Statement 10 attributes each later wall event to the learner's latest `wall_shown`. Rows: one learner with a `refused` showing that reaches plans and settles done, then a `settings` showing that leaves unchanged; one learner with `refused` and nothing after. The settings door must not inherit the purchase.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the wall funnel is split by door, and a purchase stays with the door that showed it`
+
+### F1279 — The report does not say what it cannot measure or whom it covers
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:1
+- note: Statement 11, constant rows: month-one renewal is `not measurable` and names the missing vendor event type; paid conversion is `snapshot` and names the trial-versus-paid history gap; net price is `estimate`; the funnel's basis is `consented learners only`. The header comment carries the same caveats. The test asserts the status and basis of each row.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the report says which numbers it cannot measure and which cover consented learners only`
+
+### F1280 — Billing events carry no vendor type, so trial-to-paid conversion and month-one renewal cannot be measured in the database
+- severity: P2
+- status: [ ]
+- where: supabase/migrations/202608300001_billing_events.sql:49
+- note: Not built here. `event_type` is `unknown` on every row and nothing records a period's kind. The candidate is to carry the vendor's closed event type and period kind through the projection. That needs a migration, a token-server change by `revenue-engineer`, `/backend-review`, and a row in the `PRIVACY_AND_SAFETY.md` table. It needs the founder's approval as its own step.
+- verified-by: `a renewal delivery is recorded with its vendor event type`
+
+### F1265 — Free learners cannot earn a streak back
+- severity: P1
+- status: [x]
+- where: packages/core/src/streak/repair.ts:113
+- note: Founder F4, 2026-11-18. `repairOffer` takes the plan's limit through `everyDays`; `FREE_REPAIR_EVERY_DAYS` is 30 and paid stays 7 (D19). A repair cover used under any plan counts against the current plan's limit.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `a free learner's repair is offered once in 30 days and a subscriber's once in 7`
+- verified-by: `a repair made on a paid plan counts against the free 30 days`
+
+### F1266 — The plan table says the free plan has no repair
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/capabilities.ts:91
+- note: `StreakProtection` gains `repairEveryDays`; free and lapsed hold repair at 30, paid at 7, unknown none. `INCLUSIONS.streak` no longer says repair is paid-only.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `the free plan repairs once every 30 days, a paid plan once every 7, and an unknown plan never`
+- verified-by: `the plans page streak line no longer says repair is paid-only`
+
+### F1267 — Settle and the game view never complete a free learner's repair
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/game/settle.ts:298
+- note: `coversToApply` and `gameViewFrom` pass the plan's `repairEveryDays`. A free learner's second practice in the window writes the repair covers; a second break inside 30 days writes none.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `a free learner's second practice in the window repairs the run, and not a second time inside 30 days`
+
+### F1268 — A second practice in a day earns nothing
+- severity: P1
+- status: [x]
+- where: packages/core/src/streak/freeze.ts:59
+- note: Founder F5, 2026-11-18. The bank is derived from `bankDays` and resolved covers: one slot above the cap, spent first, earned again no sooner than 7 days after the day it covered, never reaching a day before its earn day or before protection began, none for an unknown plan.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `two finished practices in a day bank one freeze above the cap, and never a second`
+- verified-by: `a banked freeze is spent before the plan's own and is earned again only a week after the day it covered`
+- verified-by: `a second practice today never banks a freeze for a day already gone`
+- verified-by: `a banked freeze never covers a day before protection began, and an unknown plan holds none`
+
+### F1269 — The streak and the reminder must count the same freezes
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/reminders/plan.ts:469
+- note: Settle and the planner both pass `bankDays` from the same finishes into `freezeCoverDays`, so the D25 save line moves one day later for a learner holding a bank and settle covers that same day.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `settle spends a banked freeze on the day the reminder planner said it would cover`
+- verified-by: `the save line waits one more day when a freeze is banked`
+
+### F1270 — The Streak screen still tells free learners repair is for subscribers
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/game/streakScreenView.ts:289
+- note: A free learner with an open repair sees the repair card and no plan line. With the repair spent and a recent break, the one line and See plans say the true rule. The freeze card upsell stays for free learners, keyed on the cap, and is hidden while a repair is open (founder Q4, 2026-11-18). A banked freeze is named in the card's existing sub line.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `a free learner earning a repair sees the repair card and no plan line`
+- verified-by: `a free learner whose repair is spent sees the one calm line and See plans`
+- verified-by: `the freeze card says when one freeze is banked`
+- verified-by: `a free learner earning a repair sees no plan row on the freeze card`
+
+### F1271 — New streak and plan lines must pass the guilt bans
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/copy/guilt.test.ts:202
+- note: Every string in Q3 is in the copy sweeps, passes `BANNED_IN_COPY` and `BANNED_IN_STREAK_COPY`, has no em dash and no countdown. The ban lists do not change, and no reminder line names a repair or a banked freeze.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `the earn-back and banked-freeze lines pass both guilt ban lists`
+- verified-by: `no reminder line names a repair or a banked freeze`
+
+### F1272 — The decision records still say repair is a paid perk
+- severity: P2
+- status: [x]
+- where: docs/come-alive/README.md:31
+- note: D4, D19, D23, PRODUCT.md, game.md 2.4 and DECISIONS.md record the founder's 2026-11-18 answers. Doc-only, so no failing test first; the pinned copy test is the proof that the words agree.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `the plans page streak line no longer says repair is paid-only`
+
+### F1281 — The bank's reach in the paid fallback pass is not pinned
+- severity: P2
+- status: [ ]
+- where: packages/core/src/streak/freeze.ts:164
+- note: A subscriber whose plan began after a two-day gap has it covered by the free-level freeze plus a bank earned before the gap, back to `protectedSince`. Consistent with the contract (the bank obeys both passes) but no test holds it, so a later change to `freezeCoverDays` could move it silently. Filed by work-judge on the earn-back-bank SHIP, 2026-11-18; optional.
+- verified-by: `a bank from before the gap and the free freeze cover two days for a plan bought after them`
+
 ### F1098 — A stop during paid admission crashes the practice worker
 - severity: P2
 - status: [x]
