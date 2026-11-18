@@ -466,13 +466,33 @@ describe('the ci contract', () => {
 
   test('the Expo CLI no longer depends on zod', () => {
     // @expo/cli 57.0.33 dropped zod; an older CLI pins zod 3 and blocks every zod fix (F1256).
-    const clis = Object.keys(lock.packages).filter((key) => key.endsWith('node_modules/@expo/cli'));
-    assert.ok(clis.length > 0, 'the Expo CLI is in the lockfile');
-    for (const key of clis) {
-      const entry = lock.packages[key];
-      const edges = { ...(entry?.dependencies ?? {}), ...(entry?.optionalDependencies ?? {}) };
-      assert.equal(edges.zod, undefined, `${key} ${entry?.version} still declares zod ${edges.zod}`);
+    const cli = resolveFrom('node_modules/expo', '@expo/cli');
+    assert.ok(cli, 'Expo CLI resolves from the actual SDK');
+    const closure = dependencyClosure(cli);
+    assert.ok(closure.size >= 10, 'the Expo CLI closure must be walked, not just its own entry');
+    for (const key of closure.keys()) {
+      assert.ok(!key.endsWith('node_modules/zod'), `${cli} ${lock.packages[cli]?.version} still reaches ${key}`);
     }
+  });
+
+  test('every locked Expo module matches the installed Expo SDK\'s list', () => {
+    // Expo's own list of the module versions an SDK release was built and tested with.
+    const expected = JSON.parse(readFileSync(path.join(ROOT, 'node_modules/expo/bundledNativeModules.json'), 'utf8')) as Record<string, string>;
+    const app = JSON.parse(readFileSync(path.join(ROOT, 'apps/mobile/package.json'), 'utf8')) as Record<string, Record<string, string> | undefined>;
+    const declared = Object.keys({ ...app.dependencies, ...app.devDependencies }).filter((name) => /^(?:expo-|@expo\/)/.test(name));
+    assert.ok(declared.length > 10, 'the app declares its Expo modules');
+    const behind: string[] = [];
+    for (const name of declared) {
+      const range = expected[name];
+      if (range === undefined) continue;
+      const floor = range.match(/^~(\d+\.\d+\.\d+)$/)?.[1];
+      assert.ok(floor, `${name}: Expo lists ${range}, which this check does not read`);
+      const key = resolveFrom('apps/mobile', name);
+      const locked = key ? lock.packages[key]?.version ?? '' : '';
+      const sameLine = locked.split('.').slice(0, 2).join('.') === floor.split('.').slice(0, 2).join('.');
+      if (!sameLine || !atLeast(locked, floor)) behind.push(`${name} ${locked || 'unlocked'} (Expo wants ${range})`);
+    }
+    assert.deepEqual(behind, [], 'run `npx expo install --fix` in apps/mobile');
   });
 
   test('unpatched build-tool exceptions cannot enter service runtimes or the mobile update client', () => {
@@ -485,7 +505,7 @@ describe('the ci contract', () => {
     }
     const updates = resolveFrom('apps/mobile', 'expo-updates');
     assert.ok(updates, 'the reviewed remote update client must resolve');
-    assert.equal(lock.packages[updates]?.version, '57.0.25', 'the remote update client needs a version-specific verifier review');
+    assert.equal(lock.packages[updates]?.version, '57.0.28', 'the remote update client needs a version-specific verifier review');
     // node-forge is patched (1.4.2, 2026-11-02); the update client must still never import it.
     assert.equal(lock.packages['node_modules/node-forge']?.version, '1.4.2');
     const config = JSON.parse(readFileSync(path.join(ROOT, 'apps/mobile/app.json'), 'utf8')).expo;
