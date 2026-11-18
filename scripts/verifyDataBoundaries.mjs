@@ -259,7 +259,7 @@ try {
   await assert.rejects(db.query('select * from luvani_private.data_write_quotas'),/permission denied/);
   await assert.rejects(db.query("select luvani_private.admit_data_write_v1($1,'learner')",[a]),/permission denied/);
   await assert.rejects(db.query('select run_data_retention_v1(1)'),/permission denied/);
-  await assert.rejects(db.query("insert into entitlements(user_id,plan) values($1,'regular')",[a]),/row-level security/);
+  await assert.rejects(db.query("insert into entitlements(user_id,plan) values($1,'regular')",[a]),/permission denied for table entitlements/); // F1080: no insert privilege, before RLS
   await assert.rejects(db.query('select refund_failed_session($1,$2,$3)',[a,id(99),'tts_error']),/permission denied/);
   await admin(); assert.deepEqual(await quota(a),acceptedQuota,'rejected writes changed the accepted quota snapshot');
   pass('rejected learner writes leave the full accepted quota snapshot unchanged without a calendar-minute assumption');
@@ -297,7 +297,7 @@ try {
   await admin(); assert.equal((await db.query('select count(*)::integer as n from product_events where user_id=$1',[b])).rows[0].n,10000);
   await role('authenticated',e);
   await event(e,'2036-01-01','2000-01-01');
-  assert.equal((await db.query("update product_events set received_at='2036-01-01' where user_id=$1 returning id",[e])).rows.length,0,'RLS must hide events from client UPDATE');
+  await assert.rejects(db.query("update product_events set received_at='2036-01-01' where user_id=$1 returning id",[e]),/permission denied for table product_events/,'F1080: clients hold no UPDATE on events');
   await assert.rejects(db.query("insert into product_events(user_id,name,properties) values($1,'trial_started','{}')",[e]),/server-only/);
   await admin();
   const receipt=(await db.query('select received_at,occurred_at from product_events where user_id=$1',[e])).rows[0];
