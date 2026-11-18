@@ -37,6 +37,7 @@ import { CommonActions } from '@react-navigation/native';
 import { DEFAULT_TUTOR_VOICE, tutorVoice, type DayKey, type StreakCover } from '@luvani/core';
 
 import { useProfile } from '../app/ProfileContext.tsx';
+import { loadGameLocal } from '../game/gameLocal.ts';
 import { onSettled, readGameFacts } from '../game/settle.ts';
 import { NO_OUTSIDE_FACTS, finishedSittings } from '../game/view.ts';
 import { guestPracticeDays } from '../onboarding/guestModel.ts';
@@ -54,6 +55,7 @@ import {
   emptyLog,
   noteAnswered,
   noteOpened,
+  freezeProtectionOf,
   planReminders,
   plannedLog,
   replanStep,
@@ -194,6 +196,8 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
   if (choice === null) return 'failed';
 
   const facts = await accountFacts();
+  // The two freeze dates this phone saw, and nothing else from gameLocal.
+  const freezes = freezeProtectionOf(await loadGameLocal().catch(() => null));
   const tutor = options.tutor ?? tutorNameOf(await loadProfile().catch(() => null));
   let log: ReminderLog = step.log;
   if (visiting()) log = noteOpened(log, now, LOCAL_CALENDAR);
@@ -204,6 +208,7 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
     finishes: facts?.finishes ?? [],
     practiceDays: facts?.practiceDays ?? [],
     covers: facts?.covers ?? [],
+    ...(freezes !== undefined ? { freezes } : {}),
     tutor,
     log,
     todayUnknown: facts === null,

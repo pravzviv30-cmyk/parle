@@ -87,3 +87,23 @@ export function freezesToApply(cap: number, input: FreezeInput & { protectedSinc
   if (runLengthEndingAt(input, addDays(gap[0]!, -1)) < 1) return [];
   return gap;
 }
+
+/** What a learner's freezes may reach: their cap, and the first days a paid plan and any protection were seen. */
+export interface FreezeProtection {
+  cap: number;
+  paidSince: DayKey | null;
+  protectedSince: DayKey | null;
+}
+
+/**
+ * The gap days freezes cover now, or none: the one rule the streak (settle)
+ * and the reminder planner both read, so they can never disagree.
+ *
+ * A paid plan's two freezes never reach before the plan (paidSince); the one
+ * every learner holds reaches back only to protectedSince (D23). So a plan
+ * bought after a gap cannot spend its second freeze on that gap.
+ */
+export function freezeCoverDays(protection: FreezeProtection, input: FreezeInput): DayKey[] {
+  const both = protection.cap >= FREEZE_CAP ? freezesToApply(protection.cap, { ...input, protectedSince: protection.paidSince }) : [];
+  return both.length > 0 ? both : freezesToApply(Math.min(protection.cap, FREE_FREEZE_CAP), { ...input, protectedSince: protection.protectedSince });
+}

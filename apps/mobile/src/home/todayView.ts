@@ -27,7 +27,7 @@ import {
 } from '@luvani/core';
 
 import type { FeatureAccess, LockedFeature } from '../access/featureAccess.ts';
-import { dealForTier, offeredReview, reviewOffer } from '../review/freeTier.ts';
+import { dealForTier } from '../review/freeTier.ts';
 import { latestReadyPack } from '../conversationPacks/model.ts';
 import { goalPickLine } from '../onboarding/goalLine.ts';
 import { dayWord } from '../journey/journeyView.ts';
@@ -145,12 +145,10 @@ export function aboutMinutes(minutes: number): string {
 /**
  * The review row (F934; reverses UI-008's "review off Today", DECISIONS
  * 2026-10-29): drawn only when Review would deal cards, by Review's own deal
- * (`dealForTier`), so a free learner with only conversation phrases due is
- * offered nothing Review would hold back.
+ * (`dealForTier`), the same on every plan (REV-003).
  */
-export function reviewRow(deck: readonly ReviewCard[], now: number, lock: Parameters<typeof dealForTier>[2]): { title: string; line: string; count: number } | null {
-  if (offeredReview(reviewOffer(deck, now), lock) === null) return null;
-  const count = dealForTier(deck, now, lock).due.length;
+export function reviewRow(deck: readonly ReviewCard[], now: number): { title: string; line: string; count: number } | null {
+  const count = dealForTier(deck, now).due.length;
   if (count === 0) return null;
   return { title: count === 1 ? 'Review 1 phrase' : `Review ${count} phrases`, line: aboutMinutes(2), count };
 }
@@ -301,8 +299,6 @@ export interface OneFix {
    * rides along behind `afterTry`, so it is drawn only after the first answer.
    */
   route: { screen: 'Drill'; params: { node: { id: string; title: string; phraseKeys: readonly string[]; moment?: { quote: string; better: string; why: string }; afterTry?: true } } };
-  feature: LockedFeature;
-  locked: boolean;
 }
 
 /**
@@ -332,14 +328,14 @@ export function hidesAnswer(exercise: DrillExercise): boolean {
  * The drill opens without the moment, as Your fixes does, because a drill
  * given a moment draws the better line above the exercise. Null when there is
  * no replay, the sitting would be empty, or the exercise it would open on shows
- * the French before the try.
+ * the French before the try. Free on every plan (founder, 2026-11-18): Your
+ * fixes and older fixes stay locked, this one fix does not.
  */
 export function oneFix(input: {
   replay: Replay | null;
   deck: readonly ReviewCard[];
   bank: readonly DrillExercise[];
   tutorName: string;
-  access: (feature: LockedFeature) => FeatureAccess;
   now: number;
   /** The saved conversations, to name the day the learner's line was said. */
   packs?: readonly ConversationPack[];
@@ -361,8 +357,6 @@ export function oneFix(input: {
     english: replay.betterEn,
     after: day === null ? `${input.tutorName}'s version shows after you try` : `Your line from ${day} and ${input.tutorName}'s version show after you try`,
     route: { screen: 'Drill', params: { node: day === null ? node : { ...node, moment: { quote: replay.quote, better: replay.better, why: replay.why }, afterTry: true } } },
-    feature: 'fixes',
-    locked: input.access('fixes') === 'locked',
   };
 }
 

@@ -21,10 +21,12 @@
  *    it; once it has gone out the reminder is paused until the learner turns
  *    it on again. Any practice, tap or visit starts the count again.
  * 4. **Words.** With a live run the streak set (the eve of a milestone takes
- *    its place), otherwise the routine set; never the same line two days in a
+ *    its place, and on a cliff day of a run of three or more, one where no
+ *    freeze would cover it, the save set does; D25), otherwise the routine set; never the same line two days in a
  *    row; always the chosen tutor's name. The run is projected for each day as
- *    it will stand if nothing else is practised before then, which is truthful
- *    because every practice re-plans.
+ *    it will stand if nothing else is practised before then, spending the
+ *    freezes the streak would spend on the way, which is truthful because
+ *    every practice re-plans.
  *
  * 5. **Only what the phone held counts.** A slot counts as arrived only while
  *    the OS still held its plan when its time came. Every plan is named by the
@@ -38,7 +40,20 @@
  * the 64 iOS keeps for one app.
  */
 
-import { addDays, dayKeyOf, isDayKey, isStreakMilestone, streakFrom, weekdayIndex, type DayKey, type StreakCover } from '@luvani/core';
+import {
+  addDays,
+  dayKeyOf,
+  FREE_FREEZE_CAP,
+  FREEZE_CAP,
+  freezeCoverDays,
+  isDayKey,
+  isStreakMilestone,
+  streakFrom,
+  weekdayIndex,
+  type DayKey,
+  type FreezeProtection,
+  type StreakCover,
+} from '@luvani/core';
 
 import {
   GUEST_PAUSE_LINE,
@@ -47,6 +62,7 @@ import {
   ROUTINE_LINES,
   SMART_FALLBACK,
   STREAK_LINES,
+  STREAK_SAVE_LINES,
   reminderMessage,
   reminderTime,
   type ClockTime,
@@ -165,6 +181,8 @@ export interface PlanInput {
   practiceDays: readonly DayKey[];
   /** Days a freeze, a repair or a trip kept the run; none for a guest. */
   covers: readonly StreakCover[];
+  /** What the learner's freezes may reach, as this phone saw it; absent when unknown (and for a guest), so no save line. */
+  freezes?: FreezeProtection;
   /** The chosen tutor's name. */
   tutor: string;
   /** The log, already brought up to `now` (`settleLog`, then `noteOpened` when the app is open). */
@@ -174,6 +192,21 @@ export interface PlanInput {
   /** Plan nothing for today: the practice facts could not be read, so today might be practised. */
   todayUnknown?: boolean;
 }
+
+/**
+ * What this phone first saw of the learner's freezes (`game/gameLocal.ts`): a
+ * paid plan holds two from paidSince, a protected free learner one, and
+ * anything else is unknown, so no save line. No billing call.
+ */
+export function freezeProtectionOf(local: { paidSince: DayKey | null; protectedSince: DayKey | null } | null): FreezeProtection | undefined {
+  if (local === null) return undefined;
+  if (local.paidSince !== null) return { cap: FREEZE_CAP, paidSince: local.paidSince, protectedSince: local.protectedSince };
+  if (local.protectedSince !== null) return { cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: local.protectedSince };
+  return undefined;
+}
+
+/** A save line needs a run of at least this many days (T1.2). */
+export const SAVE_MIN_RUN = 3;
 
 /** The newest `HISTORY_DAYS` distinct valid day keys, oldest first. */
 function capDays(days: readonly string[]): DayKey[] {
@@ -378,14 +411,15 @@ function dayNumber(day: DayKey): number {
 }
 
 /**
- * The line for one day: the milestone eve, the streak set, or the routine set,
+ * The line for one day: the milestone eve, the save set on a cliff day (no
+ * freeze would cover it), the streak set, or the routine set,
  * rotated by the day, and never `avoid` (the line the day before said). A
  * learner who asked for lines without their streak gets the two routine lines
  * that carry no count at all.
  */
-function lineFor(day: DayKey, n: number, lifetime: number, mentionStreak: boolean, avoid: string | null): ReminderLine {
+function lineFor(day: DayKey, n: number, lifetime: number, mentionStreak: boolean, avoid: string | null, cliff: boolean): ReminderLine {
   if (mentionStreak && n >= 1 && isStreakMilestone(n + 1) && avoid !== MILESTONE_EVE_LINE.id) return MILESTONE_EVE_LINE;
-  const set = mentionStreak && n >= 1 ? STREAK_LINES : mentionStreak && lifetime >= 1 ? ROUTINE_LINES : ROUTINE_LINES.slice(0, 2);
+  const set = mentionStreak && cliff && n >= SAVE_MIN_RUN ? STREAK_SAVE_LINES : mentionStreak && n >= 1 ? STREAK_LINES : mentionStreak && lifetime >= 1 ? ROUTINE_LINES : ROUTINE_LINES.slice(0, 2);
   const index = dayNumber(day) % set.length;
   const line = set[index]!;
   return line.id === avoid ? set[(index + 1) % set.length]! : line;
@@ -420,15 +454,26 @@ export function planReminders(input: PlanInput): ReminderSlot[] {
   }
 
   const pauseLine = input.guest === true ? GUEST_PAUSE_LINE : PAUSE_LINE;
+  const protection = input.guest === true ? undefined : input.freezes;
+  let covers: readonly StreakCover[] = input.covers;
+  let projectedTo: DayKey | null = protection === undefined ? null : today;
   // The line the day before said: the last one that arrived, then each slot's own.
   let previous: { day: DayKey; line: string } | null = input.log.last ?? null;
   return days.map(({ day, at }, index) => {
     const pause = days.length === budget && index === budget - 1;
     // The run as it will stand on `day` if nothing else is practised first:
     // the streak counts the days before it, and a day not yet lived is open.
-    const n = streakFrom({ practiceDays, covers: input.covers, today: day }).current;
+    // Each day up to it spends the freezes the streak would spend (the same
+    // rule, core `freezeCoverDays`), so the reminder and the streak agree.
+    for (; projectedTo !== null && projectedTo <= day; projectedTo = addDays(projectedTo, 1)) {
+      const spent = freezeCoverDays(protection!, { practiceDays, covers, today: projectedTo });
+      covers = [...covers, ...spent.map((cover) => ({ day: cover, kind: 'freeze' as const, at: now }))];
+    }
+    const n = streakFrom({ practiceDays, covers, today: day }).current;
+    // A cliff: no freeze would cover `day` once it is over.
+    const cliff = protection !== undefined && freezeCoverDays(protection, { practiceDays, covers, today: addDays(day, 1) }).length === 0;
     const avoid = previous !== null && previous.day === addDays(day, -1) ? previous.line : null;
-    const line = pause ? pauseLine : lineFor(day, n, lifetime, mentionStreak, avoid);
+    const line = pause ? pauseLine : lineFor(day, n, lifetime, mentionStreak, avoid, cliff);
     previous = { day, line: line.id };
     const message = reminderMessage(line, { n, lifetime, tutor: input.tutor });
     return { id: `${SLOT_PREFIX}${day}` as const, day, at, title: message.title, body: message.body, open: line.open, line: line.id, pause };

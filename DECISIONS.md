@@ -2554,3 +2554,35 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     onboarding build, from the Mascots board drawing.
 - Consequence: the onboarding build waits on the mascot session, the baseline and
   a timing of the café scene. Toast gains its first pose.
+
+## REV-002 — Today's one fix is free on every plan
+- Date: 2026-11-18, founder ("Yes, unlock it").
+- Context: Today's "One fix to try" hero is the newest conversation's first
+  correction. For a free learner it drew a lock and opened the Wall, though the same
+  fix is already free as the recap's "Practise this phrase" drill.
+- Decision: the hero opens straight into its drill for every plan, one fix a day
+  from the learner's own newest conversation. The rest of D24's lock stays: Your
+  fixes, older fixes, "Comes up often", Then and now and spaced review of
+  conversation phrases stay Core and Max.
+- Consequence: `oneFix` carries no lock and Home's tap navigates to the drill
+  (`home/todayView.ts`, `tabs/HomeTab.tsx`); `fixesLocked` still locks Your fixes.
+
+## REV-003 — Spaced review of conversation phrases is free on every plan
+
+- Date: 2026-11-18
+- Status: accepted (founder, "Yes, unlock (Recommended)": "Free learners review
+  conversation phrases. Your fixes, Then and now and sound practice stay paid.")
+- Number: REV-002 is taken on `claude/free-fix` (Today's one fix), so this is REV-003.
+- Context: D24's addendum (2026-10-20) held conversation-only phrases out of a free
+  learner's Review behind one calm row. Spaced review costs no live minutes and is
+  the practice that most clearly teaches.
+- Decision: Review deals every due phrase on every plan, conversation phrases
+  included, and draws no held-back row. Drills of a whole conversation pack
+  (`conversationPractice`), Your fixes, Then and now, sound practice and the Max
+  doors stay paid.
+- Consequence: `review/freeTier.ts` reads no lock; Home's review row and card
+  (`home/todayView.ts` `reviewRow`, `tabs/HomeTab.tsx`, `practice/NextTaskCard.tsx`)
+  follow the same deal. The plans page's free list reads "Review of every phrase
+  you keep". The `conversationPractice` capability now guards pack drills only. Its comment in
+  `purchases/capabilities.ts` still reads "Review and drills", kept because
+  `wall/moneyUntouched.test.ts` pins that file's hash; it now covers pack drills only.

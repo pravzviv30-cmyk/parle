@@ -82,8 +82,6 @@ describe('featureAccess, the one lock seam', () => {
     };
     for (const dir of ['tabs/', 'journey/', 'practice/', 'tutor/', 'main/']) {
       for (const file of walk(new URL(dir, root))) {
-        // Main's NextTaskCard reads useFeatureLocks itself for offeredReview; it predates the seam.
-        if (file.endsWith('/practice/NextTaskCard.tsx')) continue;
         assert.doesNotMatch(readFileSync(file, 'utf8'), /purchases\/(featureLocks|useFeatureLocks)/, `${file} reads the lock standing past access/`);
       }
     }

@@ -232,10 +232,6 @@
     "label": "\"Forgot your password?\""
   },
   {
-    "file": "ReviewScreen.tsx",
-    "label": "{HELD_BACK_ACTION}"
-  },
-  {
     "file": "onboarding/FirstSessionResult.tsx",
     "label": "{busy ? 'Saving…' : 'Save your progress'}"
   },
