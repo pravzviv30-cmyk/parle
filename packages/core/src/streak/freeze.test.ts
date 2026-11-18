@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 
 import { addDays, type DayKey } from './dayKey.ts';
 import { monthFrom, streakFrom, type StreakCover } from './streak.ts';
-import { FREE_FREEZE_CAP, FREEZE_CAP, FREEZE_RETURN_DAYS, freezeCoverDays, freezesHeld, freezesToApply, nextFreezeReturn } from './freeze.ts';
+import { FREE_FREEZE_CAP, FREEZE_CAP, FREEZE_RETURN_DAYS, doublePracticeDays, freezeBanked, freezeCoverDays, freezesHeld, freezesToApply, nextFreezeReturn } from './freeze.ts';
+import { localDayKey } from '../levels/levels.ts';
 import { recentBreak, repairOffer } from './repair.ts';
 import { travelCover } from './travel.ts';
 
@@ -227,5 +228,95 @@ describe('freezeCoverDays: the one freeze rule settle and the reminder share (T1
     assert.deepEqual(freezeCoverDays({ cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: '2026-09-01' }, { ...input, today: '2026-10-05' }), ['2026-10-04']);
     assert.deepEqual(freezeCoverDays({ cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: '2026-09-01' }, { ...input, today: '2026-10-06' }), []);
     assert.deepEqual(freezeCoverDays({ cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: '2026-10-05' }, { ...input, today: '2026-10-05' }), []);
+  });
+});
+
+describe('a banked freeze: two practices in one day earn one above the cap (F5)', () => {
+  // Practised 20 September to 2 October.
+  const run = Array.from({ length: 13 }, (_, i) => addDays('2026-09-20', i));
+  const since = '2026-09-01';
+
+  test('two finished practices in a day bank one freeze above the cap, and never a second', () => {
+    const sittings = [{ at: noon('2026-10-01') }, { at: noon('2026-10-01') + 600_000 }, { at: noon('2026-10-02') }, { at: noon('2026-09-25') }, { at: noon('2026-09-25') + 1 }, { at: noon('2026-09-25') + 2 }];
+    assert.deepEqual(doublePracticeDays(sittings, localDayKey), ['2026-09-25', '2026-10-01']);
+    assert.deepEqual(doublePracticeDays([{ at: noon('2026-10-02') }], localDayKey), []);
+
+    const input = { practiceDays: run, covers: [] as StreakCover[], today: '2026-10-03', bankDays: ['2026-10-01'] };
+    assert.equal(freezeBanked(input), true);
+    assert.equal(freezesHeld(FREEZE_CAP, input), FREEZE_CAP + 1);
+    assert.equal(freezesHeld(FREE_FREEZE_CAP, input), FREE_FREEZE_CAP + 1);
+    // A second two-practice day still banks only the one.
+    const twice = { ...input, bankDays: ['2026-09-25', '2026-10-01'] };
+    assert.equal(freezesHeld(FREEZE_CAP, twice), FREEZE_CAP + 1);
+    // No bank days, or none given, holds exactly what it held before.
+    assert.equal(freezeBanked({ ...input, bankDays: [] }), false);
+    assert.equal(freezesHeld(FREEZE_CAP, { practiceDays: run, covers: [], today: '2026-10-03' }), FREEZE_CAP);
+    // A day after today is not lived yet, and banks nothing.
+    assert.equal(freezeBanked({ ...input, bankDays: ['2026-10-04'] }), false);
+  });
+
+  test("a banked freeze is spent before the plan's own and is earned again only a week after the day it covered", () => {
+    // Banked on the 1st; the 3rd got away and a freeze covered it.
+    const covered = { practiceDays: run, covers: [freeze('2026-10-03')], bankDays: ['2026-10-01'] };
+    const now = { ...covered, today: '2026-10-04' };
+    assert.equal(freezeBanked(now), false, 'the bank paid for the 3rd');
+    assert.equal(freezesHeld(FREEZE_CAP, now), FREEZE_CAP, "the plan's own two are untouched");
+    assert.equal(freezesHeld(FREE_FREEZE_CAP, now), FREE_FREEZE_CAP);
+    assert.equal(nextFreezeReturn(FREEZE_CAP, now), null, 'a spent bank does not come back on a timer');
+
+    // Two practices on the 9th, six days after the day it covered, bank nothing.
+    const later = [...run, ...Array.from({ length: 8 }, (_, i) => addDays('2026-10-04', i))];
+    const sixDays = { ...covered, practiceDays: later, bankDays: ['2026-10-01', '2026-10-09'], today: '2026-10-11' };
+    assert.equal(freezeBanked(sixDays), false);
+    assert.equal(freezesHeld(FREEZE_CAP, sixDays), FREEZE_CAP);
+    // Two practices on the 10th, a week after, bank one again.
+    const aWeek = { ...sixDays, bankDays: ['2026-10-01', '2026-10-09', '2026-10-10'] };
+    assert.equal(freezeBanked(aWeek), true);
+    assert.equal(freezesHeld(FREEZE_CAP, aWeek), FREEZE_CAP + 1);
+
+    // A free learner with a bank covers a two-day gap: the bank pays the first day, the plan's own the second.
+    const gap = { practiceDays: run, covers: [] as StreakCover[], today: '2026-10-05', bankDays: ['2026-10-01'] };
+    const days = freezesToApply(FREE_FREEZE_CAP, { ...gap, protectedSince: since });
+    assert.deepEqual(days, ['2026-10-03', '2026-10-04']);
+    assert.deepEqual(freezeCoverDays({ cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: since }, gap), days);
+    const spent = { ...gap, covers: days.map((d) => freeze(d)) };
+    assert.equal(freezesHeld(FREE_FREEZE_CAP, spent), 0);
+    assert.equal(freezeBanked(spent), false);
+    assert.equal(nextFreezeReturn(FREE_FREEZE_CAP, spent), '2026-10-11', "only the plan's own freeze comes back");
+    // Without the bank the same gap is more than one freeze can save.
+    assert.deepEqual(freezesToApply(FREE_FREEZE_CAP, { ...gap, bankDays: [], protectedSince: since }), []);
+  });
+
+  test('a second practice today never banks a freeze for a day already gone', () => {
+    // The 3rd and 4th got away; today, the 5th, two practices finished.
+    const today = { practiceDays: [...run, '2026-10-05'], covers: [] as StreakCover[], today: '2026-10-05', bankDays: ['2026-10-05'] };
+    assert.equal(freezesHeld(FREE_FREEZE_CAP, today), FREE_FREEZE_CAP + 1, 'it is banked for the days ahead');
+    assert.deepEqual(freezesToApply(FREE_FREEZE_CAP, { ...today, protectedSince: since }), []);
+    assert.deepEqual(freezeCoverDays({ cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: since }, today), []);
+
+    // With the plan's own freeze in use, yesterday stays uncovered after two practices today.
+    const inUse = {
+      practiceDays: [...run.filter((d) => d !== '2026-09-30'), '2026-10-04'],
+      covers: [freeze('2026-09-30')],
+      today: '2026-10-04',
+      bankDays: ['2026-10-04'],
+    };
+    assert.equal(freezesHeld(FREE_FREEZE_CAP, inUse), 1);
+    assert.deepEqual(freezesToApply(FREE_FREEZE_CAP, { ...inUse, protectedSince: since }), []);
+    assert.deepEqual(freezeCoverDays({ cap: FREEZE_CAP, paidSince: null, protectedSince: since }, inUse), []);
+  });
+
+  test('a banked freeze never covers a day before protection began, and an unknown plan holds none', () => {
+    // Banked on the 1st, the 3rd got away; protection began today, the 4th.
+    const input = { practiceDays: run, covers: [] as StreakCover[], today: '2026-10-04', bankDays: ['2026-10-01'] };
+    assert.deepEqual(freezesToApply(FREE_FREEZE_CAP, { ...input, protectedSince: '2026-10-04' }), []);
+    assert.deepEqual(freezesToApply(FREE_FREEZE_CAP, { ...input, protectedSince: null }), []);
+    assert.deepEqual(freezeCoverDays({ cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: '2026-10-04' }, input), []);
+    assert.deepEqual(freezeCoverDays({ cap: FREEZE_CAP, paidSince: '2026-10-04', protectedSince: '2026-10-04' }, input), []);
+    // An unknown plan (cap 0) holds none, applies none, and has nothing coming back.
+    assert.equal(freezesHeld(0, input), 0);
+    assert.deepEqual(freezesToApply(0, { ...input, protectedSince: since }), []);
+    assert.deepEqual(freezeCoverDays({ cap: 0, paidSince: since, protectedSince: since }, input), []);
+    assert.equal(nextFreezeReturn(0, { ...input, covers: [freeze('2026-10-03')] }), null);
   });
 });

@@ -35,6 +35,8 @@ export {
   nextFreezeReturn,
   freezesToApply,
   freezeCoverDays,
+  doublePracticeDays,
+  freezeBanked,
   type FreezeInput,
   type FreezeProtection,
 } from './freeze.ts';
@@ -43,6 +45,7 @@ export {
   REPAIR_PRACTICES,
   REPAIR_WINDOW_DAYS,
   REPAIR_EVERY_DAYS,
+  FREE_REPAIR_EVERY_DAYS,
   recentBreak,
   repairOffer,
   type StreakBreak,
