@@ -13752,3 +13752,69 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `uses Luna for a live turn, strict structured output, and a developer channel for app context`
 - verified-by: `the scene frame schema the brain sends is pinned byte for byte`
 - verified-by: `the Anthropic turn schema is pinned byte for byte, as zod 3 sent it`
+
+### F1265 — Free learners cannot earn a streak back
+- severity: P1
+- status: [ ]
+- where: packages/core/src/streak/repair.ts:113
+- note: Founder F4, 2026-11-18. `repairOffer` takes the plan's limit through `everyDays`; `FREE_REPAIR_EVERY_DAYS` is 30 and paid stays 7 (D19). A repair cover used under any plan counts against the current plan's limit.
+- verified-by: `a free learner's repair is offered once in 30 days and a subscriber's once in 7`
+- verified-by: `a repair made on a paid plan counts against the free 30 days`
+
+### F1266 — The plan table says the free plan has no repair
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/purchases/capabilities.ts:91
+- note: `StreakProtection` gains `repairEveryDays`; free and lapsed hold repair at 30, paid at 7, unknown none. `INCLUSIONS.streak` no longer says repair is paid-only.
+- verified-by: `the free plan repairs once every 30 days, a paid plan once every 7, and an unknown plan never`
+- verified-by: `the plans page streak line no longer says repair is paid-only`
+
+### F1267 — Settle and the game view never complete a free learner's repair
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/game/settle.ts:298
+- note: `coversToApply` and `gameViewFrom` pass the plan's `repairEveryDays`. A free learner's second practice in the window writes the repair covers; a second break inside 30 days writes none.
+- verified-by: `a free learner's second practice in the window repairs the run, and not a second time inside 30 days`
+
+### F1268 — A second practice in a day earns nothing
+- severity: P1
+- status: [ ]
+- where: packages/core/src/streak/freeze.ts:59
+- note: Founder F5, 2026-11-18. The bank is derived from `bankDays` and resolved covers: one slot above the cap, spent first, earned again no sooner than 7 days after the day it covered, never reaching a day before its earn day or before protection began, none for an unknown plan.
+- verified-by: `two finished practices in a day bank one freeze above the cap, and never a second`
+- verified-by: `a banked freeze is spent before the plan's own and is earned again only a week after the day it covered`
+- verified-by: `a second practice today never banks a freeze for a day already gone`
+- verified-by: `a banked freeze never covers a day before protection began, and an unknown plan holds none`
+
+### F1269 — The streak and the reminder must count the same freezes
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/reminders/plan.ts:469
+- note: Settle and the planner both pass `bankDays` from the same finishes into `freezeCoverDays`, so the D25 save line moves one day later for a learner holding a bank and settle covers that same day.
+- verified-by: `settle spends a banked freeze on the day the reminder planner said it would cover`
+- verified-by: `the save line waits one more day when a freeze is banked`
+
+### F1270 — The Streak screen still tells free learners repair is for subscribers
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/game/streakScreenView.ts:289
+- note: A free learner with an open repair sees the repair card and no plan line. With the repair spent and a recent break, the one line and See plans say the true rule. The freeze card upsell stays for free learners, keyed on the cap. A banked freeze is named in the card's existing sub line.
+- verified-by: `a free learner earning a repair sees the repair card and no plan line`
+- verified-by: `a free learner whose repair is spent sees the one calm line and See plans`
+- verified-by: `the freeze card says when one freeze is banked`
+- verified-by: `a free learner earning a repair sees no plan row on the freeze card`
+
+### F1271 — New streak and plan lines must pass the guilt bans
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/copy/guilt.test.ts:202
+- note: Every string in Q3 is in the copy sweeps, passes `BANNED_IN_COPY` and `BANNED_IN_STREAK_COPY`, has no em dash and no countdown. The ban lists do not change, and no reminder line names a repair or a banked freeze.
+- verified-by: `the earn-back and banked-freeze lines pass both guilt ban lists`
+- verified-by: `no reminder line names a repair or a banked freeze`
+
+### F1272 — The decision records still say repair is a paid perk
+- severity: P2
+- status: [ ]
+- where: docs/come-alive/README.md:31
+- note: D4, D19, D23, PRODUCT.md, game.md 2.4 and DECISIONS.md record the founder's 2026-11-18 answers. Doc-only, so no failing test first; the pinned copy test is the proof that the words agree.
+- verified-by: `the plans page streak line no longer says repair is paid-only`
