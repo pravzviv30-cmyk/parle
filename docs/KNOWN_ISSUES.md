@@ -13722,9 +13722,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1258 — Structured outputs are proven on zod 4.6.7 with no source migration
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/contract/schemas.test.ts:91
 - note: Brain imports zod/v4 in eight files and the Anthropic helper imports zod/v4. The probe passed 822 of 822 and typecheck on 4.6.7, unedited. One new test asserts that brain and the helper resolve the same zod file, because two copies is the failure the probe produced when @expo/cli was left behind. api-engineer; any source change the suites force goes here and nowhere else.
+- note: Fixed 2026-11-18 on claude/audit-zod, zod 4.6.7 in place. zod 4.6 writes a nullable primitive as `type: ["string","null"]` where 3.25.76 wrote `anyOf` with `{type:"null"}`, which moved the pinned OpenAI turn body (47558a3a to 0aee68b9). The founder chose to keep the old wire form (2026-11-18), so the brain converts every schema through one seam, packages/brain/src/llm/outputFormat.ts, which turns each `type` array back into `anyOf` in the same key position. The four adapters (Anthropic, OpenAI Responses, OpenAI-compatible, Claude CLI) call it instead of `zodOutputFormat`. The turn body hashes to 47558a3a again, and 20 of the 21 brain schemas are byte-identical to the 3.25.76 captures. The other one, ScenarioFrameSchema, differs only in `$defs` layout: 4.6.7 extracts the beat object into a sixth definition and renumbers the refs. That reaches the frame request on every provider, but it means the same thing, and undoing it is more than this seam, so it is left. `nullable fields reach the provider as anyOf with null, as on zod 3` drives all seven requests on the Anthropic client and both OpenAI turn orders and refuses any `type` array. No live provider call was made: OpenAI's own SDK emits the type-array form in strict mode, but nothing installed documents Anthropic's acceptance of it, and there is no Anthropic key locally.
+- verified-by: `nullable fields reach the provider as anyOf with null, as on zod 3`
 - verified-by: `the brain and the Anthropic helper convert schemas with the same zod instance`
 - verified-by: `the floor travels to the model, not just to our own parse`
 - verified-by: `every generated object forbids unknown properties and requires every key`

@@ -8,7 +8,7 @@
  * groq default.
  */
 
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { outputFormat } from './outputFormat.ts';
 
 import { MemoryExtractionSchema, ScenarioFrameSchema, TurnSchema, withMissingGoalObservation } from '../contract/schemas.ts';
 import type { MemoryExtraction, ScenarioFrame, TutorTurn } from '../contract/types.ts';
@@ -82,7 +82,7 @@ type ContractSchema =
   | typeof FixLineVerdictSchema;
 
 function jsonSchemaText(schema: ContractSchema): string {
-  const format = zodOutputFormat(schema) as { schema?: unknown };
+  const format = outputFormat(schema) as { schema?: unknown };
   return JSON.stringify(format.schema ?? format);
 }
 
