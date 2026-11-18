@@ -13757,7 +13757,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1098 — A stop during paid admission crashes the practice worker
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/practiceJobs.ts:170
 - note: B2-1. The stopped promise rejects while clientFor is still awaited, before anything listens, so a SIGTERM or a lost lease in that window exits the worker with code 1 and skips its final heartbeat. One handler line; the job still ends superseded.
 - verified-by: `a stop or a lost lease during paid admission ends the practice job without an unhandled rejection`
