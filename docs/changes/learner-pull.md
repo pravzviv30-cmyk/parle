@@ -57,19 +57,19 @@ The pieces:
 
 | # | Decision | Status | Recommendation |
 |---|---|---|---|
-| F1 | One fix a day free: Today's fix from the newest conversation | **approved 2026-11-18** | building as T1.1 |
-| F2 | Save-your-streak line: three rotated lines, and only "save your streak" leaves `BANNED_IN_STREAK_COPY` | decided in principle; wording to approve | approve the three drafts in T1.2 |
-| F3 | Free review of conversation phrases (D24 addendum) | open | yes: costs nothing, spaced retrieval |
-| F4 | Free earn-back repair (two practices within 2 days, once) | open | yes, once per 30 days |
-| F5 | Bank a freeze (a second practice in a day earns +1, at most one); planned rest days | open | bank a freeze yes; rest days later |
-| F6 | Out of time: free practice first, plans second, on Home and Speak (reopens 2026-11-04) | open | yes, on board B |
+| F1 | One fix a day free: Today's fix from the newest conversation | **approved 2026-11-18** ("Yes, unlock it") | landed: PR #30, REV-002 |
+| F2 | Save-your-streak line: three rotated lines, and only "save your streak" leaves `BANNED_IN_STREAK_COPY` | **approved 2026-11-18** (Set A; line 2 "Today's phrase counts. {tutor} is here.") | landed: PR #32, D25 |
+| F3 | Free review of conversation phrases (D24 addendum) | **approved 2026-11-18** ("Yes, unlock") | landed: PR #33, REV-003 |
+| F4 | Free earn-back repair (two practices within 2 days, once) | **approved 2026-11-18** ("Yes, once a month") | built: PR #35, D26, REV-004 |
+| F5 | Bank a freeze (a second practice in a day earns +1, at most one); planned rest days | **approved 2026-11-18** (bank a freeze yes, 7-day refill; rest days later) | built: PR #35, D27, REV-004 |
+| F6 | Out of time: free practice first, plans second, on Home and Speak (reopens 2026-11-04) | **approved 2026-11-18** ("Yes, on a board") | board B |
 | F7 | Route rule: is unlocking a presentation-only lock the normal or the Fable route? | open | normal: mobile only, no server, DB or meter |
 | F8 | The tutor's last correction reaches free learners' tutors today: does that fit D24? | open | yes: it comes from the phone, not tutor memory |
 | F9 | Tutor postcards at 7, 30 and 100 days (bends "no biography"); tutor's week story | open | postcards yes, week story no |
 | F10 | Goal with a "when" (breaks "never a date"; countdowns stay banned) | open | later, after the goal board |
 | F11 | A tiny free memory or a typed line for Léa; free revisits | open | cost it first |
 | F12 | Advent calendar from 1 Dec (phrases only; a scene needs the pack validator migration) | open, by 2026-11-22 | phrases-only, or skip to Valentine's |
-| F13 | The four-number metrics report and a practice-day retention query | open since the revenue council | yes, before the A/B in T6.3 |
+| F13 | The four-number metrics report and a practice-day retention query | **approved 2026-11-18** ("Yes, build the report") | landed: PR #34; renewal (F1280) read in RevenueCat |
 
 ## Screens and states
 
@@ -113,18 +113,18 @@ Owners are the territory engineers from `docs/TEAM.md`, at the low effort set in
 
 | ID | Outcome | Owner | Depends on | Route | Status |
 |---|---|---|---|---|---|
-| T0.1 | Practice-day retention query and the four-number report | data-engineer | F13 | Fable (reads billing tables) | blocked: F13 |
+| T0.1 | Practice-day retention query and the four-number report | data-engineer | F13 | Fable (reads billing tables) | done: PR #34 |
 | T0.2 | Watch 3-5 beginners; check the free practices teach | founder; learning-science-engineer (read-only) | none | none | todo |
-| T1.1 | One fix a day, free | frontend-engineer | F1 | normal | in-progress |
-| T1.2 | Save-your-streak line | progress-retention-engineer | F2 | normal | blocked: F2 wording |
+| T1.1 | One fix a day, free | frontend-engineer | F1 | normal | done: PR #30 |
+| T1.2 | Save-your-streak line | progress-retention-engineer | F2 | normal | done: PR #32 |
 | T1.3 | Reminder content: phrase named, taps into practice, free talk back, goal and next lines, the fix line, the week line | progress-retention-engineer | T1.2 | normal | todo |
 | T1.4 | Your talk days | progress-retention-engineer | T1.3 | normal | todo |
-| T2.1 | Free review of conversation phrases | practice-ux-engineer | F3, F7 | normal per F7 | blocked: F3 |
+| T2.1 | Free review of conversation phrases | practice-ux-engineer | F3, F7 | normal per F7 | done: PR #33 |
 | T2.2 | Homework the next conversation checks | practice-ux-engineer, frontend-engineer | T1.1 | normal | todo |
-| T2.3 | Free earn-back repair | progress-retention-engineer | F4, F7 | per F7 | blocked: F4 |
-| T2.4 | Bank a freeze | progress-retention-engineer | F5, T2.3 | per F7 | blocked: F5 |
-| T3.1 | One freeze mark everywhere (slop fix) | design-system-engineer | none | normal | todo |
-| T3.2 | Board A, streak moments | frontend-engineer after the board | T1.2, T3.1 | normal | todo |
+| T2.3 | Free earn-back repair | progress-retention-engineer | F4, F7 | per F7 | built: PR #35 (Fable route) |
+| T2.4 | Bank a freeze | progress-retention-engineer | F5, T2.3 | per F7 | built: PR #35 (Fable route) |
+| T3.1 | One freeze mark everywhere (slop fix) | design-system-engineer | none | normal | held: `claude/freeze-mark`, folds into board A |
+| T3.2 | Board A, streak moments | frontend-engineer after the board | T1.2, T3.1 | normal | todo; holds 8 queued proposals (save lines, banked row, bank moment, spent state, wraps) |
 | T3.3 | Board B, never a dead end | frontend-engineer, practice-ux-engineer | F6, T1.1 | normal | blocked: F6 |
 | T3.4 | Board C, French anywhere | practice-ux-engineer | board | normal | todo |
 | T3.5 | Board D, your French piles up | frontend-engineer, practice-ux-engineer | board | normal | todo |
@@ -354,6 +354,10 @@ Show a fix only when its line was heard clearly, using per-turn STT confidence i
 |---|---|---|---|
 | 2026-11-18 | T1.1 | Founder approved F1 in chat. frontend-engineer building in `Luvani-worktrees/free-fix`, test first. | Review, gate, `/push-check`, `/land` |
 | 2026-11-18 | T1.1 | Built and committed (3ae5647d). Gate green, 7,946 tests. Push-check: browser pass on `?preview=today-fix` at 375 and 320, light and dark, clean. Reviewers found only low items: stale test names, a dead test field, DESIGN.md and today-sky.md still describing the lock. All fixed. Four design proposals logged in DESIGN_PARTNERSHIP.md. Out of scope, written up: `dev/todayPreviewFixtures.ts` uses the fix's sentence as today's phrase, so the preview shows the answer one row down; whether real data can do the same is unchecked (proposal row "fix and phrase on the same line"). | `/security-review`, stamp, PR |
+| 2026-11-18 | T1.2, T2.1 | Built, push-checked and landed: PR #32 (6292a118) and PR #33 (365c711a), after PR #30 (9a894315). Each needed main merged in for docs-table conflicts only; code lines checked identical to the reviewed tips. | none |
+| 2026-11-18 | T0.1 | Fable route: contract, Opus build, Fable SHIP round 1. Push-check fixed two SQL bugs and two test gaps test first; landed as PR #34 (17dbc7e9). | Read renewals in RevenueCat once the store is live (F1280) |
+| 2026-11-18 | T2.3, T2.4 | Fable route: contract (founder answers Q1-Q4), three Opus builds, Fable SHIP round 1. Push-check: browser pass reached the banked state for real; Impeccable fix then ship; unslop pass; security none. PR #35. | Merge on green |
+| 2026-11-18 | Proposals | The founder sent all 16 push-check proposals from PRs #30, #32, #33 and #35 to a board. | Boards A-E |
 
 ## Landing
 
