@@ -985,6 +985,7 @@ const server = createServer({ connectionsCheckingInterval: 5_000 }, protectHttpH
       if(!(await withinLimits(req,res,[[preparing?RATE_LIMITS.exportUser:RATE_LIMITS.exportPageUser,'user',resolved.userId]])))return;
       if(!eventSink || !resolved.authSessionId)return json(res,503,{error:'account export unavailable'});
       const exports=accountExports(eventSink.baseUrl,eventSink.serviceRoleKey);
+      try {
       if(preparing) {
         const body=await readRequestJson(req,1024);
         if(Object.keys(body).length!==1 || typeof body.exportId!=='string' || !sessionIdPattern.test(body.exportId))return json(res,400,{error:'exportId required'});
@@ -1002,6 +1003,11 @@ const server = createServer({ connectionsCheckingInterval: 5_000 }, protectHttpH
       if([...url.searchParams.keys()].length!==1 || partText===null || !/^(0|[1-9][0-9]{0,3})$/.test(partText) || Number(partText)>2047)return json(res,400,{error:'invalid export part'});
       const part=await withRequestSignal(req,res,signal=>exports.part(resolved.userId,resolved.authSessionId!,exportId,Number(partText),signal));
       return json(res,part===null?404:200,part??{error:'export unavailable'});
+      } catch(error) {
+        // F272: a missing or failing export function is an absent dependency, not a bug.
+        if(error instanceof Error && error.message==='account-export-unavailable')return json(res,503,{error:'account export unavailable'});
+        throw error;
+      }
     }
 
     // A portable copy of the verified caller's account and server rows. There
