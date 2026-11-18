@@ -144,7 +144,12 @@ describe('the privacy notice — F479', () => {
     assert.match(DOC, /neither may be described to a learner as\nverified until it is/);
 
     // Everything the mockups asserted and nobody checked. Each of these reads
-    // as reassurance, which is exactly why the ban is mechanical.
+    // as reassurance, which is exactly why the ban is mechanical. One word in one
+    // paragraph is exempt: the founder approved "encrypted" for the deletion journal
+    // (2026-11-18, F1252), and the document must keep backing it with the cipher.
+    // Every other word is checked over the whole notice, that paragraph included.
+    const KEPT = POLICY_SECTIONS.find(section => section.heading === 'Your rights')?.body.find(line => line.startsWith('A few things of ours are kept on purpose.')) ?? '';
+    assert.match(DOC, /AES-256-GCM encrypted, stored under a keyed hash of the id/, 'the notice says "encrypted" and the document stopped backing it');
     for (const invention of [
       'AES',
       'encrypted',
@@ -162,7 +167,8 @@ describe('the privacy notice — F479', () => {
       'military',
       'bank grade',
     ]) {
-      assert.ok(!WHOLE.toLowerCase().includes(invention.toLowerCase()), `the notice claims "${invention}"`);
+      const text = invention === 'encrypted' ? WHOLE.replace(KEPT, '') : WHOLE;
+      assert.ok(!text.toLowerCase().includes(invention.toLowerCase()), `the notice claims "${invention}"`);
     }
 
     // Jurisdiction: the founder's decision, and the fact both mockups got wrong.
@@ -801,6 +807,45 @@ describe('the privacy notice — F479', () => {
     assert.match(DOC, /asynchronous queue/);
     assert.match(WHOLE, /RevenueCat/);
     assert.doesNotMatch(WHOLE, /StoreKit|Google Play Billing/i);
+  });
+
+  test("the notice names what deletion keeps, the journal's removal and the 7-day backup window", () => {
+    // F1252. The deletion journal now removes an entry once its keep period has
+    // passed, so the notice names it beside the other things deletion keeps. The
+    // wording is the founder's, 2026-11-18, verbatim.
+    const rights = POLICY_SECTIONS.find(section => section.heading === 'Your rights');
+    const keeping = POLICY_SECTIONS.find(section => section.heading === 'How long we keep things');
+    assert.ok(rights && keeping);
+    assert.ok(rights.body.includes('A few things of ours are kept on purpose. The trial markers above, and the random installation id they are made from. A short record that your deletion happened, with your account\'s random id and the date it finished, removed thirty days later. That same random id in a separate, encrypted list of deletions, so a deleted account cannot come back if we ever restore from a backup; it is removed within about two months. And when you delete a saved practice pack, its random id with no link to you, kept for good so a late job cannot bring it back. None of these carries learning, content, or anything that names you.'));
+    assert.doesNotMatch(WHOLE, /Two things of ours are kept on purpose/);
+    const backup = keeping.body.indexOf('Database backups keep a copy of everything for up to seven days, then roll off.');
+    assert.ok(backup >= 0, 'the backup sentence is missing');
+    // After, not before: deleting an account does not shorten the backup copy, so
+    // "these" must not reach the backup sentence.
+    assert.equal(keeping.body[backup - 1], 'Deleting your account removes what is tied to it sooner than any of these.');
+    assert.equal(backup, keeping.body.length - 1, 'the backup sentence no longer ends the section');
+    // The removal it promises is real: the job marks the entry finished only after the identity is gone.
+    const jobs = readFileSync(fileURLToPath(new URL('../../../../services/token-server/src/privacyJobs.ts', import.meta.url)), 'utf8');
+    assert.ok(jobs.indexOf('deleteSupabaseUser(') < jobs.indexOf('journal.complete(job.userId)'));
+    assert.ok(jobs.indexOf('journal.complete(job.userId)') < jobs.indexOf("advance('identity-deleted')"));
+    assert.doesNotMatch(DOC, /Not true yet: no expiry; entries are written once and never removed/);
+    assert.match(DOC, /37 days after the erasure finishes/);
+  });
+
+  test('the 7-day backup sentence matches the journal\'s backup window and carries its release hold', () => {
+    // F1253. The "7 days" is only true while production Supabase keeps daily
+    // backups for 7 days and nothing longer. It is pinned to BACKUP_WINDOW_DAYS,
+    // and the release gate holds production until the founder confirms the plan.
+    const journal = readFileSync(fileURLToPath(new URL('../../../../deployment/deletion-journal/store.ts', import.meta.url)), 'utf8');
+    const days = Number(/export const BACKUP_WINDOW_DAYS = (\d+);/.exec(journal)?.[1]);
+    assert.ok(Number.isInteger(days) && days > 0, 'BACKUP_WINDOW_DAYS is not where this test reads it');
+    // Words rather than digits, like the other retentions.
+    const word = ({ 7: 'seven' } as Record<number, string>)[days];
+    assert.ok(word, `BACKUP_WINDOW_DAYS is ${days}: write it as a word in the notice and here`);
+    assert.match(WHOLE, new RegExp(`Database backups keep a copy of everything for up to ${word} days, then roll off\\.`), 'the backup sentence is missing or disagrees with BACKUP_WINDOW_DAYS');
+    const gate = readFileSync(fileURLToPath(new URL('../../../../docs/RELEASE_GATE.md', import.meta.url)), 'utf8');
+    assert.match(gate, new RegExp(`^- \\[[ x]\\] Production Supabase is on the Pro plan with daily backups kept ${days} days`, 'm'));
+    assert.match(gate, /`BACKUP_WINDOW_DAYS` and the notice change together/);
   });
 
   test('the not true yet table carries no gap the ledger has already closed', () => {

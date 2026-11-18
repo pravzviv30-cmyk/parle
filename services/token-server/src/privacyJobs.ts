@@ -26,6 +26,8 @@ export function privacyJobs(baseUrl: string, serviceKey: string, processorKey?: 
       }
       try { await deleteSupabaseUser(baseUrl, serviceKey, job.userId, request); }
       catch { await advance('identity-failed'); return 'retry'; }
+      try { await journal.complete(job.userId); }
+      catch { await advance('storage-failed'); return 'retry'; }
       return (await advance('identity-deleted')).kind === 'recorded' ? 'complete' : 'superseded';
     },
   };

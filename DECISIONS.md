@@ -2524,3 +2524,30 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     "Notice" and the fix sheet's "Try this" stay until those screens' redesigns.
   - "At most one underlined word under a primary" applies to Today only for now.
   - Ledger: F990 to F999, with F954 and F957 fixed by the pass.
+
+## PRIV-001 — Deletion-journal entries are removed 37 days after the erasure finishes
+
+- Date: 2026-11-18
+- Status: accepted (founder chose option A, real removal; built in two PRs, not deployed)
+- Context: DEPLOY-002 made the journal write-once and never deleted, so an erased
+  account's random id stayed in it forever. The journal could not tell a finished
+  erasure from one still retrying.
+- Decision:
+  - The erasure job marks its journal entry finished after the identity is deleted
+    and before the job is recorded complete (`complete` in `deletionJournal.ts`). A
+    failed mark leaves the job retrying on `storage-failed`.
+  - The store stamps the time itself; a repeat moves it forward. A daily cron removes
+    an entry 37 days after its last mark: the 7-day backup window plus 30 days
+    (`BACKUP_WINDOW_DAYS`, `JOURNAL_MARGIN_DAYS`, `JOURNAL_KEEP_DAYS`). A D1 trigger
+    refuses any earlier delete. This supersedes DEPLOY-002's "never deleted".
+  - A restore from a backup 36 days old or more is refused: a day short of the keep
+    period, for the daily removal cron. The replay and the recovery drill use the same rule.
+  - The notice names what deletion keeps and says the journal entry is removed
+    "within about two months" (D1 Time Travel adds up to 30 days), and that database
+    backups roll off after 7 days. Founder-approved text, verbatim.
+- Consequence: a journal outage after the identity is deleted now holds an erasure
+  open until the mark succeeds. The 7-day sentence is true only on Supabase Pro daily
+  backups, so `docs/RELEASE_GATE.md` holds production on it. Ledger F1245 to F1253.
+- Founder answers on the notice (2026-11-18): the backup sentence stays after
+  "Deleting your account removes"; the approved wording stays as it is; the practice
+  pack id is "kept for good so a late job cannot bring it back".

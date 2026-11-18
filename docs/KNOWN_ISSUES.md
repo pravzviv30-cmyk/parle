@@ -13692,3 +13692,34 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: deployment/recoveryDrill.mjs:35
 - note: Work-judge (Fable 5.2), 2026-11-18, push-check round of journal-removal lane 1. `journalRecordsAfter >= journalSnapshotRecords` only covers rows lost after the seal. If the journal is restored to an earlier point after `journalSequenceBefore` is read and before the replay seals, the snapshot is smaller, the replay's rejected PUTs lift the sequence past its old value, and the drill passes (sequence 9 read, journal restored to 7 rows, seal 7, sequence 14, count 7). Only an independently derived `deletionsExpected` catches it. Needs a deliberate mid-drill restore of the journal; the contract claimed no more than `after >= before`. Candidate: read the sequence and seal in one step, or record the snapshot's high water and require it to be at least `journalSequenceBefore`.
 - verified-by: `the recovery drill refuses a journal rolled back between the sequence read and the replay's seal`
+
+### F1250 — An erasure finishes without telling the journal
+- severity: P1
+- status: [x]
+- where: services/token-server/src/privacyJobs.ts:27
+- note: Lane 2. Add `complete(userId)` to the client and call it after the identity is deleted and before `advance('identity-deleted')`; on failure advance `storage-failed` and retry. The end-to-end test in worker.test.ts drives the real client against the lane 1 Worker and store.
+- verified-by: `complete marks the entry for the user's keyed name and fails closed on any answer but 204`
+- verified-by: `an erasure marks its journal entry complete after the identity is gone and before the job is`
+- verified-by: `a failed completion mark leaves the job retrying and never completes it`
+- verified-by: `a retried erasure keeps its entry until 37 days after the last completion mark`
+
+### F1251 — Restore replay accepts a backup older than the journal's keep period
+- severity: P1
+- status: [x]
+- where: scripts/replayDeletionJournal.mjs:14
+- note: Lane 2. Once entries go, a restore from an artefact older than `JOURNAL_KEEP_DAYS` would bring a deleted account back with nothing to replay. The freeze evidence gains a required `backupTakenAt`; a missing one, or one `JOURNAL_KEEP_DAYS - 1` (36) days old or more at freeze time, is refused, the same rule as `deployment/recoveryDrill.mjs`.
+- verified-by: `replay refuses a backup older than the journal's keep period`
+
+### F1252 — The notice and the privacy doc still say the journal entry has no expiry
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/legal/policy.ts:233
+- note: Lane 2. Founder-approved text, 2026-11-18, verbatim. Update PRIVACY_AND_SAFETY :45, :765-768, :1218, regenerate legal dist, append to DECISIONS.md.
+- verified-by: `the notice names what deletion keeps, the journal's removal and the 7-day backup window`
+
+### F1253 — The 7-day backup sentence has no release hold tying it to Supabase Pro
+- severity: P1
+- status: [x]
+- where: docs/RELEASE_GATE.md:38
+- note: Lane 2. Add the unticked hold line. The test pins the notice's "7 days" to `BACKUP_WINDOW_DAYS` and requires the hold line while the sentence exists. Closing this entry does not tick the hold; the founder does at production setup.
+- verified-by: `the 7-day backup sentence matches the journal's backup window and carries its release hold`

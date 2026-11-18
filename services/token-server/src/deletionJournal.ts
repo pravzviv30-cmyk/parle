@@ -2,7 +2,7 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes } from 'node:crypto';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export interface DeletionJournal { record(userId: string): Promise<void> }
+export interface DeletionJournal { record(userId: string): Promise<void>; complete(userId: string): Promise<void> }
 export interface JournalConfig { endpoint: string; token: string; key: string; projectUrl: string }
 /** Contract: conditional immutable PUT; bounded authenticated GET/list; TLS. */
 export function deletionJournal(config: JournalConfig, request: typeof fetch = fetch, options:{timeoutMs?:number;maxRecords?:number}={}) {
@@ -72,6 +72,11 @@ export function deletionJournal(config: JournalConfig, request: typeof fetch = f
         body: JSON.stringify({ version: 1, nonce: nonce.toString('base64url'), ciphertext: ciphertext.toString('base64url'), tag: cipher.getAuthTag().toString('base64url') }) });
       if (![201, 409, 412].includes(response.status)) throw new Error('journal-write-unavailable');
       if (await read(name) !== owner) throw new Error('journal-owner-mismatch');
+    },
+    /** Ask the store to stamp the erasure finished; the store's clock sets the time, and a repeat moves it forward. */
+    async complete(userId: string): Promise<void> {
+      if (!uuid.test(userId)) throw new Error('invalid-erasure-owner');
+      if ((await bounded(`/records/${nameFor(userId.toLowerCase())}/completion`, { method: 'POST' })).status !== 204) throw new Error('journal-complete-unavailable');
     },
     /** Replay a provider-sealed immutable listing. Live keyset EOF is insufficient. */
     async replay(apply: (userId: string) => Promise<void>, onVerified?: (snapshot:{snapshotId:string;project:string;totalRecords:number;keysSha256:string;expiresAt:string})=>void): Promise<number> {

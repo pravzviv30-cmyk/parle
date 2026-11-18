@@ -42,7 +42,7 @@ Every durable store, with the retention that governs it. A row whose retention s
 | The account id a purchase is filed under, and what that account bought | RevenueCat, as `appUserID` | Take the payment and tell the app what was bought | Vendor-side retention remains unverified | Account deletion requests queued subscriber erasure; store subscriptions are cancelled in the store |
 | Issued session id and allowance epoch | `public.session_grants` | Keep late session settlement in its original allowance; verify owned refunds | Account lifetime, until account deletion; no automatic cleanup implemented | Account cascade; included in bounded account export |
 | Erasure record: the erased account id, processor and identity flags, attempt count, request and completion times, last failure stage | `public.account_erasure_jobs`, service role only | Finish an account deletion that must survive the auth cascade and be retried | Until 30 days after `completed_at`; an unfinished job stays until it completes (F1084) | Bounded delete in `run_data_retention_v1`, migration 49 (`20261117122000`), not yet applied to staging |
-| Deletion-journal entry: the erased account id and request time, AES-256-GCM encrypted, stored under a keyed hash of the id | The deletion journal store at `LUVANI_DELETION_JOURNAL_URL`, kept apart from database backups (`deletionJournal.ts`) | Re-apply an account deletion after a database restore | Not true yet: no expiry; entries are written once and never removed | Nothing in this repo |
+| Deletion-journal entry: the erased account id and request time, AES-256-GCM encrypted, stored under a keyed hash of the id. Beside the keyed name the store keeps its own plaintext write and completion times (`created_at`, `completed_at`); the completion time drives removal | The deletion journal store at `LUVANI_DELETION_JOURNAL_URL`, kept apart from database backups (`deletionJournal.ts`) | Re-apply an account deletion after a database restore | Until 37 days after the erasure finishes (`JOURNAL_KEEP_DAYS`: the 7-day backup window plus 30 days); an entry whose erasure never finished is never removed. D1 Time Travel keeps a copy for up to 30 more days | The erasure job marks the entry finished after the identity is deleted (`complete`, F1250); the store stamps the time, a daily Worker cron deletes due entries, and a D1 trigger refuses any earlier delete (F1245 to F1247) |
 | Practice pack tombstone: one bare random pack id, no owner and no content | `public.conversation_practice_tombstones`, service role only | Stop a late practice job restoring a pack the learner deleted | Kept indefinitely, on purpose (founder, 2026-11-17) | Nothing; see Deletion and export |
 | Two salted antifraud HMACs | `public.trial_installations` | One free trial per installation | 24 months from `claimed_at` | Scheduled delete only, never account deletion |
 | Rate-limit counters, session leases, guest records and metric counters | Upstash, `luvani:*` | Abuse and cost limits; bounded guest starter | Per-key TTL: rate windows 60 seconds to 24 hours, guest records 30 days, guest budget and scene day counters 2 days, aggregate starter metric counters 90 days | Key expiry |
@@ -763,9 +763,17 @@ A finished erasure record (`public.account_erasure_jobs`) keeps the erased accou
 id, so it is removed 30 days after the job completes (founder, 2026-11-17, F1084). An
 unfinished job is never removed. The deletion journal, not this table, is what a
 restore replays, and a restored identity whose record has gone simply gets a new job.
-The 30 days covers only this table: the erased account id also stays in the encrypted
-deletion-journal entry, which has no expiry, and in database backups for as long as
-each backup is kept.
+The 30 days covers only this table. The erased account id also stays in the encrypted
+deletion-journal entry until 37 days after the erasure finishes: the 7-day backup
+window plus 30 days (`JOURNAL_KEEP_DAYS`), so no backup that could still hold the
+account outlives its entry. The erasure job marks the entry finished only after the
+identity is deleted, and an entry never marked is never removed. D1 Time Travel keeps
+a further copy for up to 30 days, which is why the notice says "within about two
+months". A restore from a backup 36 days old or more at freeze time is refused, a
+day short of the keep period for the daily removal cron, as the recovery drill does
+(`scripts/replayDeletionJournal.mjs`, F1251). Database backups hold everything for up
+to 7 days, on Supabase Pro daily backups; `docs/RELEASE_GATE.md` holds production
+until that plan is confirmed (F1253, founder, 2026-11-18).
 
 Pack tombstones (`public.conversation_practice_tombstones`) are kept with no expiry,
 on purpose. Each is a bare random pack id with no owner column and no personal data;
@@ -1215,7 +1223,7 @@ promise already kept.
 | An under-13 stop is remembered on the device that saw it, not on the account | A reinstall clears it, and a second phone never learns about it | This file, section above; founder accepted |
 | A known under-13 refusal before an account lasts the launch and no longer | Relaunch retains no refusal note; C2 shows its linked declaration rather than restoring the retired age question. This is not verified age assurance | This file, section above; founder cleanup decision, 2026-09-30; C2 presentation, 2026-10-14 |
 | Worker logs have no stated retention | The safety record is kept for as long as the host keeps logs, which nothing here sets | This file, section above |
-| Deletion-journal entries have no expiry, and database backup retention is not stated | An erased account id outlives the 30-day erasure-record delete in the encrypted journal and in backups | This file, table above and Deletion and export (F1084) |
+| The 7-day database backup window is planned, not yet in production | The notice says backups roll off after 7 days; that holds only once production Supabase is on Pro daily backups with no longer-lived copy | `docs/RELEASE_GATE.md`, Policy and operational checks |
 | Buffered scripted speech latency has not been measured on a device | Both agents check output; scripted replies wait for a complete inspected utterance within 8 KiB and 10 seconds | Backend A19/A30 release acceptance |
 | No reviewed privacy policy or terms exist | The app says professional review remains required before release; it must not present an unreviewed document as a legal promise | Release roadmap, Phase 8 |
 

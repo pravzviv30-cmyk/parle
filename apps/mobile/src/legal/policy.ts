@@ -87,7 +87,7 @@
  * named them. The purchase record is not ours: nothing in this repo calls the
  * processor's delete API, so it outlives the account it belongs to, and a
  * paragraph that lists what survives while leaving it out tells a learner the
- * opposite of the truth. So it is disclosed beside the other two rather than
+ * opposite of the truth. So it is disclosed beside what of ours is kept rather than
  * left in the recipients section, where somebody asking what survives deletion
  * would never look, and it is written as who holds it and what it is rather than
  * as a list: the day the deletion path does reach the processor, one sentence
@@ -222,6 +222,7 @@ export function policySections(facts: CompanyFacts = COMPANY, reviewNote: boolea
         'Saved-phrase audio has a separate spending record: account totals and paid budget-period dates, without the phrase text or audio. Account deletion removes that record. The overall spending total contains no account identifier and can remain after deletion. These limits are separate from your speaking minutes.',
         'Counters that hold cost and abuse in check expire on their own, within a day at most.',
         'Deleting your account removes what is tied to it sooner than any of these.',
+        'Database backups keep a copy of everything for up to seven days, then roll off.',
       ],
     },
     {
@@ -230,7 +231,7 @@ export function policySections(facts: CompanyFacts = COMPANY, reviewNote: boolea
         'Download my data writes a file with your account details, every row we hold for you on our server, and everything the app keeps for you on this phone. It includes conversation text you chose to save and word-free deletion markers. No learner audio is stored or included.',
         'Your saved-phrase audio spending record is included. The private tutor-audio cache is temporary playback storage and is not part of the text download.',
         'Delete account removes your account and, with it, your learning, your usage events, your entitlement, your speaking time records and your saved conversations. On this phone it erases every key kept for your account.',
-        'Two things of ours are kept on purpose: the trial markers above, and the random installation id they are made from. Neither carries learning, content, or anything that names you.',
+        "A few things of ours are kept on purpose. The trial markers above, and the random installation id they are made from. A short record that your deletion happened, with your account's random id and the date it finished, removed thirty days later. That same random id in a separate, encrypted list of deletions, so a deleted account cannot come back if we ever restore from a backup; it is removed within about two months. And when you delete a saved practice pack, its random id with no link to you, kept for good so a late job cannot bring it back. None of these carries learning, content, or anything that names you.",
         'Paying for Luvani also leaves a record with the company that manages purchases. Account deletion asks it to erase the record of which account bought what before removing your Luvani account. That request is queued by the company; it is not a claim that every record it holds has already gone. No audio, no words you said and nothing you are learning is part of that record. Deleting your account does not cancel a store subscription. Cancel it in the store.',
         'We can tell you what deletion does. We cannot yet tell you it has been watched happen: the server side has not been run against a live database, and the erase on the phone has not been run on a real build. So this describes the mechanism rather than calling it verified.',
         ...(contact === null
