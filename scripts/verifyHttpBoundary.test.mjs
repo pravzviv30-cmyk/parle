@@ -19,7 +19,7 @@ test('an upload the server cuts off mid-body counts as refused, not as a harness
   const refuser = createServer((req, res) => { res.writeHead(413); res.end(); req.resume(); });
   try {
     const big = Buffer.alloc(2 * 1024 * 1024 + 1);
-    assert.equal(await exchange(await listen(cutter), '/drill/score', big, { 'content-length': String(big.length) }), 'reset');
+    assert.equal(await exchange(await listen(cutter), '/drill/score', big, { 'content-length': String(2 * big.length) }, { unfinished: true }), 'reset');
     assert.equal(await exchange(await listen(refuser), '/drill/score', 'x', { 'content-length': '1' }), 413);
   } finally {
     await Promise.all([cutter, refuser].map(server => new Promise(resolve => server.close(resolve))));
@@ -37,7 +37,7 @@ test('a reset after the whole body was sent still fails the overflow check', asy
   const readsThenHangsUp = createServer((req) => { req.resume(); req.once('end', () => req.socket.destroy()); });
   try {
     const big = Buffer.alloc(2 * 1024 * 1024 + 1);
-    assert.equal(await exchange(await listen(answersThenCuts), '/drill/score', big, { 'content-length': String(big.length) }), 413);
+    assert.equal(await exchange(await listen(answersThenCuts), '/drill/score', big, { 'content-length': String(2 * big.length) }, { unfinished: true }), 413);
     await assert.rejects(exchange(await listen(readsThenHangsUp), '/drill/score', big, { 'content-length': String(big.length) }));
   } finally {
     await Promise.all([answersThenCuts, readsThenHangsUp].map(server => new Promise(resolve => server.close(resolve))));
@@ -59,4 +59,16 @@ test('a harness stopped by SIGTERM takes its API child down with it', async (t) 
   assert.deepEqual(await exited, { code: 1, signal: null }, 'the harness must catch SIGTERM and exit non-zero');
   for (let n = 0; n < 100 && alive(child); n++) await new Promise(resolve => setTimeout(resolve, 20));
   assert.equal(alive(child), false, 'the API child must not outlive its harness');
+});
+
+test('only an upload left unfinished can count a reset as refused', async () => {
+  const cutter = createSocketServer(socket => socket.once('data', () => socket.resetAndDestroy()));
+  const port = await new Promise(resolve => cutter.listen(0, '127.0.0.1', () => resolve(cutter.address().port)));
+  try {
+    const big = Buffer.alloc(2 * 1024 * 1024 + 1);
+    assert.equal(await exchange(port, '/drill/score', big, { 'content-length': String(2 * big.length) }, { unfinished: true }), 'reset');
+    await assert.rejects(exchange(port, '/drill/score', big, { 'content-length': String(big.length) }), 'a finished upload that was reset is not a refusal');
+  } finally {
+    await new Promise(resolve => cutter.close(resolve));
+  }
 });

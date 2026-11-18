@@ -33,19 +33,19 @@ try {
     await health();
   }
   refused(await exchange(port, '/drill/score', Buffer.alloc(2 * 1024 * 1024 + 1), {
-    'x-luvani-user': 'synthetic-learner', 'x-luvani-reference': 'bonjour', 'content-length': String(2 * 1024 * 1024 + 1),
-  }));
+    'x-luvani-user': 'synthetic-learner', 'x-luvani-reference': 'bonjour', 'content-length': String(2 * (2 * 1024 * 1024 + 1)),
+  }, { unfinished: true }));
   await health();
   refused(await exchange(port, '/drill/score', Buffer.alloc(2 * 1024 * 1024 + 1), {
     'x-luvani-user': 'synthetic-learner', 'x-luvani-reference': 'bonjour', 'transfer-encoding': 'chunked',
-  }));
+  }, { unfinished: true }));
   await health();
   for (const path of ['/drill/transcribe', '/drill/judge', '/drill/fix-line', '/phrase-audio/manifest']) {
     const limit = path === '/drill/transcribe' ? 2 * 1024 * 1024 : 4096;
-    for (const framing of [{ 'content-length': String(limit + 1) }, { 'transfer-encoding': 'chunked' }]) {
+    for (const framing of [{ 'content-length': String(2 * (limit + 1)) }, { 'transfer-encoding': 'chunked' }]) {
       refused(await exchange(port, path, Buffer.alloc(limit + 1), {
         'x-luvani-user': 'synthetic-learner', ...framing,
-      }));
+      }, { unfinished: true }));
       await health();
     }
   }

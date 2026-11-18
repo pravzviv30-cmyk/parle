@@ -13124,6 +13124,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: scripts/httpBoundaryExchange.mjs:22
 - note: `sent` turns true when the kernel accepts the 2 MB body, so a server that cuts the upload mid-body is sometimes rejected as "reset after the whole body". 2 of 120 runs of `scripts/verifyHttpBoundary.test.mjs` failed at 8 in parallel, once with `read ECONNRESET` in the cut-off test and once with the harness printing FAIL.
+- note: 2026-11-18: 239 of 240 at 8 in parallel; one unexplained harness FAIL (run 222) not reproduced in 640 isolated runs.
 - verified-by: `only an upload left unfinished can count a reset as refused`
 
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
