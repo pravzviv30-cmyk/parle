@@ -52,10 +52,9 @@
 
 import {
   FREEZE_CAP,
-  FREE_FREEZE_CAP,
   QUEST_XP,
   addDays,
-  freezesToApply,
+  freezeCoverDays,
   localDayKey,
   milestoneCrossed,
   newBadges,
@@ -290,11 +289,8 @@ function coversToApply(i: {
     if (day !== null) return [{ day, kind: 'travel', at: i.now }];
   }
   if (protection.freezes) {
-    // A paid plan's two freezes never reach before the plan (paidSince); the
-    // one every learner holds reaches back only to protectedSince (D23). So a
-    // plan bought after a gap cannot spend its second freeze on that gap.
-    const both = paid ? freezesToApply(protection.cap, { ...input, protectedSince: i.paidSince }) : [];
-    const days = both.length > 0 ? both : freezesToApply(Math.min(protection.cap, FREE_FREEZE_CAP), { ...input, protectedSince: i.protectedSince });
+    // The shared rule (core freeze.ts), which the reminder planner reads too.
+    const days = freezeCoverDays({ cap: protection.cap, paidSince: i.paidSince, protectedSince: i.protectedSince }, input);
     if (days.length > 0) return days.map((day) => ({ day, kind: 'freeze' as const, at: i.now }));
   }
   // A repair is earned by practice (two finished sittings in the window) and

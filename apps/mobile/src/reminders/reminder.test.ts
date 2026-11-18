@@ -31,11 +31,15 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { STREAK_BAN_EXEMPTIONS, guiltIn as guiltOf, streakGuiltIn as streakGuiltOf } from '../copy/guilt.ts';
+
 import {
   DEFAULT_REMINDER_MODE,
   DEFAULT_REMINDER_TIME,
   REMINDER_COPY,
   REMINDER_EXPLAIN,
+  REMINDER_LINES,
+  STREAK_SAVE_LINES,
   REMINDER_OFF,
   REMINDER_PAUSED,
   REMINDER_PAUSED_VALUE,
@@ -234,7 +238,8 @@ const PLANNER = 'ReminderPlanner.tsx';
  * works out a level, `game/display.test.ts`).
  */
 const READERS: Readonly<Record<string, readonly string[]>> = {
-  [PLANNER]: ['../game/settle.ts', '../game/view.ts', '../onboarding/guestModel.ts', '../onboarding/guestPractice.ts'],
+  // gameLocal.ts for paidSince and protectedSince only: the freezes the save line reads (T1.2).
+  [PLANNER]: ['../game/gameLocal.ts', '../game/settle.ts', '../game/view.ts', '../onboarding/guestModel.ts', '../onboarding/guestPractice.ts'],
   'todayPhrase.ts': ['../game/settle.ts', '../game/view.ts'],
 };
 
@@ -281,6 +286,16 @@ describe('what a reminder is not allowed to know', () => {
       assert.deepEqual(found, [], `reminders/${name} reaches practice state directly: it ${found.join(', ')}`);
     }
 
+    // The planner reads gameLocal for the two freeze dates only: one
+    // loadGameLocal call, straight into freezeProtectionOf, whose input names
+    // paidSince and protectedSince and nothing else (T1.2 review).
+    const planner = withoutComments(readFileSync(join(HERE, PLANNER), 'utf8'));
+    assert.match(planner, /import \{ loadGameLocal \} from '\.\.\/game\/gameLocal\.ts';/, 'the planner imports more than loadGameLocal from gameLocal');
+    assert.equal((planner.match(/\bloadGameLocal\b/g) ?? []).length, 2, 'the planner reads gameLocal somewhere else too');
+    assert.match(planner, /freezeProtectionOf\(await loadGameLocal\(\)/, 'the planner reads gameLocal for more than the freezes');
+    const plan = withoutComments(readFileSync(join(HERE, 'plan.ts'), 'utf8'));
+    assert.match(plan, /export function freezeProtectionOf\(local: \{ paidSince: DayKey \| null; protectedSince: DayKey \| null \} \| null\)/, 'the freeze mapping takes more than the two dates');
+
     // And only the planner's reads use those doors.
     for (const name of modules) {
       const doors = practiceDoorsIn(readFileSync(join(HERE, name), 'utf8'));
@@ -291,7 +306,6 @@ describe('what a reminder is not allowed to know', () => {
         assert.deepEqual(doors, [], `reminders/${name} reads what the learner did; only the planner may`);
       }
     }
-    const planner = withoutComments(readFileSync(join(HERE, PLANNER), 'utf8'));
     assert.match(planner, /readGameFacts\(NO_OUTSIDE_FACTS, null\)/, 'the account planner reads practice somewhere other than the streak\'s own facts');
     assert.match(planner, /practiceDays: guestPracticeDays\(guest\), covers: \[\], finishes: guest\?\.finishedAt \?\? \[\]/, 'the guest planner reads something other than the finish days');
 
@@ -406,6 +420,45 @@ describe('what a reminder is not allowed to know', () => {
         sources.some((source) => pattern.test(source)),
         `the practice ban names ${symbol}, which no longer exists. A ban on a renamed symbol is a ban on nothing.`,
       );
+    }
+  });
+});
+
+describe('the save lines (T1.2, D25)', () => {
+  test('three of them, scanned, and they never name a plan, a repair, a time or a countdown', () => {
+    assert.equal(STREAK_SAVE_LINES.length, 3);
+    assert.ok(STREAK_SAVE_LINES.every((line) => REMINDER_LINES.includes(line)), 'a save line the guilt scans never read');
+    // Founder's wording (Set A, line 2 revised 2026-11-18).
+    assert.deepEqual(
+      STREAK_SAVE_LINES.map((line) => [line.title({ n: 5, lifetime: 5, tutor: 'Marie' }), line.body({ n: 5, lifetime: 5, tutor: 'Marie' })]),
+      [
+        ['Save your 5-day streak', "Marie has today's phrase ready. A quick one keeps it going."],
+        ['Save your 5-day streak', "Today's phrase counts. Marie is here."],
+        ['Keep your 5 days going', "Today's phrase is quick, and Marie is ready."],
+      ],
+    );
+    for (const line of STREAK_SAVE_LINES) {
+      assert.equal(line.open, 'daily-phrase');
+      for (const n of [3, 4, 6, 29, 99, 364]) {
+        for (const words of [line.title({ n, lifetime: n, tutor: 'Marie' }), line.body({ n, lifetime: n, tutor: 'Marie' })]) {
+          // The exempted words (D25) come out; everything else is scanned.
+          const rest = STREAK_BAN_EXEMPTIONS.flatMap(({ words: banned }) => banned).reduce((left, word) => left.replace(new RegExp(word, 'gi'), ''), words);
+          assert.equal(streakGuiltOf(rest), undefined, `a streak nag: ${words}`);
+          assert.equal(guiltOf(words), undefined, `guilt: ${words}`);
+          assert.doesNotMatch(words, /plan|subscri|repair|minute|hour|tonight|midnight|\d+:\d+|left|before/i, `a plan, a repair, a time or a countdown: ${words}`);
+          assert.doesNotMatch(words, /\b1 days\b/);
+        }
+      }
+    }
+  });
+
+  test('"save your" is said by the save lines and nothing else', () => {
+    for (const line of REMINDER_LINES) {
+      const words = [1, 3, 29].map((n) => `${line.title({ n, lifetime: n, tutor: 'Marie' })} ${line.body({ n, lifetime: n, tutor: 'Marie' })}`).join(' ');
+      if (!STREAK_SAVE_LINES.includes(line)) assert.doesNotMatch(words, /save your/i, `${line.id} says "save your"`);
+    }
+    for (const copy of REMINDER_COPY) {
+      if (/save your/i.test(copy)) assert.match(copy, /^Save your \d+-day streak$/);
     }
   });
 });

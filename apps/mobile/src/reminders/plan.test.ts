@@ -13,7 +13,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TUTOR_VOICES, addDays } from '@luvani/core';
 
-import { guiltIn, streakGuiltIn } from '../copy/guilt.ts';
+import { STREAK_BAN_EXEMPTIONS, guiltIn, streakGuiltIn } from '../copy/guilt.ts';
+
+/** A save line with its exempted words taken out (D25), for the scans. */
+const exempted = (line: string): string => STREAK_BAN_EXEMPTIONS.flatMap(({ words }) => words).reduce((rest, word) => rest.replace(new RegExp(word, 'gi'), ''), line);
 import { reminderOpenOf, routeForReminder } from './openTarget.ts';
 import {
   PLAN_DAYS,
@@ -23,6 +26,7 @@ import {
   heldLog,
   noteAnswered,
   noteOpened,
+  freezeProtectionOf,
   planReminders,
   plannedLog,
   plannedSlots,
@@ -36,7 +40,7 @@ import {
   type ReminderLog,
   type ReminderSlot,
 } from './plan.ts';
-import { MILESTONE_EVE_LINE, PAUSE_LINE, REMINDER_COPY, REMINDER_LINES, ROUTINE_LINES, STREAK_LINES } from './reminder.ts';
+import { MILESTONE_EVE_LINE, PAUSE_LINE, REMINDER_COPY, REMINDER_LINES, ROUTINE_LINES, STREAK_LINES, STREAK_SAVE_LINES } from './reminder.ts';
 
 /** A calendar with no time zone, so every day is 24 hours and the test reads the same anywhere. */
 const UTC: Calendar = {
@@ -211,7 +215,11 @@ describe('the reminder planner — F771', () => {
 
     // Every line is warm, plain and clean, and states only the learner's own counts.
     assert.ok(REMINDER_COPY.length > 40, 'the copy list is too short to be every line');
-    for (const line of REMINDER_COPY) {
+    // The save lines, by identity, are the one exemption (STREAK_BAN_EXEMPTIONS):
+    // their exempted words are taken out, and the rest is scanned as usual.
+    const saveCopy = new Set(STREAK_SAVE_LINES.flatMap((line) => [1, 2, 6, 29, 99, 364].flatMap((n) => [line.title({ n, lifetime: n, tutor: 'Léa' }), line.body({ n, lifetime: n, tutor: 'Léa' })])));
+    for (const raw of REMINDER_COPY) {
+      const line = saveCopy.has(raw) ? exempted(raw) : raw;
       assert.equal(guiltIn(line), undefined, `guilt in reminder copy: ${line}`);
       assert.equal(streakGuiltIn(line), undefined, `a streak nag in reminder copy: ${line}`);
       assert.doesNotMatch(line, /[—–·!]/, `a dash, a middot or a shout in reminder copy: ${line}`);
@@ -425,5 +433,75 @@ describe('only what the phone held counts — F771 review', () => {
     assert.match(planner, /schedule: \(mode\) => replanReminders\(\{ tutor, choice: yes\(mode\) \}\),/, 'the ask plans without its choice, so a fresh yes can be read as a pause');
     assert.match(planner, /save: \(reminder\) => \(reminder\.enabled \? saveReminder\(yes\(reminder\.time\)\) : saveReminder\(stored \?\? reminder\)\),/);
     assert.match(planner, /const step = replanStep\(\{ now, choice, chosenNow: options\.choice !== undefined, permitted, log: stored, held \}\);/);
+  });
+});
+
+describe('the save line: only on a real cliff, inside the one slot (T1.2, D25)', () => {
+  const FREE = { cap: 1, paidSince: null, protectedSince: '2026-09-01' };
+  const SAVE = new Set(STREAK_SAVE_LINES.map((line) => line.id));
+  const saves = (slots: readonly ReminderSlot[]) => slots.filter((slot) => SAVE.has(slot.line));
+  // Four days kept, the last by a freeze still within its seven days: none held.
+  const spent = { practiceDays: [day(-4), day(-3), day(-2)], covers: [{ day: day(-1), kind: 'freeze' as const, at: 0 }] };
+
+  test('(a) a projected cliff with today unpractised is the save line, opening today\'s phrase', () => {
+    const slots = planReminders(input({ ...spent, freezes: FREE }));
+    assert.equal(slots[0]?.day, TODAY);
+    assert.ok(SAVE.has(slots[0]!.line), `today said ${slots[0]?.line}`);
+    assert.equal(slots[0]?.open, 'daily-phrase');
+    assert.match(`${slots[0]?.title}`, /\b3[- ]day/);
+    assert.equal(saves(slots).length, 1, 'a save line after the run had already ended');
+  });
+
+  test('(b) a freeze that would cover the day means no save line that day', () => {
+    const slots = planReminders(input({ practiceDays: [day(-3), day(-2), day(-1)], freezes: FREE }));
+    assert.equal(slots[0]?.day, TODAY);
+    assert.ok(!SAVE.has(slots[0]!.line), 'a save line on a day the held freeze covers');
+  });
+
+  test('(c) plan unknown, or a guest, gets no save line', () => {
+    assert.deepEqual(saves(planReminders(input({ ...spent }))), []);
+    assert.deepEqual(saves(planReminders(input({ ...spent, guest: true }))), []);
+  });
+
+  test('(d) a learner who asked for lines without their streak gets no save line', () => {
+    assert.deepEqual(saves(planReminders(input({ ...spent, freezes: FREE, choice: { enabled: true, time: 'evening', mentionStreak: false } }))), []);
+  });
+
+  test('(e) a run under three gets no save line', () => {
+    assert.deepEqual(saves(planReminders(input({ practiceDays: [day(-1)], freezes: FREE }))), []);
+    assert.deepEqual(saves(planReminders(input({ practiceDays: [day(-2)], covers: [{ day: day(-1), kind: 'freeze', at: 0 }], freezes: FREE }))), []);
+  });
+
+  test('(f) the fifth unanswered slot is still the pause note, and a paused learner gets nothing', () => {
+    const slots = planReminders(input({ ...spent, freezes: FREE }));
+    assert.equal(slots.length, UNANSWERED_LIMIT + 1);
+    assert.equal(slots[UNANSWERED_LIMIT]?.line, 'pause');
+    assert.deepEqual(planReminders(input({ ...spent, freezes: FREE, choice: { enabled: true, time: 'evening', paused: true } })), []);
+  });
+
+  test('(g) with a held free freeze, D+1 projects the run alive through it and D+2 is the save line', () => {
+    const slots = planReminders(input({ practiceDays: [day(-2), day(-1), TODAY], freezes: FREE }));
+    const next = slots.find((slot) => slot.day === day(1))!;
+    const after = slots.find((slot) => slot.day === day(2))!;
+    assert.ok(STREAK_LINES.some((line) => line.id === next.line) || next.line === MILESTONE_EVE_LINE.id, `D+1 said ${next.line}`);
+    assert.ok(SAVE.has(after.line), `D+2 said ${after.line}: the projection forgot the freeze D+1 would spend`);
+    assert.match(after.title, /\b3[- ]day/);
+  });
+
+  test('(h) still exactly one practice:{day} slot per day', () => {
+    for (const over of [{ ...spent, freezes: FREE }, { practiceDays: [day(-2), day(-1), TODAY], freezes: FREE }]) {
+      const slots = planReminders(input(over));
+      assert.deepEqual(slots.map((slot) => slot.id), slots.map((slot) => `practice:${slot.day}`));
+      assert.equal(new Set(slots.map((slot) => slot.day)).size, slots.length);
+    }
+  });
+});
+
+describe('the freezes this phone saw (T1.2 review)', () => {
+  test('a paid plan holds two from paidSince, a protected learner one, anything else is unknown', () => {
+    assert.deepEqual(freezeProtectionOf({ paidSince: '2026-10-01', protectedSince: '2026-09-01' }), { cap: 2, paidSince: '2026-10-01', protectedSince: '2026-09-01' });
+    assert.deepEqual(freezeProtectionOf({ paidSince: null, protectedSince: '2026-09-01' }), { cap: 1, paidSince: null, protectedSince: '2026-09-01' });
+    assert.equal(freezeProtectionOf({ paidSince: null, protectedSince: null }), undefined);
+    assert.equal(freezeProtectionOf(null), undefined);
   });
 });
