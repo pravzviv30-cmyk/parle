@@ -13119,6 +13119,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: The run guard compares the unresolved `process.argv[1]` with the resolved module path, so `node <symlinked absolute path>/scripts/compare-daily-voices.mjs` prints no plan and exits 0. Before the `main()` restructure it ran from any path.
 - verified-by: `the voice comparison dry run prints its plan when started through a symlinked path`
 
+### F1305 — The survival proof still fails at random, because a write the kernel accepted is taken as a body the server read
+- severity: P1
+- status: [ ]
+- where: scripts/httpBoundaryExchange.mjs:22
+- note: `sent` turns true when the kernel accepts the 2 MB body, so a server that cuts the upload mid-body is sometimes rejected as "reset after the whole body". 2 of 120 runs of `scripts/verifyHttpBoundary.test.mjs` failed at 8 in parallel, once with `read ECONNRESET` in the cut-off test and once with the harness printing FAIL.
+- verified-by: `only an upload left unfinished can count a reset as refused`
+
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
 - severity: P2
 - status: [x]
