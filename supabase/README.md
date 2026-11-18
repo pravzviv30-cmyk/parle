@@ -8,8 +8,8 @@ cannot apply DDL. Track applied migrations; do not blindly replay the whole fold
 (`https://wtexbzuyfersdtiekrvp.supabase.co`), PostgreSQL 17. Its
 `supabase_migrations.schema_migrations` has 48 rows: every source migration except 42
 (`20261022200000_speech_dataset_clips`), which stays held. `staging-verification.json`
-is still the 2026-10-07 capture of the earlier project `cfimkuustkhthujdpjlq` (39
-migrations) and is pending regeneration (F1083): `scripts/verifyCurrentHostedSchema.mjs`
+is still the 2026-10-07 capture of the earlier project `cfimkuustkhthujdpjlq`, taken at
+its 39th migration, and is pending regeneration (F1083): `scripts/verifyCurrentHostedSchema.mjs`
 requires the hosted history to equal every source migration, so it cannot be
 regenerated while 42 is held.
 
