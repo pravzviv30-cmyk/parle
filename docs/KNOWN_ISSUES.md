@@ -13755,32 +13755,36 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1265 — Free learners cannot earn a streak back
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/core/src/streak/repair.ts:113
 - note: Founder F4, 2026-11-18. `repairOffer` takes the plan's limit through `everyDays`; `FREE_REPAIR_EVERY_DAYS` is 30 and paid stays 7 (D19). A repair cover used under any plan counts against the current plan's limit.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
 - verified-by: `a free learner's repair is offered once in 30 days and a subscriber's once in 7`
 - verified-by: `a repair made on a paid plan counts against the free 30 days`
 
 ### F1266 — The plan table says the free plan has no repair
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/purchases/capabilities.ts:91
 - note: `StreakProtection` gains `repairEveryDays`; free and lapsed hold repair at 30, paid at 7, unknown none. `INCLUSIONS.streak` no longer says repair is paid-only.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
 - verified-by: `the free plan repairs once every 30 days, a paid plan once every 7, and an unknown plan never`
 - verified-by: `the plans page streak line no longer says repair is paid-only`
 
 ### F1267 — Settle and the game view never complete a free learner's repair
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/game/settle.ts:298
 - note: `coversToApply` and `gameViewFrom` pass the plan's `repairEveryDays`. A free learner's second practice in the window writes the repair covers; a second break inside 30 days writes none.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
 - verified-by: `a free learner's second practice in the window repairs the run, and not a second time inside 30 days`
 
 ### F1268 — A second practice in a day earns nothing
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: packages/core/src/streak/freeze.ts:59
 - note: Founder F5, 2026-11-18. The bank is derived from `bankDays` and resolved covers: one slot above the cap, spent first, earned again no sooner than 7 days after the day it covered, never reaching a day before its earn day or before protection began, none for an unknown plan.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
 - verified-by: `two finished practices in a day bank one freeze above the cap, and never a second`
 - verified-by: `a banked freeze is spent before the plan's own and is earned again only a week after the day it covered`
 - verified-by: `a second practice today never banks a freeze for a day already gone`
@@ -13788,17 +13792,19 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1269 — The streak and the reminder must count the same freezes
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/reminders/plan.ts:469
 - note: Settle and the planner both pass `bankDays` from the same finishes into `freezeCoverDays`, so the D25 save line moves one day later for a learner holding a bank and settle covers that same day.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
 - verified-by: `settle spends a banked freeze on the day the reminder planner said it would cover`
 - verified-by: `the save line waits one more day when a freeze is banked`
 
 ### F1270 — The Streak screen still tells free learners repair is for subscribers
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/game/streakScreenView.ts:289
 - note: A free learner with an open repair sees the repair card and no plan line. With the repair spent and a recent break, the one line and See plans say the true rule. The freeze card upsell stays for free learners, keyed on the cap, and is hidden while a repair is open (founder Q4, 2026-11-18). A banked freeze is named in the card's existing sub line.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
 - verified-by: `a free learner earning a repair sees the repair card and no plan line`
 - verified-by: `a free learner whose repair is spent sees the one calm line and See plans`
 - verified-by: `the freeze card says when one freeze is banked`
@@ -13806,15 +13812,24 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1271 — New streak and plan lines must pass the guilt bans
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/copy/guilt.test.ts:202
 - note: Every string in Q3 is in the copy sweeps, passes `BANNED_IN_COPY` and `BANNED_IN_STREAK_COPY`, has no em dash and no countdown. The ban lists do not change, and no reminder line names a repair or a banked freeze.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
 - verified-by: `the earn-back and banked-freeze lines pass both guilt ban lists`
 - verified-by: `no reminder line names a repair or a banked freeze`
 
 ### F1272 — The decision records still say repair is a paid perk
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: docs/come-alive/README.md:31
 - note: D4, D19, D23, PRODUCT.md, game.md 2.4 and DECISIONS.md record the founder's 2026-11-18 answers. Doc-only, so no failing test first; the pinned copy test is the proof that the words agree.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
 - verified-by: `the plans page streak line no longer says repair is paid-only`
+
+### F1281 — The bank's reach in the paid fallback pass is not pinned
+- severity: P2
+- status: [ ]
+- where: packages/core/src/streak/freeze.ts:164
+- note: A subscriber whose plan began after a two-day gap has it covered by the free-level freeze plus a bank earned before the gap, back to `protectedSince`. Consistent with the contract (the bank obeys both passes) but no test holds it, so a later change to `freezeCoverDays` could move it silently. Filed by work-judge on the earn-back-bank SHIP, 2026-11-18; optional.
+- verified-by: `a bank from before the gap and the free freeze cover two days for a plan bought after them`
