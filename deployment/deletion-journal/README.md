@@ -2,9 +2,9 @@
 
 A write-once store for encrypted account-erasure records. It lives outside the Supabase
 database, so restoring an old database backup cannot also roll back the record that a learner
-asked to be deleted. The `maintenance` role writes here before it erases anything and, once the token-server change that
-calls the completion route lands (F1250), marks the entry complete when the erasure has finished. Until then no entry is
-ever marked complete, so none is removed. An isolated restore replays the journal before it
+asked to be deleted. The `maintenance` role writes here before it erases anything and marks the entry
+complete once the identity is deleted, before the job is recorded finished (F1250); a failed mark leaves the job
+retrying. An isolated restore replays the journal before it
 reopens anything.
 
 An entry is removed 37 days after its completion (`JOURNAL_KEEP_DAYS` in `store.ts`: the 7-day
@@ -25,7 +25,7 @@ key all live on the client side (`services/token-server/src/deletionJournal.ts`)
 | `rollback-0002-removal.sql` | Undoes that migration |
 | `worker.test.ts` | Drives the real client against `handle()`: `node --test --experimental-strip-types deployment/deletion-journal/worker.test.ts` |
 
-## Contract (it mirrors the client, plus the completion route the client gains with F1250)
+## Contract (it mirrors the client, `services/token-server/src/deletionJournal.ts`)
 
 All requests need `Authorization: Bearer <JOURNAL_TOKEN>`, or they get 401. The Worker never redirects.
 

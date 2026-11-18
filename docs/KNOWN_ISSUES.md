@@ -13695,9 +13695,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1250 — An erasure finishes without telling the journal
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/privacyJobs.ts:27
-- note: Lane 2. Add `complete(userId)` to the client and call it after the identity is deleted and before `advance('identity-deleted')`; on failure advance `storage-failed` and retry. The end-to-end test is appended to worker.test.ts after PR 1 merges.
+- note: Lane 2. Add `complete(userId)` to the client and call it after the identity is deleted and before `advance('identity-deleted')`; on failure advance `storage-failed` and retry. The end-to-end test in worker.test.ts drives the real client against the lane 1 Worker and store.
 - verified-by: `complete marks the entry for the user's keyed name and fails closed on any answer but 204`
 - verified-by: `an erasure marks its journal entry complete after the identity is gone and before the job is`
 - verified-by: `a failed completion mark leaves the job retrying and never completes it`

@@ -391,3 +391,17 @@ test('cleanup leaves a record completed less than the keep period ago, on D1', a
   assert.equal(await store.removeDue(), 1);
   assert.deepEqual(names(d1.db), [nameB]);
 });
+
+test('a retried erasure keeps its entry until 37 days after the last completion mark', async () => {
+  // F1250 end to end: the token server's real client marks through the Worker; a retry's mark restarts the keep period.
+  let clock = Date.now(); const { store, journal } = wire(memoryStore(() => clock)); const id = user();
+  await journal.record(id); await journal.complete(id);
+  clock += 20 * DAY; await journal.record(id); await journal.complete(id);
+  const last = clock;
+  assert.equal(await journal.replay(async got => { assert.equal(got, id); }), 1);
+  clock = last - 20 * DAY + KEEP_MS; assert.equal(await store.removeDue(), 0, 'the first mark no longer counts');
+  clock = last + KEEP_MS - 1; assert.equal(await store.removeDue(), 0);
+  clock = last + KEEP_MS; assert.equal(await store.removeDue(), 1);
+  assert.equal(store.rows.length, 0);
+  await assert.rejects(journal.complete(id), /journal-complete-unavailable/);
+});
