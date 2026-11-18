@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createHash} from 'node:crypto';
 import {replayRestore,validateReplayInputs} from './replayDeletionJournal.mjs';
-import {deletionJournal,JOURNAL_KEEP_DAYS} from '../services/token-server/src/deletionJournal.ts';
+import {deletionJournal} from '../services/token-server/src/deletionJournal.ts';
+import {JOURNAL_KEEP_DAYS} from '../deployment/deletion-journal/store.ts';
 const env={SUPABASE_URL:'https://restore.test',SUPABASE_SERVICE_ROLE_KEY:'synthetic',LUVANI_DELETION_JOURNAL_PROJECT_URL:'https://source.test',LUVANI_RESTORE_ISOLATED:'1',LUVANI_DELETION_JOURNAL_URL:'https://journal.test',LUVANI_DELETION_JOURNAL_TOKEN:'t'.repeat(32),LUVANI_DELETION_JOURNAL_KEY:Buffer.alloc(32,7).toString('base64url')};
 const evidence=()=>({version:1,sourceProjectUrl:env.LUVANI_DELETION_JOURNAL_PROJECT_URL,targetProjectUrl:env.SUPABASE_URL,sourceWritersFrozen:true,sourceAdmissionOff:true,reviewedBy:'fixture reviewer',evidenceUrl:'https://review.test/freeze',evidenceSha256:'f'.repeat(64),expiresAt:new Date(Date.now()+60000).toISOString(),backupTakenAt:new Date(Date.now()-24*60*60_000).toISOString()});
 test('restore rejects same target, missing source freeze and expired/wrong evidence before any network operation',async()=>{
@@ -65,4 +66,10 @@ test("replay refuses a backup older than the journal's keep period",async()=>{
     assert.throws(()=>validateReplayInputs(env,review,now),/backup/);
     let calls=0;await assert.rejects(replayRestore(env,review,{request:async()=>{calls++;throw new Error('unused');}}));assert.equal(calls,0);
   }
+});
+test('the keep constants have one source, the journal store',async()=>{
+  const client=await import('../services/token-server/src/deletionJournal.ts');
+  for(const name of ['BACKUP_WINDOW_DAYS','JOURNAL_MARGIN_DAYS','JOURNAL_KEEP_DAYS'])assert.equal(name in client,false,`the token server still defines ${name}`);
+  const {readFile}=await import('node:fs/promises');
+  assert.match(await readFile(new URL('./replayDeletionJournal.mjs',import.meta.url),'utf8'),/import \{JOURNAL_KEEP_DAYS\} from '\.\.\/deployment\/deletion-journal\/store\.ts';/);
 });

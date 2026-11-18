@@ -834,7 +834,7 @@ describe('the privacy notice — F479', () => {
     // F1253. The "7 days" is only true while production Supabase keeps daily
     // backups for 7 days and nothing longer. It is pinned to BACKUP_WINDOW_DAYS,
     // and the release gate holds production until the founder confirms the plan.
-    const journal = readFileSync(fileURLToPath(new URL('../../../../services/token-server/src/deletionJournal.ts', import.meta.url)), 'utf8');
+    const journal = readFileSync(fileURLToPath(new URL('../../../../deployment/deletion-journal/store.ts', import.meta.url)), 'utf8');
     const days = Number(/export const BACKUP_WINDOW_DAYS = (\d+);/.exec(journal)?.[1]);
     assert.ok(Number.isInteger(days) && days > 0, 'BACKUP_WINDOW_DAYS is not where this test reads it');
     // Words rather than digits, like the other retentions.

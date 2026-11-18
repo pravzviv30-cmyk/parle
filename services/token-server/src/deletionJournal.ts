@@ -3,10 +3,6 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, ran
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export interface DeletionJournal { record(userId: string): Promise<void>; complete(userId: string): Promise<void> }
-/** Mirror of deployment/deletion-journal/store.ts (lane 1). Once that lands, re-export from there instead of defining here. */
-export const BACKUP_WINDOW_DAYS = 7;
-export const JOURNAL_MARGIN_DAYS = 30;
-export const JOURNAL_KEEP_DAYS = BACKUP_WINDOW_DAYS + JOURNAL_MARGIN_DAYS;
 export interface JournalConfig { endpoint: string; token: string; key: string; projectUrl: string }
 /** Contract: conditional immutable PUT; bounded authenticated GET/list; TLS. */
 export function deletionJournal(config: JournalConfig, request: typeof fetch = fetch, options:{timeoutMs?:number;maxRecords?:number}={}) {
