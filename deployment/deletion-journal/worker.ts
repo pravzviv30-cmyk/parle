@@ -1,7 +1,7 @@
 /**
  * Luvani deletion journal: write-once encrypted erasure records outside the main database's rollback domain, each removed
  * JOURNAL_KEEP_DAYS after its erasure is marked complete.
- * Implements exactly the contract of services/token-server/src/deletionJournal.ts. Web Crypto only (no nodejs_compat).
+ * Implements the contract of services/token-server/src/deletionJournal.ts plus the completion route its complete() will call (F1250). Web Crypto only (no nodejs_compat).
  */
 import { d1Store, type D1Like } from './d1.ts';
 import type { JournalStore } from './store.ts';
