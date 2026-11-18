@@ -144,9 +144,10 @@ describe('the privacy notice — F479', () => {
     assert.match(DOC, /neither may be described to a learner as\nverified until it is/);
 
     // Everything the mockups asserted and nobody checked. Each of these reads
-    // as reassurance, which is exactly why the ban is mechanical. One sentence
-    // is exempt: the founder approved "encrypted" for the deletion journal
+    // as reassurance, which is exactly why the ban is mechanical. One word in one
+    // paragraph is exempt: the founder approved "encrypted" for the deletion journal
     // (2026-11-18, F1252), and the document must keep backing it with the cipher.
+    // Every other word is checked over the whole notice, that paragraph included.
     const KEPT = POLICY_SECTIONS.find(section => section.heading === 'Your rights')?.body.find(line => line.startsWith('A few things of ours are kept on purpose.')) ?? '';
     assert.match(DOC, /AES-256-GCM encrypted, stored under a keyed hash of the id/, 'the notice says "encrypted" and the document stopped backing it');
     for (const invention of [
@@ -166,7 +167,8 @@ describe('the privacy notice — F479', () => {
       'military',
       'bank grade',
     ]) {
-      assert.ok(!WHOLE.replace(KEPT, '').toLowerCase().includes(invention.toLowerCase()), `the notice claims "${invention}"`);
+      const text = invention === 'encrypted' ? WHOLE.replace(KEPT, '') : WHOLE;
+      assert.ok(!text.toLowerCase().includes(invention.toLowerCase()), `the notice claims "${invention}"`);
     }
 
     // Jurisdiction: the founder's decision, and the fact both mockups got wrong.
