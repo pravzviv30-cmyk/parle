@@ -292,12 +292,12 @@ test('a claim the database refuses throws before any provider is built', async (
   const f = fixture({ call: async () => ({ kind: 'refused', reason: 'already-claimed-or-expired' }) });
   await assert.rejects(f.claim(), SessionLifecycleError);
   assert.deepEqual(f.calls.map(c => c.operation), ['claim'], 'a refusal is final, not retried');
-  // agent.ts awaits that claim before it builds any paid runtime, proxy, STT, LLM or session.
+  // agent.ts awaits that claim before it builds any paid runtime, proxy, scene gate, STT, TTS, LLM or session.
   const agent = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
   const entry = agent.slice(agent.indexOf('entry: async'));
   const claimed = entry.indexOf('await claimSessionLifecycle(');
   assert.ok(claimed > 0);
-  for (const build of ['resumePaidRuntime(', 'createPaidVoiceProxy(', 'new deepgram.STT', 'tutorLLM(', 'new voice.AgentSession(']) {
+  for (const build of ['resumePaidRuntime(', 'createPaidVoiceProxy(', 'createGuestSceneGate(', 'sessionAudio(', 'new deepgram.STT', 'buildTTS(', 'tutorLLM(', 'new voice.AgentSession(']) {
     assert.ok(entry.indexOf(build) > claimed, `${build} comes after the claim`);
   }
 });
