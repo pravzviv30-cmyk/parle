@@ -20,7 +20,7 @@ import { ChevronGlyph } from '../explore/ExploreParts.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { tapSettled } from '../motion/haptics.ts';
-import { HIT, bType, decorative, paper, type } from '../theme.ts';
+import { HIT, bType, decorative, paper, type, corner, radius } from '../theme.ts';
 import { RepairMark } from './art/RepairMark.tsx';
 import { monthWeeks, type DayCellView, type MonthView } from './streakScreenView.ts';
 
@@ -229,34 +229,34 @@ const makeStyles = (t: B) =>
     gap6: { gap: 6 },
     head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     // The week strip.
-    weekCard: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 12, flexDirection: 'row', marginTop: 6 },
+    weekCard: { backgroundColor: t.card, ...corner.card, paddingVertical: 14, paddingHorizontal: 12, flexDirection: 'row', marginTop: 6 },
     weekCol: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
     circle: { width: CIRCLE, height: CIRCLE, borderRadius: CIRCLE / 2, alignItems: 'center', justifyContent: 'center' },
     todayRing: { borderWidth: 2.5, borderStyle: 'dashed', borderColor: t.link },
     // The freeze card.
-    freeze: { backgroundColor: t.card, borderRadius: 24, padding: 16, gap: 12, borderWidth: 2, borderColor: t.periwinkle },
+    freeze: { backgroundColor: t.card, ...corner.card, padding: 16, gap: 12, borderWidth: 2, borderColor: t.periwinkle },
     freezeHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    freezeDisc: { width: 52, height: 52, borderRadius: 26, backgroundColor: t.lavender, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    freezeDisc: { width: 52, height: 52, borderRadius: radius.pill, backgroundColor: t.lavender, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     upsell: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: t.line, paddingTop: 10, minHeight: HIT },
     // The milestone.
-    milestone: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
-    tile: { width: 64, height: 64, borderRadius: 16, backgroundColor: t.peach, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
+    milestone: { backgroundColor: t.card, ...corner.card, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
+    tile: { width: 64, height: 64, ...corner.field, backgroundColor: t.peach, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
     tileArt: { marginTop: 8 },
-    track: { height: 8, borderRadius: 4, backgroundColor: t.inset, overflow: 'hidden' },
-    fill: { height: 8, borderRadius: 4, backgroundColor: t.sun },
+    track: { height: 8, borderRadius: radius.pill, backgroundColor: t.inset, overflow: 'hidden' },
+    fill: { height: 8, borderRadius: radius.pill, backgroundColor: t.sun },
     // The month.
     arrow: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
     off: { opacity: 0.5 },
-    monthCard: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 12, gap: 4 },
+    monthCard: { backgroundColor: t.card, ...corner.card, paddingVertical: 14, paddingHorizontal: 12, gap: 4 },
     weekday: { textAlign: 'center' },
     week: { flexDirection: 'row' },
     dateCol: { flex: 1, minWidth: 0, paddingHorizontal: 2 },
     date: { minHeight: CIRCLE, borderRadius: CIRCLE / 2, alignItems: 'center', justifyContent: 'center' },
     dateToday: { borderWidth: 2, borderColor: t.link },
     // How a day counts.
-    how: { backgroundColor: t.lavender, borderRadius: 22, padding: 16, gap: 8 },
+    how: { backgroundColor: t.lavender, ...corner.card, padding: 16, gap: 8 },
     // The nudge.
-    nudgeCard: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 4, paddingHorizontal: 16 },
+    nudgeCard: { backgroundColor: t.card, ...corner.card, paddingVertical: 4, paddingHorizontal: 16 },
     nudge: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, minHeight: HIT },
     below: { paddingBottom: 12 },
   });

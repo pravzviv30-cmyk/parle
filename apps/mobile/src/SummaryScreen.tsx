@@ -21,7 +21,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { buildEntries, focusDrillSteps, toAnkiTsv, LESSONS, type ProgressReport, type SessionSummary, type Lesson } from '@luvani/core';
 import { HAIRLINE, HIT, paper, space, type } from './theme.ts';
 import { SOUND_DETAIL, SOUND_FOCUS_LABEL, heldSoundsLine, soundExampleWord, soundInWord } from './tutor/soundExample.ts';
-import { IconAction, Card, Label, PillButton, OutlineButton, GhostButton, ArrowRight, Stat } from './components.tsx';
+import { IconAction, Card, Label, PillButton, GhostButton, ArrowRight, Stat } from './components.tsx';
 import { ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useHardwareBack } from './nav/useHardwareBack.ts';
 import { FocusDrillPlayer } from './drill/FocusDrillPlayer.tsx';
@@ -286,7 +286,7 @@ export function SummaryScreen({
                   </Card>
                   {onReview && (
                     <View style={{ marginTop: space(3.5) }}>
-                      <OutlineButton label="Review" onPress={onReview} />
+                      <GhostButton label="Review" onPress={onReview} />
                     </View>
                   )}
                   <View style={{ marginTop: space(1.5) }}>
@@ -298,7 +298,7 @@ export function SummaryScreen({
                 </View>
               )}
 
-              <OutlineButton label="Practise the conversation again" onPress={onAgain} />
+              <GhostButton label="Practise the conversation again" onPress={onAgain} />
             </View>
           )}
         </View>

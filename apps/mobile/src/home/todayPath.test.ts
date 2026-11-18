@@ -202,7 +202,10 @@ test('the offline card says offline only when the device is offline, and otherwi
   assert.equal(TUTOR_UNREACHABLE, "We can't reach your tutor right now. Here's something you can do while we try again.");
   assert.equal(offlineNotice(true), TUTOR_UNREACHABLE);
   assert.equal(offlineNotice(undefined), TUTOR_UNREACHABLE, 'a platform that cannot say is not called offline');
-  assert.match(LOCAL, /offlineNotice\(deviceOnLine\(\)\)/);
+  // F996: a start the gate held back says what the device says too, so an
+  // offline phone is told it is offline (push-check, 2026-11-17).
+  assert.match(LOCAL, /notice=\{offlineNotice\(deviceOnLine\(\)\)\}/);
+  assert.doesNotMatch(LOCAL, /held !== undefined \? true/, 'a held start is called the tutor out of reach on an offline phone');
   assert.doesNotMatch(LOCAL, /\{OFFLINE_NOTICE\}/);
 });
 
@@ -262,11 +265,10 @@ test("out of time past Starter offers a line at the learner's level", () => {
   // The row: the café line at Starter; otherwise nothing, so its words never promise a scene its tap does not open.
   assert.match(held, /return cafe \? leadRow\(lead, \(\) => nav\.navigate\('DailyPractice', \{ id: local\.id, mode: 'shadowing' \}\)\) : null;/, 'the held row past Starter says the next scene but opens something else');
   assert.doesNotMatch(held, /leadRow\(lead, \(\) => navigateOwned\('Review'\)\)/, 'the held row opens Review under the scene\'s words');
-  // The hero: the words, then practice that needs no minutes with a real button.
-  // The café line only when it exists, so a missing phrase falls back to Review rather than nothing.
-  assert.match(held, /: cafe \? <LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} variant=\{words\.plans \? 'secondary' : 'primary'\} \/> : undefined/, 'the held hero at Starter loses the café line, or draws an empty one');
-  // Secondary beside See plans, the café door is the plans lead's inline headphones action, never a second primary.
-  assert.match(LOCAL, /variant === 'secondary'\s*\? <IconAction layout="inline" ground=\{bare \? undefined : 'sun'\} icon="headphones" label="Try this line"/, 'the secondary café door is not the inline headphones action');
+  // The hero (F996): the words, and the starter's typed line when there is one;
+  // at Starter without it the café line is Today's phrase row (`onHeroCafe`), so it is drawn once.
+  assert.match(held, /\{starter !== null \? starterCard\(starter\) : undefined\}/, 'the held hero draws the café line again');
+  assert.match(flat(TASK), /const heldCafe = [^;]*starter === null && cafeOffered \? local : null;/, 'the café line is handed to the row at the wrong level');
   const plain = flat(LOCAL.slice(LOCAL.indexOf('if (phrase === null')));
   assert.match(plain, /^if \(phrase === null \|\| offer === 'below'\) return null;/, 'the plain card hands a learner past Starter a first order');
 });
@@ -287,9 +289,11 @@ test('past Starter the plans lead offers no café line', () => {
   assert.match(flat(TASK), /onCafe=\{cafeOffered \? \(\) => navigateOwned\('DailyPractice', \{ id: DEMO_REPLY_ID, mode: 'shadowing' \}\) : undefined\}/, 'the plans lead offers the café line at every level');
   const body = flat(TASK.slice(TASK.indexOf('export function PlansLeadBody('), TASK.indexOf('export function HeldLeadBody(')));
   assert.match(body, /onCafe\?: \(\) => void/);
-  assert.match(body, /\{onCafe !== undefined && <IconAction [^>]*label="Try the offline café line" onPress=\{onCafe\} \/>\}/, 'the café line shows with nothing to open');
+  // UI-023 Q4: the one quiet action under the primary is the underlined word, in the ground's ink.
+  assert.match(body, /\{onCafe !== undefined && <GhostButton label="Try the offline café line" color=\{onSun \? paper\.ink : undefined\} onPress=\{onCafe\} \/>\}/, 'the café line is not the one quiet action');
+  assert.doesNotMatch(body, /<IconAction/, 'the plans lead still draws an icon action');
   // Round 3: past Starter the plans lead keeps practice that needs no minutes, Review, secondary under See plans.
-  assert.match(body, /\{onCafe === undefined && onReview !== undefined && reviewLabel !== undefined && <PillButton label=\{reviewLabel\} variant="secondary" onPress=\{onReview\} \/>\}/, 'past Starter the plans lead has no practice that needs no minutes');
+  assert.match(body, /\{onCafe === undefined && onReview !== undefined && reviewLabel !== undefined && <PillButton label=\{reviewLabel\} variant="secondary" pastel=\{onSun \? undefined : 'sage'\} onPress=\{onReview\} \/>\}/, 'past Starter the plans lead has no practice that needs no minutes');
   assert.match(flat(TASK), /onReview=\{cafeOffered \|\| reviewDoor === null \? undefined : \(\) => navigateOwned\('Review'\)\} reviewLabel=\{reviewDoor\?\.title\}/, 'the plans lead offers Review beside the café line, with nothing to deal, or never');
 });
 
@@ -334,7 +338,8 @@ test("Today's scene card shows only how long the scene takes", () => {
   assert.equal(sceneTime({ minutes: 3.2 }), 'About 3 minutes');
   assert.equal(sceneTime({ minutes: 0.4 }), 'About 1 minute');
   const hero = read('./MissionHero.tsx');
-  assert.match(hero, /french=\{null\} rest=\{time\}/, 'the card still draws the French name and the tutor under the title');
+  // F996: the meta line is the time and the scene's place, joined (`sceneHeroLine`).
+  assert.match(hero, /french=\{null\} rest=\{sceneHeroLine\(hero\)\}/, 'the card still draws the French name and the tutor under the title');
   // The screen reader hears the scene and its time on the Start.
   assert.match(hero, /accessibilityLabel: `\$\{label\}: \$\{hero\.title\}, \$\{time\}`/);
   // The time is said once: the path's scene stop names the step only.
@@ -376,8 +381,9 @@ test('NextTaskCard on the hero has no rail, and on a row is one RouteRow', () =>
   assert.doesNotMatch(TASK, /RouteNode|step=|step\?:/, 'the lead still carries a RouteNode stop');
   // A row draws nothing while loading or failed: the hero shows those.
   assert.match(TASK, /if \(failed && vivid\) return row \? null :/);
-  assert.match(TASK, /if \(value === null \|\| value\.scope !== scopeGeneration\(\)\) return row \? null :/);
-  assert.match(TASK, /if \(lead === 'loading'\) return row \? null :/);
+  // F996: nor does the hero, whose frame draws the one sand block.
+  assert.match(TASK, /if \(value === null \|\| value\.scope !== scopeGeneration\(\)\) return row \|\| bare \? null :/);
+  assert.match(TASK, /if \(lead === 'loading'\) return row \|\| bare \? null :/);
   // The scene row starts through the same tutor gate as the hero's Start.
   // Fix round 1: the row draws the gate's whole answer, so a tap on an
   // unreachable tutor is never a tap that changes nothing.
@@ -414,8 +420,8 @@ test('NextTaskCard on the hero has no rail, and on a row is one RouteRow', () =>
   // On the hero the bodies draw bare, with no card of their own.
   assert.match(TASK, /<LocalPracticeCard vivid bare=\{bare\}/);
   assert.match(TASK, /<StarterContinuation initial=\{starter\} bare=\{bare\}/);
-  assert.match(TASK, /<MissionHero hero=\{value\.hero\} vivid buildsOn=\{value\.buildsOn\} \/>/);
-  assert.equal(todayView.sceneRowLine({ kind: 'today', minutes: 3 } as never), "Today's scene. About 3 minutes");
+  assert.match(TASK, /<MissionHero hero=\{value\.hero\} vivid buildsOn=\{value\.buildsOn\} levelIndex=\{value\.levelIndex\} \/>/);
+  assert.equal(todayView.sceneRowLine({ kind: 'today', minutes: 3 } as never), "About 3 minutes. Today's scene");
 });
 
 // Quiet moments (4A), 2026-11-04: out of time past Starter, the held hero
@@ -462,9 +468,17 @@ test('the held hero and the path read the one rule, and the hero reports it up',
   assert.match(held, /onReview=\{heroReview === true \? \(\) => navigateOwned\('Review'\) : undefined\} reviewLabel=\{reviewDoor\?\.title\}/);
   const home = flat(HOME);
   assert.match(home, /const stops = todayStops\(\{ fix: fix !== null, review: review !== null, heroReview \}\);/);
-  assert.match(home, /<NextTaskCard vivid placement="hero" starter=\{starterFor\} onHeroReview=\{setHeroReview\} \/>/);
+  assert.match(home, /<NextTaskCard vivid placement="hero" starter=\{starterFor\} onHeroReview=\{setHeroReview\} onHeroCafe=\{setHeroCafe\} \/>/);
   // A refresh keeps the last answer; only another account clears it.
-  assert.match(home, /setFixFrom\(null\); setHeroReview\(null\);/);
+  assert.match(home, /setFixFrom\(null\); setHeroReview\(null\); setHeroCafe\(null\);/);
+});
+
+test("the hero's Retry hands its answer back, so the sand block shows while it reads again", () => {
+  // Push-check, 2026-11-17: a failed read reports false; Retry clears failed,
+  // heroReview goes back to null, which the report effect never sends, so
+  // Today kept false and drew an empty card. The Retry reports null itself.
+  const failed = flat(TASK.slice(TASK.indexOf('if (failed && vivid)'), TASK.indexOf('if (failed) return')));
+  assert.match(failed, /<IconAction layout="inline" icon="refresh" label="Retry next task" onPress=\{\(\) => \{ onHeroReview\?\.\(null\); setAttempt\(n => n \+ 1\); \}\} \/>/, 'the hero Retry leaves Today holding the failed answer');
 });
 
 test("the held hero's Review door is a sage tile with the watering plant, its count and a chevron", () => {

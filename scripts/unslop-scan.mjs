@@ -27,6 +27,8 @@ export const GRADIENT_ALLOW = ['apps/mobile/src/art/sky/'];
 export const HEAVY_WEIGHT_ALLOW = ['apps/mobile/src/theme.ts'];
 /** Looping animation is written only in the motion engine (DESIGN.md, Motion rule 5). */
 export const REPEAT_ALLOW = ['apps/mobile/src/motion/drive.ts'];
+/** The eyebrow type tokens are defined in the theme; a ratchet counts uses, not the definitions. */
+export const EYEBROW_ALLOW = ['apps/mobile/src/theme.ts'];
 
 /** Files the scan skips: tests, dev previews and art, where colours and curves are data. */
 export function isScanned(rel) {
@@ -86,7 +88,8 @@ export function scanSource(rel, source) {
     if (words.some((w) => EMOJI.test(w))) hit(i, 'emoji');
     if (words.some((w) => /\s/.test(w) && HYPE.test(w))) hit(i, 'hype-word');
     if (/\b(Linear|Radial)Gradient\b|(linear|radial)-gradient|experimental_backgroundImage/.test(line) && !allowed(rel, GRADIENT_ALLOW)) hit(i, 'gradient');
-    if (/\bborder\w*Radius\s*:\s*-?\d/.test(line)) hit(i, 'literal-radius');
+    if (/\bborder\w*Radius\s*:\s*-?(?!0(?![.\d]))\d/.test(line)) hit(i, 'literal-radius');
+    if (/\.eyebrow\w*|\beyebrow\s*[=:]/.test(line) && !allowed(rel, EYEBROW_ALLOW)) hit(i, 'eyebrow');
     if (/Outfit[-_](Black|ExtraBold|900Black|800ExtraBold)|\bfont\.(black|extraBold)\b/.test(line) && !allowed(rel, HEAVY_WEIGHT_ALLOW)) hit(i, 'heavy-weight');
     if (/\bwithRepeat\(/.test(line) && !allowed(rel, REPEAT_ALLOW)) hit(i, 'repeat-loop');
     const box = line.match(/boxShadow\s*:\s*(.*)$/);

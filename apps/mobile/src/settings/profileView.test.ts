@@ -90,7 +90,7 @@ describe('an unknown plan is never called Free', () => {
     const screen = stripComments(read('./SubscriptionScreen.tsx'));
     assert.match(screen, /view\.kind === 'unknown' \? \(/, 'the unknown state has no branch of its own');
     assert.match(screen, /onPress=\{plan\.retry\}/, 'Try again does not read the plan again');
-    assert.match(screen, /retry: \{ minHeight: 56, borderRadius: radius\.feature/, 'Try again is not the 56pt secondary button');
+    assert.match(screen, /retry: \{ minHeight: 56, \.\.\.corner\.card/, 'Try again is not the 56pt secondary button');
     assert.match(screen, /store !== null && view\.kind !== 'free' && view\.kind !== 'checking'/, 'Manage is hidden when the plan is unknown');
     assert.match(screen, /\{store !== null \? <SettingsRow label=\{RESTORE_ROW\}/, 'Restore is not offered whatever the plan read said');
     assert.match(screen, /const result = restoreResult\(outcome\);/, 'Restore decides what an outcome means in the screen instead of subscriptionRestore.ts');

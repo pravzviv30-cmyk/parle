@@ -66,8 +66,8 @@ import { scopeGeneration } from './storage/scope.ts';
 import { View, Text, StyleSheet, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { getMission, missionStates, type RecapPayload } from '@luvani/core';
 
-import { HAIRLINE, decorative, space, type } from './theme.ts';
-import { IconAction, Card, LipTile, LockBadge, OutlineButton, PillButton, Press } from './components.tsx';
+import { HAIRLINE, corner, decorative, radius, space, type } from './theme.ts';
+import { IconAction, Card, GhostButton, LipTile, LockBadge, PillButton, Press } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
 import { Icon } from './icons/Icon.tsx';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
@@ -324,13 +324,13 @@ export function RecapScreen({
           ? <>
             <PillButton label="Practise this phrase" onPress={practise} disabled={foot.practiseDisabled} disabledReason={foot.practiseDisabled ? saveLine : undefined} lip />
             <View style={s.footRow}>
-              <OutlineButton label="Done" onPress={onDone} />
-              {foot.journey === 'beside' && <OutlineButton label="See your journey" onPress={journey} />}
+              <GhostButton label="Done" onPress={onDone} />
+              {foot.journey === 'beside' && <GhostButton label="See your journey" onPress={journey} />}
             </View>
           </>
           : <>
             <PillButton label="Done" onPress={onDone} lip />
-            {foot.journey === 'under' && <View style={s.link}><OutlineButton label="See your journey" onPress={journey} /></View>}
+            {foot.journey === 'under' && <View style={s.link}><GhostButton label="See your journey" onPress={journey} /></View>}
           </>}
       </View>}>
       <View style={s.body} onLayout={(event) => setRowWidth(Math.round(event.nativeEvent.layout.width))}>
@@ -390,7 +390,7 @@ export function RecapScreen({
       {/* One phrase kept, once. */}
       {keptPhrase !== null ? (
         <KeptPhraseCard fr={keptPhrase.fr} en={keptPhrase.en} saveLine={saveLine} saved={saveState === 'saved'} eventKey={keptPhrase.key} onHear={() => hear(keptPhrase.fr)}>
-          {saveState === 'failed' && <OutlineButton label="Try saving again" onPress={retrySave} />}
+          {saveState === 'failed' && <GhostButton label="Try saving again" onPress={retrySave} />}
         </KeptPhraseCard>
       ) : null}
 
@@ -461,12 +461,12 @@ function makeStyles(t: B) {
     link: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
     body: { gap: space(5), paddingBottom: space(4) },
     words: { gap: space(1.5) },
-    goalCard: { backgroundColor: t.card, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 14, gap: 8 },
+    goalCard: { backgroundColor: t.card, ...corner.card, paddingVertical: 12, paddingHorizontal: 14, gap: 8 },
     section: { gap: 10 },
-    listCard: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 4, paddingHorizontal: 16 },
+    listCard: { backgroundColor: t.card, ...corner.card, paddingVertical: 4, paddingHorizontal: 16 },
     fixHead: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
     focus: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(3), paddingHorizontal: space(4) },
-    coin: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    coin: { width: 32, height: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
     grow: { flex: 1, minWidth: 0 },
   });
 }

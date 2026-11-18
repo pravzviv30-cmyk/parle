@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { phraseKeyOf, type ConversationPack } from '@luvani/core';
 import { IconAction, Card, GhostButton, Label, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { radius, space, type, HIT, frenchText } from '../theme.ts';
+import { corner, radius, space, type, HIT, frenchText } from '../theme.ts';
 import * as voice from '../speech/tutorVoice.ts';
 import { loadConversationPackForLearner } from './store.ts';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -119,7 +119,7 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
           setNotice(`“${phrase.fr}” means: ${phrase.en}`);
         } else setNotice('Not this pair. Keep the French phrase selected and try another meaning.');
       }}
-      style={{ minHeight: HIT * 1.5, justifyContent: 'center', padding: space(3), borderRadius: radius.card,
+      style={{ minHeight: HIT * 1.5, justifyContent: 'center', padding: space(3), ...corner.card,
         borderWidth: chosen ? 2 : 1, borderColor: chosen ? t.text : t.field,
         backgroundColor: done ? t.skeleton : t.card, opacity: 1 }}>
       <Text {...(side === 'fr' ? frenchText : {})} style={[side === 'fr' ? type.frenchSm : type.small, { color: t.text }]}>{done && !assisted ? '✓ ' : ''}{label}</Text>
@@ -149,8 +149,8 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
             </View>
           )}
           <Label>{pack.title.en}</Label>
-          <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }} style={{ height: 5, backgroundColor: t.line, borderRadius: 3 }}>
-            <View style={{ height: 5, width: `${progress * 100}%`, backgroundColor: t.text, borderRadius: 3 }} />
+          <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }} style={{ height: 5, backgroundColor: t.line, borderRadius: radius.pill }}>
+            <View style={{ height: 5, width: `${progress * 100}%`, backgroundColor: t.text, borderRadius: radius.pill }} />
           </View>
           <Text style={[type.small, { color: t.text }]}>Built from the phrases saved from this conversation. No live minutes used.</Text>
         </View>
@@ -192,7 +192,7 @@ export function ConversationPracticeScreen({ packId, onBack, onRecall, previewPa
           </Card>
           {current.options.map((option, i) => <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected: choice === i, disabled: revealed || (!played && !reading) }}
             disabled={revealed || (!played && !reading)} onPress={() => setChoice(i)}
-            style={{ minHeight: HIT, padding: space(4), borderRadius: radius.card, borderWidth: choice === i ? 2 : 1, borderColor: choice === i ? t.text : t.field, backgroundColor: t.card }}>
+            style={{ minHeight: HIT, padding: space(4), ...corner.card, borderWidth: choice === i ? 2 : 1, borderColor: choice === i ? t.text : t.field, backgroundColor: t.card }}>
             <Text style={[type.body, { color: t.text }]}>{option}</Text>
           </Pressable>)}
           {attempt.outcome !== 'waiting' && <Text accessibilityLiveRegion="polite" style={[type.body, { color: t.text }]}>{attempt.outcome === 'correct' ? 'That’s the meaning.' : attempt.outcome === 'revealed' ? `The meaning is: ${current.phrase.en}` : 'Not quite. Try once more before seeing the meaning.'}</Text>}

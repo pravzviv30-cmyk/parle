@@ -128,8 +128,8 @@ describe('the conversation closes with something useful', () => {
     assert.equal((render.match(/label="Done" onPress=\{onDone\}/g) ?? []).length, 2, 'Done is missing from a footer state');
     assert.doesNotMatch(screen, /Finish conversation|Practise these lines, free|CloseDisc/, 'a second way out, or a name that differs from the label, is back');
     // "See your journey" leaves the room for the Journey tab, only on an earned scene.
-    assert.match(render, /foot\.journey === 'beside' && <OutlineButton label="See your journey" onPress=\{journey\} \/>/);
-    assert.match(render, /foot\.journey === 'under' && <View style=\{s\.link\}><OutlineButton label="See your journey" onPress=\{journey\} \/><\/View>/);
+    assert.match(render, /foot\.journey === 'beside' && <GhostButton label="See your journey" onPress=\{journey\} \/>/);
+    assert.match(render, /foot\.journey === 'under' && <View style=\{s\.link\}><GhostButton label="See your journey" onPress=\{journey\} \/><\/View>/);
     assert.match(convo, /onSeeJourney=\{onJourney === undefined \? undefined : \(\) => leaveTo\(onJourney\)\}/);
     assert.match(code, /const practise = \(\) => \{ if \(keptPhrase !== null && onPractice !== undefined && saveState === 'saved'\) onPractice\(\{ fr: keptPhrase\.fr, en: keptPhrase\.en, situation \}\); \};/);
     assert.match(convo, /leaveTo\(\(\) => onPractice\(phrase\)\)/);
@@ -151,7 +151,7 @@ describe('the conversation closes with something useful', () => {
     assert.ok(save.length > 0);
     assert.doesNotMatch(save, /page|focusing|fixing/, 'the save waits on what is open');
     assert.match(screen, /const retrySave = \(\) => \{\s*if \(keptPhrase === null \|\| saveState === 'saving' \|\| ownerScope !== scopeGeneration\(\)\) return;/);
-    assert.match(render, /saveState === 'failed' && <OutlineButton label="Try saving again" onPress=\{retrySave\} \/>/);
+    assert.match(render, /saveState === 'failed' && <GhostButton label="Try saving again" onPress=\{retrySave\} \/>/);
     // Only owner-scoped text offers saving: SaveTextChoice decides it for itself.
     assert.match(render, /\{conversationText && <SaveTextChoice \{\.\.\.conversationText\} \/>\}/);
     assert.match(read('./conversationPacks/SaveTextChoice.tsx'), /if \(user\?\.id !== ownerId \|\| adapter\.kind !== 'supabase' \|\| scope !== scopeGeneration\(\)\) return null;/);

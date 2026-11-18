@@ -36,5 +36,5 @@ test('Explore gives the native Press frame its topic grid width and lets large t
     'a column needs full width and content height, rather than a percentage height basis');
   const parts = read('../explore/ExploreParts.tsx');
   assert.match(parts, /frame=\{s\.fill\} style=\{\[s\.topic,/, 'the tile card fills its frame rather than sizing itself');
-  assert.match(parts, /topic: \{ flex: 1, borderRadius: 26, overflow: 'hidden', \.\.\.liftStyle \}/, 'the tile lost its radius 26 or its lift');
+  assert.match(parts, /topic: \{ flex: 1, \.\.\.corner\.card, overflow: 'hidden', \.\.\.liftStyle \}/, 'the tile lost its card corner or its lift');
 });

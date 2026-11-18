@@ -4,7 +4,7 @@ import { Highlight, LipTile, Press } from '../components.tsx';
 import { Feedback } from '../motion/Feedback.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BSpeaker, CheckDisc } from '../today/TodayParts.tsx';
-import { bType } from '../theme.ts';
+import { bType, radius } from '../theme.ts';
 import { HEAR_IT_SAID } from './afterSessionView.ts';
 
 /**
@@ -50,7 +50,7 @@ function makeStyles(t: B) {
     row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     words: { flex: 1, gap: 4 },
     grow: { flex: 1, minWidth: 0 },
-    hear: { width: 48, height: 48, borderRadius: 24, backgroundColor: t.lavender, alignItems: 'center', justifyContent: 'center' },
+    hear: { width: 48, height: 48, borderRadius: radius.pill, backgroundColor: t.lavender, alignItems: 'center', justifyContent: 'center' },
     saved: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 22 },
   });
 }

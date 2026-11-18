@@ -67,7 +67,7 @@ import { loadScenarioProgress } from '../missions/progressStore.ts';
 import { loadDeck } from '../review/store.ts';
 import { practicePreferencesOf, startAtOf } from '../profile/practicePreferences.ts';
 import { learningSuggestions } from '../main/learningSuggestions.ts';
-import { bType, decorative, frenchText, space, type, HIT, RHYTHM } from '../theme.ts';
+import { bType, decorative, frenchText, space, type, HIT, RHYTHM, corner, radius } from '../theme.ts';
 
 import { tutorOrbState } from '../tutor/orbState.ts';
 import { TUTOR_OFFLINE, tutorGate } from '../tutor/gate.ts';
@@ -539,42 +539,42 @@ const makeStyles = (t: B) =>
     after2: { marginTop: space(0.5) },
     after4: { marginTop: 4 },
     after8: { marginTop: space(2) },
-    hero: { backgroundColor: t.heroGround, borderRadius: 28, padding: 20, gap: 6, overflow: 'hidden' },
+    hero: { backgroundColor: t.heroGround, ...corner.card, padding: 20, gap: 6, overflow: 'hidden' },
     heroArt: { position: 'absolute', right: -10, top: 26 },
     heroBand: { alignSelf: 'center', marginBottom: 6 },
     heroWords: { gap: 6 },
     heroEyebrow: { maxWidth: 200 },
     heroTitle: { maxWidth: 200 },
     heroLine: { maxWidth: 196 },
-    heroPill: { backgroundColor: t.heroChip, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, maxWidth: '100%' },
-    segment: { marginTop: 10, flexDirection: 'row', gap: 4, padding: 4, borderRadius: 24, backgroundColor: t.butter },
-    cell: { minHeight: 40, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(1), paddingHorizontal: space(2) },
+    heroPill: { backgroundColor: t.heroChip, paddingVertical: 4, paddingHorizontal: 10, ...corner.inset, maxWidth: '100%' },
+    segment: { marginTop: 10, flexDirection: 'row', gap: 4, padding: 4, borderRadius: radius.pill, backgroundColor: t.butter },
+    cell: { minHeight: 40, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(1), paddingHorizontal: space(2) },
     // Artboard: 36 high, padding 0 12, radius 18, 1.5 outline, 13/600 words.
-    outline: { minHeight: 36, borderRadius: 18, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 0, justifyContent: 'center' },
+    outline: { minHeight: 36, borderRadius: radius.pill, borderWidth: 1.5, paddingHorizontal: 12, paddingVertical: 0, justifyContent: 'center' },
     hug: { alignSelf: 'flex-start' },
     link: { minHeight: HIT, justifyContent: 'center', alignSelf: 'flex-start' },
     linkCentred: { alignSelf: 'center' },
     titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space(2) },
     scenes: { gap: RHYTHM.item },
-    list: { backgroundColor: t.card, borderRadius: 24, paddingVertical: 4, paddingHorizontal: 14 },
+    list: { backgroundColor: t.card, ...corner.card, paddingVertical: 4, paddingHorizontal: 14 },
     sceneRow: { flexDirection: 'row', alignItems: 'center', gap: space(3), paddingVertical: space(3), minHeight: HIT },
     rule: { borderBottomWidth: 1, borderBottomColor: t.line },
-    sceneTile: { width: SCENE_TILE, height: SCENE_TILE, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    nextPill: { backgroundColor: t.brandMark, paddingVertical: 3, paddingHorizontal: space(2), borderRadius: 10, flexShrink: 0 },
-    twist: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space(4), borderRadius: 24, backgroundColor: t.card, borderWidth: 2, borderStyle: 'dashed', borderColor: t.field },
-    twistTile: { width: TWIST_TILE, height: TWIST_TILE, borderRadius: 18, backgroundColor: t.sage, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
+    sceneTile: { width: SCENE_TILE, height: SCENE_TILE, ...corner.field, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    nextPill: { backgroundColor: t.brandMark, paddingVertical: 3, paddingHorizontal: space(2), ...corner.inset, flexShrink: 0 },
+    twist: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: space(4), ...corner.card, backgroundColor: t.card, borderWidth: 2, borderStyle: 'dashed', borderColor: t.field },
+    twistTile: { width: TWIST_TILE, height: TWIST_TILE, ...corner.tile, backgroundColor: t.sage, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
     twistArt: { marginTop: space(2) },
     twistHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(2) },
     twistGo: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.brandMark, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    talk: { backgroundColor: t.brand, borderRadius: 26, padding: 18, gap: space(3) },
-    talkChip: { minHeight: 40, borderRadius: 20, paddingHorizontal: 14, justifyContent: 'center', maxWidth: '100%' },
-    tutor: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: t.card, borderRadius: 24, paddingVertical: 14, paddingHorizontal: space(4) },
-    orb: { width: ORB, height: ORB, borderRadius: 28, overflow: 'hidden', flexShrink: 0 },
-    hear: { width: HEAR, height: HEAR, borderRadius: 24, backgroundColor: t.lavender, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    talk: { backgroundColor: t.brand, ...corner.card, padding: 18, gap: space(3) },
+    talkChip: { minHeight: 40, borderRadius: radius.pill, paddingHorizontal: 14, justifyContent: 'center', maxWidth: '100%' },
+    tutor: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: t.card, ...corner.card, paddingVertical: 14, paddingHorizontal: space(4) },
+    orb: { width: ORB, height: ORB, borderRadius: radius.pill, overflow: 'hidden', flexShrink: 0 },
+    hear: { width: HEAR, height: HEAR, borderRadius: radius.pill, backgroundColor: t.lavender, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
     // Three to a row at the artboard's width; two (the third spanning the next) or one at large text.
     third: { flex: 1, minWidth: 0 },
     half: { flexBasis: '40%', flexGrow: 1, minWidth: 0 },
-    tile: { flex: 1, minWidth: 0, minHeight: 120, borderRadius: 20, gap: 6 },
+    tile: { flex: 1, minWidth: 0, minHeight: 120, ...corner.card, gap: 6 },
     footer: { alignItems: 'center', gap: 2 },
   });

@@ -225,7 +225,7 @@ export const GLINT = {
   wait: 700,
 } as const;
 
-/** MorphButton: the pill closing to a circle while it waits, and the check when it is done. */
+/** The busy pill timing (MorphButton retired in the systemic pass; the wall still reads MORPH.hold). */
 export const MORPH = {
   /** The circle it closes to: the pill's own height. */
   size: 56,

@@ -1430,3 +1430,29 @@ describe('the lesson names which exit ended it', () => {
     assert.deepEqual(lines, ['[luvani:session-exit] class=brain-turn']);
   });
 });
+
+describe('a lesson hook that throws (F982)', () => {
+  test('a lesson hook that throws still ends in StopResponse', async (t) => {
+    const errors = t.mock.method(console, 'error', () => {});
+    const { tutor, calls } = build();
+    t.mock.method(tutor as never as { handleSafety(): boolean }, 'handleSafety', () => { throw new Error('boom'); });
+    await assert.rejects(() => tutor.onUserTurnCompleted({} as never, heard('Bonjour')), voice.StopResponse);
+    assert.equal(calls.generateReply.length, 0);
+    const logged = errors.mock.calls.map((c) => c.arguments.map(String).join(' '));
+    assert.equal(logged.filter((l) => l.startsWith('[luvani:hook-failure]')).length, 1, 'one countable line');
+    assert.equal(logged.some((l) => l.includes('Bonjour')), false, 'no learner words in the log');
+  });
+
+  test('a lesson hook failure re-arms the rescue clock', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    t.mock.method(console, 'error', () => {});
+    const { tutor, session, calls } = build();
+    tutor.armRescue(session);
+    t.mock.method(tutor as never as { handleSafety(): boolean }, 'handleSafety', () => { throw new Error('boom'); });
+    await assert.rejects(() => tutor.onUserTurnCompleted({} as never, heard('Bonjour')), voice.StopResponse);
+    t.mock.timers.tick(STUCK_SILENCE_MS + 1);
+    await tutor.settled();
+    assert.equal(tutor.sessionState.ladder.rescues, 1, 'the learner is still rescued');
+    assert.equal(calls.said.length, 1);
+  });
+});

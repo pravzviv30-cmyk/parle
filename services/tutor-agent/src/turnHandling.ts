@@ -50,8 +50,11 @@ export function turnHandlingFor(
       // said across one. So the learner likeliest to speak at the wrong moment
       // was the one whose sentence disappeared, with nothing to tell them why.
       // The line stays uninterruptible — a speakerphone hears the tutor, and a
-      // barge-in during a modelled line is almost never the learner — but their
-      // words are now buffered and arrive when the tutor stops.
+      // barge-in during a modelled line is almost never the learner. With this
+      // false their audio is still transcribed, but SDK 1.9 drops a turn that
+      // commits while the line plays ("skipping user input"). With
+      // LUVANI_LEARNER_CAPTIONS on, those words are captioned live and shown as
+      // an overheard line before the next turn; they are not answered (F987).
       discardAudioIfUninterruptible: false,
       // LiveKit's adaptive detector tells a real interruption from a backchannel
       // ("mm", "oui"). Rungs 3 and 4 only: below that the modelled lines are

@@ -56,7 +56,7 @@ export function useSceneStart(hero: HomeMission): SceneStart {
     launchContext.current.mounted = true;
     return () => { launchContext.current.mounted = false; launchContext.current.revision++; launchPending.current = null; };
   }, []);
-  useEffect(() => { launchPending.current = null; setChecking(false); }, [focused, owner, hero]);
+  useEffect(() => { launchPending.current = null; setChecking(false); setHeldBack(null); }, [focused, owner, hero]);
   /** The start that did not happen, so the retry is the same start. */
   const [heldBack, setHeldBack] = useState<{ textMode?: boolean } | null>(null);
   // Speak's words for Speak's control: the mode, or the check while it runs.

@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react';
 import { NavigationContext } from '@react-navigation/native';
 import { AppState, StyleSheet } from 'react-native';
 import Reanimated from 'react-native-reanimated';
-import { decorative, radius } from '../theme.ts';
+import { corner, decorative } from '../theme.ts';
 import { useReduceMotion } from '../motion.ts';
 import { welcomeGlow, welcomeGlowEnabled } from './welcomeGlow.ts';
 
@@ -28,7 +28,7 @@ export function WelcomeSignInGlow({ active }: { active: boolean }) {
     {...decorative}
     pointerEvents="none"
     style={[StyleSheet.absoluteFill, {
-      borderRadius: radius.control,
+      ...corner.field,
       boxShadow: welcomeGlow.rest,
       animationName: enabled ? welcomeGlow.keyframes : 'none',
       animationDuration: welcomeGlow.duration,

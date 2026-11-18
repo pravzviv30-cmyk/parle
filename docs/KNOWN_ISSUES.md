@@ -8675,7 +8675,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   scene brief for the spine's next scene, with no picture, and the minutes line reads "About N min". A
   three-line daily scene is still seven minutes, and the scripted opener is about three, derived from
   its script.
-- verified-by: `every hour has exactly one subline`
+- note: 2026-11-17, the systemic pass (UI-023): the hour's line had no production caller left, so `greetingSubline` and its test went (founder, 2026-11-10); the greeting has no subline.
+- verified-by: `the greeting has no subline`
 - verified-by: `a three-line daily scene is about seven minutes, and an open mission is longer per beat`
 - verified-by: `a first run leads with the opener, as a brief: level, French title, can-do, lines and about three minutes`
 
@@ -8804,7 +8805,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/practice/madeFrom.ts:1
 - note: revamp A. "Listen and try again" is the tutor's voice reading the better line, then the drill;
   no recording and no transcript are ever kept, by the existing privacy contract.
-- verified-by: `replay speaks the better line and stops it when the tab goes`
+- note: 2026-11-17, the systemic pass (UI-023, F999): the replay row had no production caller and went with `ReplayMomentCard.tsx`, and its test with it; what remains true is that a voice started on practice stops when the tab goes.
+- verified-by: `a voice started on practice stops when the tab goes`
 - verified-by: `nothing on practice listens, records or scores`
 
 ### F583 — The tab bar keeps every whole word at the largest reading size
@@ -8947,7 +8949,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/theme.ts:27
 - note: Stage 1 of revamp B. `theme.ts` names the five Outfit cuts (400 to 800) with the old font names kept as aliases, the STYLE §3 scale by token (hero 112, display 44, title 30, heading 20, frenchLg 28, french 20, body 17, label 16 sentence case, small 14, tab 12) with the French tokens kept by name in Outfit 600 and frenchLg still larger than heading, and radii card 24, feature 28, tile 20, field 16, pill 999. `App.tsx` loads exactly those five files and the Fraunces and DM Sans files leave the bundle; Acknowledgements credits Outfit under the OFL. `theme.test.ts` is rewritten to the new values and gains a check that the theme, the loader and the fonts folder agree.
 - verified-by: `Outfit is the only face, at the STYLE scale, and every French style is Outfit SemiBold`
-- verified-by: `B corners: card 24, feature 28, tile 20, field 16, pill 999, and the aliases point at them`
+- note: 2026-11-17, the systemic pass (UI-023, F990) replaced the radii with the scale card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill.
+- verified-by: `the radius scale is card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill`
 - verified-by: `the theme names the six Outfit cuts App.tsx loads, and the bundle carries no other face`
 - verified-by: `Acknowledgements credits Outfit under the OFL and names no retired face`
 
@@ -9027,7 +9030,6 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Stage 3, area 1 of revamp B. `Screen` stops drawing a paper hairline over a colour ground's footer and lights the status bar on blue, coral and ink; `Field`'s error sits beside the alert mark; `TutorCard` is restyled; `SceneMark` and `canDoSentence` are appended. Hear it and First line are blue with white and ink bubbles, the round next and the Highlight beside a mint tick; the one-tap answers are option rows; the plan is the sun page with the hero minutes, the scenes in French, the tutor and how it works, and no picture or pickers; the save page's pill reads "I am 13 or older, create account" and the under-13 refusal is its own page with the frame drawing. FirstScene is the blue brief with a white Start, and a refusal turns to paper with the microphone drawing and typing first. The age check and the auth screens are working titles on paper, with Apple above Google at the top of the form and one ink pill in the footer. Two files leave the punctuation allowlist, and two state drawings leave the not-yet-drawn list. The recovery route's `OnboardingFlow.tsx` was left unchanged, because swapping its `OptionCard` for `OptionRow` would take the voice samples off; that deferral is F634.
 - verified-by: `a colour ground draws no paper hairline over its footer, and lights the status bar on blue, coral and ink`
 - verified-by: `a field error sits beside the alert mark in ink, and is still announced`
-- verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
 - verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
 - verified-by: `a can-do reads as one sentence after "You'll be able to"`
 - verified-by: `welcome and recap share cream progress chrome with a readable bottom action`
@@ -11763,7 +11765,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   Migration 47 replaces both: an unclaimed row on a newly recorded device becomes a fresh free
   conversation, and on a device that already had one it stays spent while the claim still
   returns true. No row can hold a live reservation before the reset (it is created spent at the
-  cap and admission refuses under 120 s). Not applied to staging; that needs its own founder yes.
+  cap and admission refuses under 120 s). 2026-11-18: applied to staging (`wtexbzuyfersdtiekrvp`) on the founder's yes, see `supabase/README.md` row 47.
   Closed here, no new id.
 - verified-by: `a trial row begun by a purchase becomes a refilling free conversation at its first device claim`
 - verified-by: `a purchase-first row on a device that already had a free conversation stays spent`
@@ -12235,13 +12237,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F954 — Today names one review twice when the hero offers it
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/NextTaskCard.tsx (the held and plans leads' Review door) and the Today path's review row action (`todayView.ts` `practise`)
 - note: Found 2026-11-02 by the Impeccable reviewer in /push-check on claude/bug-fix, in older code
   outside that diff. When the held or plans lead offers Review, its button reads "Review 4 phrases",
   while the path row for the same review says "Practise" as its action, so one intent has two labels
   on one screen. Fix: name the review action once (for example "Review" on the row), with a test that
   pins the two labels agree.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
 - verified-by: `Today names the review action once`
 - note: 2026-11-10: the founder put this into the systemic pass (queue 5, `handoffs/2026-11-10-systemic-pass-brief.md`), with the Today tutor-unreachable headline, the dead `greetingSubline`/`GREETING_SUBLINES` and a preview key for `LiveErrorView`.
 
@@ -12284,7 +12287,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F957 — At accessibility-extra-large, Today's greeting breaks inside its first word
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/SkyBand.tsx (the greeting `Text`, `bType.greeting`)
 - note: Found 2026-11-03 on the iPhone 17 simulator while checking the phone fixes, and the same on
   main 4ff3aff2: at accessibility-extra-large "Bonsoir," is wider than the column, so it draws as
@@ -12294,6 +12297,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   (`maxFontSizeMultiplier` sized so the longest hour word and its comma fit 343pt), which caps
   one text's scaling, so it waits for the founder's call. Founder 2026-11-06: fold into the systemic
   pass, as part of the type scale.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
 - verified-by: `the greeting's longest hour word fits its column at the largest text size`
 
 ### F958 — Every tutor join fails on staging: the image has no CA store for LiveKit's native client
@@ -12530,7 +12534,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   `docs/live-latency-evidence/2026-11-07-tts-first-audio.json`): first audio p50 437 ms against HTTP's
   329 ms, and the socket delivers a sentence whole, so the paid proxy gets no websocket route. Closed when the founder has
   before/after numbers for each landed switch and the remaining switches are recorded as
-  decided or deferred.
+  decided or deferred. 2026-11-17 (voice-latency, F983 to F988): reply-first English-reach turns now
+  speak at the coach hand-over (coach closes about 1.8 to 3.0 s before the whole turn, measured locally);
+  `LUVANI_BRAIN_WARMUP` (default off) and a free ElevenLabs preconnect address the cold first reply;
+  the early `tutor-line` puts the words with the voice. Local numbers in
+  `docs/live-latency-evidence/2026-11-17-voice-latency-local.md`; the before and after for the room
+  comes from `[luvani:reply-stages]` at the device session.
 - verified-by: `reply-first order puts coach after sceneReply and keeps every field`
 - verified-by: `a brain slower than 1.5 s gets one bridge line before the reply, and the reply is not held for it`
 - verified-by: `rungs 1-2 wait up to 3,500 ms when the detector holds the turn (VOICE-022)`
@@ -12540,16 +12549,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F968 — The tutor logs "signed lesson differs from the worker catalogue" on staging starts
 - severity: P3
-- status: [ ]
-- where: services/tutor-agent/src/agent.ts:186-188 (`sceneLesson(scene)` or `CAFE_LESSON` against
-  `meta.lessonId`); services/token-server/src/tokens.ts:324 (the signed `lessonId`)
-- note: Open observation, 2026-11-06. Both founder starts at 16:37 and 16:38 UTC (deployment
-  `6016fd6d`) logged it. The token server signs the app's `lessonId` (default `cafe-01`), and the
-  worker runs `sceneLesson(scene)` for a scene or `CAFE_LESSON` otherwise; on a mismatch it only
-  warns and runs its own choice. Not yet known which lesson the app asked for, so whether a learner
-  ever hears a different lesson from the one they picked is unproven. Raise the severity if it is.
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:186; services/tutor-agent/src/guestSceneGate.ts (`roomLesson`); services/token-server/src/server.ts:683
+- note: Open observation, 2026-11-06; cause found 2026-11-17. Every conversation signs `convo-01` (ConvoScreen.tsx:312, FirstLivePractice.tsx:62, server.ts:513) and the worker compared it with `cafe-01`, so every conversation start warned. A conversation never reads the lesson and the catalogue holds one lesson, so nobody heard a different lesson. Fix (founder, 2026-11-17, Q7): `roomLesson` ignores the label for a conversation, runs the signed lesson for a lesson room and refuses an unknown one after the session exit exists (class start); the token server refuses an unknown lesson id in a lesson mode before reserving.
+- fixed: 2026-11-17 on claude/voice-latency (/forge round 1, work-judge SHIP).
 - verified-by: `the tutor runs the lesson the token server signed, or refuses the room`
-
+- verified-by: `a conversation's signed lesson label is not compared with the lesson catalogue`
+- verified-by: `the token server refuses an unknown lesson id in a lesson mode before reserving`
+- verified-by: `a room refused for an unknown lesson logs session-exit start`
 ### F969 — Council review of the nine-problem lanes: ten defects in the code already on main
 - severity: P2
 - status: [x]
@@ -12714,6 +12721,217 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `on the bar with no open tab a press ticks once and lights nothing (F981, push-check)`
 - verified-by: `a drag that starts on a closed tab ticks once at the grab; from the open tab the grab still ticks (F981, push-check)`
 - verified-by: `the drop handler gives back the live hold but keeps the audio session when the session had already ended or failed`
+
+### F982 — A hook that throws lets the pipeline LLM answer unseen
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:2829; services/tutor-agent/src/tutor.ts:809
+- note: SDK 1.9 calls generateReply when onUserTurnCompleted throws anything but StopResponse. The F970 checkpoint failure did exactly that on 2026-11-10, so a second reply could be spoken that the screen never showed. Both tutors now end every hook exit in StopResponse and log `[luvani:hook-failure]`. A conversation still live (lifecycle signal not aborted, never assertActive) says the existing recovery line unless the turn already spoke, and a second failure in a row ends the session as brain-turn. The lesson tutor re-arms its rescue clock.
+- fixed: 2026-11-17 on claude/voice-latency (/forge round 1, work-judge SHIP).
+- verified-by: `a conversation hook that throws still ends in StopResponse, so the pipeline model never answers`
+- verified-by: `a hook failure in a live conversation says the recovery line once and a finished one stays quiet`
+- verified-by: `a lesson hook that throws still ends in StopResponse`
+- verified-by: `a hook failure after the turn already spoke says no recovery line`
+- verified-by: `a second hook failure in a row ends the session as brain-turn`
+- verified-by: `a lesson hook failure re-arms the rescue clock`
+
+### F983 — Under reply-first, a turn that reached for English waits for the whole turn
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:3215; packages/brain/src/llm/spokenFields.ts
+- note: The early hand-over fires when the reply closes, before the coach, so English-reach turns lose the whole head start. The watcher now hands over again when coach closes and the tutor speaks then, hand-back first; the callback never overwrites an early line already spoken, including on the F965 retry. The rung expression and the request body are unchanged, so no quote moves.
+- fixed: 2026-11-17 on claude/voice-latency (/forge round 1, work-judge SHIP).
+- verified-by: `reply-first: the watcher hands over again when coach closes, carrying the coach`
+- verified-by: `a reply-first stream calls onSpokenFields at the reply and at the coach, and the request body is unchanged`
+- verified-by: `reply-first: a turn that reached for English speaks once its coach has streamed, hand-back first`
+- verified-by: `reply-first English reach at rung 2: the early line with its coach is uninterruptible`
+- verified-by: `reply-first English reach at rung 4: the early line with its coach stays interruptible`
+- verified-by: `reply-first English reach at rung 3 with a blocking error: the early line keeps the rung the full turn keeps`
+- verified-by: `the coach hand-over never speaks a second early line, including on the retried attempt`
+- verified-by: `the early line's interruptibility equals the full turn's for the same rung`
+
+### F984 — The first reply pays for a cold brain cache and a cold voice connection
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:2305; services/tutor-agent/src/paidVoiceProxy.ts
+- note: 2026-11-10 staging: 7,364 input tokens with 0 cached, and an opening TTS first byte of 1,312 ms against 385 to 505 ms after. A keyless, headerless HEAD with no redirect and a short timeout preconnects the ElevenLabs origin at join, at most once per proxy, spending no effect. Behind LUVANI_BRAIN_WARMUP=1 (default off; founder yes 2026-11-17, Q2) the scene opening fires one discarded turn-shaped call with the session's own body shape, under the session signal, skipped when closing for time, logged as `[luvani:brain-warmup]`: identity unchanged, 1 of 66 turn effects (2 after a 429).
+- fixed: 2026-11-17 on claude/voice-latency (/forge round 1, work-judge SHIP).
+- verified-by: `the proxy preconnect sends one keyless HEAD outside the gate and swallows its failure`
+- verified-by: `the worker preconnects the voice vendor after the proxy is built in a spoken session`
+- verified-by: `with the warm-up flag on, opening a scene sends one discarded turn request and never delays the opening line`
+- verified-by: `the warm-up request has the same paid identity as the session's own turns`
+- verified-by: `a failed warm-up is metered and changes nothing the learner sees or hears`
+- verified-by: `with the warm-up flag unset no warm-up request is sent`
+- verified-by: `the warm-up is aborted with the session and is skipped when closing for time`
+- verified-by: `the preconnect is a constant headerless HEAD with no redirect, a short timeout, at most once per proxy`
+
+### F985 — The learner sees nothing of their own words until the turn is committed
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:2802; services/tutor-agent/src/learnerCaptions.ts
+- note: Only final:true was published, so the app's partial line never showed. Behind LUVANI_LEARNER_CAPTIONS (default off, on at the device session), the sttNode observer publishes the uncommitted finals plus the current interim as final:false when the text changes, at most four frames a second and 500 bytes, from a bounded buffer cleared at every hook exit, with a per-turn frame count logged. Every hook exit publishes the final line or clears the caption. No Deepgram parameter changes.
+- fixed: 2026-11-17 on claude/voice-latency (/forge round 1, work-judge SHIP).
+- verified-by: `interim and final segments publish a growing caption, only when the text changes`
+- verified-by: `every exit from the hook either publishes the final line or clears the caption`
+- verified-by: `a typed session and an ended session publish no caption`
+- verified-by: `captions publish at most four frames a second and are capped in size`
+- verified-by: `with the captions flag unset nothing changes`
+- verified-by: `a hook exit with no final line does not blank a caption the learner has started since`
+- verified-by: `a capped caption never splits a character`
+- verified-by: `with audio scoring on, the learner's captions still publish`
+- verified-by: `an exit after an overheard line with no final line still clears the caption`
+
+### F986 — Flux split finals are glued with mid-sentence capitals and dashes
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/learnerCaptions.ts:1
+- note: docs/live-latency-evidence/2026-11-07-flux-eot.md: "On échange -- Nos numéros?", "en échange, Nos numéros". Behind LUVANI_LEARNER_CAPTIONS, joinHeard rebuilds the committed text from the captured segments, used only when their plain join equals the SDK's text; the same text goes to the screen and the brain. Known cost: a proper noun that starts a segment is lowercased.
+- fixed: 2026-11-17 on claude/voice-latency (/forge round 1, work-judge SHIP).
+- verified-by: `split finals join without a mid-sentence capital, a dash or a stray ellipsis`
+- verified-by: `a segment after a full stop keeps its capital`
+- verified-by: `when the captured segments do not match the committed text, the committed text is kept and only dashes go`
+- verified-by: `the joined text is what the screen shows and what the brain is sent`
+
+### F987 — Words said over an uninterruptible tutor line vanish
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/turnHandling.ts:47; packages/core/src/protocol/protocol.ts
+- note: The SDK drops a turn committed while an uninterruptible line plays ("skipping user input", 2026-11-10: "Here we go."), and the comment wrongly said the words were buffered. Behind LUVANI_LEARNER_CAPTIONS, dropped finals pass the safety check and are published as their own `overheard` frame before the next committed turn (founder, 2026-11-17, Q4: shown, not answered). They are never sent to the brain or counted as a reply, and an old app's decoder drops the new frame. The comment is corrected. Echo risk: on a speakerphone an overheard line may be the tutor's own voice shown as the learner's; the founder judges it with LUVANI_LEARNER_CAPTIONS on at the device session (2026-11-17).
+- fixed: 2026-11-17 on claude/voice-latency (/forge round 1, work-judge SHIP).
+- verified-by: `finals the SDK dropped are published as an overheard line before the next turn's line`
+- verified-by: `an overheard line is not sent to the brain and does not count as a learner turn`
+- verified-by: `an overheard line is its own frame that an old decoder ignores`
+- verified-by: `overheard words pass the safety check before they are shown`
+- verified-by: `an overheard line is added to the turns without counting a scene reply or starting the thinking state`
+
+### F988 — The tutor's text arrives after its voice, and the spoken coach line never appears
+- severity: P1
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:3210; apps/mobile/src/live/roleLine.ts; apps/mobile/src/live/turns.ts
+- note: The view is published after the full turn and the checkpoint, seconds after early speech began, and a coach line spoken on an English reach or a way back is not a tutor line. speakEarly now publishes a tutor-line frame with the turn id the view will reuse (founder, 2026-11-17, Q1); the view carries coachSpoken (Q5: the coach note stays). The app adds the lines once, never changes French already shown, and never journals or counts a tutor-line no view followed. The view still waits for the checkpoint.
+- fixed: 2026-11-17 on claude/voice-latency (/forge round 1, work-judge SHIP).
+- verified-by: `an early-spoken reply publishes its tutor-line with the say, under the id its view later carries`
+- verified-by: `a refused checkpoint after an early line publishes no view`
+- verified-by: `a view marks its coach line as spoken on an English reach and on a way back, and not otherwise`
+- verified-by: `the tutor-line frame and coachSpoken pass the decoder`
+- verified-by: `a spoken coach line is a tutor line before the reply`
+- verified-by: `a view never changes the French of a line already shown, and fills in its English`
+- verified-by: `a tutor-line ends the thinking state`
+- verified-by: `the keepsake leaves out lines said over the tutor`
+- verified-by: `an early tutor line is announced with its English once the English arrives, and only once`
+- verified-by: `a tutor-line with no view after it is never journalled or counted`
+- verified-by: `the spoken coach line is read as English, other tutor lines as French`
+- verified-by: `an English-reach early tutor-line carries its coach line, and a plain turn's carries none`
+- verified-by: `the notebook reads the spoken coach line as English`
+- verified-by: `the notebook announces an early tutor line's English once it arrives`
+
+### F989 — Conversations give Flux no keyterms
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/agent.ts:297; services/tutor-agent/src/recognitionPlan.ts; scripts/paidQuotes.mjs
+- note: Deferred (founder, 2026-11-17): the conversation quote already holds 15 components and `paid_quote_valid_v1` refuses more than 16 (migration 20261004010327), so three keyterm streams need a cap migration of their own, reviewed for security; it comes back as its own change. The design: founder yes 2026-11-17 (Q3) to the quote change. A mission conversation passes up to 16 fixed keyterms from its phrase keys at construction (VOICE-017), and the conversation quote gains the keyterm stream components beside the plain ones. Until that quote is bound at the next renewal, the proxy strips them.
+- verified-by: `a mission's keyterms are at most 16 terms and 400 bytes, full phrases first`
+- verified-by: `a conversation with a mission passes its keyterms to Flux and a free topic passes none`
+- verified-by: `the conversation quote carries both the keyterm and the plain Flux stream`
+
+### F990 — The radius scale and continuous corners are tokens
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/theme.ts:245
+- note: card 20, tile 18, field 14, inset 12, mark 8, nib 4, pill; `corner` and `continuous` carry the iOS curve.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `the radius scale is card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill`
+- verified-by: `a corner fragment carries its radius and the continuous curve on iOS only`
+
+### F991 — Lip colours are named and every ink primary pill sits on a 3pt lip
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:368
+- note: Q1. The lip defaults on for the ink primary and sinks 2pt; the palette names paper, peach, lilac, sun and blue.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `every ink primary pill sits on a 3pt lip and sinks 2pt`
+- verified-by: `the lip colours are named once in the palette`
+
+### F992 — Choice draws the raised tile and BoldChoice folds into it
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:2561
+- note: Q2, revisiting D7. White face with the field ring (F921's 3:1), 4pt paper lip; chosen blue on the blue lip; radio and checkbox both say checked.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `a choice is the raised tile and still says checked`
+- verified-by: `onboarding's plan editor draws Choice and BoldChoice is gone`
+
+### F993 — OutlineButton folds into GhostButton
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:401
+- note: Q4. One quiet action, the underlined word.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `the one quiet action is the underlined word`
+
+### F994 — Literal radii outside onboarding and the tab bar move to the scale
+- severity: P1
+- status: [x]
+- where: scripts/unslop-scan.baseline.json:1
+- note: Q6. The baseline shrinks to onboarding and the three tab-bar files, and the scan holds it there.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `literal radii remain only in onboarding and the tab bar`
+- verified-by: `the app is clean against the unslop baseline`
+- verified-by: `a zero radius is not a literal radius`
+
+### F995 — Eyebrows fold on Today and every drill stage
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/drill/DrillFrame.tsx:126
+- note: Q5. The label becomes the heading or joins the meta line; the scan's eyebrow rule stops the count rising.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `Today and the drill stages draw no eyebrow`
+- verified-by: `the drill stages draw no eyebrow`
+- verified-by: `a drill's task joins its meta line`
+- verified-by: `a planted eyebrow is flagged`
+
+### F996 — Today's hero states after the folds
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/practice/NextTaskCard.tsx:222
+- note: Q3 and Q8. The held state is the card family's first fix: a LipTile never sits on a Card.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `a held hero sets its words on the paper and its LipTile is not on a card`
+- verified-by: `held at Starter the café line lives once, as the phrase row`
+- verified-by: `a start the tutor could not take leads with the offline line and one Check again`
+- verified-by: `the hero loads in one look`
+- verified-by: `the fix hero leads with the English line`
+- verified-by: `the scene's place joins its meta line`
+- verified-by: `a secondary pill on the hero takes a pastel`
+
+### F997 — Type roles are named and the stage and hero titles follow them
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/theme.ts:113
+- note: Q7 and Q8-4. Roles alias existing tokens; only the centre stage title moves, 26 to 28.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `every type role names a token at its stated size`
+- verified-by: `the centre stage title is the stage title role`
+- verified-by: `the hero title steps 28, 24, 20 to fit its column`
+
+### F998 — The folded practice rows and the two housekeeping rows
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/phrases/PhrasebookScreen.tsx:180
+- note: Founder yes, 2026-11-06 and 2026-11-10.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `nothing to review sits on butter in Review and the drill bank`
+- verified-by: `an empty phrasebook has one headline`
+- verified-by: `the greeting has no subline`
+- verified-by: `the live error view has a preview key`
+
+### F999 — Exports with no production caller go
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/motion/MorphButton.tsx:53
+- note: The count targets the founder accepted: Card/Tile/Hero 60 or fewer, Button/Pill 21.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `the dead card and button exports are gone`
 
 ### F1006 — Audit exceptions re-reviewed: uuid fixed, decode-uri-component and zod renewed to 2026-12-16
 - severity: P3
@@ -13365,7 +13583,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: supabase/migrations/202608220001_luvani_learning.sql:1
-- note: (b), founder Q2 (2026-11-17, "remove the unused table rights") after probes P1 to P3, `security-engineer`. Only RLS guarded `entitlements`, `learner_state`, `product_events` and `conversation_packs`, and RLS does not gate TRUNCATE; staging probe P1 showed `anon` and `authenticated` holding all seven privileges it checked on exactly these four, and probe C1 showed MAINTAIN too, so all eight. No reachable path today (PostgREST exposes no TRUNCATE). 2026-11-17: fixed in `supabase/migrations/20261117121000_client_table_grants.sql`: revoke all from both roles, then grant `authenticated` exactly its policy verbs; `anon` gets nothing, `service_role` untouched. The app's only direct table call is `learner_state` sync, which keeps all four verbs; the token server writes events and packs with the service role. The migration refuses to commit if either role still holds anything else on the four tables (MAINTAIN included), which catches a grant to PUBLIC, a column grant, or one recorded under another grantor that the revoke cannot remove. Rollback `supabase/rollback/20261117121000_down.sql`, interlock `luvani.rollback_client_grants`. NOT applied to staging: needs its own founder yes, as a single file while 42 stays held. New tables are tracked as F1241.
+- note: (b), founder Q2 (2026-11-17, "remove the unused table rights") after probes P1 to P3, `security-engineer`. Only RLS guarded `entitlements`, `learner_state`, `product_events` and `conversation_packs`, and RLS does not gate TRUNCATE; staging probe P1 showed `anon` and `authenticated` holding all seven privileges it checked on exactly these four, and probe C1 showed MAINTAIN too, so all eight. No reachable path today (PostgREST exposes no TRUNCATE). 2026-11-17: fixed in `supabase/migrations/20261117121000_client_table_grants.sql`: revoke all from both roles, then grant `authenticated` exactly its policy verbs; `anon` gets nothing, `service_role` untouched. The app's only direct table call is `learner_state` sync, which keeps all four verbs; the token server writes events and packs with the service role. The migration refuses to commit if either role still holds anything else on the four tables (MAINTAIN included), which catches a grant to PUBLIC, a column grant, or one recorded under another grantor that the revoke cannot remove. Rollback `supabase/rollback/20261117121000_down.sql`, interlock `luvani.rollback_client_grants`. 2026-11-18: applied to staging (`wtexbzuyfersdtiekrvp`) on the founder's yes, as a single file with 42 still held, see `supabase/README.md` row 48. New tables are tracked as F1241.
 - verified-by: `anon and authenticated hold only the verbs their policies use on the four client tables`
 - verified-by: `the client grants migration refuses to finish while a client role keeps a privilege outside its policy verbs`
 
@@ -13379,9 +13597,16 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: supabase/migrations/20261003234853_privacy_maintenance_workflows.sql:3
-- note: PRODUCT, founder Q3 (2026-11-17): 30 days. (b), `privacy-safety-engineer`. Extend `run_data_retention_v1`; tombstones are documented, not expired. 2026-11-17: fixed in migration 49 (`supabase/migrations/20261117122000_erasure_job_retention.sql`), which adds one bounded batch removing finished `account_erasure_jobs` rows 30 days after `completed_at`; its rollback sits behind `luvani.rollback_erasure_retention`. No reader treats a finished job as evidence: the deletion endpoint answers `completed` and `gone` the same way, and journal replay accepts both. `conversation_practice_tombstones` stay, with the reason in docs/PRIVACY_AND_SAFETY.md. NOT applied to staging; that needs a founder yes. The learner-facing notice names no period for erasure records; adding one is the founder's call.
+- note: PRODUCT, founder Q3 (2026-11-17): 30 days. (b), `privacy-safety-engineer`. Extend `run_data_retention_v1`; tombstones are documented, not expired. 2026-11-17: fixed in migration 49 (`supabase/migrations/20261117122000_erasure_job_retention.sql`), which adds one bounded batch removing finished `account_erasure_jobs` rows 30 days after `completed_at`; its rollback sits behind `luvani.rollback_erasure_retention`. No reader treats a finished job as evidence: the deletion endpoint answers `completed` and `gone` the same way, and journal replay accepts both. `conversation_practice_tombstones` stay, with the reason in docs/PRIVACY_AND_SAFETY.md. 2026-11-18: applied to staging (`wtexbzuyfersdtiekrvp`) on the founder's yes, see `supabase/README.md` row 49. The learner-facing notice names no period for erasure records; adding one is the founder's call.
 - verified-by: `a finished erasure job is removed once its keep period has passed`
 - verified-by: `retention removes at most one batch of finished erasure jobs per run`
+
+### F1083 — The staging record describes another project and a schema six migrations old
+- severity: P2
+- status: [ ]
+- where: supabase/staging-verification.json:5
+- note: Founder Q4 sets when; needs probe P0 and a hosted capture. `data-engineer`. Regenerate the record and the runbook's opening paragraph together. The test ties the two to each other, not to the migration folder. 2026-11-18: the runbook's opening paragraph now names `wtexbzuyfersdtiekrvp` with 48 migrations applied and 42 held, and says the JSON is the 2026-10-07 capture of `cfimkuustkhthujdpjlq`. The regeneration is blocked while migration 42 is held, because `scripts/verifyCurrentHostedSchema.mjs` requires the hosted migration history to equal every source migration (and the expected catalog includes 42's table). It unblocks once 42 is applied, or through a held-migration rule in the verifier, which is its own decision.
+- verified-by: `the staging record and the runbook name the same project and migration count`
 
 ### F1244 — The interlock and restored body on the migration 49 rollback are not pinned by a test
 - severity: P2

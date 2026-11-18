@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import type { ConversationPack } from '@luvani/core';
-import { IconAction, Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { frenchText, space, type } from '../theme.ts';
@@ -249,7 +249,7 @@ export function ConversationPackLibrary({
             {!hasPractice && practice.status !== 'failed' && <Text style={[type.small, { color: t.muted }]}>There are no practice phrases in this conversation yet.</Text>}
             {onContinue !== undefined && (
               <>
-                <OutlineButton label="Talk about this again" disabled={busy} onPress={() => onContinue(selected)} />
+                <GhostButton label="Talk about this again" disabled={busy} onPress={() => onContinue(selected)} />
                 {/* The library offers the revisit only to a plan that opens it, which is Max (F935). */}
                 <Text style={[type.small, { color: t.muted }]}>{revisitLine(includedInMax('continueArc', continueArc === true))}</Text>
               </>
@@ -267,7 +267,7 @@ export function ConversationPackLibrary({
           {confirming === selected.id ? (
             <>
               <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Delete this curated conversation and its details? Your earned phrases and reviews stay. They won’t show this conversation’s name.</Text>
-              <OutlineButton label={busy ? 'Deleting…' : 'Delete conversation'} disabled={busy} onPress={() => removeOne(selected)} />
+              <GhostButton label={busy ? 'Deleting…' : 'Delete conversation'} disabled={busy} onPress={() => removeOne(selected)} />
               <GhostButton label="Keep conversation" color={t.text} disabled={busy} onPress={() => setConfirming(null)} />
             </>
           ) : (
@@ -298,7 +298,7 @@ export function ConversationPackLibrary({
               <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{pack.summary}</Text>
               <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>{packStatus(pack)}{dateLine(pack.createdAt) ? `, ${dateLine(pack.createdAt)}` : ''}</Text>
               <View style={st.cardActions}>
-                <OutlineButton label="Open conversation" onPress={() => setSelected(pack)} />
+                <GhostButton label="Open conversation" onPress={() => setSelected(pack)} />
                 {pack.state === 'ready' && onContinue !== undefined && (
                   <IconAction layout="inline" icon="chat" label="Continue talking"  onPress={() => onContinue(pack)} />
                 )}
@@ -312,19 +312,19 @@ export function ConversationPackLibrary({
         <Card key={row.id} style={st.empty}>
           <Text style={[type.bodyStrong,{color:t.text}]}>This saved conversation is too large for this page.</Text>
           <Text style={[type.small,{color:t.muted,marginTop:space(1)}]}>{dateLine(row.createdAt)}. Its saved content has not been removed.</Text>
-          {onOpenUnavailable!==undefined && <OutlineButton label={busy?'Opening…':'Open conversation'} disabled={busy} onPress={()=>{setBusy(true);void onOpenUnavailable(row.id).then(result=>{if(result.ok)setSelected(result.pack);else setMessage(result.message);}).catch(()=>setMessage('This conversation could not be opened.')).finally(()=>setBusy(false));}} />}
+          {onOpenUnavailable!==undefined && <GhostButton label={busy?'Opening…':'Open conversation'} disabled={busy} onPress={()=>{setBusy(true);void onOpenUnavailable(row.id).then(result=>{if(result.ok)setSelected(result.pack);else setMessage(result.message);}).catch(()=>setMessage('This conversation could not be opened.')).finally(()=>setBusy(false));}} />}
           {onDeleteUnavailable!==undefined && (confirming===row.id ? <>
             <Text style={[type.small,{color:t.muted}]}>Delete this saved conversation? Your earned phrases and reviews stay.</Text>
-            <OutlineButton label={busy?'Deleting…':'Delete conversation'} disabled={busy} onPress={()=>{setBusy(true);void onDeleteUnavailable(row.id).then(result=>{if(!result.ok)setMessage(result.message);else setConfirming(null);}).catch(()=>setMessage('This conversation was not changed.')).finally(()=>setBusy(false));}} />
+            <GhostButton label={busy?'Deleting…':'Delete conversation'} disabled={busy} onPress={()=>{setBusy(true);void onDeleteUnavailable(row.id).then(result=>{if(!result.ok)setMessage(result.message);else setConfirming(null);}).catch(()=>setMessage('This conversation was not changed.')).finally(()=>setBusy(false));}} />
             <GhostButton label="Keep conversation" disabled={busy} onPress={()=>setConfirming(null)} />
           </> : <GhostButton label="Delete this unavailable conversation" disabled={busy} onPress={()=>setConfirming(row.id)} />)}
         </Card>
       ))}
 
       <View style={st.cardActions}>
-        {onOlder !== undefined && <OutlineButton label="Older conversations" disabled={paginationPending || busy} onPress={onOlder} />}
+        {onOlder !== undefined && <GhostButton label="Older conversations" disabled={paginationPending || busy} onPress={onOlder} />}
         {onNewest !== undefined && <IconAction layout="inline" icon="sort" label="Newest conversations" disabled={paginationPending || busy} onPress={onNewest} />}
-        {onRetryPage !== undefined && <OutlineButton label="Retry loading conversations" disabled={paginationPending || busy} onPress={onRetryPage} />}
+        {onRetryPage !== undefined && <GhostButton label="Retry loading conversations" disabled={paginationPending || busy} onPress={onRetryPage} />}
       </View>
 
       {(ordered.length > 0 || unavailableRows.length>0) && (
@@ -332,7 +332,7 @@ export function ConversationPackLibrary({
           {confirming === 'all' ? (
             <>
               <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Delete all curated Tutor conversations? Your earned phrases and reviews stay. They won’t show these conversations’ names.</Text>
-              <OutlineButton label={busy ? 'Deleting…' : 'Delete all conversations'} disabled={busy} onPress={removeAll} />
+              <GhostButton label={busy ? 'Deleting…' : 'Delete all conversations'} disabled={busy} onPress={removeAll} />
               <GhostButton label="Keep conversations" color={t.text} disabled={busy} onPress={() => setConfirming(null)} />
             </>
           ) : (

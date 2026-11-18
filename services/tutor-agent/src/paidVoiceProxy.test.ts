@@ -317,3 +317,36 @@ test('a /v2/listen client with a v1 query, or /v1/listen with a v2 query, is rej
   const f=fixture(),proxy=await createPaidVoiceProxy(f.options);
   try{await assert.rejects(connect(proxy,config,'/v2/listen'));await assert.rejects(connect(proxy,v2));assert.equal(f.connections.length,0);assert.equal(f.descriptors.length,0);}finally{await proxy.close();}
 });
+test('the proxy preconnect sends one keyless HEAD outside the gate and swallows its failure',async()=>{
+  const root=new AbortController();let gates=0;const outbound:{url:string;init:RequestInit|undefined}[]=[];
+  const proxy=await createPaidVoiceProxy({signal:root.signal,maximumSessionMillis:120000,credentials,gate:async()=>{gates++;return root.signal;},request:async(url,init)=>{outbound.push({url:String(url),init});throw new Error('offline');}});
+  try{
+    assert.equal(proxy.preconnect(),undefined,'nothing to await');
+    await until(()=>outbound.length===1);await new Promise(resolve=>setTimeout(resolve,10));
+    assert.equal(outbound[0]!.url,'https://api.elevenlabs.io/');assert.equal(outbound[0]!.init?.method,'HEAD');
+    assert.equal(outbound[0]!.init?.body,undefined);assert.equal(outbound[0]!.init?.headers,undefined,'no key, no header');
+    assert.equal(gates,0,'outside the paid gate: no effect is spent');
+  }finally{await proxy.close();}
+});
+test('the preconnect is a constant headerless HEAD with no redirect, a short timeout, at most once per proxy',async()=>{
+  const root=new AbortController();const outbound:{url:string;init:RequestInit|undefined}[]=[];
+  const proxy=await createPaidVoiceProxy({signal:root.signal,maximumSessionMillis:120000,credentials,gate:async()=>root.signal,request:async(url,init)=>{outbound.push({url:String(url),init});return new Response(null,{status:200});}});
+  try{
+    proxy.preconnect();proxy.preconnect();proxy.preconnect();
+    await until(()=>outbound.length>=1);await new Promise(resolve=>setTimeout(resolve,10));
+    assert.equal(outbound.length,1,'at most once per proxy');
+    const init=outbound[0]!.init!;
+    assert.deepEqual(Object.keys(init).sort(),['method','redirect','signal']);
+    assert.equal(init.redirect,'error');
+    const signal=init.signal!;assert.equal(signal.aborted,false);
+    root.abort();assert.equal(signal.aborted,true,'under the proxy signal');
+  }finally{await proxy.close();}
+  // The timeout: a HEAD that never answers is aborted within 3 s.
+  const second=new AbortController();let held:AbortSignal|undefined;
+  const slow=await createPaidVoiceProxy({signal:second.signal,maximumSessionMillis:120000,credentials,gate:async()=>second.signal,request:async(_url,init)=>{held=init?.signal??undefined;return new Promise<Response>(()=>{});}});
+  try{
+    const started=performance.now();slow.preconnect();await until(()=>held!==undefined);
+    await new Promise<void>(resolve=>held!.addEventListener('abort',()=>resolve(),{once:true}));
+    assert.ok(performance.now()-started<=3200,'timed out within 3 s');assert.equal(second.signal.aborted,false);
+  }finally{await slow.close();}
+});

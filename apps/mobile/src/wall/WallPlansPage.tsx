@@ -10,7 +10,7 @@ import { STAGGER } from '../motion/tokens.ts';
 import { INCLUSIONS } from '../purchases/capabilities.ts';
 import type { Plan, PlanSpec } from '@luvani/core';
 import type { BillingStatus } from '../purchases/billingStatus.ts';
-import { HIT, decorative, space, type } from '../theme.ts';
+import { HIT, decorative, space, type, corner, radius } from '../theme.ts';
 import { ACCOUNT_LABEL, COMPARE_INTRO, PLAN_YOURS, PLANS_COMPARE, compareNote } from './wallCopy.ts';
 import { WallPeriodSwitch } from './WallPeriodSwitch.tsx';
 import { BenefitRow, WallCta, WallLinks, WallSkeleton, wallType } from './WallParts.tsx';
@@ -272,10 +272,10 @@ const st = StyleSheet.create({
   nodeTitle: { ...type.bodyStrong },
   nodeLine: { ...type.small },
   cards: { gap: space(3) },
-  card: { borderRadius: 22, padding: space(4), gap: space(1) },
+  card: { ...corner.card, padding: space(4), gap: space(1) },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
-  radio: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  radioDot: { width: 8, height: 8, borderRadius: 4 },
+  radio: { width: 20, height: 20, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  radioDot: { width: 8, height: 8, borderRadius: radius.pill },
   left: { textAlign: 'left' },
   account: { gap: space(1) },
   sheetFooter: { paddingTop: space(3) },

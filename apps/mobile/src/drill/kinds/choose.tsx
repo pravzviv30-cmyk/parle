@@ -12,7 +12,7 @@ import { PopOnce } from '../../motion/PopOnce.tsx';
 import { Sparkle } from '../../art/Sparkle.tsx';
 import { ASIDE_OPACITY, tileLook, type TilePick } from '../tileLook.ts';
 import { DrillFrame, DrillPrompt, type DrillShell } from '../DrillFrame.tsx';
-import { drillStage } from '../drillStage.ts';
+import { drillStage, taskLine } from '../drillStage.ts';
 import { HearRow, kindTag } from './shared.tsx';
 
 export function BestSentenceView({
@@ -31,7 +31,7 @@ export function BestSentenceView({
 }) {
   const bt = useB();
   return (
-    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} eyebrow={kindTag(exercise)} prompt={exercise.prompt}>
+    <DrillFrame {...shell} stage={drillStage(exercise.kind, bt.mode)} prompt={exercise.prompt} english={taskLine(kindTag(exercise))}>
       <View style={{ gap: space(2.5) }}>
         {exercise.candidates.map((candidate, i) => (
           <ChoiceTile
@@ -67,13 +67,13 @@ export function AppropriateReplyView({
     <DrillFrame
       {...shell}
       stage={drillStage(exercise.kind, bt.mode)}
-      eyebrow={kindTag(exercise)}
       prompt={
         <View style={{ gap: space(1.5) }}>
           <Label color={bt.text}>{exercise.line.speaker}</Label>
           <DrillPrompt>{exercise.line.fr}</DrillPrompt>
         </View>
       }
+      english={taskLine(kindTag(exercise))}
       stageExtra={<HearRow text={exercise.line.fr} />}
     >
       <View style={{ gap: space(2.5) }}>

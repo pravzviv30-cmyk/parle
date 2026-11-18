@@ -24,9 +24,9 @@ function deferred() {
 
 function harness() {
   const probes: ReturnType<typeof deferred>[] = [];
-  const navigations: unknown[][] = [], checks: boolean[] = [], held: unknown[] = [], events: unknown[] = [];
+  const navigations: unknown[][] = [], checks: boolean[] = [], held: unknown[] = [], events: unknown[] = [], cleared: unknown[] = [];
   let scope = 1, focused = true, refIndex = 0, effectIndex = 0;
-  const hero = { id: 'cafe' };
+  let hero = { id: 'cafe' };
   const refs: { current: unknown }[] = [];
   const effects: { dependencies: unknown[]; cleanup?: () => void }[] = [];
   const setChecking = (value: boolean) => checks.push(value);
@@ -36,8 +36,8 @@ function harness() {
     if (held && held.dependencies.length === dependencies.length && dependencies.every((value, i) => Object.is(value, held.dependencies[i]))) return;
     held?.cleanup?.(); effects[index] = { dependencies, cleanup: effect() };
   };
-  const runSetup = new Function('scopeGeneration', 'focused', 'hero', 'useRef', 'useEffect', 'setChecking', setup);
-  const render = () => { refIndex = 0; effectIndex = 0; return runSetup(() => scope, focused, hero, useRef, useEffect, setChecking); };
+  const runSetup = new Function('scopeGeneration', 'focused', 'hero', 'useRef', 'useEffect', 'setChecking', 'setHeldBack', setup);
+  const render = () => { refIndex = 0; effectIndex = 0; return runSetup(() => scope, focused, hero, useRef, useEffect, setChecking, (value: unknown) => cleared.push(value)); };
   const { launchContext, launchPending } = render();
   const world = {
     checking: false, setChecking,
@@ -50,10 +50,11 @@ function harness() {
   };
   const open = new Function(...Object.keys(world), handler)(...Object.values(world)) as (typing: boolean) => void;
   const settle = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
-  return { open, probes, navigations, checks, held, events, settle, launchContext, launchPending,
+  return { open, probes, navigations, checks, held, events, cleared, settle, launchContext, launchPending,
     accountChanged() { scope++; render(); },
     blur() { focused = false; render(); },
     refocus() { focused = true; render(); },
+    heroChanged() { hero = { id: 'boulangerie' }; render(); },
     unmount() { effects.forEach(effect => effect.cleanup?.()); },
   };
 }
@@ -108,4 +109,13 @@ test('an old visit cannot unlock or overwrite a new visit’s connection check',
   h.open(false); assert.equal(h.probes.length, 2, 'the old result must not release the new synchronous lock');
   h.probes[1]!.resolve(true); await h.settle();
   assert.deepEqual(h.navigations, [['Convo', { textMode: true, missionId: 'mission:cafe' }]]);
+});
+
+test('a new hero clears the held-back start, so its Check again is not the old scene’s mode', async () => {
+  // Push-check, 2026-11-17: the reset on [focused, owner, hero] cleared the
+  // check but kept heldBack, so the offline lead stayed up over the new scene.
+  const h = harness(); h.open(true); h.probes[0]!.resolve(false); await h.settle();
+  assert.deepEqual(h.held, [{ textMode: true }]);
+  h.heroChanged();
+  assert.deepEqual(h.cleared.at(-1), null, 'the old scene’s held-back start outlives its hero');
 });
