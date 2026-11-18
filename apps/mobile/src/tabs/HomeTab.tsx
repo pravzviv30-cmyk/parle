@@ -80,7 +80,7 @@ import { QuestsCard } from '../game/QuestsCard.tsx';
 import { loadSoundChecks } from '../soundcheck/store.ts';
 import { madeFromConversations, type Replay } from '../practice/madeFrom.ts';
 import { scopeGeneration } from '../storage/scope.ts';
-import { COMING_UP_COPY, TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, reviewRow, rowMarks, startingPoint, todayStops, weekInFrench, type StartingPoint } from '../home/todayView.ts';
+import { COMING_UP_COPY, TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, phraseRow, reviewRow, rowMarks, startingPoint, todayStops, weekInFrench, type PhraseItem, type StartingPoint } from '../home/todayView.ts';
 import type { ConversationPack } from '@luvani/core';
 
 export function HomeTab() {
@@ -130,6 +130,8 @@ export function HomeTab() {
   // last told it: null until it first knows, and kept through a refresh so the
   // path's Review row never shows and then vanishes, or vanishes mid-load.
   const [heroReview, setHeroReview] = useState<boolean | null>(null);
+  // The café line a held lead at Starter hands to the phrase row (F996), as NextTaskCard last told it.
+  const [heroCafe, setHeroCafe] = useState<PhraseItem | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -147,7 +149,7 @@ export function HomeTab() {
         setStarter(null);
         setStart(null);
         setWeek(null);
-        setFixFrom(null); setHeroReview(null);
+        setFixFrom(null); setHeroReview(null); setHeroCafe(null);
       }
       setReadFailed(false);
       void Promise.all([loadActivity({ strict: true }), loadDeck(), loadMissionCompletions(), loadScenarioProgress(), loadConversationPacks(), loadSoundChecks({ strict: true }), loadSavedStarter(), loadDrillBank(), loadPackMarks()])
@@ -207,6 +209,9 @@ export function HomeTab() {
   const [skySize, setSkySize] = useState<{ band: number; bar: number } | null>(null);
   const [scrolledPast, setScrolledPast] = useState(false);
   const starterFor = starter !== null && profile.brain.stats.sessions === 0 ? starter : null;
+  // F996: a held hero carrying Review sets its words on the paper with no card,
+  // so the sky ends under the tiles; while the lead decides, the one sand block.
+  const plain = stops.hero === 'lead' && heroReview === true;
 
   const fixHero = fix !== null && (
     <FixHero fix={fix} onTry={() => tapThrough(locks.access, fix.feature, locks.open, () => nav.navigate(fix.route.screen, fix.route.params))} />
@@ -221,8 +226,8 @@ export function HomeTab() {
   ) : loading ? (
     <TodayLoadingHero />
   ) : (
-    <TodayHeroCard>
-      {stops.hero === 'fix' ? fixHero : <NextTaskCard vivid placement="hero" starter={starterFor} onHeroReview={setHeroReview} />}
+    <TodayHeroCard plain={plain} pending={stops.hero === 'lead' && heroReview === null}>
+      {stops.hero === 'fix' ? fixHero : <NextTaskCard vivid placement="hero" starter={starterFor} onHeroReview={setHeroReview} onHeroCafe={setHeroCafe} />}
     </TodayHeroCard>
   );
 
@@ -231,12 +236,13 @@ export function HomeTab() {
   const rows = failedHero || loading ? null : rowMarks(stops.rows).map(({ row, last }) => {
     if (row === 'scene') return <NextTaskCard key="scene" vivid placement="row" last={last} starter={starterFor} />;
     if (row === 'phrase') {
+      // Today's phrase, or held at Starter the café line (`phraseRow`, F996).
+      const phrase = phraseRow({ daily: daily.phrase, cafe: heroCafe });
       return (
         <RouteRow key="phrase" mark={last ? 'end' : 'stop'} last={last}
           thumb={<BArt name="voice-chat" width={ROW_ART} height={ROW_ART} />} thumbGround={t.lavender}
-          eyebrow={TODAY_COPY.phrase} title={daily.phrase.fr ?? daily.phrase.en} titleLang={daily.phrase.fr ? 'fr' : undefined} line={daily.phrase.fr ? daily.phrase.en : null}
-          action={{ label: TODAY_COPY.sayRow }}
-          onPress={() => nav.navigate(TODAY_ROUTES.phrase, { id: daily.phrase.id })} />
+          title={phrase.title} titleLang={phrase.titleLang} line={phrase.line}
+          onPress={() => nav.navigate(phrase.route.screen, phrase.route.params)} />
       );
     }
     if (row === 'review' && review !== null) {
@@ -244,7 +250,6 @@ export function HomeTab() {
         <RouteRow key="review" mark={last ? 'end' : 'stop'} last={last}
           thumb={<BArt name="phrasebook" width={ROW_ART} height={ROW_ART} />} thumbGround={t.sage}
           title={review.title} line={review.line}
-          action={{ label: TODAY_COPY.practise }}
           onPress={() => nav.navigate('Review')} />
       );
     }
@@ -264,8 +269,9 @@ export function HomeTab() {
       <TodayStats sky={sky}>
         {({ tiles, nudge }) => (
           <TodayLayout
-            sky={<SkyBand sky={sky} greeting={greeting} profile={<ProfileButton ground={sky.chip} />} stats={tiles} nudge={nudge} overlap={TODAY_OVERLAP} focused={focused} scrolledPast={scrolledPast} onMeasure={setSkySize} />}
+            sky={<SkyBand sky={sky} greeting={greeting} profile={<ProfileButton ground={sky.chip} />} stats={tiles} nudge={nudge} overlap={plain ? 0 : TODAY_OVERLAP} focused={focused} scrolledPast={scrolledPast} onMeasure={setSkySize} />}
             hero={heroCard}
+            overlap={plain ? 0 : TODAY_OVERLAP}
             pathTitle={TODAY_COPY.path}
             rows={rows}
             three={failedHero || loading ? null : three}

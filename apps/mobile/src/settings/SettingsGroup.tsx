@@ -14,7 +14,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { HAIRLINE, HIT, bType, radius, space, type } from '../theme.ts';
+import { HAIRLINE, HIT, bType, space, type, corner } from '../theme.ts';
 import { useBRows, useSettingsColors } from './SettingsAppearance.tsx';
 
 /**
@@ -87,14 +87,14 @@ const ROW_B = { paddingVertical: 12, minHeight: 52 } as const;
 const st = StyleSheet.create({
   spaced: { marginTop: space(7) },
   header: { paddingHorizontal: space(4), marginBottom: space(1.5) },
-  list: { borderRadius: radius.tile, overflow: 'hidden' },
+  list: { ...corner.tile, overflow: 'hidden' },
   footer: { paddingHorizontal: space(4), marginTop: space(1.5) },
   divider: { position: 'absolute', top: 0, right: 0, height: HAIRLINE },
   dividerInset: { left: space(4), opacity: 0.7 },
   dividerCard: { left: 0 },
   spacedB: { marginTop: 22 },
   headerB: { paddingHorizontal: 4, marginBottom: 8 },
-  listB: { borderRadius: 22, paddingVertical: 4, paddingHorizontal: 16 },
+  listB: { ...corner.card, paddingVertical: 4, paddingHorizontal: 16 },
   footerB: { paddingHorizontal: 4, marginTop: 8 },
   // The B list rules a full hairline between rows, inside the list's padding.
   dividerB: { left: 0, height: 1 },

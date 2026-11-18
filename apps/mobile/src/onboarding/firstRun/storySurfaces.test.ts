@@ -40,13 +40,37 @@ describe('the personal onboarding journey', () => {
   test('all four level choices are readable full rows and selection does not advance', () => {
     assert.equal(START_LEVELS.length, 4);
     assert.ok(START_LEVELS.every(level => level.title.trim().length > 0));
-    const levels = screen.slice(screen.indexOf("{page === 'start-level' && START_LEVELS.map"), screen.indexOf("{(page === 'confidence' || page === 'focus')"));
+    const from = screen.indexOf("{page === 'start-level' && START_LEVELS.map");
+    const to = screen.indexOf("{page === 'confidence' && CONFIDENCE_OPTIONS.map", from);
+    // Push-check, 2026-11-17: a missing end marker ran the slice to the end of the file.
+    assert.ok(from > 0 && to > from, 'this check must end at the next picker, not the end of the file');
+    const levels = screen.slice(from, to);
     assert.ok(levels.length > 0, 'this check must read the actual level choice group');
-    assert.match(levels, /<BoldChoice/);
+    assert.match(levels, /<BOption/);
     assert.match(levels, /detail=\{v\.gloss\}/);
     assert.match(levels, /title=\{v\.title\}/);
     assert.match(levels, /choose\(startLevelChange\(draftRef\.current, v\.key\)\)/); // F917, 2026-10-29: a level change clears Skip ahead.
     assert.doesNotMatch(levels, /numberOfLines|ellipsizeMode|go\(/);
+  });
+
+  test("the plan editor's choices sit on the paper face, clear of the chosen ring", () => {
+    // Push-check, 2026-11-17 (K): on the white Sheet an unchosen choice takes
+    // the paper face, as the tutor-voice choice does, so it never matches its
+    // ground (DESIGN.md, Choice). (E): the sheet's scroller clips at its top,
+    // so the list sits as far down as the ring Press draws reaches out.
+    const from = screen.indexOf("{planField === 'reason' && BOLD_GOALS.map");
+    const to = screen.indexOf('{surface !== \'start\' && issue', from);
+    assert.ok(from > 0 && to > from, 'this check must read the plan editor lists');
+    const lists = screen.slice(from, to);
+    const choices = lists.split('<Choice ').slice(1).map((rest) => `<Choice ${rest}`);
+    assert.equal(choices.length, 6, 'the plan editor has six question lists');
+    for (const choice of choices) assert.match(choice, /^<Choice key=\{[^}]+\} ground=\{paper\.ground\} /, `a plan choice is white on the white sheet: ${choice.slice(0, 60)}`);
+    const components = evidence('apps/mobile/src/components.tsx');
+    const ring = components.slice(components.indexOf('function SelectRing('));
+    const reach = ring.match(/position: 'absolute', top: -(space\(\d+\))/)?.[1];
+    assert.ok(reach, 'read the ring reach from SelectRing');
+    const wrap = screen.slice(screen.lastIndexOf('<View', from), from);
+    assert.ok(wrap.includes(`paddingTop: ${reach}`), `the plan list does not clear the ring's ${reach} reach: ${wrap}`);
   });
 
   test('tutor selection is deliberate and hearing does not silently choose or record', () => {

@@ -47,7 +47,7 @@ import {
   TextInput,
 } from 'react-native';
 import { reviewXp, type DrillExercise, type ReviewCard, type ReviewGrade } from '@luvani/core';
-import { HIT, bType, decorative, font, frenchText, space } from './theme.ts';
+import { HIT, bType, corner, decorative, font, frenchText, space } from './theme.ts';
 import Svg, { Path } from 'react-native-svg';
 import { GhostButton, LipTile, PillButton } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
@@ -308,6 +308,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
             title="Nothing waiting."
             body="Your next session adds more."
             action={{ label: 'Done', onPress: onDone }}
+            ground="butter"
           />
           {heldRow}
         </View>
@@ -486,8 +487,8 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
           title="Review"
         />
       }
-      eyebrow={view.tag}
       prompt={prompt}
+      english={view.tag}
       stageExtra={view.answer === null ? speaker : null}
       primary={foot}
       avoidKeyboard
@@ -573,14 +574,14 @@ function makeStyles(t: B) {
     grow: { flex: 1, minWidth: 0 },
     promptStack: { gap: 6 },
     // The answer card on the cream (drill B v2 Review back): white, radius 22.
-    card: { backgroundColor: t.card, borderRadius: 22, padding: 16, gap: 12 },
+    card: { backgroundColor: t.card, ...corner.card, padding: 16, gap: 12 },
     answerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     answerWords: { flex: 1, minWidth: 0, gap: space(0.5) },
     // The Hear it disc: 48, above the touch floor; white on the stage, the stage tint in the card.
     hear: { width: SPEAKER, height: SPEAKER, borderRadius: SPEAKER / 2, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
     alsoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: space(0.5) },
     // "You typed" / "You said it": the white note under the answer, radius 20, padding 12/16.
-    yours: { backgroundColor: t.card, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16, gap: space(0.5) },
+    yours: { backgroundColor: t.card, ...corner.card, paddingVertical: 12, paddingHorizontal: 16, gap: space(0.5) },
     foot: { gap: 10 },
     grades: { flexDirection: 'row', gap: 8, marginTop: space(0.5) },
     // A grade (V2-Review back): a white lip tile, 84 tall, its coin over its word.
@@ -597,7 +598,7 @@ function makeStyles(t: B) {
     input: {
       minHeight: HIT + 14,
       backgroundColor: t.card,
-      borderRadius: 18,
+      ...corner.tile,
       paddingHorizontal: space(4),
       paddingVertical: space(3),
       color: t.text,

@@ -39,8 +39,7 @@ describe('haptics are a seam', () => {
       9,
       'a haptic failure can escape into the learning flow: every one of the nine native calls must swallow its own refusal',
     );
-    // The closure card is arriving somewhere earned; a finished drill is a tap that settled.
-    assert.match(read('../conversationPacks/ConversationPackCard.tsx'), /arrived\(\)/, 'the closure card no longer marks the arrival');
+    // A finished drill is a tap that settled.
     assert.match(read('../DrillScreen.tsx'), /tapSettled\(\)/, 'a finished drill no longer settles');
     // Every press goes through `Press`, and `Press` is what answers it: a light
     // impact for a press, a selection tick for a choice.

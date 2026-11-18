@@ -34,6 +34,7 @@
  * signing off, but only for the versions it names, because a new version may have fixed
  * it. On 2026-10-06 Expo 57.0.27 moved the lock to 57.1.1, the postinstall stepped
  * aside, the gate stayed green, and only an Xcode build found out.
+ * On 2026-11-18 Expo 57.0.33 moved it to 57.1.3, which still signs it, so it is listed too.
  *
  * The sixth is the top of every tab. On iOS 26 and later a white scroll edge fade sits
  * over the first scroll view under a native screen. The Tabs screen turns it off, but

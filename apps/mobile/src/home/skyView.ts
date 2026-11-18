@@ -14,7 +14,6 @@
 
 import { sky } from '../palette.ts';
 import { greetingWord, localHour, withinWindow, type HourWindow } from './greeting.ts';
-import { ROWS_FONT_SCALE } from '../game/todayHeroView.ts';
 
 export type SkyTime = 'morning' | 'afternoon' | 'evening' | 'night';
 
@@ -76,6 +75,34 @@ const CLOUD_CLEAR = 8;
 /** Below this the profile button: a cloud lower than it may run to the disc. */
 const BELOW_PROFILE = PROFILE_DISC + 4;
 
+/**
+ * The greeting's column (F957): the band less its two sides, the profile disc
+ * and the 12pt gap between them, so width minus 96.
+ */
+export function greetingColumn(width: number): number {
+  return width - 2 * BAND_SIDE - PROFILE_DISC - 12;
+}
+
+/**
+ * The wider hour word with its comma, "Bonjour," (3.975) over "Bonsoir,"
+ * (3.883), in Outfit ExtraBold: summed advance widths over units per em,
+ * rounded up. The suite reads them from the font file.
+ */
+export const GREETING_WORD_EM = 3.98;
+
+/** The greeting's 34pt type (`bType.greeting`). */
+const GREETING_SIZE = 34;
+
+/**
+ * How far the greeting may grow (F957): as far as the hour word and its comma
+ * still fit the column, so "Bonsoir," never breaks inside the word, and never
+ * below its own size. The one text on Today that is capped; the name may still
+ * wrap under the word.
+ */
+export function greetingMaxScale(width: number): number {
+  return Math.max(1, Math.floor((greetingColumn(width) / (GREETING_WORD_EM * GREETING_SIZE)) * 100) / 100);
+}
+
 export interface CloudPlace { left: number; top: number; width: number; opacity: number }
 
 /**
@@ -121,11 +148,6 @@ export function skyScrolledPast(scrollY: number, sky: { band: number; bar: numbe
 export function skyBarStyle(input: { focused: boolean; scrolledPast: boolean; themeBar: 'dark' | 'light' }): 'dark' | 'light' | null {
   if (!input.focused) return null;
   return input.scrolledPast ? input.themeBar : 'light';
-}
-
-/** Whether a path row puts its trailing action under its words: at accessibility text sizes, the tiles' own cut-off (1.6). */
-export function routeRowStacked(fontScale: number): boolean {
-  return Number.isFinite(fontScale) && fontScale >= ROWS_FONT_SCALE;
 }
 
 /**

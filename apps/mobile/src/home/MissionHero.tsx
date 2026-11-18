@@ -50,10 +50,11 @@ import { tutorNameOf } from '../tutor/tutorName.ts';
 import { sceneMeta } from './estimate.ts';
 import { heroBookmark, type HomeMission } from './homeMission.ts';
 import { useSceneStart } from './useSceneStart.ts';
-import { buildsOnLine, sceneEyebrow, sceneTime } from './todayView.ts';
+import { buildsOnLine, sceneHeroLine, sceneTime } from './todayView.ts';
+import { LocalPracticeCard } from '../practice/LocalPracticeCard.tsx';
 import { SceneArt } from './SceneArt.tsx';
 
-export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: HomeMission; vivid?: boolean; /** Today only: the phrase from the last conversation this scene builds on. */ buildsOn?: string | null }) {
+export function MissionHero({ hero, vivid = false, buildsOn = null, levelIndex = 0 }: { hero: HomeMission; vivid?: boolean; /** Today only: the phrase from the last conversation this scene builds on. */ buildsOn?: string | null; /** Today only: the content standing, so a held start offers the café line only at Starter. */ levelIndex?: number }) {
   const { profile } = useProfile();
   const tutorName = tutorNameOf(profile);
   // The gated start (F154) lives in `useSceneStart`, shared with Today's scene row.
@@ -96,27 +97,22 @@ export function MissionHero({ hero, vivid = false, buildsOn = null }: { hero: Ho
       .catch(() => setBookmarkWrite('refused'));
   };
 
-  // 2026-10-20, B5, B-Today: Today's lead is the yellow card. The eyebrow is
-  // the scene's place in its stage, the line under the title its French name,
-  // minutes and tutor, and the "Uses" chip shows only when the newest
-  // conversation's key phrase is one of this scene's lines. The Start is the
-  // same gated start as the blue brief's.
-  // 2026-10-20 UI-008, artboard B-Today: drawn by today/TodayParts `SceneLead`
-  // from the theme, so it turns plum with the gold Start in dark.
+  // 2026-10-20, B5, B-Today: Today's lead, drawn by today/TodayParts
+  // `SceneLead` from the theme (UI-008). F996: the title is the header, the
+  // one meta line under it the time and the scene's place (`sceneHeroLine`),
+  // and the "Uses" chip shows only when the newest conversation's key phrase
+  // is one of this scene's lines.
   if (vivid) {
-    // Founder, 2026-10-29: under the title only how long the scene takes; the
-    // French name and the tutor left the card, and the path stop drops its time.
+    // A start the tutor could not take leads with the offline line and the
+    // same start again as Check again (F996); Start and Type instead go.
+    if (heldBack !== null) return <LocalPracticeCard vivid bare levelIndex={levelIndex} held={{ checking, onRetry: () => open(heldBack.textMode) }} />;
     const time = sceneTime(hero);
     return (
-      <SceneLead
-        eyebrow={sceneEyebrow(hero)}
-        title={hero.title}
-        french={null} rest={time}
+      <SceneLead title={hero.title} french={null} rest={sceneHeroLine(hero)}
         uses={buildsOn != null ? buildsOnLine(buildsOn) : null}
         start={{ label, mode: modes.mode, accessibilityLabel: `${label}: ${hero.title}, ${time}`, disabled: checking, onPress: () => open(modes.textMode) }}
         other={{ label: modes.other.label, disabled: checking, onPress: () => open(modes.other.textMode) }}
         checking={checking ? TUTOR_OFFLINE.checking : null}
-        heldBack={heldBack === null ? null : { body: TUTOR_OFFLINE.body, retry: TUTOR_OFFLINE.retry, disabled: checking, onRetry: () => open(heldBack.textMode) }}
       />
     );
   }

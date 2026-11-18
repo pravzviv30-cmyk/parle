@@ -362,7 +362,7 @@ describe('the drill asks for the learner’s own French — F581', () => {
     const view = OWN_WORDS_VIEW;
     assert.ok(view.length > 0, 'the own-words view moved; this test is reading the wrong thing');
     assert.match(view, /placeholder=\{OWN_WORDS_PROMPT\}/, 'the own-words field does not ask for the learner’s own French');
-    assert.match(view, /\{OWN_WORDS_HINT\}/, 'the card never tells the learner to say it out loud first');
+    assert.match(view, /english=\{taskLine\(kindTag\(exercise\), OWN_WORDS_HINT\)\}/, 'the card never tells the learner to say it out loud first');
     assert.equal(OWN_WORDS_HINT, 'Say it your way, or type your French. Check the words before sending.');
     assert.equal(OWN_WORDS_PROMPT, 'Say it your way, in French');
 

@@ -76,7 +76,7 @@ describe("Today's preview keys — UI-015", () => {
   test('the preview draws the parts HomeTab draws, through the same layout', () => {
     const preview = strip(read('./TodayPreview.tsx'));
     const home = strip(read('../tabs/HomeTab.tsx'));
-    for (const part of ['<TodayLayout', '<SkyBand', '<FixHero', '<TodayFailedHero', '<TodayLoadingHero', '<TodayHeroCard>', '<RouteRow', '<SectionTitle', '<ComingUpCard', '<WeekCard']) {
+    for (const part of ['<TodayLayout', '<SkyBand', '<FixHero', '<TodayFailedHero', '<TodayLoadingHero', '<TodayHeroCard plain=', '<RouteRow', '<SectionTitle', '<ComingUpCard', '<WeekCard']) {
       assert.ok(home.includes(part), `HomeTab no longer draws ${part}`);
       assert.ok(preview.includes(part), `the preview does not draw ${part}`);
     }
@@ -129,21 +129,17 @@ describe("Today's preview keys — UI-015", () => {
   });
 
   test('the held lead at Starter draws one primary', () => {
-    // Founder, 2026-11-01: See plans stays primary; the café line under it is secondary.
+    // Founder, 2026-11-01: See plans stays primary. F996: the café line left the hero for the phrase row.
     assert.equal(heldWords(TODAY_PREVIEW_LAPSED_BILLING, todayPreviewNow(9)).plans, true, 'the lapsed fixture does not offer plans');
     const preview = strip(read('./TodayPreview.tsx'));
     const line = preview.split('\n').find((l) => l.includes("case 'held-starter':"));
     assert.ok(line !== undefined, 'today-held-starter is not drawn');
-    assert.match(line, /const words = heldWords\(TODAY_PREVIEW_LAPSED_BILLING, todayPreviewNow\(hour\)\); return <HeldLeadBody bare words=\{words\}/);
-    assert.match(line, /<CafeLineBody [^>]*variant=\{words\.plans \? 'secondary' : 'primary'\}/);
-    const task = strip(read('../practice/NextTaskCard.tsx'));
-    assert.match(task, /<LocalPracticeCard bare=\{bare\} levelIndex=\{value\.levelIndex\} variant=\{words\.plans \? 'secondary' : 'primary'\} \/>/, 'the held lead hands the café line a primary beside See plans');
+    assert.match(line, /return <HeldLeadBody bare words=\{heldWords\(TODAY_PREVIEW_LAPSED_BILLING, todayPreviewNow\(hour\)\)\} onPlans=\{said\} \/>;/);
+    assert.doesNotMatch(line, /CafeLineBody|LocalPracticeCard/, 'the held preview draws the café line in the hero');
+    assert.match(preview, /const phrase = phraseRow\(\{ daily: TODAY_PREVIEW_PHRASE, cafe: lead === 'held-starter' \? TODAY_PREVIEW_CAFE : null \}\);/);
     const card = strip(read('../practice/LocalPracticeCard.tsx'));
-    assert.match(card, /<CafeLineBody phrase=\{phrase\} bare=\{bare\} variant=\{variant\}/);
-    // Secondary, the door is the plans lead's inline headphones action (impeccable, 2026-11-02).
-    assert.match(card, /\{variant === 'secondary'\s*\? <IconAction layout="inline" ground=\{bare \? undefined : 'sun'\} icon="headphones" label="Try this line" onPress=\{onTry\} \/>\s*: <PillButton label="Try this line" [^>]*onPress=\{onTry\} \/>\}/);
-    assert.doesNotMatch(card, /<PillButton label="Try this line" [^>]*variant=/, 'the café line draws a secondary pill again');
-    assert.match(card, /variant = 'primary'/, 'the café line is no longer primary elsewhere');
+    assert.match(card, /<CafeLineBody phrase=\{phrase\} bare=\{bare\} onTry=/);
+    assert.doesNotMatch(card, /variant/, 'the café line still has a secondary look');
   });
 
   test('the screen list routes the keys to the Today preview and hides the chrome for it', () => {
@@ -152,5 +148,15 @@ describe("Today's preview keys — UI-015", () => {
     assert.match(list, /\.\.\.TODAY_PREVIEW_LABELS,/);
     assert.match(list, /today !== null \? <TodayPreview state=\{today\} mode=\{yourFrenchMode\} onBack=\{controlsVisible \? \(\) => go\('select'\) : undefined\} \/>/);
     assert.match(list, /going === null && today === null && <View/, 'the preview badge draws over Today');
+  });
+
+  test('the live error view has a preview key', () => {
+    // F998: the one screen every live failure lands on, drawn with synthetic props for the shots.
+    const list = strip(read('./OnboardingPreview.tsx')).replace(/\s+/g, ' ');
+    assert.match(list, /const PREVIEWS = \[[^\]]*'live-error'/, 'live-error is not a preview key');
+    assert.match(list, /'live-error': 'Live error, microphone refused'/);
+    assert.match(list, /screen === 'live-error' \? <ModeScope mode=\{yourFrenchMode\}><LiveErrorView failure="mic-denied" message=\{LIVE_ERROR_PREVIEW_MESSAGE\} onBack=\{\(\) => go\('select'\)\} onType=\{\(\) => go\('select'\)\} \/><\/ModeScope>/);
+    assert.match(list, /screen !== 'live-error' &&/, 'the preview badge draws over the error screen');
+    assert.match(list, /import \{ LiveErrorView \} from '\.\.\/live\/LiveErrorView\.tsx';/, 'the preview draws a copy instead of the real screen');
   });
 });

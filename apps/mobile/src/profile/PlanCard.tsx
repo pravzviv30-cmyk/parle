@@ -18,7 +18,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useSettingsColors } from '../settings/SettingsAppearance.tsx';
-import { radius, space, type } from '../theme.ts';
+import { space, type, corner } from '../theme.ts';
 import { TUTOR_TIME_TITLE } from '../settings/profileView.ts';
 import { planSentence } from '../purchases/planStatus.ts';
 
@@ -34,5 +34,5 @@ export function PlanCard({ band, period }: { band: string; period: string }) {
 }
 
 const st = StyleSheet.create({
-  card: { borderRadius: radius.tile, padding: space(4), gap: space(1), marginTop: space(6) },
+  card: { ...corner.tile, padding: space(4), gap: space(1), marginTop: space(6) },
 });

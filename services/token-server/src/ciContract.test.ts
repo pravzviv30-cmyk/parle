@@ -464,6 +464,17 @@ describe('the ci contract', () => {
     }
   });
 
+  test('the Expo CLI no longer depends on zod', () => {
+    // @expo/cli 57.0.33 dropped zod; an older CLI pins zod 3 and blocks every zod fix (F1256).
+    const clis = Object.keys(lock.packages).filter((key) => key.endsWith('node_modules/@expo/cli'));
+    assert.ok(clis.length > 0, 'the Expo CLI is in the lockfile');
+    for (const key of clis) {
+      const entry = lock.packages[key];
+      const edges = { ...(entry?.dependencies ?? {}), ...(entry?.optionalDependencies ?? {}) };
+      assert.equal(edges.zod, undefined, `${key} ${entry?.version} still declares zod ${edges.zod}`);
+    }
+  });
+
   test('unpatched build-tool exceptions cannot enter service runtimes or the mobile update client', () => {
     const tooling = ['braces', 'micromatch', 'picomatch', 'tinyglobby', 'fdir', 'node-forge', '@expo/code-signing-certificates'];
     for (const workspace of ['packages/core', 'packages/brain', 'services/tutor-agent', 'services/token-server', 'services/brain-playground']) {

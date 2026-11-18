@@ -87,7 +87,6 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
       <DrillFrame
         stage={stage}
         header={header}
-        eyebrow="Nothing to practise"
         prompt="This sound has no drill written for it yet."
         primary={<PillButton label="Back" onPress={onDone} lip />}
       />
@@ -98,12 +97,12 @@ export function FocusDrillPlayer({ drill, onDone }: { drill: Drill; onDone: () =
     <DrillFrame
       stage={stage}
       header={header}
-      eyebrow={drill.title}
       prompt={<View style={st.word}>
         <DrillPrompt center><Text {...frenchText} style={[type.frenchLg, { color: t.text }]}>{step.word}</Text></DrillPrompt>
         <Text style={[type.notation, { color: t.muted }]}>/{step.ipa}/</Text>
         <Text style={[type.body, { color: t.muted }]}>{step.gloss}</Text>
       </View>}
+      english={drill.title}
       stageExtra={step.contrast ? (
         <View style={st.contrast}>
           <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Not to be confused with</Text>

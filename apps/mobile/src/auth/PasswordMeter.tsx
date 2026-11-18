@@ -5,7 +5,7 @@ import { useReduceMotion } from '../motion.ts';
 import { cancel, timing } from '../motion/drive.ts';
 import { useLandOnLeave } from '../motion/landing.ts';
 import { DUR, EASE } from '../motion/tokens.ts';
-import { decorative, paper, passwordMeter, space, type } from '../theme.ts';
+import { decorative, paper, passwordMeter, radius, space, type } from '../theme.ts';
 import { passwordStrength } from './passwordStrength.ts';
 import { PASSWORD_MIN } from './validate.ts';
 
@@ -68,8 +68,8 @@ export function PasswordMeter({ value }: { value: string }) {
 
 const st = StyleSheet.create({
   row: { gap: space(1.5) },
-  track: { width: '100%', height: 6, borderRadius: 3, backgroundColor: paper.line, overflow: 'hidden' },
-  fill: { borderRadius: 3, transformOrigin: 'left' },
+  track: { width: '100%', height: 6, borderRadius: radius.pill, backgroundColor: paper.line, overflow: 'hidden' },
+  fill: { borderRadius: radius.pill, transformOrigin: 'left' },
   meta: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: space(1) },
   strength: { position: 'relative' },
   reserve: { opacity: 0 },

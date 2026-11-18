@@ -18,7 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { Press } from '../components.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
-import { HIT, paper, radius, space, type } from '../theme.ts';
+import { HIT, paper, space, type, corner } from '../theme.ts';
 import { useMinutesPractised, useStreak } from './GameProvider.tsx';
 import { countTiles } from './progressView.ts';
 
@@ -53,5 +53,5 @@ const st = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
   // Two to a row, each allowed to take a whole row at a large reading size.
   frame: { flexBasis: '40%', flexGrow: 1, minWidth: 0 },
-  tile: { minHeight: HIT * 2, padding: space(4), gap: space(1), borderRadius: radius.tile, backgroundColor: paper.card },
+  tile: { minHeight: HIT * 2, padding: space(4), gap: space(1), ...corner.tile, backgroundColor: paper.card },
 });

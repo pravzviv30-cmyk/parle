@@ -31,7 +31,7 @@ import { TODAY_COPY, questTrailing, threeDone } from '../home/todayView.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { CheckDisc, QuestRing, SmallPill } from '../today/TodayParts.tsx';
-import { HAIRLINE, bType, decorative, space, type } from '../theme.ts';
+import { HAIRLINE, bType, decorative, space, type, corner } from '../theme.ts';
 import { useGame, useGoal, useQuests } from './GameProvider.tsx';
 import { questsCardView, type QuestRowView, type QuestsCardView } from './questsCardView.ts';
 
@@ -110,7 +110,7 @@ const makeStyles = (t: B) =>
     block: { gap: 10 },
     head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: space(3) },
     title: { flexShrink: 1, minWidth: 0 },
-    card: { backgroundColor: t.card, borderRadius: 22, paddingVertical: space(1), paddingHorizontal: space(4) },
+    card: { backgroundColor: t.card, ...corner.card, paddingVertical: space(1), paddingHorizontal: space(4) },
     row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: 52, paddingVertical: space(1) },
     ruled: { borderBottomWidth: HAIRLINE, borderBottomColor: t.line },
     words: { flex: 1, minWidth: 0 },

@@ -94,10 +94,8 @@ const KEPT = [
   'Your practice today',
   'Since you started',
   'Your notebook',
-  'Your wins',
-  'Small fixes',
-  'New phrases',
-  'Next step',
+  // 'Your wins', 'Small fixes', 'New phrases' and 'Next step' left with
+  // ConversationPackCard, which nothing drew (F999, the systemic pass).
   // 'One sound to practise next' moved into tutor/soundExample.ts (2026-10-22),
   // shared by the lesson end card and the conversation recap; see below.
   // The leaderboard-only 'You' badge retired with that unreachable screen.

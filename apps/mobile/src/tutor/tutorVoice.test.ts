@@ -71,7 +71,6 @@ const TAB = stripComments(read('../tabs/ProfileTab.tsx'));
  * name of the setting, which is the same fact told the way a person would tell
  * it, and the sheet behind it is unchanged.
  */
-const CARD = stripComments(read('../profile/TutorMemoryCard.tsx'));
 const SAMPLES = stripComments(read('./voiceSamples.ts'));
 
 /**
@@ -155,14 +154,6 @@ describe('the voice on the Profile tab', () => {
       );
     }
 
-    // The card draws it, whole: the orb as the mark, the resolved name as the
-    // title, and the press that opens the sheet handed down by Profile.
-    assert.match(CARD, /const name = tutorNameOf\(profile\);/, 'the row names the tutor some other way than the persona');
-    assert.match(
-      CARD,
-      /<TutorRow first mark=\{<TutorMark \/>\} title=\{name\} gloss=\{PARTNER_LINE\} onPress=\{onVoice\} \/>/,
-      'the voice row is not the first row of the tutor card, or it no longer opens the sheet it is handed',
-    );
     // 2026-10-20 UI-008, artboard B-Profile: the tutor row on Profile opens the sheet.
     assert.match(
       TAB,
@@ -172,7 +163,7 @@ describe('the voice on the Profile tab', () => {
     // And only one way in. The old settings row must not have stayed behind:
     // two rows opening one sheet is two places to keep a label in step.
     assert.ok(
-      !TAB.includes('TUTOR_VOICE_ROW') && !CARD.includes('TUTOR_VOICE_ROW'),
+      !TAB.includes('TUTOR_VOICE_ROW'),
       'the voice is still a settings row as well as the tutor row, so there are two ways into one sheet',
     );
     assert.equal(

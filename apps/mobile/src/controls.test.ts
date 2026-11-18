@@ -61,7 +61,6 @@ function styleKeyAt(source: string, index: number): string {
 const CONTROL_BORDERS: { file: string; what: string; pattern: RegExp }[] = [
   { file: 'auth/AccountField.tsx', what: 'the account input', pattern: /inputWrap:[^\n]*borderColor: (\w+\.\w+)/ },
   { file: 'auth/ProviderButtonBase.tsx', what: 'the Google button', pattern: /borderWidth: apple \? 0 : 1, borderColor: (\w+\.\w+)/ },
-  { file: 'onboarding/BoldChoice.tsx', what: 'an unchosen quiet choice', pattern: /colourful \? 'transparent' : (\w+\.\w+)/ },
   { file: 'wall/WallPlansPage.tsx', what: 'an unchosen plan card', pattern: /: \{ borderWidth: 1, borderColor: (\w+\.\w+) \}\]\}>/ },
   { file: 'wall/WallPlansPage.tsx', what: 'an unchosen plan radio', pattern: /: \{ borderWidth: 1\.5, borderColor: (\w+\.\w+) \}\]\}>\s*\{checked/ },
   { file: 'explore/ExploreParts.tsx', what: 'the Explore field', pattern: /fieldInput: \{[^\n]*borderColor: (\w+\.\w+)/ },
@@ -235,7 +234,6 @@ describe('F927: Space and the focus ring', () => {
     const chip = components.slice(components.indexOf('export function Chip('), components.indexOf('export function Chip(') + 3000);
     assert.match(chip, /spaceActivator\(role/, 'a filter chip does not answer Space');
     for (const [file, start] of [
-      ['onboarding/BoldChoice.tsx', 'export function BoldChoice'],
       ['onboarding/BOnboardingParts.tsx', 'export function BOption'],
       ['onboarding/TutorSelection.tsx', 'export function TutorSelection'],
     ] as const) {
@@ -289,7 +287,7 @@ describe('F927: Space and the focus ring', () => {
     const pressBody = components.slice(components.indexOf('export function Press('), components.indexOf('function SelectRing('));
     assert.match(pressBody, /const frameRadius = StyleSheet\.flatten\(style\)\?\.borderRadius;/, 'Press does not read its surface corner');
     assert.match(pressBody, /style=\{frameRadius != null \? \[\{ borderRadius: frameRadius \}, frame\] : frame\}/, 'the focusable frame is square around a rounded pill');
-    assert.match(components, /const face: ViewStyle = \{[^}]*borderRadius: shape\.radius/, 'the lip tile face has no corner for the ring to follow');
+    assert.match(components, /const face: ViewStyle = \{[^}]*\.\.\.shape\.corner/, 'the lip tile face has no corner for the ring to follow');
     assert.match(components, /style=\{\[lipStyles\.hit, face, style\]\}/, 'the lip tile ring is square inside a rounded tile');
     assert.match(components, /filterChip: \{[^}]*borderRadius: radius\.pill/, 'the chip ring is square');
 

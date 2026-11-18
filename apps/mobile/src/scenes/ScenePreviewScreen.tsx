@@ -21,7 +21,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { seedTopicOf, DAILY_SCENARIOS } from '@luvani/core';
 import { Card, PillButton, RoundButton } from '../components.tsx';
 import { ScreenHeader, ScrollScreen, TopInset } from '../layout.tsx';
-import { bType, frenchText, space, type, HIT } from '../theme.ts';
+import { bType, frenchText, space, type, HIT, corner, continuous, radius } from '../theme.ts';
 import { BArt } from '../art/BArt.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic, CheckDisc } from '../today/TodayParts.tsx';
@@ -160,13 +160,13 @@ const makeStyles = (t: B) =>
   StyleSheet.create({
     stack: { gap: space(2.5) },
     // Edge to edge: square at the top, 36 at the foot only; padding 58 22 22 less the status bar the inset pays.
-    band: { backgroundColor: t.heroGround, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, paddingHorizontal: 22, paddingBottom: 22, gap: 10, overflow: 'hidden' },
+    band: { backgroundColor: t.heroGround, borderBottomLeftRadius: radius.card, borderBottomRightRadius: radius.card, ...continuous, paddingHorizontal: 22, paddingBottom: 22, gap: 10, overflow: 'hidden' },
     bandArt: { position: 'absolute', right: -6, top: 70 },
     bandTop: { flexDirection: 'row', minHeight: HIT, marginTop: 4 },
     eyebrow: { marginTop: 6 },
     bandWords: { maxWidth: 200 },
     pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-    pill: { backgroundColor: t.heroChip, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12 },
+    pill: { backgroundColor: t.heroChip, paddingVertical: 4, paddingHorizontal: 10, ...corner.inset },
     // The page gutter the frame no longer adds, so the band can reach the edges.
     body: { gap: 22, paddingHorizontal: 22, paddingTop: 22, paddingBottom: 40 },
     goal: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
@@ -174,8 +174,8 @@ const makeStyles = (t: B) =>
     goalLine: { lineHeight: 23 },
     section: { gap: 10 },
     headWords: { gap: 2 },
-    opener: { backgroundColor: t.card, borderRadius: 20, paddingVertical: 2, paddingHorizontal: 16 },
-    list: { backgroundColor: t.card, borderRadius: 20, paddingVertical: 4, paddingHorizontal: 16 },
+    opener: { backgroundColor: t.card, ...corner.card, paddingVertical: 2, paddingHorizontal: 16 },
+    list: { backgroundColor: t.card, ...corner.card, paddingVertical: 4, paddingHorizontal: 16 },
     line: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
     divider: { borderBottomWidth: 1, borderBottomColor: t.line },
     lineWords: { flex: 1, minWidth: 0, gap: 2 },

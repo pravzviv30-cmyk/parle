@@ -16,7 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { EmptyStateCard } from '../empty/EmptyStateCard.tsx';
 import { NOTEBOOK_ART } from '../empty/emptyStates.ts';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
-import { SettingsAppearance, SettingsCard as Card, SettingsField as Field, SettingsFormAction as OutlineButton } from '../settings/SettingsAppearance.tsx';
+import { SettingsAppearance, SettingsCard as Card, SettingsField as Field, SettingsFormAction } from '../settings/SettingsAppearance.tsx';
 import { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -188,7 +188,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
                 returnKeyType="done"
                 onSubmitEditing={addGoal}
               />
-              <OutlineButton label={ADD_GOAL} disabled={draft.trim().length === 0} onPress={addGoal} />
+              <SettingsFormAction label={ADD_GOAL} disabled={draft.trim().length === 0} onPress={addGoal} />
             </View>
           )}
         </Card>
@@ -214,7 +214,7 @@ export function TutorMemoryScreen({ onBack }: { onBack: () => void }) {
       <Text style={[type.small, { color: colors.muted, marginTop: space(6) }]}>Changes apply to your next conversation. Clearing details keeps your goals, correction preferences and saved conversations.</Text>
       {editing !== null && <Card style={st.section}>
         <Field label={editing.kind === 'fact' ? 'Edit remembered detail' : 'Edit your goal'} placeholder={editing.kind === 'fact' ? 'e.g. I am learning French for travel' : GOAL_PLACEHOLDER} value={editing.text} maxLength={MAX_GOAL_CHARS} onChangeText={(text) => setEditing({ ...editing, text })} autoFocus />
-        <OutlineButton label="Save changes" disabled={editing.text.trim().length === 0} onPress={() => {
+        <SettingsFormAction label="Save changes" disabled={editing.text.trim().length === 0} onPress={() => {
           const choice = editing;
           void commitMemory((current) => choice.kind === 'fact' ? withFactEdited(current, choice.original, choice.text) : withGoalEdited(current, choice.original, choice.text)).then((ok) => { if (ok && alive.current) setEditing(null); });
         }} />

@@ -6,7 +6,7 @@ import { space, type } from '../../theme.ts';
 import { useB, useThemedStyles } from '../../main/bTheme.tsx';
 import { Card, CheckGlyph, IconAction, Label } from '../../components.tsx';
 import { DrillFrame, DrillPrompt, type DrillShell } from '../DrillFrame.tsx';
-import { drillStage } from '../drillStage.ts';
+import { drillStage, taskLine } from '../drillStage.ts';
 import { SpokenAttempt } from '../SpokenAttempt.tsx';
 import { ownWordsLook } from '../answerSheet.ts';
 import type { OwnWordsDecided } from '../combo.ts';
@@ -101,12 +101,11 @@ export function OwnWordsView({
     <DrillFrame
       {...shell}
       stage={drillStage(exercise.kind, bt.mode)}
-      eyebrow={kindTag(exercise)}
       prompt={<>
         <Text style={[type.small, { color: bt.muted }]}>{exercise.situation}</Text>
         <DrillPrompt>{exercise.en}</DrillPrompt>
       </>}
-      english={OWN_WORDS_HINT}
+      english={taskLine(kindTag(exercise), OWN_WORDS_HINT)}
       primary={field ? <CheckPill typed={typed} locked={busy} onSubmit={onCheck} /> : undefined}
     >
       {!typing && typed === '' && outcome === null && <SpokenAttempt onTake={onTake} onTyping={typeInstead} busy={busy} />}

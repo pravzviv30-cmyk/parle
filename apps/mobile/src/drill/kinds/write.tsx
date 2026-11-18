@@ -5,7 +5,7 @@ import { bType, space, type } from '../../theme.ts';
 import { useB, useThemedStyles } from '../../main/bTheme.tsx';
 import { EarGlyph, IconAction } from '../../components.tsx';
 import { DrillFrame, DrillPrompt, type DrillShell } from '../DrillFrame.tsx';
-import { drillStage } from '../drillStage.ts';
+import { drillStage, taskLine } from '../drillStage.ts';
 import { Feedback } from '../../motion/Feedback.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
 import { PRACTICE_HELP } from '../../practice/copy.ts';
@@ -33,7 +33,8 @@ export function ListenTypeView({
     <DrillFrame
       {...shell}
       stage={drillStage(exercise.kind, bt.mode)}
-      eyebrow={kindTag(exercise)}
+      prompt={kindTag(exercise)}
+      promptIsHeader
       primary={<CheckPill typed={typed} locked={locked} onSubmit={() => onAnswer(typed)} />}
       stageExtra={<>
         {/* Replayable freely — dictation is a listening exercise, not a memory test. */}
@@ -92,8 +93,8 @@ export function TranslationView({
     <DrillFrame
       {...shell}
       stage={drillStage(exercise.kind, bt.mode)}
-      eyebrow={kindTag(exercise)}
       prompt={<DrillPrompt>{prompt}</DrillPrompt>}
+      english={taskLine(kindTag(exercise))}
       primary={<CheckPill typed={typed} locked={locked} onSubmit={() => onAnswer(typed)} />}
       stageExtra={<>
         {isFrenchPrompt && <HearRow text={exercise.fr} />}

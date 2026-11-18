@@ -17,11 +17,11 @@ import { BArt } from '../art/BArt.tsx';
 import { TutorPortrait } from '../tutor/TutorPortrait.tsx';
 import { BMic, KeyboardMark } from '../main/bMarks.tsx';
 import type { TutorVoiceKey } from '@luvani/core';
-import { LockBadge, Press } from '../components.tsx';
+import { GhostButton, LockBadge, PillButton, Press, fitTitle } from '../components.tsx';
 import type { LockedFeature } from '../access/featureAccess.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { COMING_UP_COPY } from '../home/todayView.ts';
-import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
+import { COMING_UP_COPY, sceneTitleColumn } from '../home/todayView.ts';
+import { HIT, bType, corner, decorative, frenchText, radius, space } from '../theme.ts';
 import { SCENE_TILE, sceneTileSide } from '../responsiveLayout.ts';
 
 // ─────────────────────────────────────────────────────────────── glyphs
@@ -191,22 +191,24 @@ export function WeekCard({ sentence, link, onLink }: { sentence: string; link: s
 }
 
 /**
- * The scene hero (UI-015), drawn on the hero card's ground with no card of its
- * own: a 108 by 84 art tile on butter beside the eyebrow ("Next scene, 2 of
- * 3"), the title and the time, the "Uses" chip when the last conversation
- * really meets the scene, then the 54pt primary Start and the other mode as an
- * underlined link. The caller owns the gated start; this draws it, its check
- * and the tutor-unreachable answer with the same start again.
+ * The scene hero (UI-015, F996), drawn on the hero card's ground with no card
+ * of its own: a 108 by 84 art tile on butter beside the title (sized to its
+ * column by `fitTitle`) and its one meta line (the time and the scene's place,
+ * `sceneHeroLine`), the "Uses" chip when the last conversation really meets
+ * the scene, then the lipped primary Start and the other mode as the one quiet
+ * action. No eyebrow. The caller owns the gated start; this draws it and its
+ * check. A start the tutor could not take is not drawn here: the caller draws
+ * the offline lead instead.
  *
  * The words sit beside the tile while the card is wide enough
  * (`sceneTileSide`); on a narrow card or at large text the tile goes above
  * full-width words. The first frame guesses from the window, then the card's
  * own width decides.
  */
-export function SceneLead({ eyebrow, title, french, rest, uses, start, other, checking, heldBack }: {
-  eyebrow: string;
+export function SceneLead({ title, french, rest, uses, start, other, checking }: {
   title: string;
   french: string | null;
+  /** The meta line under the title. */
   rest: string;
   uses: { before: string; french: string; after: string } | null;
   /** The mode picks the icon: a keyboard for typing, a mic for speaking (F941). */
@@ -215,8 +217,6 @@ export function SceneLead({ eyebrow, title, french, rest, uses, start, other, ch
   other: { label: string; disabled: boolean; onPress: () => void };
   /** The connection check's line while it runs, or null. */
   checking: string | null;
-  /** A start the tutor could not take: the sentence and the same start again. */
-  heldBack: { body: string; retry: string; disabled: boolean; onRetry: () => void } | null;
 }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
@@ -230,8 +230,7 @@ export function SceneLead({ eyebrow, title, french, rest, uses, start, other, ch
           <BArt name="cafe-table" width={SCENE_ART.width} height={SCENE_ART.height} />
         </View>
         <View style={side ? s.grow : undefined}>
-          <Text style={[bType.eyebrow, { color: t.link }]}>{eyebrow}</Text>
-          <Text accessibilityRole="header" style={[bType.stat24, { color: t.text }]}>{title}</Text>
+          <Text accessibilityRole="header" style={[fitTitle(title, sceneTitleColumn(measured ?? windowWidth - HERO_INSET, side)), { color: t.text }]}>{title}</Text>
           <Text style={[bType.meta, { color: t.muted }]}>
             {french !== null ? <Text {...frenchText}>{french}</Text> : null}
             {rest}
@@ -246,19 +245,9 @@ export function SceneLead({ eyebrow, title, french, rest, uses, start, other, ch
         </View>
       ) : null}
       <View style={s.leadFoot}>
-        <BButton label={start.label} accessibilityLabel={start.accessibilityLabel} height={54} ground={t.primary} ink={t.onPrimary} text={bType.bold16} icon={start.mode === 'type' ? <KeyboardMark size={20} color={t.onPrimary} /> : <BMic size={20} color={t.onPrimary} />} disabled={start.disabled} onPress={start.onPress} />
-        <Pressable accessibilityRole="button" accessibilityLabel={other.label} accessibilityState={{ disabled: other.disabled }} disabled={other.disabled} onPress={other.onPress} style={s.otherMode}>
-          <Text style={[bType.semi14, { color: t.text, textDecorationLine: 'underline' }]}>{other.label}</Text>
-        </Pressable>
+        <PillButton label={start.label} accessibilityLabel={start.accessibilityLabel} icon={start.mode === 'type' ? <KeyboardMark size={20} color={t.onPrimary} /> : <BMic size={20} color={t.onPrimary} />} disabled={start.disabled} onPress={start.onPress} />
+        <GhostButton label={other.label} disabled={other.disabled} onPress={other.onPress} />
         {checking !== null ? <Text accessibilityLiveRegion="polite" style={[bType.meta, s.centred, { color: t.text }]}>{checking}</Text> : null}
-        {heldBack !== null ? (
-          <View style={s.heldBack}>
-            <Text style={[bType.line16, { color: t.text }]}>{heldBack.body}</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel={heldBack.retry} accessibilityState={{ disabled: heldBack.disabled }} disabled={heldBack.disabled} onPress={heldBack.onRetry} style={s.otherMode}>
-              <Text style={[bType.bold16, { color: t.text, textDecorationLine: 'underline' }]}>{heldBack.retry}</Text>
-            </Pressable>
-          </View>
-        ) : null}
       </View>
     </View>
   );
@@ -272,7 +261,7 @@ const SCENE_ART = { width: 87, height: 80 } as const;
 const makeStyles = (t: B) =>
   StyleSheet.create({
     grow: { flex: 1, minWidth: 0 },
-    smallPill: { paddingVertical: 3, paddingHorizontal: space(2), borderRadius: 10, flexShrink: 0 },
+    smallPill: { paddingVertical: 3, paddingHorizontal: space(2), ...corner.inset, flexShrink: 0 },
     button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2.5), paddingHorizontal: space(4) },
     buttonWords: { textAlign: 'center', flexShrink: 1 },
     hugFrame: { alignSelf: 'flex-start' },
@@ -280,22 +269,20 @@ const makeStyles = (t: B) =>
     disabled: { opacity: 0.6 },
     titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space(3), marginBottom: 10 },
     titleWords: { flexShrink: 1, minWidth: 0 },
-    comingUp: { borderRadius: 24, padding: space(4), gap: 10 },
+    comingUp: { ...corner.card, padding: space(4), gap: 10 },
     comingHead: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
-    orb: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
+    orb: { width: 44, height: 44, borderRadius: radius.pill, overflow: 'hidden' },
     pillGap: { marginTop: space(1) },
     actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(4) },
     textLink: { minHeight: HIT, justifyContent: 'center' },
-    week: { borderRadius: 24, padding: space(4), flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space(3) },
+    week: { ...corner.card, padding: space(4), flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: space(3) },
     weekWords: { flexGrow: 1, flexShrink: 1, flexBasis: 180, minWidth: 0 },
     weekLink: { minHeight: HIT, justifyContent: 'center' },
     lead: { gap: space(1) },
     leadSide: { flexDirection: 'row', alignItems: 'center', gap: SCENE_TILE.gap },
     leadStacked: { gap: SCENE_TILE.gap },
-    leadTile: { width: SCENE_TILE.width, height: SCENE_TILE.height, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    usesChip: { marginTop: 6, alignSelf: 'flex-start', maxWidth: '100%', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12 },
+    leadTile: { width: SCENE_TILE.width, height: SCENE_TILE.height, ...corner.card, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    usesChip: { marginTop: 6, alignSelf: 'flex-start', maxWidth: '100%', paddingVertical: 5, paddingHorizontal: 10, ...corner.inset },
     leadFoot: { marginTop: space(2), gap: space(1) },
     centred: { textAlign: 'center' },
-    heldBack: { gap: space(1) },
-    otherMode: { minHeight: HIT, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: space(2) },
   });

@@ -39,7 +39,7 @@ import { Cloud, CloudLids } from '../art/mascots/Cloud.tsx';
 import { CLOUD_VIEWBOX } from '../art/mascots/mascotFaces.ts';
 import { CLOUD_POSES } from '../art/mascots/mascotPoses.ts';
 import { Toast as ToastMascot } from '../art/mascots/Toast.tsx';
-import { EarGlyph, OutlineButton, PillButton } from '../components.tsx';
+import { EarGlyph, GhostButton, PillButton } from '../components.tsx';
 import type { GameDelta } from '../game/delta.ts';
 import { Tile } from '../game/TodayStatTiles.tsx';
 import { STAT_GAP, statCoins, statRowTileWidth, statTileLayout, type StatTileLayout } from '../game/todayHeroView.ts';
@@ -56,7 +56,7 @@ import { DUR, STAGGER } from '../motion/tokens.ts';
 import { SETTLED_LABEL, STILL_SETTLING_LABEL } from '../practice/stillSettling.ts';
 import * as tutorVoice from '../speech/tutorVoice.ts';
 import { scopeGeneration } from '../storage/scope.ts';
-import { HIT, bType, decorative, radius, space, type } from '../theme.ts';
+import { HIT, bType, decorative, radius, space, type, corner } from '../theme.ts';
 import { StarMark } from '../today/TodayParts.tsx';
 import { Confetti } from './Confetti.tsx';
 import { countTick, fireBeat, fireStill } from './effects.ts';
@@ -484,7 +484,7 @@ export function EndActions({ retry = null, done }: {
     <View style={s.actions}>
       <PillButton label={retry.label} onPress={retry.onPress} lip />
       <View style={s.doneLink}>
-        <OutlineButton label={done.label} onPress={done.onPress} />
+        <GhostButton label={done.label} onPress={done.onPress} />
       </View>
     </View>
   );
@@ -493,7 +493,7 @@ export function EndActions({ retry = null, done }: {
 const makeStyles = (_t: B) =>
   StyleSheet.create({
     scene: { gap: space(3.5) },
-    band: { height: BAND, borderRadius: radius.card + space(1), overflow: 'hidden' },
+    band: { height: BAND, ...corner.card, overflow: 'hidden' },
     sun: { position: 'absolute', right: -24, top: -24, width: SUN, height: SUN, borderRadius: SUN / 2 },
     cloud: { position: 'absolute', left: '14%', top: 56 },
     // The cheer box is 22 of 304 units wider on the left and 20 taller on top than the body, so this keeps the body where the face-only Cloud stands, with the raised arms and stars inside the band.
@@ -506,7 +506,7 @@ const makeStyles = (_t: B) =>
     tiles: { flexDirection: 'row', gap: STAT_GAP },
     column: { gap: STAT_GAP + space(1) },
     tileSlot: { flex: 1, minWidth: 0 },
-    coin: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    coin: { width: 32, height: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
     goal: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
     grow: { flex: 1, minWidth: 0 },
     rows: { gap: space(1.5) },

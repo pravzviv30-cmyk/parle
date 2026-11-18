@@ -14,7 +14,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Press } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
-import { HIT, bType, decorative } from '../theme.ts';
+import { HIT, bType, decorative, corner, radius } from '../theme.ts';
 import type { PlanCardView, ProfileStat } from './profileView.ts';
 
 /** The artboard's gear: a 3.2 ring inside the toothed outline. */
@@ -110,17 +110,17 @@ const makeStyles = (t: B) =>
   StyleSheet.create({
     disc: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
     identity: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-    avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: t.sun, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    avatar: { width: 76, height: 76, borderRadius: radius.pill, backgroundColor: t.sun, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     initial: bType.initial34,
     who: { flex: 1, minWidth: 0, gap: 2 },
     name: bType.name30,
-    edit: { minHeight: HIT, minWidth: HIT, paddingHorizontal: 16, borderRadius: 22, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
-    stats: { flexDirection: 'row', backgroundColor: t.card, borderRadius: 22, padding: 12, gap: 6 },
+    edit: { minHeight: HIT, minWidth: HIT, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
+    stats: { flexDirection: 'row', backgroundColor: t.card, ...corner.card, padding: 12, gap: 6 },
     statFrame: { flex: 1, minWidth: 0 },
     stat: { minHeight: HIT, padding: 4, gap: 2, alignItems: 'center', justifyContent: 'center' },
     statRuled: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: t.line },
     centred: { textAlign: 'center' },
-    plan: { backgroundColor: t.brand, borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
+    plan: { backgroundColor: t.brand, ...corner.card, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
     planWords: { flex: 1, minWidth: 0, gap: 2 },
-    planPill: { minHeight: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    planPill: { minHeight: 40, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   });

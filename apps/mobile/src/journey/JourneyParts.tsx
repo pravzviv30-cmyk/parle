@@ -20,7 +20,7 @@ import type { LockedFeature } from '../access/featureAccess.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { CheckDisc } from '../today/TodayParts.tsx';
 import { ChevronGlyph } from '../explore/ExploreParts.tsx';
-import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
+import { HIT, bType, decorative, frenchText, space, corner, radius } from '../theme.ts';
 import { HELD_TAG, type JourneyRoute, type ProgressView, type Segment, type StageStep, type YourFrenchView } from './journeyView.ts';
 
 /** Words where the French runs are tagged as French. */
@@ -531,57 +531,57 @@ const makeStyles = (t: B) =>
     link: { minHeight: HIT, justifyContent: 'center', flexShrink: 0 },
     // The band.
     levelRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    levelPill: { backgroundColor: t.sun, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 10, flexShrink: 0 },
-    stat: { flex: 1, minWidth: 0, backgroundColor: t.card, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12 },
+    levelPill: { backgroundColor: t.sun, ...corner.inset, paddingVertical: 6, paddingHorizontal: 10, flexShrink: 0 },
+    stat: { flex: 1, minWidth: 0, backgroundColor: t.card, ...corner.field, paddingVertical: 10, paddingHorizontal: 12 },
     // Section heads and lists.
     headRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space(2) },
     headWords: { flex: 1, minWidth: 0, gap: 2 },
     titleWrap: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 4 },
-    list: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 4, paddingHorizontal: 16 },
+    list: { backgroundColor: t.card, ...corner.card, paddingVertical: 4, paddingHorizontal: 16 },
     // Where you are.
-    stageCard: { backgroundColor: t.card, borderRadius: 22, paddingTop: 16, paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
+    stageCard: { backgroundColor: t.card, ...corner.card, paddingTop: 16, paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
     stageRow: { flexDirection: 'row' },
-    track: { position: 'absolute', left: '10%', right: '10%', top: 17, height: 4, borderRadius: 2, backgroundColor: t.stageTrack },
-    trackFill: { position: 'absolute', left: '10%', top: 17, height: 4, borderRadius: 2, backgroundColor: t.brandMark },
+    track: { position: 'absolute', left: '10%', right: '10%', top: 17, height: 4, borderRadius: radius.pill, backgroundColor: t.stageTrack },
+    trackFill: { position: 'absolute', left: '10%', top: 17, height: 4, borderRadius: radius.pill, backgroundColor: t.brandMark },
     stage: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
     nodeSlot: { width: 38, height: 38 },
     // The current node's 4pt lavender ring sits outside its 38pt disc, as the box-shadow does.
-    nodeRing: { width: 46, height: 46, borderRadius: 23, margin: -4, padding: 4, backgroundColor: t.lavender },
-    node: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+    nodeRing: { width: 46, height: 46, borderRadius: radius.pill, margin: -4, padding: 4, backgroundColor: t.lavender },
+    node: { width: 38, height: 38, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
     nodeAhead: { backgroundColor: t.card, borderWidth: 2, borderColor: t.field },
     // What you can do.
     ability: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14, minHeight: HIT },
     // Then and now cells.
     twoUp: { flexDirection: 'row', gap: 8 },
-    cell: { flex: 1, minWidth: 0, borderRadius: 14, padding: 10, gap: 2 },
+    cell: { flex: 1, minWidth: 0, ...corner.field, padding: 10, gap: 2 },
     cellScene: { gap: 6 },
-    bar: { height: 8, borderRadius: 4 },
+    bar: { height: 8, borderRadius: radius.pill },
     dashed: { borderWidth: 2, borderStyle: 'dashed', borderColor: t.ring, justifyContent: 'center', gap: 6 },
     // French used.
-    chip: { backgroundColor: t.lavender, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 10 },
+    chip: { backgroundColor: t.lavender, ...corner.inset, paddingVertical: 6, paddingHorizontal: 10 },
     // Help you needed.
-    help: { backgroundColor: t.mintWash, borderRadius: 22, padding: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-    helpOrb: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', flexShrink: 0 },
+    help: { backgroundColor: t.mintWash, ...corner.card, padding: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    helpOrb: { width: 40, height: 40, borderRadius: radius.pill, overflow: 'hidden', flexShrink: 0 },
     // Sounds and week.
     soundRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, minHeight: HIT },
-    soundTile: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    soundTile: { width: 44, height: 44, ...corner.field, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     weekRow: { flexDirection: 'row', gap: 12, paddingVertical: 12, minHeight: HIT },
-    dot: { width: 10, height: 10, borderRadius: 5, marginTop: 6, flexShrink: 0 },
+    dot: { width: 10, height: 10, borderRadius: radius.pill, marginTop: 6, flexShrink: 0 },
     // Collections.
     tileFrame: { flex: 1, minWidth: 0 },
-    tile: { borderRadius: 22, padding: 14, gap: 8 },
-    tileArt: { height: 64, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden' },
+    tile: { ...corner.card, padding: 14, gap: 8 },
+    tileArt: { height: 64, ...corner.field, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden' },
     postcardArt: { marginTop: 8 },
-    badge: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    badge: { width: 36, height: 36, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
     // The empty journey.
-    empty: { backgroundColor: t.butter, borderRadius: 26, paddingVertical: 20, paddingHorizontal: 18, alignItems: 'center', gap: 8 },
+    empty: { backgroundColor: t.butter, ...corner.card, paddingVertical: 20, paddingHorizontal: 18, alignItems: 'center', gap: 8 },
     // Then and now.
     back: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    legend: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },
+    legend: { backgroundColor: t.card, ...corner.card, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },
     legendRow: { flexDirection: 'row', gap: 6 },
     legendCol: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
     sceneHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    sceneTile: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    sceneCard: { backgroundColor: t.card, borderRadius: 24, padding: 16, gap: 12 },
-    sceneRowCard: { backgroundColor: t.card, borderRadius: 24, paddingVertical: 14, paddingHorizontal: 16 },
+    sceneTile: { width: 48, height: 48, ...corner.field, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    sceneCard: { backgroundColor: t.card, ...corner.card, padding: 16, gap: 12 },
+    sceneRowCard: { backgroundColor: t.card, ...corner.card, paddingVertical: 14, paddingHorizontal: 16 },
   });

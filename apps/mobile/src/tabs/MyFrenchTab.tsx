@@ -4,11 +4,11 @@ import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/n
 import { StatusBar } from 'expo-status-bar';
 import { DAILY_SCENARIOS, MISSIONS, missionStates, suggestedMission, type ConversationPack, type DailyScenario, type MissionProgress, type ReviewCard } from '@luvani/core';
 
-import { Ledger, LedgerRow, OutlineButton, Press, Sheet } from '../components.tsx';
+import { Ledger, LedgerRow, GhostButton, Press, Sheet } from '../components.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
 import { Columns, ScrollScreen, TabHeader, TopInset } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
-import { RHYTHM, bType, frenchText, space } from '../theme.ts';
+import { RHYTHM, bType, frenchText, space, corner, continuous, radius } from '../theme.ts';
 import { PinLight, useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton } from '../today/TodayParts.tsx';
 import { AbilityRow, BandStat, CollectionTile, DashedCell, EmptyJourneyCard, HelpCard, JourneyHead, JourneyList, LevelRow, ProgressSection, SoundRowView, StageTrack, TryCell, TwoUp, WeekRowView, YourFrenchSection } from '../journey/JourneyParts.tsx';
@@ -332,7 +332,7 @@ export function MyFrenchTab() {
               <View style={st.stack}>
                 <Text style={[bType.meta, { color: t.secondary }]}>{TUTOR_OFFLINE.body}</Text>
                 <LocalPracticeCard />
-                <OutlineButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
+                <GhostButton label={checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry} disabled={checking} onPress={startFirst} />
               </View>
             )}
           </EmptyJourneyCard>
@@ -477,13 +477,13 @@ const makeStyles = (t: B) =>
     // M3: a blue card keeps the brand blue in both themes (as Today's week card),
     // its words onBrand, onBrandSoft and sun.
     // The band's own 22 all round; its top is the status bar's, through TopInset.
-    band: { backgroundColor: t.brand, borderBottomLeftRadius: 36, borderBottomRightRadius: 36, padding: 22, paddingTop: 0, gap: space(4) },
+    band: { backgroundColor: t.brand, borderBottomLeftRadius: radius.card, borderBottomRightRadius: radius.card, ...continuous, padding: 22, paddingTop: 0, gap: space(4) },
     stats: { flexDirection: 'row', gap: space(2) },
     // The blocks are the scroll's own children (F383): no wrapper that can grow.
     // The air above the tab bar is the frame's (F340).
     body: { paddingTop: space(6), paddingHorizontal: 22, gap: RHYTHM.section },
     page: { gap: RHYTHM.section },
     stack: { gap: RHYTHM.item },
-    card: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },
+    card: { backgroundColor: t.card, ...corner.card, paddingVertical: 14, paddingHorizontal: 16, gap: 10 },
     tiles: { flexDirection: 'row', gap: 10 },
   });

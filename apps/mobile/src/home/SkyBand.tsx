@@ -25,7 +25,7 @@ import { TopInset } from '../layout.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { Drift } from '../motion/Drift.tsx';
 import { bType, decorative, space, type } from '../theme.ts';
-import { SKY_DISC, cloudPlaces, discShiftFor, greetingText, cloudsBesideGreeting, skyBarStyle, type SkyView } from './skyView.ts';
+import { SKY_DISC, cloudPlaces, discShiftFor, greetingMaxScale, greetingText, cloudsBesideGreeting, skyBarStyle, type SkyView } from './skyView.ts';
 
 /** Where the head box starts across the band (its padding, space(4)): an absolute child and an onLayout x both count from here. */
 const BAND_PAD = 16;
@@ -82,7 +82,8 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
             <SkyCloud width={cloud.width} color={t.onBrand} opacity={cloud.opacity} />
           </Drift>
         ))}
-        <Text accessibilityRole="header" accessibilityLabel={greeting.title} style={[bType.greeting, s.greeting, { color: t.onBrand }]} onLayout={(event) => { const { x, y, width: w, height: h } = event.nativeEvent.layout; setGreetingRight(Math.round(BAND_PAD + x + w)); setGreetingBox({ left: BAND_PAD + x, right: BAND_PAD + x + w, top: y, bottom: y + h }); }} onTextLayout={(event) => setGreetingLineCount(event.nativeEvent.lines.length)}>
+        {/* F957: capped only so far as the hour word still fits its column (`greetingMaxScale`). */}
+        <Text accessibilityRole="header" accessibilityLabel={greeting.title} style={[bType.greeting, s.greeting, { color: t.onBrand }]} maxFontSizeMultiplier={greetingMaxScale(width)} onLayout={(event) => { const { x, y, width: w, height: h } = event.nativeEvent.layout; setGreetingRight(Math.round(BAND_PAD + x + w)); setGreetingBox({ left: BAND_PAD + x, right: BAND_PAD + x + w, top: y, bottom: y + h }); }} onTextLayout={(event) => setGreetingLineCount(event.nativeEvent.lines.length)}>
           {greetingText(greeting)}
         </Text>
         <View style={s.profile}>{profile}</View>

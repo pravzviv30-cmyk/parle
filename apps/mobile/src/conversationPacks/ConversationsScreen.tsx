@@ -35,7 +35,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { type ConversationPack, type ReviewCard } from '@luvani/core';
 
-import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow, OutlineButton } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow } from '../components.tsx';
 import { ChatGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { space, type } from '../theme.ts';
@@ -288,7 +288,7 @@ export function ConversationsScreen({
         <Card style={st.block}>
           <Text style={[type.body, { color: t.text }]}>{CONVERSATIONS_UNREAD}</Text>
           <View style={{ marginTop: space(3) }}>
-            <OutlineButton
+            <GhostButton
               label={MY_FRENCH_RETRY}
               onPress={() => {
                 setUnread(false);
@@ -312,9 +312,9 @@ export function ConversationsScreen({
       )}
 
       <View style={st.block}>
-        {older !== undefined && <OutlineButton label="Older conversations" disabled={remotePending} onPress={older} />}
+        {older !== undefined && <GhostButton label="Older conversations" disabled={remotePending} onPress={older} />}
         {newest !== undefined && <IconAction layout="inline" icon="sort" label="Newest conversations" disabled={remotePending} onPress={newest} />}
-        {retryPage !== undefined && <OutlineButton label="Retry loading conversations" onPress={retryPage} />}
+        {retryPage !== undefined && <GhostButton label="Retry loading conversations" onPress={retryPage} />}
       </View>
 
       {shown.length > 0 && (

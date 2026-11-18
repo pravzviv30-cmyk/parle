@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Keyboard, Platform, type ScrollView as AuthScrollView, type TextInput } from 'react-native';
-import { paper, space, type } from '../theme.ts';
+import { corner, paper, space, type } from '../theme.ts';
 import { GhostButton, AlertGlyph, ROW_WORDS } from '../components.tsx';
 import { AccountField as Field } from './AccountField.tsx';
 import { BoldButton as PillButton } from '../onboarding/BoldButton.tsx';
@@ -128,7 +128,7 @@ export function SetNewPasswordScreen({ onDone }: { onDone: () => void }) {
     >
       <View>
         <Text accessibilityRole="header" style={[type.title, boldType.title, { color: paper.ink, textAlign: 'center' }]}>Choose a new{'\n'}password.</Text>
-        <View style={{ backgroundColor: c.lavender, borderRadius: 20, padding: 18, gap: 8, marginTop: 18 }}>
+        <View style={{ backgroundColor: c.lavender, ...corner.card, padding: 18, gap: 8, marginTop: 18 }}>
           <Text style={[boldType.heading, { color: c.ink }]}>Keep your account yours</Text>
           <Text style={[boldType.body, { color: c.ink }]}>Use a long password you haven’t used elsewhere.</Text>
         </View>

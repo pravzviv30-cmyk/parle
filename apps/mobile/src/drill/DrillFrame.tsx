@@ -6,9 +6,9 @@
  * - the header row on the stage band: the screen's own `ScreenHeader` (the
  *   44pt close disc, then `SittingBar`, decorative, no digits, then any
  *   trailing words), so the drill keeps the one shared way out;
- * - the stage band on the family colour (`drillStage`), 28 bottom radius: the
- *   eyebrow, the prompt and an optional English line, then any stage extras
- *   such as Hear it;
+ * - the stage band on the family colour (`drillStage`), card bottom radius:
+ *   the prompt and the meta line (the kind's task, then any English line,
+ *   F995), then any stage extras such as Hear it;
  * - the answer area on the `ground`, padding 18;
  * - the foot, pinned by `ScrollScreen`, which already owns the keyboard: the
  *   kind's primary (Check, with its lip), replaced by the answer sheet while
@@ -22,7 +22,7 @@ import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollScreen, TopInset } from '../layout.tsx';
-import { bType } from '../theme.ts';
+import { bType, continuous, radius } from '../theme.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import type { DrillStage } from './drillStage.ts';
 import { sheetMaxHeight } from './sheetLayout.ts';
@@ -66,12 +66,11 @@ export interface DrillShell {
 
 export interface DrillFrameProps extends DrillShell {
   stage: DrillStage;
-  eyebrow: string;
   /** The prompt. A string is drawn at 23/29 extra bold; a node is drawn as given (use `DrillPrompt`). */
   prompt?: ReactNode;
   /** Read the prompt as a header, as the kinds that had one did. */
   promptIsHeader?: boolean;
-  /** The muted English line under the prompt. */
+  /** The muted meta line under the prompt: the kind's task (`taskLine`), then any English line. */
   english?: string;
   /** Anything else that belongs on the stage: Hear it, the IPA, help. */
   stageExtra?: ReactNode;
@@ -98,7 +97,6 @@ export function DrillFrame({
   sheet,
   primary,
   avoidKeyboard = true,
-  eyebrow,
   prompt,
   promptIsHeader = false,
   english,
@@ -123,7 +121,6 @@ export function DrillFrame({
   return (
     <ScrollScreen avoidKeyboard={avoidKeyboard} ground={t.ground} padded={false} bleedTop bottom="none" header={top} footer={foot} footerMaxHeight={sheet != null ? sheetCap : undefined}>
       <View style={[s.stage, { backgroundColor: band }]}>
-        <Text style={[s.eyebrow, { color: t[stage.eyebrow] }]}>{eyebrow}</Text>
         {typeof prompt === 'string' ? <DrillPrompt header={promptIsHeader}>{prompt}</DrillPrompt> : prompt}
         {english !== undefined ? <Text style={[bType.line15, { color: t.muted }]}>{english}</Text> : null}
         {stageExtra}
@@ -148,8 +145,7 @@ const fr = StyleSheet.create({
 function make(_t: B) {
   return StyleSheet.create({
     top: { paddingHorizontal: GUTTER, paddingTop: 14 },
-    stage: { paddingHorizontal: GUTTER, paddingBottom: 22, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, gap: 8 },
-    eyebrow: bType.eyebrow800,
+    stage: { paddingHorizontal: GUTTER, paddingBottom: 22, borderBottomLeftRadius: radius.card, borderBottomRightRadius: radius.card, ...continuous, gap: 8 },
     area: { padding: GUTTER, gap: 16 },
     foot: { paddingHorizontal: GUTTER },
   });
