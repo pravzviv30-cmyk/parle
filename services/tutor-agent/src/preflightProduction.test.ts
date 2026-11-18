@@ -113,15 +113,16 @@ test('a production refusal names the setting that caused it', () => {
     [{ TOKEN_SERVER_URL: 'http://private-host.example:8787', TYPESAFE_API_KEY: 'private-typesafe-value' }, ['TOKEN_SERVER_URL', 'TYPESAFE_API_KEY']],
   ];
   const stop = () => { throw new Error('refused'); };
-  const errors: unknown[][] = [], error = console.error;
-  console.error = (...args: unknown[]) => { errors.push(args); };
+  const secrets = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'OPENAI_API_KEY', 'TOKEN_SERVER_URL', 'LUVANI_AGENT_SECRET'].map(key => env[key as keyof typeof env]);
+  const lines: unknown[][] = [], saved = { error: console.error, warn: console.warn, info: console.info };
+  console.error = console.warn = console.info = (...args: unknown[]) => { lines.push(args); };
   try {
     for (const [override, failed] of cases) {
-      errors.length = 0;
+      lines.length = 0;
       assert.throws(() => preflight({ ...env, ...override }, stop, () => false), /refused/, JSON.stringify(override));
-      const printed = errors.map(args => args.map(String).join(' ')).join('\n');
+      const printed = lines.map(args => args.map(String).join(' ')).join('\n');
       for (const name of names) assert.equal(printed.includes(name), failed.includes(name), `${name} in ${printed}`);
-      assert.ok(!printed.includes('private'), printed);
+      for (const value of [...Object.values(override), ...secrets]) assert.ok(!printed.includes(value), `${value} in ${printed}`);
     }
-  } finally { console.error = error; }
+  } finally { Object.assign(console, saved); }
 });
