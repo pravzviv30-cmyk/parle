@@ -9824,7 +9824,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
 - note: 4 October 2026: adding expo-updates 57.0.24 triggered a fresh certificate-verifier review. Its Forge-dependent imports remain CLI-only; the mobile client does not import them, and iOS native verification uses Apple Security. The revised client/runtime boundary test passes; custom update signing remains unconfigured and the temporary exception's expiry is unchanged.
 - note: 6 October 2026: aligning the app with Expo SDK 57.0.27 moved expo-updates to 57.0.25 and repeated the version-specific review. Its only code change from 57.0.24 is the build-time createManifestForBuildAsync asset-hash index; Forge-dependent imports remain in the CLI's two code-signing commands, iOS verification still uses SecKeyVerifySignature, and node-forge 1.4.0 is still the latest release. The pinned version moved with the review; the exception's review date and expiry are unchanged.
-- note: 18 November 2026: aligning the app with Expo SDK 57.0.33 moved expo-updates to 57.0.28 and repeated the version-specific review. Its code changes from 57.0.25 are Android assets moved into place atomically after the hash check (and an on-disk asset reused only when its hash matches), and download progress sent to JavaScript in 1% steps on both platforms. Forge-dependent imports remain in the CLI's two code-signing commands, and iOS verification still uses SecKeyVerifySignature. The pinned version moved with the review; the picomatch exception's review date and expiry are unchanged.
+- note: 18 November 2026: aligning the app with Expo SDK 57.0.33 moved expo-updates to 57.0.28 and repeated the version-specific review. Its code changes from 57.0.25 are Android assets moved into place atomically after the hash check (and an on-disk asset reused only when its hash matches), and download progress sent to JavaScript in 1% steps on both platforms. Forge-dependent imports remain in the CLI's two code-signing commands, and iOS verification still uses SecKeyVerifySignature. The pinned version moved with the review; the picomatch exception's review date and expiry are unchanged. Its glob dependency moved from ^13.0.0 to ^14.0.3 (a nested glob 14.0.6), imported only by the build-time utils/vcs.
 - verified-by: `unpatched build-tool exceptions cannot enter service runtimes or the mobile update client`
 
 ### F712 — The generated iOS ignore rule excluded the handwritten Walk module
@@ -13714,9 +13714,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1257 — zod moves to 4.6.7 as the only installed copy and its audit record becomes fixed
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: package.json:114
 - note: GHSA-mrhx-c7xc-m3w5, fixed only in 4.6.6 and later; no zod 3 is patched. Ranges at packages/brain/package.json:23 and services/tutor-agent/package.json:28 go to ^4.6.6; every other dependent's peer range already accepts 4. The in-place exemption at ciContract.test.ts:374 and :382 extends from adm-zip to zod. Depends on F1256. deploy-engineer.
+- note: Fixed 2026-11-18 on claude/audit-zod, on top of F1256's Expo alignment. Both ranges went to ^4.6.6 and `npm install` moved three lock entries against claude/expo-patch's lock: node_modules/zod 3.25.76 to 4.6.7 and the two workspace ranges. One installed copy, no override, and no zod source migration (brain already imports zod/v4; the wire-form seam is F1258). The zod record is fixed, keyed in place with adm-zip in ciContract's inPlaceFixes. `audit:ci` exits zero: 0 critical, 24 high, 14 moderate, with picomatch the only accepted high root.
 - verified-by: `every locked zod is at or above the patched 4.6.6 and there is exactly one copy`
 - verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
 - verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
