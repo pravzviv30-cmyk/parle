@@ -2,6 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS } from '../services/tutor-agent/src/voice.ts';
 import { CAP, EXPERIMENTS, LINES, MODELS, buildDesign, buildHtml, buildPlan, estimateTotal, modelIdOf, requestBody, scoreResults, settingsOf, speakingRates, wavFromPcm } from './ttsBlindCheck.mjs';
+import * as blind from './ttsBlindCheck.mjs';
+import * as speed from './measureVoiceSpeed.mjs';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 const FLASH = 'eleven_flash_v2_5';
 const CURRENT = MODELS.find(m => m.label === 'current').id;
@@ -148,4 +154,46 @@ test('the billed request body carries each variant\'s own settings and the real 
   assert.deepEqual(a.voice_settings, VOICE_SETTINGS);
   assert.equal(b.voice_settings.style, 0);
   assert.equal(a.text, 'Bonjour.'); assert.equal(b.text, 'Bonjour.');
+});
+
+// No test here may spend: nothing passes --generate, and every spawn runs without vendor keys.
+const ROOT = resolve(import.meta.dirname, '..');
+
+test('a paid generator refuses when its committed manifest exists', () => {
+  assert.equal(typeof blind.refuseRerun, 'function', 'the blind check needs a guard that can be tested without spending');
+  assert.equal(typeof speed.refuseRerun, 'function', 'the voice speed check needs a guard that can be tested without spending');
+  for (const [name, experiment] of Object.entries(EXPERIMENTS)) {
+    const paths = { manifestPath: join(experiment.destination, 'manifest.json'), keyPath: join(experiment.destination, 'key.json'), evidence: experiment.evidence };
+    for (const resume of [false, true]) {
+      assert.throws(() => blind.refuseRerun(paths, resume), /committed/, `${name} is finished; its committed manifest alone must stop --generate${resume ? ' --resume' : ''}`);
+    }
+  }
+  assert.throws(() => speed.refuseRerun({ manifestPath: join(speed.DESTINATION, 'manifest.json'), evidence: speed.EVIDENCE }, false), /committed/,
+    'the voice speed evidence is committed; a fresh run on a machine without the local clips must still be refused');
+
+  const empty = mkdtempSync(join(tmpdir(), 'paid-guard-'));
+  const fresh = { manifestPath: join(empty, 'manifest.json'), keyPath: join(empty, 'key.json'), evidence: join(empty, 'evidence.json') };
+  assert.doesNotThrow(() => blind.refuseRerun(fresh, false), 'a new experiment with no evidence anywhere may run');
+  assert.doesNotThrow(() => speed.refuseRerun(fresh, false), 'a new measurement with no evidence anywhere may run');
+  writeFileSync(fresh.evidence, '{}');
+  assert.throws(() => blind.refuseRerun(fresh, false), /committed/, 'evidence alone, with no local manifest, must refuse');
+  assert.throws(() => speed.refuseRerun(fresh, false), /committed/, 'evidence alone, with no local manifest, must refuse');
+});
+
+test('paid generator paths do not depend on the working directory or one home folder', () => {
+  const elsewhere = mkdtempSync(join(tmpdir(), 'paid-cwd-'));
+  const home = mkdtempSync(join(tmpdir(), 'paid-home-'));
+  const dryRun = (script, args = []) => {
+    assert.ok(!args.includes('--generate'), 'a test must never ask a paid script to spend');
+    const run = spawnSync(process.execPath, ['--experimental-strip-types', '--no-warnings', resolve(ROOT, 'scripts', script), ...args],
+      { cwd: elsewhere, env: { PATH: process.env.PATH, HOME: home }, encoding: 'utf8' });
+    assert.equal(run.status, 0, `${script} dry run failed: ${run.stderr}`);
+    return JSON.parse(run.stdout.slice(0, run.stdout.lastIndexOf('}') + 1));
+  };
+  assert.equal(dryRun('ttsBlindCheck.mjs').destination, resolve(ROOT, 'artifacts/tts-blind-check-2026-10-22'), 'the blind check writes into the repo wherever it is run from');
+  assert.equal(dryRun('ttsBlindCheck.mjs', ['--experiment', 'style0']).destination, resolve(ROOT, 'artifacts/tts-blind-check-2026-11-07-style0'));
+  assert.equal(dryRun('compare-daily-voices.mjs').destination, resolve(ROOT, 'artifacts/voice-comparison-2026-09-19'), 'the voice comparison finds its committed manifest wherever it is run from');
+  const voiceSpeed = dryRun('measureVoiceSpeed.mjs');
+  assert.equal(voiceSpeed.destination, join(home, 'Developer/StartUps/listening/voice-speed-2026-10-25'), 'the listening folder follows whoever runs it, not one hard-coded home');
+  assert.equal(voiceSpeed.evidence, resolve(ROOT, 'docs/cogs-evidence/voice-speed-2026-10-25.json'), 'the evidence path is the committed file, wherever the script is run from');
 });

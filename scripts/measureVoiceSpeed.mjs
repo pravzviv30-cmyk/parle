@@ -20,6 +20,7 @@
  */
 import { mkdirSync, existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS, STREAMING_LATENCY, OUTPUT_ENCODING } from '../services/tutor-agent/src/voiceConfiguration.ts';
 import { CAFE_LESSON } from '../packages/core/src/lessons/cafe.ts';
@@ -30,8 +31,8 @@ export const HEADROOM = 500;
 export const SAMPLE_RATE = 22050;
 export const VOICE = 'alexandre';
 export const FLASH = 'eleven_flash_v2_5';
-export const DESTINATION = resolve('/Users/pravz_07/Developer/StartUps/listening/voice-speed-2026-10-25');
-export const EVIDENCE = resolve('docs/cogs-evidence/voice-speed-2026-10-25.json');
+export const DESTINATION = resolve(homedir(), 'Developer/StartUps/listening/voice-speed-2026-10-25');
+export const EVIDENCE = resolve(import.meta.dirname, '../docs/cogs-evidence/voice-speed-2026-10-25.json');
 export const DEEPGRAM_URL = 'https://api.deepgram.com/v1/listen?model=nova-3&language=fr&smart_format=true&mip_opt_out=true';
 
 /** The tutor's own longest scripted café line, imported from the lesson rather than retyped. */
@@ -134,6 +135,13 @@ function writeJson(path, value) {
   renameSync(tmp, path);
 }
 
+/** Stops a billed run before any request. A run writes the evidence at its first checkpoint, so the evidence refuses a fresh run; a resume still needs the local manifest. */
+export function refuseRerun({ manifestPath, evidence }, resume) {
+  if (existsSync(evidence) && !resume) throw new Error(`This measurement has evidence committed at ${evidence}. No regeneration is allowed.`);
+  if (existsSync(manifestPath) && !resume) throw new Error('Manifest already exists. No automatic retry or regeneration is allowed; use --resume to continue.');
+  if (resume && !existsSync(manifestPath)) throw new Error('No experiment to resume.');
+}
+
 async function main(argv) {
   if (argv.includes('--report-only')) {
     if (!existsSync(EVIDENCE)) throw new Error(`No evidence at ${EVIDENCE}.`);
@@ -156,8 +164,7 @@ async function main(argv) {
 
   const resume = argv.includes('--resume');
   const manifestPath = resolve(DESTINATION, 'manifest.json');
-  if (existsSync(manifestPath) && !resume) throw new Error('Manifest already exists. No automatic retry or regeneration is allowed; use --resume to continue.');
-  if (resume && !existsSync(manifestPath)) throw new Error('No experiment to resume.');
+  refuseRerun({ manifestPath, evidence: EVIDENCE }, resume);
   if (!process.env.ELEVEN_API_KEY) throw new Error('ELEVEN_API_KEY is missing.');
   if (!process.env.DEEPGRAM_API_KEY) throw new Error('DEEPGRAM_API_KEY is missing.');
 

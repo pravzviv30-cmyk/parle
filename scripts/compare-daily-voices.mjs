@@ -12,7 +12,7 @@ import { RECORDING_LANGUAGE } from './daily-tutor-plan.mjs';
 import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS } from '../services/tutor-agent/src/voice.ts';
 
 const CAP = 500;
-const destination = resolve('artifacts/voice-comparison-2026-09-19');
+const destination = resolve(import.meta.dirname, '../artifacts/voice-comparison-2026-09-19');
 const manifestPath = resolve(destination, 'manifest.json');
 const texts = [
   { kind: 'word', ...DAILY_WORDS.find(w => w.id === 'word:un-pourboire') },

@@ -13055,7 +13055,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1062 — The paid voice scripts can bill a finished experiment again
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/ttsBlindCheck.mjs:25
 - note: S1b-1 and S1b-4. The guard looks in a cwd-relative folder the manifests were moved out of, so `--generate` passes it and spends up to the 3600-character cap.
 - verified-by: `a paid generator refuses when its committed manifest exists`

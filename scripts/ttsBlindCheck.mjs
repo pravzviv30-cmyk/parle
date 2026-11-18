@@ -22,7 +22,8 @@ import { ELEVEN_VOICES, MODEL, VOICE_SETTINGS, STREAMING_LATENCY, LANGUAGE_CODE,
 export const CAP = 3600;
 export const HEADROOM = 500;
 export const SAMPLE_RATE = 22050;
-export const DESTINATION = resolve('artifacts/tts-blind-check-2026-10-22');
+const ROOT = resolve(import.meta.dirname, '..');
+export const DESTINATION = resolve(ROOT, 'artifacts/tts-blind-check-2026-10-22');
 export const STORAGE_KEY = 'tts-blind-check-2026-10-22';
 
 /** Real gpt-6-luna mission replies measured 2026-10-22. Keep exactly. */
@@ -38,14 +39,15 @@ export const EXPECTED_MULTIPLIERS = { alexandre: 1, emilie: 2, guillaume: 1, mar
 /** `id` identifies a variant (clip key, score, rates). `modelId` and `settings` override the ElevenLabs model and voice settings. */
 export const MODELS = [{ label: 'current', id: MODEL, rate: 1 }, { label: 'flash', id: 'eleven_flash_v2_5', rate: 0.5 }];
 export const EXPERIMENTS = {
-  default: { cap: CAP, models: MODELS, destination: DESTINATION, storageKey: STORAGE_KEY },
+  default: { cap: CAP, models: MODELS, destination: DESTINATION, storageKey: STORAGE_KEY, evidence: resolve(ROOT, 'docs/cogs-evidence/tts-blind-check/manifest.json') },
   style0: {
     cap: 4700, // Both variants bill at full rate: the plan estimates 4656, not the 3600 of the flash experiment.
     models: [
       { label: 'current', id: MODEL, rate: 1 },
       { label: 'style0', id: `${MODEL}+style0`, modelId: MODEL, settings: { ...VOICE_SETTINGS, style: 0 }, rate: 1 },
     ],
-    destination: resolve('artifacts/tts-blind-check-2026-11-07-style0'),
+    destination: resolve(ROOT, 'artifacts/tts-blind-check-2026-11-07-style0'),
+    evidence: resolve(ROOT, 'docs/cogs-evidence/tts-blind-check-2026-11-07-style0/manifest.json'),
     storageKey: 'tts-blind-check-2026-11-07-style0',
   },
 };
@@ -253,6 +255,13 @@ function writeJson(path, value) {
   renameSync(tmp, path);
 }
 
+/** Stops a billed run before any request. A finished experiment's manifest is committed outside its destination, so it alone refuses. */
+export function refuseRerun({ manifestPath, keyPath, evidence }, resume) {
+  if (existsSync(evidence)) throw new Error(`This experiment is finished; its manifest is committed at ${evidence}. No regeneration is allowed.`);
+  if (existsSync(manifestPath) && !resume) throw new Error('Manifest already exists. No automatic retry or regeneration is allowed.');
+  if (resume && !(existsSync(manifestPath) && existsSync(keyPath))) throw new Error('No experiment to resume.');
+}
+
 async function main(argv) {
   const at = argv.indexOf('--experiment');
   const experimentName = at === -1 ? 'default' : argv[at + 1];
@@ -286,8 +295,7 @@ async function main(argv) {
   if (!argv.includes('--generate')) return;
 
   const resume = argv.includes('--resume');
-  if (existsSync(manifestPath) && !resume) throw new Error('Manifest already exists. No automatic retry or regeneration is allowed.');
-  if (resume && !(existsSync(manifestPath) && existsSync(keyPath))) throw new Error('No experiment to resume.');
+  refuseRerun({ manifestPath, keyPath, evidence: experiment.evidence }, resume);
   if (!process.env.ELEVEN_API_KEY) throw new Error('ELEVEN_API_KEY is missing.');
   const headers = { 'xi-api-key': process.env.ELEVEN_API_KEY, 'Content-Type': 'application/json' };
   const json = async path => {
