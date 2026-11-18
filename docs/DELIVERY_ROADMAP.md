@@ -174,11 +174,11 @@ cannot hold them:
   told. That is a fact about the phase and not about one slice: nothing in Phase 5 built
   one, and `docs/IMPLEMENTATION_EVIDENCE.md` still lists the in-app escalation UI among the
   things the tutor-safety row has not proven.
-- **The six external checks are unchanged and unclaimed.** Migration 7 deployment and its
-  live verification, a Supabase-authenticated first run, the device and five-viewport
-  accessibility matrix with VoiceOver and TalkBack, the F57 stopwatch, vendor credential
-  rotation, and F79 (closed 2026-11-18 by the durable claim) all stand where the section
-  above leaves them.
+- **Five of the six external checks are unchanged and unclaimed.** Migration 7 deployment
+  and its live verification, a Supabase-authenticated first run, the device and five-viewport
+  accessibility matrix with VoiceOver and TalkBack, the F57 stopwatch, and vendor credential
+  rotation all stand where the section above leaves them. The sixth, F79, was closed
+  2026-11-18 by the durable claim.
 
 ## Phase 6: what the exit criterion means, and where it stands
 
@@ -296,7 +296,8 @@ seen on a phone, no delayed test has been sat by a person, no replay has been sp
 reminder has been seen firing, and no launcher icon has been confirmed free of a badge. There
 is no development build, so there is not yet a way to look.
 
-The six external checks the Phase 4 and Phase 5 sections leave standing are unchanged and
-still unclaimed: migration 7's deployment and its live verification, a Supabase-authenticated
-first run, the device and five-viewport accessibility matrix with VoiceOver and TalkBack, the
-F57 stopwatch, vendor credential rotation, and F79 (closed 2026-11-18 by the durable claim).
+Of the six external checks the Phase 4 and Phase 5 sections leave standing, five are
+unchanged and still unclaimed: migration 7's deployment and its live verification, a
+Supabase-authenticated first run, the device and five-viewport accessibility matrix with
+VoiceOver and TalkBack, the F57 stopwatch, and vendor credential rotation. The sixth, F79, was
+closed 2026-11-18 by the durable claim.

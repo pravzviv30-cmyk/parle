@@ -1845,11 +1845,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reported session id, so the join path can consult it. That is a token-server change and was
   outside the voice engineer's territory, so it is filed rather than reached for. Related:
   agent.ts keeps a refused replay's job alive on its hardStop timer, costing no vendor spend
-  but holding a worker slot.
+  but holding a worker slot. (2026-11-18: no longer true for lifecycle sessions. `hardStop`
+  exists only without a lifecycle, agent.ts:399, and a refused claim throws at agent.ts:194.)
 - note: Closed 2026-11-18 (B3a part A). The durable `claim_tutor_session_v1` fence refuses a
   second claim for any worker and across restarts, and production requires lifecycle version 1,
   so no shared store is needed. `claim()` throws `SessionLifecycleError` on the refusal, and
   agent.ts awaits the claim before it builds any paid runtime, proxy or provider.
+  `scripts/verifyTutorSessions.mjs:108` proves in every gate run that the database refuses a
+  second claim with a different nonce.
 - verified-by: `a claim the database refuses throws before any provider is built`
 
 ### F80 — Four live vendor credentials sit in git history on two local branches
@@ -13770,8 +13773,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1109 — The voice proxy carries a cap that cannot bind, a comment describes a shared process, and the verify harness imports an undeclared package
 - severity: P2
 - status: [x]
-- where: services/tutor-agent/src/paidVoiceProxy.ts:48
+- where: services/tutor-agent/src/paidVoiceProxy.ts:162
 - note: B3a-4, B3a-5 and B3a-9, part A, plus the B3a-8 deletion if the founder chooses it. No test dies and the floor is unchanged.
 - note: Fixed 2026-11-18 on claude/review-b3a. `activeTransports` and its two `>=64` checks are gone; the per-proxy caps of 4 HTTP and 2 streams stay. The agent.ts comment on the client-message `.catch` now describes one job process per session and the SDK's debug-only unhandledRejection handler. `livekit-server-sdk` ^2.17.0 is a tutor-agent devDependency, one lockfile line. The founder chose to delete `verify/brainSpend.ts` (2026-11-18), and it is deleted.
 - verified-by: `four HTTP transports maximum; session cancellation releases them without a fifth effect`
 - verified-by: `two streams maximum and global/per-connection PCM duration cannot be exceeded`
+- verified-by: `every bare package a tutor-agent source imports is declared in its package.json`
