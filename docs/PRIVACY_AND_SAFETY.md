@@ -691,6 +691,15 @@ choice" section of `legal/policy.ts`, the gate is `analytics/consent.ts` read by
 not: no scheduled delete exists, and the notice states the period anyway, which is
 recorded in [Not true yet](#not-true-yet) rather than softened. 5 is unchanged.
 
+**What the owner-run beta report reads.** `deployment/beta-metrics.sql` is run by
+the project owner in the Supabase SQL editor, only reads, and returns aggregates.
+For every account, whether or not they allowed analytics, it reads the billing
+tables (plan, period dates, seconds used and withheld, never a price or a receipt)
+and, from the synced profile, activity and game data, one closed goal answer and
+practice dates. It never reads a phrase or anything a learner said. Product events
+appear in it only for learners who said yes, so its funnel and session numbers
+cover consented learners only.
+
 ## Antifraud identifiers: purpose, retention and disclosure
 
 `public.trial_installations` holds two values per claimed trial:
