@@ -13534,3 +13534,33 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: docs/KNOWN_ISSUES.md:12722
 - note: Found by work-judge (Fable 5.2), audit fix slice A, 2026-11-18. The contract asked for a one-line pointer on F1006; it now says decode-uri-component is fixed by F1254 and zod is still accepted. Docs only; the title below is the existing test that holds the record.
 - verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+
+### F1256 — The Expo CLI still pins zod 3, which blocks every zod fix
+- severity: P1
+- status: [ ]
+- where: package-lock.json:6071
+- note: @expo/cli 57.0.28 declares zod ^3.25.76; 57.0.33 dropped it. Five narrow moves failed in a probe (npm 11.13.0), and `npm update expo` to 57.0.33 worked but moves expo-modules-jsi off the patched 57.1.1 and other native modules. deploy-engineer retries the narrow move in the worktree under the stop conditions; if it fails, the Expo patch update needs the founder's yes and its own PR. The last two tests apply on that route.
+- verified-by: `the Expo CLI no longer depends on zod`
+- verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
+- verified-by: `the locked expo-modules-jsi is a version the iOS signing workaround has been checked against`
+- verified-by: `the installed expo-modules-jsi build leaves its intermediate framework unsigned`
+
+### F1257 — zod moves to 4.6.7 as the only installed copy and its audit record becomes fixed
+- severity: P1
+- status: [ ]
+- where: package.json:114
+- note: GHSA-mrhx-c7xc-m3w5, fixed only in 4.6.6 and later; no zod 3 is patched. Ranges at packages/brain/package.json:23 and services/tutor-agent/package.json:28 go to ^4.6.6; every other dependent's peer range already accepts 4. The in-place exemption at ciContract.test.ts:374 and :382 extends from adm-zip to zod. Depends on F1256. deploy-engineer.
+- verified-by: `every locked zod is at or above the patched 4.6.6 and there is exactly one copy`
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
+- verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+
+### F1258 — Structured outputs are proven on zod 4.6.7 with no source migration
+- severity: P1
+- status: [ ]
+- where: packages/brain/src/contract/schemas.test.ts:91
+- note: Brain imports zod/v4 in eight files and the Anthropic helper imports zod/v4. The probe passed 822 of 822 and typecheck on 4.6.7, unedited. One new test asserts that brain and the helper resolve the same zod file, because two copies is the failure the probe produced when @expo/cli was left behind. api-engineer; any source change the suites force goes here and nowhere else.
+- verified-by: `the brain and the Anthropic helper convert schemas with the same zod instance`
+- verified-by: `the floor travels to the model, not just to our own parse`
+- verified-by: `every generated object forbids unknown properties and requires every key`
+- verified-by: `the strict JSON schema sent to the model follows the order`
+- verified-by: `uses Luna for a live turn, strict structured output, and a developer channel for app context`
