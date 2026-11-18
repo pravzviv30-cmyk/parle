@@ -177,10 +177,8 @@ describe('the privacy notice — F479', () => {
     for (const line of [...POLICY_COPY, POLICY_TITLE, POLICY_INTRO, ...policyCopy(SUPPLIED)]) {
       assert.equal(guiltIn(line), undefined, `guilt in the notice: ${line}`);
       assert.doesNotMatch(line, /[—–]/, `em dash in the notice: ${line}`);
-      // The founder's approved retention sentences keep their numerals (F1252, F1253).
-      const approved = line === KEPT ? / 30 days / : line === 'Database backups keep a copy of everything for up to 7 days, then roll off.' ? / 7 days/ : /^$/;
       assert.doesNotMatch(
-        line.replace(/hello@example\.com|01234567/g, '').replace(approved, ''),
+        line.replace(/hello@example\.com|01234567/g, ''),
         /\d/,
         `a digit in the notice, where a period should be a word: ${line}`,
       );
@@ -816,9 +814,9 @@ describe('the privacy notice — F479', () => {
     const rights = POLICY_SECTIONS.find(section => section.heading === 'Your rights');
     const keeping = POLICY_SECTIONS.find(section => section.heading === 'How long we keep things');
     assert.ok(rights && keeping);
-    assert.ok(rights.body.includes('A few things of ours are kept on purpose. The trial markers above, and the random installation id they are made from. A short record that your deletion happened, with your account\'s random id and the date it finished, removed 30 days later. That same random id in a separate, encrypted list of deletions, so a deleted account cannot come back if we ever restore from a backup; it is removed within about two months. And when you delete a saved practice pack, its random id with no link to you, so a late job cannot bring it back. None of these carries learning, content, or anything that names you.'));
+    assert.ok(rights.body.includes('A few things of ours are kept on purpose. The trial markers above, and the random installation id they are made from. A short record that your deletion happened, with your account\'s random id and the date it finished, removed thirty days later. That same random id in a separate, encrypted list of deletions, so a deleted account cannot come back if we ever restore from a backup; it is removed within about two months. And when you delete a saved practice pack, its random id with no link to you, so a late job cannot bring it back. None of these carries learning, content, or anything that names you.'));
     assert.doesNotMatch(WHOLE, /Two things of ours are kept on purpose/);
-    const backup = keeping.body.indexOf('Database backups keep a copy of everything for up to 7 days, then roll off.');
+    const backup = keeping.body.indexOf('Database backups keep a copy of everything for up to seven days, then roll off.');
     assert.ok(backup >= 0, 'the backup sentence is missing');
     assert.equal(keeping.body[backup + 1], 'Deleting your account removes what is tied to it sooner than any of these.');
     // The removal it promises is real: the job marks the entry finished only after the identity is gone.
@@ -836,9 +834,10 @@ describe('the privacy notice — F479', () => {
     const journal = readFileSync(fileURLToPath(new URL('../../../../services/token-server/src/deletionJournal.ts', import.meta.url)), 'utf8');
     const days = Number(/export const BACKUP_WINDOW_DAYS = (\d+);/.exec(journal)?.[1]);
     assert.ok(Number.isInteger(days) && days > 0, 'BACKUP_WINDOW_DAYS is not where this test reads it');
-    const said = WHOLE.match(/Database backups keep a copy of everything for up to (\d+) days, then roll off\./);
-    assert.ok(said, 'the backup sentence is missing');
-    assert.equal(Number(said[1]), days);
+    // Words rather than digits, like the other retentions.
+    const word = ({ 7: 'seven' } as Record<number, string>)[days];
+    assert.ok(word, `BACKUP_WINDOW_DAYS is ${days}: write it as a word in the notice and here`);
+    assert.match(WHOLE, new RegExp(`Database backups keep a copy of everything for up to ${word} days, then roll off\\.`), 'the backup sentence is missing or disagrees with BACKUP_WINDOW_DAYS');
     const gate = readFileSync(fileURLToPath(new URL('../../../../docs/RELEASE_GATE.md', import.meta.url)), 'utf8');
     assert.match(gate, new RegExp(`^- \\[[ x]\\] Production Supabase is on the Pro plan with daily backups kept ${days} days`, 'm'));
     assert.match(gate, /`BACKUP_WINDOW_DAYS` and the notice change together/);
