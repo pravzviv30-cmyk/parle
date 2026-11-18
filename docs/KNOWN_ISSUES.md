@@ -13092,7 +13092,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1301 — Resuming the finished voice speed run rewrites its committed evidence
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/measureVoiceSpeed.mjs:129
 - note: With the local manifest present and complete, `--generate --resume` passes `refuseRerun`, sends no paid request, then overwrites `after` and `measuredCredits` in `docs/cogs-evidence/voice-speed-2026-10-25.json` with today's balance.
 - verified-by: `a finished voice speed measurement refuses a resume too`

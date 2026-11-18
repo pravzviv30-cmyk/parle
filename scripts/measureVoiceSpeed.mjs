@@ -127,7 +127,7 @@ function writeJson(path, value) {
 
 /** Stops a billed run before any request. A run writes the evidence at its first checkpoint, so the evidence refuses a fresh run; a resume still needs the local manifest. */
 export function refuseRerun({ manifestPath, evidence }, resume) {
-  if (existsSync(evidence) && !resume) throw new Error(`This measurement has evidence committed at ${evidence}. No regeneration is allowed.`);
+  if (existsSync(evidence) && (!resume || readJson(evidence).status === 'complete')) throw new Error(`This measurement has evidence committed at ${evidence}. No regeneration is allowed.`);
   if (existsSync(manifestPath) && !resume) throw new Error('Manifest already exists. No automatic retry or regeneration is allowed; use --resume to continue.');
   if (resume && !existsSync(manifestPath)) throw new Error('No experiment to resume.');
 }

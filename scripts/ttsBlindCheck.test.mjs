@@ -181,6 +181,17 @@ test('a paid generator refuses when its committed manifest exists', () => {
   assert.throws(() => speed.refuseRerun(fresh, false), /committed/, 'evidence alone, with no local manifest, must refuse');
 });
 
+test('a finished voice speed measurement refuses a resume too', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'speed-resume-'));
+  const paths = { manifestPath: join(dir, 'manifest.json'), evidence: join(dir, 'evidence.json') };
+  writeFileSync(paths.manifestPath, '{}');
+  writeFileSync(paths.evidence, JSON.stringify({ status: 'complete' }));
+  assert.throws(() => speed.refuseRerun(paths, true), /committed/, 'a complete measurement must not be resumed');
+  writeFileSync(paths.evidence, JSON.stringify({ status: 'stopped' }));
+  assert.doesNotThrow(() => speed.refuseRerun(paths, true), 'a stopped measurement may still be resumed');
+  assert.throws(() => speed.refuseRerun({ manifestPath: join(speed.DESTINATION, 'manifest.json'), evidence: speed.EVIDENCE }, true), /committed/);
+});
+
 test('paid generator paths do not depend on the working directory or one home folder', () => {
   const elsewhere = mkdtempSync(join(tmpdir(), 'paid-cwd-'));
   const home = mkdtempSync(join(tmpdir(), 'paid-home-'));
