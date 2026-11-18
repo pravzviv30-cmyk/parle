@@ -116,9 +116,9 @@ until somebody runs them and writes down what happened.
 - **The vendor credentials are not rotated.** Treat the Groq, Deepgram, ElevenLabs and
   LiveKit keys as live until their vendor consoles say otherwise. Blocked on
   `vendor-key-rotation`.
-- **The replayed-credential refusal is still worker-local.** F79 stays open until the join
-  path consults the `session_usage` ledger, so the refusal holds for the worker that
-  served the original session and no further.
+- **The replayed-credential refusal is closed by the durable claim (F79, 2026-11-18).**
+  `claim_tutor_session_v1` refuses a second claim for any worker and across restarts, and
+  production requires lifecycle version 1, so no shared store is needed.
 
 Phase 4's review screen deserves the same honesty on its own terms. Its accessibility
 evidence is source-level. The tests prove that the labels, the roles and the reveal
@@ -177,7 +177,8 @@ cannot hold them:
 - **The six external checks are unchanged and unclaimed.** Migration 7 deployment and its
   live verification, a Supabase-authenticated first run, the device and five-viewport
   accessibility matrix with VoiceOver and TalkBack, the F57 stopwatch, vendor credential
-  rotation, and F79 all stand where the section above leaves them.
+  rotation, and F79 (closed 2026-11-18 by the durable claim) all stand where the section
+  above leaves them.
 
 ## Phase 6: what the exit criterion means, and where it stands
 
@@ -298,4 +299,4 @@ is no development build, so there is not yet a way to look.
 The six external checks the Phase 4 and Phase 5 sections leave standing are unchanged and
 still unclaimed: migration 7's deployment and its live verification, a Supabase-authenticated
 first run, the device and five-viewport accessibility matrix with VoiceOver and TalkBack, the
-F57 stopwatch, vendor credential rotation, and F79.
+F57 stopwatch, vendor credential rotation, and F79 (closed 2026-11-18 by the durable claim).
