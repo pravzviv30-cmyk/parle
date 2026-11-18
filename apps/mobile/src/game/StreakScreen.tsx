@@ -23,9 +23,10 @@
  *   the touch floor, off where the months run out.
  * - The freeze card shows what the plan holds once the plan is known: the free
  *   plan's one freeze "Free with every account" (D23) and the trial pill for a
- *   second freeze and repair; a subscriber's two. A subscriber earning a repair
- *   sees the repair card; a free learner just after a reset sees one calm line
- *   and See plans (D4). No notification, no countdown.
+ *   second freeze and the weekly repair; a subscriber's two. Any learner earning
+ *   a repair sees the repair card, and the trial pill hides then (D26); a free
+ *   learner whose repair is spent sees, just after a reset, one calm line and
+ *   See plans in its place (D4). No notification, no countdown.
  * - The milestone row has no reward line: no milestone carries one yet.
  * - The Evening nudge is the daily reminder's switch, absent on a build that
  *   cannot schedule one and until it has been read.

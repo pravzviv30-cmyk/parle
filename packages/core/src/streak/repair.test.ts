@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { addDays, type DayKey } from './dayKey.ts';
 import { streakFrom, type StreakCover } from './streak.ts';
-import { REPAIR_EVERY_DAYS, REPAIR_MAX_GAP, REPAIR_PRACTICES, recentBreak, repairOffer, repairOfferWithLimit } from './repair.ts';
+import { FREE_REPAIR_EVERY_DAYS, REPAIR_EVERY_DAYS, REPAIR_MAX_GAP, REPAIR_PRACTICES, recentBreak, repairOffer, repairOfferWithLimit } from './repair.ts';
 
 process.env.TZ = 'Europe/Paris';
 
@@ -135,5 +135,33 @@ describe('streak repair', () => {
     });
     assert.equal(offerWith('2026-09-27'), null, 'a second repair within a week is refused');
     assert.equal(offerWith('2026-09-26')?.ready, true, 'a repair a full week back leaves the next one open');
+  });
+
+  // A run from 25 August to 2 October with one repaired day, then the 3rd got away.
+  const offerAfterRepair = (repaired: string, everyDays?: number) => repairOffer({
+    practiceDays: [...Array.from({ length: 39 }, (_, i) => addDays('2026-08-25', i)).filter((day) => day !== repaired), '2026-10-04'],
+    covers: [{ day: repaired, kind: 'repair', at: 1 }],
+    today: '2026-10-04',
+    entitled: true,
+    sittings: [{ at: noon('2026-10-04') }, { at: noon('2026-10-04', 20) }],
+    ...(everyDays === undefined ? {} : { everyDays }),
+  });
+
+  test("a free learner's repair is offered once in 30 days and a subscriber's once in 7", () => {
+    assert.equal(FREE_REPAIR_EVERY_DAYS, 30);
+    // A repair 18 days before the gap: the subscriber may repair again, the free learner waits.
+    assert.equal(offerAfterRepair('2026-09-15')?.ready, true, 'no limit given means the paid seven days');
+    assert.equal(offerAfterRepair('2026-09-15', REPAIR_EVERY_DAYS)?.ready, true);
+    assert.equal(offerAfterRepair('2026-09-15', FREE_REPAIR_EVERY_DAYS), null);
+    // Thirty days back is far enough for the free learner, twenty-nine is not.
+    assert.equal(offerAfterRepair('2026-09-03', FREE_REPAIR_EVERY_DAYS)?.ready, true);
+    assert.equal(offerAfterRepair('2026-09-04', FREE_REPAIR_EVERY_DAYS), null);
+  });
+
+  test('a repair made on a paid plan counts against the free 30 days', () => {
+    // Covers carry no plan: a repair written ten days back while subscribed is still a repair.
+    // The learner is now free, so the free limit is measured against it.
+    assert.equal(offerAfterRepair('2026-09-23', REPAIR_EVERY_DAYS)?.ready, true, 'on the paid plan it would be open');
+    assert.equal(offerAfterRepair('2026-09-23', FREE_REPAIR_EVERY_DAYS), null);
   });
 });

@@ -32,6 +32,8 @@
 
 import {
   DAILY_XP_CAP,
+  doublePracticeDays,
+  freezeBanked,
   freezesHeld,
   goalProgressFrom,
   localDayKey,
@@ -156,16 +158,19 @@ export interface GameView {
   /**
    * The practice days and covers the streak is folded from, for the Streak
    * screen's week strip and month calendar (Phase 4), so they draw the same
-   * days the number above counts.
+   * days the number above counts. `bankDays` are the days with two finished
+   * practices, so the freeze card reads the same bank `freezes` counted.
    */
-  days: { practiceDays: readonly DayKey[]; covers: readonly StreakCover[] };
+  days: { practiceDays: readonly DayKey[]; covers: readonly StreakCover[]; bankDays: readonly DayKey[] };
   /**
    * What the confirmed plan opens for the streak, or null while the plan is
    * unknown. `cap` is how many freezes it holds: two on a paid plan, one on the
    * free plan (D23).
    */
   protection: StreakProtectionView | null;
-  /** The repair a subscriber is earning now, or null: never for a free learner or an unknown plan (D4). */
+  /** True while a freeze is banked above the plan's own, from a day with two practices; never on an unknown plan. */
+  freezeBanked: boolean;
+  /** The repair being earned now, or null: once every 7 days on a paid plan, 30 on the free plan, never on an unknown one (D4, D19). */
   repair: RepairOffer | null;
   /**
    * Measured minutes over every finished sitting this phone holds, floored:
@@ -179,18 +184,18 @@ export interface GameView {
 
 type DayOf = (at: number) => DayKey;
 
-export interface StreakProtectionView { freezes: boolean; repair: boolean; cap: number }
+export interface StreakProtectionView { freezes: boolean; repair: boolean; cap: number; repairEveryDays: number }
 
 /**
- * What the server's answer opens for the streak (founder decisions D4, D23):
- * two freezes and the repair on a paid plan, one freeze on the free plan.
- * Unknown opens nothing. The one place the game layer asks the plan table, and
+ * What the server's answer opens for the streak (founder decisions D4, D23,
+ * D26): two freezes and a repair every 7 days on a paid plan, one freeze and a
+ * repair every 30 days on the free plan. Unknown opens nothing. The one place the game layer asks the plan table, and
  * it reads `streakProtection` alone: freezes and repair gate no earned learning.
  */
 export function protectionOf(billing: BillingFacts | null): StreakProtectionView | null {
   if (billing === null) return null;
   const protection = capabilitiesFor(billing.plan, billing.lapsed).streakProtection;
-  return { freezes: protection.freezes > 0, repair: protection.repair, cap: protection.freezes };
+  return { freezes: protection.freezes > 0, repair: protection.repair, cap: protection.freezes, repairEveryDays: protection.repairEveryDays };
 }
 
 /** Every finished sitting: the activity log's and the zero-XP ones the game store keeps. */
@@ -340,9 +345,10 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
   const streakInput = { practiceDays: facts.practiceDays, covers: facts.game.covers, today };
   const streak = streakFrom(streakInput);
   const protection = protectionOf(facts.billing);
-  const freezes = freezesHeld(protection?.cap ?? 0, streakInput);
-  const xpParts = displayXp(facts, dayOf);
   const sittings = finishedSittings(facts);
+  const bankDays = doublePracticeDays(sittings, dayOf);
+  const freezes = freezesHeld(protection?.cap ?? 0, { ...streakInput, bankDays });
+  const xpParts = displayXp(facts, dayOf);
   const goal = goalProgressFrom({ sittings, target: facts.outside.goalTarget, today, dayKey: dayOf });
   const dayFacts = dayFactsFrom(facts, today, goal, dayOf);
   const held = facts.game.questDays.find((row) => row.day === today);
@@ -365,9 +371,10 @@ export function gameViewFrom(facts: GameFacts, today: DayKey, dayOf: DayOf = loc
       facts: dayFacts,
     },
     badges: facts.game.badges,
-    days: { practiceDays: facts.practiceDays, covers: facts.game.covers },
+    days: { practiceDays: facts.practiceDays, covers: facts.game.covers, bankDays },
     protection,
-    repair: protection?.repair === true ? repairOffer({ ...streakInput, entitled: true, sittings, dayKey: dayOf }) : null,
+    freezeBanked: (protection?.cap ?? 0) > 0 && freezeBanked({ ...streakInput, bankDays }),
+    repair: protection?.repair === true ? repairOffer({ ...streakInput, entitled: true, sittings, dayKey: dayOf, everyDays: protection.repairEveryDays }) : null,
     minutesPractised: measuredMinutes(sittings),
     practisedMs: measuredMs(sittings),
   };

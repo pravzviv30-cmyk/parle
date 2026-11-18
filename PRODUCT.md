@@ -116,13 +116,17 @@ Two hard behavioural commitments, both derived from confirmed research:
   because the free practices count too. A safety stop earns no day. The number
   is the practice days in the current run.
 
-  A free learner holds one freeze and a paid plan holds two, plus repair (D23,
+  A free learner holds one freeze and a paid plan holds two (D23,
   2026-10-20). A freeze is applied automatically, a covered day keeps the run
-  without adding to it, and a used freeze comes back a week later. For a free
-  learner a missed day the freeze cannot cover starts a new run. Just after a run ends, a free learner sees one
-  calm line on the Streak screen and a way to see plans:
-  "Subscribers can repair a streak within 2 days." Repair never has a
-  notification or a countdown. One reminder may say "Save your 12-day streak"
+  without adding to it, and a used freeze comes back a week later. A day with
+  two finished practices banks one more freeze, one at most, earned again a
+  week after it is used (D27, 2026-11-18). Two practices within two days of a
+  break repair the run: once every 30 days on the free plan, once every 7 on a
+  paid plan (D19, D26). While a repair is open the Streak screen shows it and
+  nothing about plans. Once a free learner's repair is spent, just after a run
+  ends, they see one calm line and a way to see plans: "You can repair a
+  streak once every 30 days. Paid plans add a second freeze and a repair
+  every week." Repair and the bank never have a notification or a countdown. One reminder may say "Save your 12-day streak"
   (D25, 2026-11-18): it takes the place of that day's one reminder, never adds
   one, and comes only on a run of three days or more when no freeze would
   cover the day. It never counts down and never names a plan or a repair.

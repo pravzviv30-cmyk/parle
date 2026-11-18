@@ -132,8 +132,10 @@ export const GAME_COPY = {
       free: 'Free with every account',
       plan: 'Two come with your plan',
       line: (max: number): string =>
-        `If a day gets away from you, ${max <= 1 ? 'your freeze' : 'a freeze'} covers it by itself. There's nothing to switch on. A used freeze comes back a week later.`,
-      upsell: 'A second freeze and streak repair',
+        `If a day gets away from you, ${max <= 1 ? 'your freeze' : 'a freeze'} covers it by itself. There's nothing to switch on. A used freeze comes back a week later. Two practices in one day bank one more.`,
+      upsell: 'A second freeze and a repair every week',
+      /** In the sub slot while a freeze is banked above the plan's own (founder, 2026-11-18). */
+      banked: 'One is banked from a day with two practices',
     },
   },
 
@@ -172,8 +174,8 @@ export const GAME_COPY = {
       const years = Math.round(n / 365);
       return `${years} years of French.`;
     },
-    /** The one calm line a free learner sees after a reset (D4). No countdown, no notification. */
-    repairForSubscribers: 'Subscribers get a second freeze and can repair a streak within 2 days.',
+    /** The one calm line a free learner sees after a reset once their repair is spent (D4, F1270). No countdown, no notification. */
+    repairForSubscribers: 'You can repair a streak once every 30 days. Paid plans add a second freeze and a repair every week.',
   },
 
   level: {

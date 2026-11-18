@@ -1,6 +1,6 @@
 /**
  * A streak repair (come alive D4, D10 and D19): a coral ring broken at the
- * top and mended with a stitched sun patch, for a run a subscriber brought
+ * top and mended with a stitched sun patch, for a run a learner brought
  * back.
  *
  *   ground  what it sits on, so it never vanishes into it.

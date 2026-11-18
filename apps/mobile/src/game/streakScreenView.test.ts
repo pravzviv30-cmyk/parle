@@ -183,9 +183,10 @@ describe('the Streak screen — F770', () => {
     const broken = ['2026-10-03', '2026-10-04', '2026-10-05'];
     const todaySitting: ActivityEntry[] = [{ at: at(10, 7, 9), kind: 'drill', xp: 20, activeMs: 120_000 }];
 
-    // A free learner, just after the reset: the one calm line and See plans.
-    const free = screenOf(facts({ practiceDays: broken, billing: FREE }));
-    assert.deepEqual(free.repairForSubscribers, { line: 'Subscribers get a second freeze and can repair a streak within 2 days.', action: 'See plans' });
+    // A free learner whose repair restored a day ten days ago, just after the
+    // reset: the free 30 days are not up, so the one calm line and See plans.
+    const free = screenOf(facts({ practiceDays: ['2026-09-24', '2026-09-25', '2026-09-27', ...broken], covers: [{ day: '2026-09-26', kind: 'repair', at: at(9, 27, 9) }], billing: FREE }));
+    assert.deepEqual(free.repairForSubscribers, { line: 'You can repair a streak once every 30 days. Paid plans add a second freeze and a repair every week.', action: 'See plans' });
     // D23: a free learner holds one freeze, and sees it.
     assert.deepEqual(free.freezes && [free.freezes.held, free.freezes.max, free.freezes.ready, free.freezes.returns], [1, 1, '1 ready', null]);
     assert.equal(free.repair, null, 'a free learner is offered a repair');
@@ -256,7 +257,7 @@ describe('the Streak screen — F770', () => {
 describe('the B-Streak card rules', () => {
   test('the freeze card says what the plan holds, and the trial pill only without a repair', () => {
     const free = screenOf(facts({ practiceDays: ['2026-10-06'], billing: FREE }));
-    assert.deepEqual(free.freezeCard && [free.freezeCard.title, free.freezeCard.sub, free.freezeCard.upsell], ['1 streak freeze ready', 'Free with every account', 'A second freeze and streak repair']);
+    assert.deepEqual(free.freezeCard && [free.freezeCard.title, free.freezeCard.sub, free.freezeCard.upsell], ['1 streak freeze ready', 'Free with every account', 'A second freeze and a repair every week']);
     assert.match(free.freezeCard!.line, /your freeze covers it by itself/);
     const paid = screenOf(facts({ practiceDays: ['2026-10-06'], billing: PAID }));
     assert.deepEqual(paid.freezeCard && [paid.freezeCard.title, paid.freezeCard.sub, paid.freezeCard.upsell], ['2 streak freezes ready', 'Two come with your plan', null]);
@@ -312,5 +313,90 @@ describe('the month is seven columns, header and days alike', () => {
     assert.match(parts, /dateCol: \{ flex: 1, minWidth: 0,/, 'the columns are not equal flex cells');
     assert.doesNotMatch(parts, /flexWrap: 'wrap'[^\n]*\n[^\n]*dateCol/, 'the month grid wraps again');
     assert.doesNotMatch(parts, /weekday: \{[^}]*(flexBasis|width)/, 'the header letters carry a width rule of their own');
+  });
+});
+
+// F1270 (founder, 2026-11-18): the free plan repairs once every 30 days, and a day with two practices banks a freeze.
+describe('free earn-back and the banked freeze on the Streak screen', () => {
+  const broken = ['2026-10-03', '2026-10-04', '2026-10-05'];
+  const todaySitting: ActivityEntry[] = [{ at: at(10, 7, 9), kind: 'drill', xp: 20, activeMs: 120_000 }];
+  const spentRepair = { practiceDays: ['2026-09-24', '2026-09-25', '2026-09-27', ...broken], covers: [{ day: '2026-09-26', kind: 'repair' as const, at: at(9, 27, 9) }], billing: FREE };
+
+  test('a free learner earning a repair sees the repair card and no plan line', () => {
+    const free = screenOf(facts({ practiceDays: [...broken, TODAY], activity: todaySitting, billing: FREE }));
+    assert.ok(free.repair, 'a free learner earning a repair is not shown it');
+    assert.equal(free.repair.title, 'Bring back your 3-day streak');
+    assert.equal(free.repair.progress, '1 of 2 practices done');
+    assert.equal(free.repairForSubscribers, null, 'a plan line sits beside the repair');
+  });
+
+  test('a free learner whose repair is spent sees the one calm line and See plans', () => {
+    const free = screenOf(facts(spentRepair));
+    assert.equal(free.repair, null, 'a second free repair inside 30 days');
+    assert.deepEqual(free.repairForSubscribers, { line: 'You can repair a streak once every 30 days. Paid plans add a second freeze and a repair every week.', action: 'See plans' });
+    assert.equal(free.freezeCard?.upsell, null, 'a plan row beside the one calm line');
+    // Never while the run is alive, nor for a subscriber.
+    assert.equal(screenOf(facts({ ...spentRepair, practiceDays: [...spentRepair.practiceDays, '2026-10-06'] })).repairForSubscribers, null);
+    assert.equal(screenOf(facts({ ...spentRepair, billing: PAID })).repairForSubscribers, null);
+  });
+
+  test('a subscriber whose weekly repair is spent sees no plan line after a fresh break', () => {
+    // A repair restored the 1st six days ago, and the 6th went by: no repair is open, and a subscriber is sold nothing.
+    const paid = screenOf(
+      facts({
+        practiceDays: ['2026-09-28', '2026-09-29', '2026-09-30', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05'],
+        covers: [{ day: '2026-10-01', kind: 'repair', at: at(10, 2, 9) }],
+        billing: PAID,
+      }),
+    );
+    assert.equal(paid.repair, null, 'a second weekly repair inside 7 days');
+    assert.equal(paid.repairForSubscribers, null, 'a subscriber is sold a plan');
+    assert.equal(paid.freezeCard?.upsell, null);
+  });
+
+  test('an unknown plan is offered no repair', () => {
+    // An unknown plan reads repairEveryDays 0, which core takes as no limit: the repair guard alone keeps it closed.
+    const UNKNOWN: BillingFacts = { plan: 'unknown', lapsed: false, secondsRemaining: 0, canStart: false };
+    const f = facts({ practiceDays: [...broken, TODAY], activity: todaySitting, billing: UNKNOWN });
+    assert.equal(gameViewFrom(f, TODAY).repair, null, 'an unknown plan is offered a repair');
+    assert.equal(screenOf(f).repair, null);
+  });
+
+  test('a free learner earning a repair sees no plan row on the freeze card', () => {
+    const free = screenOf(facts({ practiceDays: broken, billing: FREE }));
+    assert.ok(free.repair, 'no repair offered');
+    assert.equal(free.freezeCard?.upsell, null, 'a plan is offered at the moment of loss');
+  });
+
+  test('the freeze card says when one freeze is banked', () => {
+    const two: ActivityEntry[] = [
+      { at: at(10, 6, 9), kind: 'drill', xp: 10, activeMs: 60_000 },
+      { at: at(10, 6, 19), kind: 'drill', xp: 10, activeMs: 60_000 },
+    ];
+    const free = screenOf(facts({ practiceDays: ['2026-10-06'], activity: two, billing: FREE }));
+    assert.deepEqual(free.freezeCard && [free.freezeCard.title, free.freezeCard.sub], ['2 streak freezes ready', 'One is banked from a day with two practices']);
+    assert.match(free.freezeCard!.line, /A used freeze comes back a week later\. Two practices in one day bank one more\.$/);
+    assert.match(free.freezeCard!.line, /a freeze covers it by itself/, 'two freezes ready, and the paragraph says "your freeze"');
+    const paid = screenOf(facts({ practiceDays: ['2026-10-06'], activity: two, billing: PAID }));
+    assert.deepEqual(paid.freezeCard && [paid.freezeCard.title, paid.freezeCard.sub], ['3 streak freezes ready', 'One is banked from a day with two practices']);
+    // One practice a day banks nothing.
+    assert.equal(screenOf(facts({ practiceDays: ['2026-10-06'], activity: two.slice(0, 1), billing: FREE })).freezeCard?.sub, 'Free with every account');
+    // The bank paid the 3rd and the free freeze the 5th: the one coming back is the 5th's.
+    const spent = screenOf(
+      facts({
+        practiceDays: ['2026-10-01', '2026-10-02', '2026-10-04', '2026-10-06'],
+        covers: [
+          { day: '2026-10-03', kind: 'freeze', at: at(10, 4, 1) },
+          { day: '2026-10-05', kind: 'freeze', at: at(10, 6, 1) },
+        ],
+        activity: [
+          { at: at(10, 1, 9), kind: 'drill', xp: 10, activeMs: 60_000 },
+          { at: at(10, 1, 19), kind: 'drill', xp: 10, activeMs: 60_000 },
+        ],
+        billing: FREE,
+      }),
+    );
+    assert.equal(spent.freezes?.ready, '0 ready');
+    assert.equal(spent.freezes?.returns, 'Your freeze is in use. It comes back on Monday 12 October.');
   });
 });

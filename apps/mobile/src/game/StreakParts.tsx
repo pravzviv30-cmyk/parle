@@ -24,7 +24,7 @@ import { HIT, bType, decorative, paper, type, corner, radius } from '../theme.ts
 import { RepairMark } from './art/RepairMark.tsx';
 import { monthWeeks, type DayCellView, type MonthView } from './streakScreenView.ts';
 
-/** The second freeze and the repair come with any paid plan (D4, D23), so the lock names Core (F910). */
+/** The second freeze and the weekly repair come with any paid plan (D4, D23); every plan repairs, the free one once every 30 days (D26). The lock names Core (F910). */
 const STREAK_REPAIR_PLAN = 'starter' as const;
 
 const CIRCLE = 36;

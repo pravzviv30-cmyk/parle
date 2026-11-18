@@ -4,20 +4,23 @@
  * Everything here comes from the game view, which read it from disk: the run,
  * the lifetime total and the longest run (`core/streak`), the week and the
  * month drawn from the same practice days and covers the number counts, the
- * freezes a plan holds and the repair a subscriber is earning. Nothing is
- * worked out a second way.
+ * freezes a plan holds and the repair being earned. Nothing is worked out a
+ * second way.
  *
  * - **No "missed".** A past day without practice is "no practice"; a covered
  *   day says what covered it; a day still to come says so.
  * - **The lifetime total is always beside the run**, so a reset never shows a
  *   learner nothing (D2).
- * - **Freezes and repair** (D4, D23). A subscriber sees the freezes card with
- *   two, and the repair card while a repair is being earned. A free learner
- *   sees the freezes card with their one freeze, and one calm line,
- *   "Subscribers get a second freeze and can repair a streak within 2 days.", and
- *   See plans, only while a streak that just ended could still be repaired:
- *   no notification, no countdown, nothing at any other time. While the plan
- *   is unknown, neither is said.
+ * - **Freezes and repair** (D4, D19, D23, D26, D27). A subscriber sees the
+ *   freezes card with two, a free learner with one, and either sees the repair
+ *   card while a repair is being earned (every 7 days on a paid plan, every 30
+ *   on the free plan), with no plan row or line beside it. The card's sub line
+ *   says when a freeze is banked from a day with two practices. Once a free
+ *   learner's repair is spent, one calm line, "You can repair a streak once
+ *   every 30 days. Paid plans add a second freeze and a repair every week.",
+ *   and See plans, only while a streak that just ended is recent: no
+ *   notification, no countdown, nothing at any other time. While the plan is
+ *   unknown, neither is said.
  * - **Month arrows** go back as far as the first practised month and forward
  *   no further than this one.
  *
@@ -25,6 +28,7 @@
  */
 
 import {
+  FREEZE_CAP,
   MONTH_NAMES,
   STREAK_MILESTONES,
   WEEKDAY_NAMES,
@@ -102,9 +106,9 @@ export interface StreakScreenView {
   freezes: { held: number; max: number; title: string; ready: string; line: string; returns: string | null } | null;
   /**
    * The B-Streak freeze card (2026-10-20 UI-008): "1 streak freeze ready",
-   * "Free with every account" on the free plan (D23), the paragraph, and the
-   * trial pill's line only while the plan holds no repair. Null while the plan
-   * is unknown, as `freezes` is.
+   * "Free with every account" on the free plan (D23) or the banked line (D27),
+   * the paragraph, and the trial pill's line only below two freezes and while
+   * no repair is open and no spent line shows. Null while the plan is unknown, as `freezes` is.
    */
   freezeCard: { title: string; sub: string; line: string; returns: string | null; upsell: string | null } | null;
   /** The B-Streak milestone row: "7 days: a whole week of French", its bar and "3 of 7 days". No reward line: none is stored. */
@@ -204,7 +208,7 @@ export function milestoneRow(current: number): StreakScreenView['milestone'] {
   };
 }
 
-type StreakFacts = Pick<GameView, 'today' | 'streak' | 'freezes' | 'days' | 'protection' | 'repair' | 'badges'>;
+type StreakFacts = Pick<GameView, 'today' | 'streak' | 'freezes' | 'days' | 'protection' | 'freezeBanked' | 'repair' | 'badges'>;
 
 export function streakScreenView(view: StreakFacts, shown: CalendarMonth): StreakScreenView {
   const today = view.today;
@@ -249,7 +253,7 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
     view.protection?.freezes === true
       ? (() => {
           const cap = view.protection?.cap ?? 0;
-          const returning = view.freezes === 0 ? nextFreezeReturn(cap, input) : null;
+          const returning = view.freezes === 0 ? nextFreezeReturn(cap, { ...input, bankDays: view.days.bankDays }) : null;
           return {
             held: view.freezes,
             max: cap,
@@ -261,15 +265,22 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
         })()
       : null;
 
+  // The free learner's one line: only below two freezes, once no repair is
+  // open (spent inside its 30 days), and only just after a streak ended (D4, D26).
+  const repairForSubscribers =
+    view.protection !== null && view.protection.cap < FREEZE_CAP && view.repair === null && recentBreak(input) !== null
+      ? { line: GAME_COPY.streak.repairForSubscribers, action: GAME_COPY.seePlans }
+      : null;
+
   const freezeCard =
     freezes === null
       ? null
       : {
           title: freezes.held > 0 ? copy.card.ready(freezes.held) : copy.card.inUse(freezes.max),
-          sub: freezes.max <= 1 ? copy.card.free : copy.card.plan,
-          line: copy.card.line(freezes.max),
+          sub: view.freezeBanked ? copy.card.banked : freezes.max <= 1 ? copy.card.free : copy.card.plan,
+          line: copy.card.line(view.freezeBanked ? freezes.max + 1 : freezes.max),
           returns: freezes.returns,
-          upsell: view.protection?.repair === false ? copy.card.upsell : null,
+          upsell: freezes.max < FREEZE_CAP && view.repair === null && repairForSubscribers === null ? copy.card.upsell : null,
         };
 
   const offer = view.protection?.repair === true ? view.repair : null;
@@ -282,13 +293,6 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
           done: offer.done,
           needed: offer.needed,
         }
-      : null;
-
-  // The free learner's one line: only once the plan is known not to repair, and
-  // only while a streak that just ended could still be repaired (D4).
-  const repairForSubscribers =
-    view.protection !== null && view.protection.repair === false && recentBreak(input) !== null
-      ? { line: GAME_COPY.streak.repairForSubscribers, action: GAME_COPY.seePlans }
       : null;
 
   const milestones = STREAK_MILESTONES.map((days, index): MilestoneView => {
