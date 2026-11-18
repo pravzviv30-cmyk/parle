@@ -4294,7 +4294,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F272 — The account export had never been run, and did not work the first time it was
 - severity: P2
 - status: [ ]
-- where: services/token-server/src/accountExport.ts:60
+- where: services/token-server/src/server.ts:980
 - note: the first real execution of `GET /account/export` against the development project — a
   signed-in learner, a valid bearer, the running stack — answered **500**. The server log says
   `billing_events export failed (404)`: migrations 8, 9 and 10 have never been applied to that
@@ -4311,7 +4311,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   This is also the concrete cost of F271: Phase 8 landed with no ledger entry, `IMPLEMENTATION_EVIDENCE.md`
   called the export "implemented and tested locally", and no test or human had ever executed it.
   Found by running it, not by reading it.
-- verified-by: `a missing billing table is reported as unconfigured rather than as an internal error`
+- note: 2026-11-18 (B2 review): the app has called only the paged export, `POST /account/export-v2`, since 2026-10-04, so this entry now follows that route. Its code half is fixed on claude/review-b2 (built by api-engineer): an `account-export-unavailable` error answers 503 `account export unavailable` instead of 500. The entry stays open until one real export has run on staging.
+- verified-by: `a missing export function answers 503 account export unavailable, not an internal error`
 ### F273 — A least-privilege ElevenLabs key that can speak is reported as revoked
 - severity: P1
 - status: [x]
@@ -11320,6 +11321,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: deployment/deletion-journal/ (new), services/token-server/src/deletionJournal.ts
 - note: Found 2026-10-26 preparing staging. `maintenance` refuses to start without the four `LUVANI_DELETION_JOURNAL_*` variables, and no store implemented the client's contract. Built a Cloudflare Worker with D1 (DEPLOY-002): append-only records with triggers refusing UPDATE and DELETE, sealed 24-hour snapshots for replay, constant-time bearer auth, one project per deployment; 10 tests drive the real client against it. Stays open until a recovery drill has replayed through it. Done 2026-10-27: deployed at `luvani-deletion-journal.pravzviv30.workers.dev` (D1 `luvani-deletion-journal`), the real client sealed and replayed an empty snapshot against it, the four variables are on Railway `maintenance`, and `maintenance` started on staging and runs idle.
+- note: 2026-11-18 (B2 review): the server exists and its test runs in the gate. What remains is a staging recovery drill with real records; only an empty snapshot has been replayed.
 - verified-by: `replay through a sealed snapshot returns exactly the recorded users and excludes later writes`
 
 ### F884 — A refused or failed ElevenLabs request crashed the tutor worker
@@ -13752,3 +13754,55 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `uses Luna for a live turn, strict structured output, and a developer channel for app context`
 - verified-by: `the scene frame schema the brain sends is pinned byte for byte`
 - verified-by: `the Anthropic turn schema is pinned byte for byte, as zod 3 sent it`
+
+### F1098 — A stop during paid admission crashes the practice worker
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/practiceJobs.ts:170
+- note: B2-1. The stopped promise rejects while clientFor is still awaited, before anything listens, so a SIGTERM or a lost lease in that window exits the worker with code 1 and skips its final heartbeat. One handler line; the job still ends superseded.
+- verified-by: `a stop or a lost lease during paid admission ends the practice job without an unhandled rejection`
+
+### F1099 — minutes_refused is never recorded in production
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:781
+- note: B2-2, part B, built only on the founder's yes. Production refusals come from the database reservation, which returns before the recorder. The notice and PRIVACY_AND_SAFETY.md already name the event. The test also proves a session-active refusal and a learner with analytics off record nothing.
+- verified-by: `a refused reservation records minutes_refused when analytics is allowed`
+
+### F1100 — The header and request deadlines fire up to 30 s late
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/server.ts:1243
+- note: B2-3. Node checks both deadlines on a 30 s sweep that server.ts never shortens, so a stalled body holds one of the 128 busy slots for up to 60 s. A 5 s sweep makes the stated 10 s and 30 s real. It does not bound the stall attack; that is handed to B1 behind a staging probe.
+- verified-by: `the server sweeps stalled connections every few seconds, so its header and request deadlines hold`
+
+### F1102 — recordBillingEvent and fenceAccount have no caller
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/store.ts:41
+- note: B2-6 and the fenceAccount part of B2-5. The webhook dedupes through billingEventComplete and applyBilling, so the interface comment is untrue. Deletes 6 tests, the two fixture sets and one unused test variable. The SQL functions stay for D1.
+- verified-by: `billing projection uses one RPC carrying vendor state but never a stale usage counter`
+- verified-by: `a replayed webhook is acknowledged without a second vendor fetch`
+- verified-by: `service reservation decoder rejects malformed allowance and identity bindings`
+
+### F1103 — Metrics file /events and every /onboarding request under unknown
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/telemetry.ts:3
+- note: B2-7. The label list has product-events, which no route uses, and lacks events and onboarding. The exporter repeats the list and refuses unknown labels, so both change together. The test reads the prefixes from server.ts.
+- verified-by: `every server route prefix has its own metrics label, and the exporter accepts it`
+
+### F1104 — The fix-line judge and the transcribe handler copy helpers their neighbours already have
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/fixLineJudge.ts:10
+- note: B2-8, narrowed to the two pairs that already import each other. Removes a second home of the CEFR band list and the line check. The first test is characterization, written and green before the change.
+- verified-by: `a correction retry trims its lines, refuses an over-long one and reads an unknown level as A2`
+- verified-by: `a transcription authenticates and limits before its one ephemeral upload`
+
+### F1055 — ciContract.test.ts times out at 15 s on some runs
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/ciContract.test.ts:62
+- note: NEEDS-PROBE, not reproduced. The file takes 3.0 s; the spawned gate takes 0.75 s in a clean worktree and 3.43 s cold in the main checkout. Hypothesis: the gate's test-file walk reads 61,696 entries there, 53,011 under apps/mobile build output. Probe: one full gate on the main checkout with the device build present. A fix belongs to S1.
+- verified-by: `the CI contract check finishes without waiting on the network or the clock`
