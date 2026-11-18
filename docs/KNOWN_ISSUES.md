@@ -13609,6 +13609,30 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Founder Q4 sets when; needs probe P0 and a hosted capture. `data-engineer`. Regenerate the record and the runbook's opening paragraph together. The test ties the two to each other, not to the migration folder. 2026-11-18: the runbook's opening paragraph now names `wtexbzuyfersdtiekrvp` with 48 migrations applied and 42 held, and says the JSON is the 2026-10-07 capture of `cfimkuustkhthujdpjlq`. The regeneration is blocked while migration 42 is held, because `scripts/verifyCurrentHostedSchema.mjs` requires the hosted migration history to equal every source migration (and the expected catalog includes 42's table). It unblocks once 42 is applied, or through a held-migration rule in the verifier, which is its own decision.
 - verified-by: `the staging record and the runbook name the same project and migration count`
 
+### F1090 — The weekly Starter product id is read by the server but unknown to the config check and the environment contract
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/config.ts:91
+- note: B1-1. Set alone, the id passes the production config check and then crashes startup at server.ts:218. The contract lists it for neither api nor maintenance, so an operator who follows the contract leaves the renewal sweep reading weekly payers as unknown products. Names and one check only; no learner-facing change.
+- verified-by: `the environment contract names every billing product id the server reads`
+- verified-by: `a weekly product id without the five billing keys is a production configuration problem`
+
+### F1091 — The Upstash REST command is written five times, none through the bounded fetch
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/rateLimit.ts:106
+- note: B1-2. One upstashCommand helper over boundedFetchJson replaces the copies in rateLimit.ts (two), onboardingGuest.ts, guestSceneAdmission.ts and guestSpeechAdmission.ts. The first two tests are characterization, written and green before the refactor. The lease copy joins only if the founder says yes to question 1; its test is then added to this entry.
+- verified-by: `each Upstash adapter posts its command as JSON with the bearer token`
+- verified-by: `an Upstash failure keeps each adapter's own error wording`
+- verified-by: `every Upstash command goes through one bounded helper that refuses a redirect and an oversized answer`
+
+### F1092 — Three shared exports nothing imports, and a comment attached to nothing
+- severity: P2
+- status: [ ]
+- where: services/shared/phoneMap.ts:77
+- note: B1-3. isInventoryIpa, LESSON_SCORING_MAX_CALL_MILLIS, the paidBindings re-export in paidService.ts and the orphaned decoder comment in onboardingSpeech.ts. The 30 s assertion stays in the named test, written inline.
+- verified-by: `the reviewed envelope rests on a 30 s per-call ceiling shared by the gate and the live converter`
+
 ### F1244 — The interlock and restored body on the migration 49 rollback are not pinned by a test
 - severity: P2
 - status: [x]
