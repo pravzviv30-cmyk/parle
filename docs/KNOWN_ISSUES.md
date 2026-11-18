@@ -13788,7 +13788,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1103 — Metrics file /events and every /onboarding request under unknown
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/telemetry.ts:3
 - note: B2-7. The label list has product-events, which no route uses, and lacks events and onboarding. The exporter repeats the list and refuses unknown labels, so both change together. The test reads the prefixes from server.ts.
 - verified-by: `every server route prefix has its own metrics label, and the exporter accepts it`
