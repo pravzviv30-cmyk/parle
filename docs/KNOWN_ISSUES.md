@@ -3909,7 +3909,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: services/token-server/src/store.ts:16
 - note: recordBillingEvent on the EntitlementStore interface and all four implementations; Supabase
   through the RPC, fixtures through a set, matching the consume idempotency shape.
-- verified-by: `recording a billing event asks the database once and reports a replay as already seen`
+- note: 2026-11-18 (B2 review): `recordBillingEvent` was removed under F1102, with its six tests. Nothing called it: the webhook dedupes through `billingEventComplete` and `applyBilling`, so the replay guarantee is now verified at the webhook itself.
+- verified-by: `a replayed webhook is acknowledged without a second vendor fetch`
 
 ### F247 — Subscriber state projects to entitlement in one place
 - severity: P1
@@ -13778,7 +13779,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1102 — recordBillingEvent and fenceAccount have no caller
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/store.ts:41
 - note: B2-6 and the fenceAccount part of B2-5. The webhook dedupes through billingEventComplete and applyBilling, so the interface comment is untrue. Deletes 6 tests, the two fixture sets and one unused test variable. The SQL functions stay for D1.
 - verified-by: `billing projection uses one RPC carrying vendor state but never a stale usage counter`
