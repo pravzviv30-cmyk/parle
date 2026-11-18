@@ -51,7 +51,7 @@ try {
       void renewals?.tick();
       if (Date.now() >= nextRetention) {
         const retained = await repository.rpc('run_data_retention_v1', { p_batch_size: 500 });
-        console.log(JSON.stringify({ event: 'retention', analyticsDeleted: retained.analyticsDeleted, expiredRequestsDeleted: retained.expiredRequestsDeleted, installationMarkersDeleted: retained.installationMarkersDeleted }));
+        console.log(JSON.stringify({ event: 'retention', analyticsDeleted: retained.analyticsDeleted, expiredRequestsDeleted: retained.expiredRequestsDeleted, installationMarkersDeleted: retained.installationMarkersDeleted, erasureRecordsDeleted: retained.erasureRecordsDeleted }));
         const exports=await repository.rpc('cleanup_account_exports_v2',{p_batch_size:100});
         const details=await repository.rpc('expire_session_details_v2',{p_batch_size:500});
         const practice=await repository.rpc('reconcile_practice_jobs_v1',{p_limit:100});

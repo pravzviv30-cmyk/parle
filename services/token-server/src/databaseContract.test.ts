@@ -1533,7 +1533,7 @@ describe('destructive rollback interlocks (F1081)', () => {
     }
   });
 
-  /** All 48 migrations replayed, and a reader of every column the rollbacks could drop. */
+  /** All 49 migrations replayed, and a reader of every column the rollbacks could drop. */
   const replayed = async (): Promise<{ db: PGlite; columns: () => Promise<string[]> }> => {
     const db = new PGlite();
     await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
@@ -2183,5 +2183,86 @@ describe('client table grants (F1080)', () => {
       await db.exec(sqlOf(GRANTS));
       for (const role of ['anon', 'authenticated']) assert.deepEqual(await held(db, role), POLICY_VERBS[role]);
     } finally { await db.close(); }
+  });
+});
+
+// F1084: a finished erasure record keeps the erased account's id for 30 days, then goes.
+describe('erasure record retention (F1084)', () => {
+  test('a finished erasure job is removed once its keep period has passed', async () => {
+    const id = (n: number): string => `10840000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+    const db = new PGlite();
+    try {
+      await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+        create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+        create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+        create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+        grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`);
+      for (const name of migrationFiles) await db.exec(sqlOf(name));
+      await db.query(`insert into public.account_erasure_jobs(user_id,processor_required,identity_deleted,requested_at,completed_at) values
+        ($1,false,true,clock_timestamp()-interval '40 days',clock_timestamp()-interval '31 days'),
+        ($2,false,true,clock_timestamp()-interval '40 days',clock_timestamp()-interval '29 days'),
+        ($3,false,false,clock_timestamp()-interval '40 days',null)`, [id(1), id(2), id(3)]);
+      const result = (await db.query<{ value: { erasureRecordsDeleted: number } }>('select public.run_data_retention_v1(500) value')).rows[0]!.value;
+      const left = (await db.query<{ user_id: string }>('select user_id from public.account_erasure_jobs order by user_id')).rows.map((row) => row.user_id);
+      assert.deepEqual(left, [id(2), id(3)], 'retention kept a job finished 31 days ago, or removed one finished 29 days ago or still unfinished');
+      assert.equal(result.erasureRecordsDeleted, 1, 'retention does not report how many erasure records it removed');
+    } finally { await db.close(); }
+  });
+
+  const RETENTION = '20261117122000_erasure_job_retention.sql';
+  /** A fresh database with the migrations replayed, all of them or only those before `before`. */
+  const replay = async (before?: string): Promise<PGlite> => {
+    const db = new PGlite();
+    await db.exec(`create role anon; create role authenticated; create role service_role bypassrls; create role auth_deleter;
+      create schema auth; create table auth.users(id uuid primary key,banned_until timestamptz,deleted_at timestamptz);
+      create table auth.sessions(id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,not_after timestamptz);
+      create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+      grant usage on schema public,auth to anon,authenticated,service_role,auth_deleter;`);
+    for (const name of migrationFiles.filter((file) => before === undefined || file < before)) await db.exec(sqlOf(name));
+    return db;
+  };
+  type Row = Record<string, unknown>;
+  const retentionDefinition = async (db: PGlite): Promise<Row[]> => (await db.query<Row>(
+    `select md5(prosrc) src,proacl::text acl,proconfig::text config,prosecdef definer from pg_proc where proname='run_data_retention_v1'`)).rows;
+
+  test('the retention rollback refuses without its interlock and restores the earlier body', async () => {
+    assert.ok(migrationFiles.includes(RETENTION), `supabase/migrations is missing ${RETENTION}`);
+    const down = readFileSync(path.join(ROLLBACKS, `${RETENTION.split('_')[0]}_down.sql`), 'utf8');
+    const earlier = await replay(RETENTION);
+    const db = await replay();
+    try {
+      const prior = await retentionDefinition(earlier);
+      const current = await retentionDefinition(db);
+      assert.notDeepEqual(current, prior, 'migration 49 did not change run_data_retention_v1');
+      await assert.rejects(db.exec(down), /refusing/, 'the retention rollback ran without luvani.rollback_erasure_retention');
+      await db.exec('rollback'); // the refused file leaves its own transaction open and aborted
+      assert.deepEqual(await retentionDefinition(db), current, 'the refused rollback changed run_data_retention_v1');
+      await db.exec("set luvani.rollback_erasure_retention='yes'");
+      await db.exec(down);
+      assert.deepEqual(await retentionDefinition(db), prior, 'the rollback did not restore migration 28\'s run_data_retention_v1 exactly');
+    } finally { await db.close(); await earlier.close(); }
+  });
+
+  test('retention removes at most one batch of finished erasure jobs per run', async () => {
+    const id = (n: number): string => `10840000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+    const db = await replay();
+    try {
+      // Five due jobs; the higher the id, the older the completion, so oldest-first is not id order.
+      for (let n = 1; n <= 5; n++) {
+        await db.query(`insert into public.account_erasure_jobs(user_id,processor_required,identity_deleted,requested_at,completed_at)
+          values($1,false,true,clock_timestamp()-interval '90 days',clock_timestamp()-make_interval(days=>30+$2::int))`, [id(n), n]);
+      }
+      const result = (await db.query<{ value: { erasureRecordsDeleted: number } }>('select public.run_data_retention_v1(2) value')).rows[0]!.value;
+      const left = (await db.query<{ user_id: string }>('select user_id from public.account_erasure_jobs order by user_id')).rows.map((row) => row.user_id);
+      assert.equal(result.erasureRecordsDeleted, 2, 'one run removed more or fewer erasure records than its batch size');
+      assert.deepEqual(left, [id(1), id(2), id(3)], 'one run did not remove the two oldest finished erasure records');
+    } finally { await db.close(); }
+  });
+
+  test('the maintenance worker logs how many erasure records retention removed', () => {
+    // The worker runs on import, so its retention log line is read as source (as renewals.test.ts does).
+    const worker = readFileSync(path.join(import.meta.dirname, 'maintenanceWorker.ts'), 'utf8');
+    const line = worker.split('\n').find((text) => text.includes("event: 'retention'")) ?? '';
+    assert.match(line, /erasureRecordsDeleted: retained\.erasureRecordsDeleted/, 'the retention log line drops the only evidence an erasure record was removed');
   });
 });
