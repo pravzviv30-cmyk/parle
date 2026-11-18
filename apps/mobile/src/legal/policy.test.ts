@@ -818,7 +818,10 @@ describe('the privacy notice — F479', () => {
     assert.doesNotMatch(WHOLE, /Two things of ours are kept on purpose/);
     const backup = keeping.body.indexOf('Database backups keep a copy of everything for up to seven days, then roll off.');
     assert.ok(backup >= 0, 'the backup sentence is missing');
-    assert.equal(keeping.body[backup + 1], 'Deleting your account removes what is tied to it sooner than any of these.');
+    // After, not before: deleting an account does not shorten the backup copy, so
+    // "these" must not reach the backup sentence.
+    assert.equal(keeping.body[backup - 1], 'Deleting your account removes what is tied to it sooner than any of these.');
+    assert.equal(backup, keeping.body.length - 1, 'the backup sentence no longer ends the section');
     // The removal it promises is real: the job marks the entry finished only after the identity is gone.
     const jobs = readFileSync(fileURLToPath(new URL('../../../../services/token-server/src/privacyJobs.ts', import.meta.url)), 'utf8');
     assert.ok(jobs.indexOf('deleteSupabaseUser(') < jobs.indexOf('journal.complete(job.userId)'));

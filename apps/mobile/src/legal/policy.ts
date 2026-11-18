@@ -221,8 +221,8 @@ export function policySections(facts: CompanyFacts = COMPANY, reviewNote: boolea
         'Session grants and refund proofs keep the account, session, allowance-period marker, charged seconds and any confirmed service-failure refund. They contain no conversation text or audio. They stay for as long as the account does, are included in your export and are removed with the account. They prevent the same refund being credited twice or applied to a new allowance.',
         'Saved-phrase audio has a separate spending record: account totals and paid budget-period dates, without the phrase text or audio. Account deletion removes that record. The overall spending total contains no account identifier and can remain after deletion. These limits are separate from your speaking minutes.',
         'Counters that hold cost and abuse in check expire on their own, within a day at most.',
-        'Database backups keep a copy of everything for up to seven days, then roll off.',
         'Deleting your account removes what is tied to it sooner than any of these.',
+        'Database backups keep a copy of everything for up to seven days, then roll off.',
       ],
     },
     {
