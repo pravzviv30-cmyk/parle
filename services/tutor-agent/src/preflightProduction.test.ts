@@ -100,7 +100,16 @@ test('the bound lesson and convo quotes both carry a scoring component whenever 
 
 test('a production refusal names the setting that caused it', () => {
   const env = { NODE_ENV: 'production', LUVANI_TYPED_ONLY: '1', LIVEKIT_URL: 'wss://example.livekit.cloud', LIVEKIT_API_KEY: 'example-key', LIVEKIT_API_SECRET: 'example-secret', OPENAI_API_KEY: 'example-key', TUTOR_LLM: 'openai', TOKEN_SERVER_URL: 'https://api.example.com', LUVANI_AGENT_SECRET: 'example-strong-secret-for-local-test-only' };
-  const names = ['TOKEN_SERVER_URL', 'LUVANI_AGENT_SECRET', 'TUTOR_LLM', 'LUVANI_TTS_VENDOR', 'LUVANI_TTS_MISS_TRANSPORT', 'TYPESAFE_API_KEY', 'LUVANI_SCORING_VENDOR', 'SPEECHACE_API_KEY'];
+  const requirements = [
+    'TOKEN_SERVER_URL must be an https URL with no credentials, query or fragment.',
+    'LUVANI_AGENT_SECRET must be at least 32 characters.',
+    'TUTOR_LLM must be openai.',
+    'LUVANI_TTS_VENDOR must be elevenlabs.',
+    'LUVANI_TTS_MISS_TRANSPORT must be http or unset.',
+    'TYPESAFE_API_KEY must be unset in production.',
+    'LUVANI_SCORING_VENDOR must be speechace when LUVANI_AUDIO_SCORING is on.',
+    'SPEECHACE_API_KEY is required when LUVANI_AUDIO_SCORING is on.',
+  ];
   const cases: Array<[Record<string, string>, string[]]> = [
     [{ TOKEN_SERVER_URL: 'http://private-host.example:8787' }, ['TOKEN_SERVER_URL']],
     [{ LUVANI_AGENT_SECRET: 'private-short-secret' }, ['LUVANI_AGENT_SECRET']],
@@ -121,7 +130,7 @@ test('a production refusal names the setting that caused it', () => {
       lines.length = 0;
       assert.throws(() => preflight({ ...env, ...override }, stop, () => false), /refused/, JSON.stringify(override));
       const printed = lines.map(args => args.map(String).join(' ')).join('\n');
-      for (const name of names) assert.equal(printed.includes(name), failed.includes(name), `${name} in ${printed}`);
+      assert.equal(printed, `[luvani:agent] Cannot start in production. ${failed.map(name => requirements.find(line => line.startsWith(`${name} `))).join(' ')} See services/tutor-agent/.env.`);
       for (const value of [...Object.values(override), ...secrets]) assert.ok(!printed.includes(value), `${value} in ${printed}`);
     }
   } finally { Object.assign(console, saved); }

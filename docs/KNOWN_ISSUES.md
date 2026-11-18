@@ -13764,6 +13764,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: services/tutor-agent/src/preflight.ts:705
 - note: B3a-6, part A. The message names three causes and is printed for eight. It names the failed settings, never their values. No input is newly accepted or refused.
 - note: Fixed 2026-11-18 on claude/review-b3a. The `||` chain is a list of eight named checks (the two TUTOR_LLM conditions share one name, and the scoring condition is split into LUVANI_SCORING_VENDOR and SPEECHACE_API_KEY), and the refusal prints only the failed names.
+- note: 2026-11-18, after push-check: each failed check now prints a fixed sentence saying what its setting must be (for example `TUTOR_LLM must be openai.`), never a value. The test refuses every override value and every secret-like base value on console.error, warn and info.
 - verified-by: `a production refusal names the setting that caused it`
 
 ### F1109 — The voice proxy carries a cap that cannot bind, a comment describes a shared process, and the verify harness imports an undeclared package
