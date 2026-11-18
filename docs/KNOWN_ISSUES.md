@@ -13064,7 +13064,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1063 — The WAV writer and reader each have three homes
 - severity: P2
 - status: [x]
-- where: scripts/quietSpeechHelpers.mjs:263
+- where: scripts/quietSpeechHelpers.mjs:268
 - note: S1b-3. The two `readWav` copies throw a RangeError on an odd-length data chunk where `parseWav` truncates.
 - verified-by: `a WAV with an odd-length data chunk parses without throwing`
 - verified-by: `tts blind check writes a valid wav and reports speaking rate per model`
