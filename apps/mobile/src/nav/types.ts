@@ -18,6 +18,7 @@ import type { SeedTopic } from '../tutor/convoStart.ts';
 import type { PracticeRouteOrigin } from '../practice/practiceRoute.ts';
 import type { ExploreTopic } from '../main/exploreCatalogue.ts';
 import type { LockedFeature } from '../purchases/capabilities.ts';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type TabParamList = {
   Home: undefined;
@@ -52,7 +53,7 @@ export type RootStackParamList = {
    * Progress and Profile. No params: it reads the game layer itself.
    */
   Streak: undefined;
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<TabParamList> | undefined;
   /**
    * The guided café lesson, and the summary it ends on. `textMode` opens it
    * with the voice pipeline dark, for a learner who cannot speak aloud right

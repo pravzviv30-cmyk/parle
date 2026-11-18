@@ -370,8 +370,9 @@ describe('the ci contract', () => {
       );
 
       const closure = dependencyClosure(key);
+      // @react-navigation/core's whole closure is 6 packages once query-string is gone.
       assert.ok(
-        record.module === 'adm-zip' || closure.size >= 10,
+        record.module === 'adm-zip' || (record.module === '@react-navigation/core' && closure.size >= 4) || closure.size >= 10,
         `the dependency walk from ${record.module} reached only ${closure.size} packages, ` +
           'which means the walk is broken rather than the chain being clean',
       );
@@ -411,6 +412,12 @@ describe('the ci contract', () => {
     assert.ok(xcode, 'the config-plugins chain no longer reaches xcode at all, which is not a fix');
     assert.ok(atLeast(xcode[1].version, '4.0.0'), `config-plugins resolves xcode ${xcode[1].version}; 4.0.0 is the first release without uuid`);
     assert.ok(!Object.keys(lock.packages).some((key) => key.endsWith('node_modules/uuid')), 'uuid is back in the lockfile');
+
+    // The decode-uri-component fix (2026-11-18): @react-navigation/core 7.22.1+ parses
+    // queries itself, so query-string and its decoder left the tree.
+    for (const name of ['query-string', 'decode-uri-component']) {
+      assert.ok(!Object.keys(lock.packages).some((key) => key.endsWith(`node_modules/${name}`)), `${name} is back in the lockfile`);
+    }
   });
 
   test('the patched brace expander bounds malicious nesting and rewrites without changing ordinary patterns', () => {
