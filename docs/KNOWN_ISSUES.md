@@ -13078,16 +13078,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1065 — The HTTP survival harness is never run
 - severity: P2
-- status: [x]
+- status: [ ]
 - where: scripts/verifyHttpBoundary.mjs:1
 - note: S1b-6. It is the proof for audit item A01 and no script, gate step or workflow calls it.
+- note: 2026-11-18, founder: taken out of releaseProofTests after five judge rounds; it passes 239 of 240 under 8-way parallel load and the remaining failure's cause is unknown. Runs by hand with `node --experimental-strip-types --no-warnings --test scripts/verifyHttpBoundary.manual.mjs`, renamed from `verifyHttpBoundary.test.mjs` so the gate's hygiene check stays as strict. Back into the gate once a diagnostic run (the harness printing which check failed, never the child's output) finds and fixes it.
 - verified-by: `the API child survives malformed authority, bad JSON, audio overflow and an interrupted upload`
 
 ### F1300 — The HTTP survival proof fails at random when the server cuts off an oversized upload
-- severity: P1
-- status: [x]
+- severity: P2
+- status: [ ]
 - where: scripts/verifyHttpBoundary.mjs:19
 - note: The server answers 413 and destroys the request while the harness is still writing its 2 MB body, so `exchange` rejects with EPIPE or ECONNRESET and the harness prints FAIL though the child is healthy. Measured 5 of 80 runs at 8 in parallel, and 1 of 7 beside five sibling proof files.
+- note: 2026-11-18, founder: reopened as P2 with F1065, because its test now runs by hand, outside the gate. See F1065's 2026-11-18 note.
 - verified-by: `an upload the server cuts off mid-body counts as refused, not as a harness failure`
 - verified-by: `a reset after the whole body was sent still fails the overflow check`
 
@@ -13106,10 +13108,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a finished voice comparison refuses a resume too`
 
 ### F1303 — The harness can be killed before its signal handler exists, and its test fails at random
-- severity: P1
-- status: [x]
+- severity: P2
+- status: [ ]
 - where: scripts/verifyHttpBoundary.mjs:10
 - note: The SIGTERM and SIGINT handlers are registered after `spawn`, so a signal sent as soon as the child is visible kills the harness by default action and leaks the child. `a harness stopped by SIGTERM takes its API child down with it` failed 3 of 120 runs at 8 in parallel with `{ code: null, signal: 'SIGTERM' }`.
+- note: 2026-11-18, founder: reopened as P2 with F1065, because its test now runs by hand, outside the gate. See F1065's 2026-11-18 note.
 - verified-by: `a harness stopped by SIGTERM takes its API child down with it`
 
 ### F1304 — The voice comparison script does nothing when run through a symlinked path
@@ -13120,11 +13123,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the voice comparison dry run prints its plan when started through a symlinked path`
 
 ### F1305 — The survival proof still fails at random, because a write the kernel accepted is taken as a body the server read
-- severity: P1
+- severity: P2
 - status: [ ]
 - where: scripts/httpBoundaryExchange.mjs:22
 - note: `sent` turns true when the kernel accepts the 2 MB body, so a server that cuts the upload mid-body is sometimes rejected as "reset after the whole body". 2 of 120 runs of `scripts/verifyHttpBoundary.test.mjs` failed at 8 in parallel, once with `read ECONNRESET` in the cut-off test and once with the harness printing FAIL.
 - note: 2026-11-18: 239 of 240 at 8 in parallel; one unexplained harness FAIL (run 222) not reproduced in 640 isolated runs.
+- note: 2026-11-18, founder: reopened as P2 with F1065, because its test now runs by hand, outside the gate. See F1065's 2026-11-18 note.
 - verified-by: `only an upload left unfinished can count a reset as refused`
 
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
