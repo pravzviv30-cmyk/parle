@@ -12,6 +12,7 @@ import { describe, test } from 'node:test';
 import { SCENE_SPINE, getMission, missionStates } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
+import { lockedRouteFeature } from '../purchases/featureLocks.ts';
 import { STARTING_LABEL, WEEK_LINES_MAX, startingPoint, weekLines } from './todayView.ts';
 
 const NOW = new Date(2026, 8, 12, 21, 0, 0).getTime();
@@ -173,9 +174,10 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.doesNotMatch(JSON.stringify(fix), /je veux payer|Je peux payer|Softer|Your line/);
     assert.deepEqual(fix.route, { screen: TODAY_ROUTES.fix, params: { node: { id: `fix:p1:${key}`, title: TODAY_COPY.fix, phraseKeys: [key] } } });
     assert.ok(!('moment' in fix.route.params.node), 'the drill opens with the answer drawn above it');
-    assert.equal(fix.feature, 'fixes');
-    assert.equal(fix.locked, false);
-    assert.equal(oneFix({ ...base, access: () => 'locked' })!.locked, true);
+    // Founder decision 2026-11-18: Today's one fix is free on every plan, so the
+    // card carries no lock and asks no plan; Your fixes stays locked (fixesView).
+    assert.ok(!('locked' in fix) && !('feature' in fix), 'the one fix still carries a lock for the free plan');
+    assert.equal(lockedRouteFeature(fix.route.screen, fix.route.params), null, 'the route guard sends the free one fix to the Wall');
 
     // The answer stays hidden until a try: an exercise that shows or plays the
     // French first is never what the card opens on.
@@ -389,8 +391,7 @@ describe("Today's hero after the folds (F996)", () => {
     assert.match(texts[0] ?? '', /^<Text accessibilityRole="header" style=\{\[bType\.bold20, \{ color: t\.text \}\]\}>\{fix\.english\}<\/Text>$/, 'the English line is not the header that leads');
     assert.match(texts[1] ?? '', /\{TODAY_COPY\.fixAsk\}/, 'the ask does not follow the English');
     assert.doesNotMatch(fix, /TODAY_COPY\.fix\}|eyebrow|<BButton/, 'the fix hero keeps its label or its flat button');
-    assert.match(fix, /<PillButton label=\{TODAY_COPY\.fixAction\} accessibilityLabel=\{fix\.locked \? lockSaid\(TODAY_COPY\.fixAction, 'fixes', true\) : undefined\} icon=\{<BMic /);
-    assert.ok(fix.indexOf('<LockBadge') < fix.indexOf('{fix.english}'), 'the lock does not sit above the line it locks');
+    assert.match(fix, /<PillButton label=\{TODAY_COPY\.fixAction\} icon=\{<BMic /);
   });
 
   test('a held hero sets its words on the paper and its LipTile is not on a card', () => {
