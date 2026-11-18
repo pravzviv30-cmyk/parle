@@ -2524,3 +2524,33 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     "Notice" and the fix sheet's "Try this" stay until those screens' redesigns.
   - "At most one underlined word under a primary" applies to Today only for now.
   - Ledger: F990 to F999, with F954 and F957 fixed by the pass.
+
+## UI-024 — Onboarding review: a big Bonjour with a small waking Cloud on Welcome
+
+- Date: 2026-11-18
+- Status: accepted (founder, onboarding review; amends UI-021, nothing built yet)
+- Context: the founder asked for a review of the onboarding's structure and design
+  against reference apps, and for mascot options. The review
+  (https://claude.ai/artifact/VRbgm8WP25MjhGYThNPgKb; full report in
+  `handoffs/2026-11-17-onboarding-review-research.md`) walked Duolingo, Praktika,
+  Speak, Loora, Babbel and Finch on Appllama. None of them reaches real speaking
+  inside onboarding; UI-021 already puts first French on screen 7.
+- Decision:
+  - Build UI-021 cozy bold as decided, now that the systemic pass (UI-023) has landed.
+  - Welcome: a big Outfit Bonjour, or Bonsoir by the hour, with a small Cloud that
+    wakes from the sky and waves once. This replaces UI-021's "Cloud and Toast on
+    Welcome". The sky wake is direction C, on Welcome only.
+  - Everywhere else, direction A: Cloud's cheer on Well done, and Toast on the
+    arrival sheet with one new hop pose. Still three counted moments.
+  - No mascot on the setup questions: the "never on the question" rule stands,
+    and the current band art leaves the question.
+  - A tap-to-hear French bubble on Welcome, with no microphone, before the two
+    questions.
+  - Welcome says "a short café conversation" until the scene's typical length is
+    measured; no minutes are promised before then.
+  - The 3-beginner baseline runs on today's flow before the build.
+  - Well done keeps "Well done! You practised French. That's a real step forward."
+  - Cloud's wave and Toast's hop are drawn in a short mascot session before the
+    onboarding build, from the Mascots board drawing.
+- Consequence: the onboarding build waits on the mascot session, the baseline and
+  a timing of the café scene. Toast gains its first pose.
