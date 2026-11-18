@@ -13,7 +13,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TUTOR_VOICES, addDays } from '@luvani/core';
 
-import { guiltIn, streakGuiltIn } from '../copy/guilt.ts';
+import { STREAK_BAN_EXEMPTIONS, guiltIn, streakGuiltIn } from '../copy/guilt.ts';
+
+/** A save line with its exempted words taken out (D25), for the scans. */
+const exempted = (line: string): string => STREAK_BAN_EXEMPTIONS.flatMap(({ words }) => words).reduce((rest, word) => rest.replace(new RegExp(word, 'gi'), ''), line);
 import { reminderOpenOf, routeForReminder } from './openTarget.ts';
 import {
   PLAN_DAYS,
@@ -23,6 +26,7 @@ import {
   heldLog,
   noteAnswered,
   noteOpened,
+  freezeProtectionOf,
   planReminders,
   plannedLog,
   plannedSlots,
@@ -211,7 +215,11 @@ describe('the reminder planner — F771', () => {
 
     // Every line is warm, plain and clean, and states only the learner's own counts.
     assert.ok(REMINDER_COPY.length > 40, 'the copy list is too short to be every line');
-    for (const line of REMINDER_COPY) {
+    // The save lines, by identity, are the one exemption (STREAK_BAN_EXEMPTIONS):
+    // their exempted words are taken out, and the rest is scanned as usual.
+    const saveCopy = new Set(STREAK_SAVE_LINES.flatMap((line) => [1, 2, 6, 29, 99, 364].flatMap((n) => [line.title({ n, lifetime: n, tutor: 'Léa' }), line.body({ n, lifetime: n, tutor: 'Léa' })])));
+    for (const raw of REMINDER_COPY) {
+      const line = saveCopy.has(raw) ? exempted(raw) : raw;
       assert.equal(guiltIn(line), undefined, `guilt in reminder copy: ${line}`);
       assert.equal(streakGuiltIn(line), undefined, `a streak nag in reminder copy: ${line}`);
       assert.doesNotMatch(line, /[—–·!]/, `a dash, a middot or a shout in reminder copy: ${line}`);
@@ -222,8 +230,7 @@ describe('the reminder planner — F771', () => {
     // today's phrase, the pause note opens Settings, and the rest open Home.
     for (const line of REMINDER_LINES) {
       const words = `${line.title({ n: 3, lifetime: 3, tutor: 'Marie' })} ${line.body({ n: 3, lifetime: 3, tutor: 'Marie' })}`;
-      // A save line always opens today's phrase, the quickest practice there is (T1.2).
-      const expected = /phrase/i.test(words) || STREAK_SAVE_LINES.includes(line) ? 'daily-phrase' : line.id === 'pause' ? 'settings' : 'home';
+      const expected = /phrase/i.test(words) ? 'daily-phrase' : line.id === 'pause' ? 'settings' : 'home';
       assert.equal(line.open, expected, `"${words}" opens ${line.open}`);
     }
     assert.deepEqual(routeForReminder('daily-phrase', 'phrase-123'), { name: 'DailyPractice', params: { id: 'phrase-123' } });
@@ -487,5 +494,14 @@ describe('the save line: only on a real cliff, inside the one slot (T1.2, D25)',
       assert.deepEqual(slots.map((slot) => slot.id), slots.map((slot) => `practice:${slot.day}`));
       assert.equal(new Set(slots.map((slot) => slot.day)).size, slots.length);
     }
+  });
+});
+
+describe('the freezes this phone saw (T1.2 review)', () => {
+  test('a paid plan holds two from paidSince, a protected learner one, anything else is unknown', () => {
+    assert.deepEqual(freezeProtectionOf({ paidSince: '2026-10-01', protectedSince: '2026-09-01' }), { cap: 2, paidSince: '2026-10-01', protectedSince: '2026-09-01' });
+    assert.deepEqual(freezeProtectionOf({ paidSince: null, protectedSince: '2026-09-01' }), { cap: 1, paidSince: null, protectedSince: '2026-09-01' });
+    assert.equal(freezeProtectionOf({ paidSince: null, protectedSince: null }), undefined);
+    assert.equal(freezeProtectionOf(null), undefined);
   });
 });

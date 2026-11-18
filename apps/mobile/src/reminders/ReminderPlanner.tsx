@@ -34,7 +34,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
-import { DEFAULT_TUTOR_VOICE, FREE_FREEZE_CAP, FREEZE_CAP, tutorVoice, type DayKey, type FreezeProtection, type StreakCover } from '@luvani/core';
+import { DEFAULT_TUTOR_VOICE, tutorVoice, type DayKey, type StreakCover } from '@luvani/core';
 
 import { useProfile } from '../app/ProfileContext.tsx';
 import { loadGameLocal } from '../game/gameLocal.ts';
@@ -55,6 +55,7 @@ import {
   emptyLog,
   noteAnswered,
   noteOpened,
+  freezeProtectionOf,
   planReminders,
   plannedLog,
   replanStep,
@@ -122,19 +123,6 @@ async function accountFacts(): Promise<PracticeFacts | null> {
   } catch {
     return null;
   }
-}
-
-/**
- * What this phone first saw of the learner's freezes (`gameLocal.ts`): a paid
- * plan holds two, a protected free learner one, and anything else is unknown,
- * so no save line. No billing call; it says only what this phone saw.
- */
-async function freezeFacts(): Promise<FreezeProtection | undefined> {
-  const local = await loadGameLocal().catch(() => null);
-  if (local === null) return undefined;
-  if (local.paidSince !== null) return { cap: FREEZE_CAP, paidSince: local.paidSince, protectedSince: local.protectedSince };
-  if (local.protectedSince !== null) return { cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: local.protectedSince };
-  return undefined;
 }
 
 /** A guest's facts: the days a practice was saved as finished, and nothing else. */
@@ -208,7 +196,8 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
   if (choice === null) return 'failed';
 
   const facts = await accountFacts();
-  const freezes = await freezeFacts();
+  // The two freeze dates this phone saw, and nothing else from gameLocal.
+  const freezes = freezeProtectionOf(await loadGameLocal().catch(() => null));
   const tutor = options.tutor ?? tutorNameOf(await loadProfile().catch(() => null));
   let log: ReminderLog = step.log;
   if (visiting()) log = noteOpened(log, now, LOCAL_CALENDAR);

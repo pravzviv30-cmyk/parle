@@ -128,7 +128,7 @@ Two hard behavioural commitments, both derived from confirmed research:
   cover the day. It never counts down and never names a plan or a repair.
 
   Streak copy states facts ("Your 12-day streak is waiting") and never threatens:
-  no loss, no "at risk", no "last chance", no countdowns, no sad faces. Every
+  no loss (except the one D25 save line above, in the reminder only), no "at risk", no "last chance", no countdowns, no sad faces. Every
   streak and reminder line passes `BANNED_IN_STREAK_COPY` in
   `apps/mobile/src/copy/guilt.ts`, which is the shared ban list plus the
   countdown, the plea and the sad face in words. The word "streak" itself left

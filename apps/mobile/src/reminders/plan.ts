@@ -43,6 +43,8 @@
 import {
   addDays,
   dayKeyOf,
+  FREE_FREEZE_CAP,
+  FREEZE_CAP,
   freezeCoverDays,
   isDayKey,
   isStreakMilestone,
@@ -189,6 +191,18 @@ export interface PlanInput {
   guest?: boolean;
   /** Plan nothing for today: the practice facts could not be read, so today might be practised. */
   todayUnknown?: boolean;
+}
+
+/**
+ * What this phone first saw of the learner's freezes (`game/gameLocal.ts`): a
+ * paid plan holds two from paidSince, a protected free learner one, and
+ * anything else is unknown, so no save line. No billing call.
+ */
+export function freezeProtectionOf(local: { paidSince: DayKey | null; protectedSince: DayKey | null } | null): FreezeProtection | undefined {
+  if (local === null) return undefined;
+  if (local.paidSince !== null) return { cap: FREEZE_CAP, paidSince: local.paidSince, protectedSince: local.protectedSince };
+  if (local.protectedSince !== null) return { cap: FREE_FREEZE_CAP, paidSince: null, protectedSince: local.protectedSince };
+  return undefined;
 }
 
 /** A save line needs a run of at least this many days (T1.2). */

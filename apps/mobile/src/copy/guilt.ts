@@ -62,13 +62,20 @@ export const RETIRED_FROM_BAN: readonly { readonly word: string; readonly by: st
 ];
 
 /**
- * Words that left the stricter streak list below, each by a founder decision.
- * Kept apart from RETIRED_FROM_BAN, whose words were on the shared list.
- * "save your streak" left for the one save line (D25), which comes only when no
- * freeze would cover the day and never counts down, names a plan or a repair.
+ * Words on the stricter streak list below that named lines may still say,
+ * each by a founder decision. An exemption, not a retirement: the word stays
+ * banned on every other streak surface. "Save your streak", bare or
+ * counted ("Save your 12-day streak"), is said only by the
+ * reminder's save lines (`reminders/reminder.ts` STREAK_SAVE_LINES, D25), which
+ * come only when no freeze would cover the day and never count down or name a
+ * plan or a repair. The reminder scan exempts those lines by identity.
  */
-export const RETIRED_FROM_STREAK_BAN: readonly { readonly word: string; readonly by: string }[] = [
-  { word: 'save your streak', by: 'founder decision 2026-11-18: save-your-streak reminders' },
+export const STREAK_BAN_EXEMPTIONS: readonly { readonly words: readonly string[]; readonly lines: string; readonly by: string }[] = [
+  {
+    words: ['save your streak', ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => `save your ${digit}`)],
+    lines: 'STREAK_SAVE_LINES',
+    by: 'founder decision 2026-11-18: save-your-streak reminders',
+  },
 ];
 
 /**
@@ -96,6 +103,9 @@ export const BANNED_IN_STREAK_COPY: readonly string[] = [
   'ends tonight',
   'midnight',
   'before it ends',
+  'save your streak',
+  // The counted form, "Save your 12-day streak" (2026-11-18, with D25).
+  ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => `save your ${digit}`),
   'disappear',
   'miss you',
   'ignor',

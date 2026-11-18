@@ -245,7 +245,7 @@ export const STREAK_SAVE_LINES: readonly ReminderLine[] = [
     id: 'streak-save-review',
     open: 'daily-phrase',
     title: ({ n }) => `Save your ${n}-day streak`,
-    body: ({ tutor }) => `A short review counts too. ${tutor} is here.`,
+    body: ({ tutor }) => `Today's phrase counts. ${tutor} is here.`,
   },
   {
     id: 'streak-save-keep',
