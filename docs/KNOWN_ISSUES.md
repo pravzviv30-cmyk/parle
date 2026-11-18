@@ -13053,6 +13053,36 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: S1a-10. Founder approved 2026-11-17 ("Yes, PRs and main only"). The push trigger narrows to `main`, which `mobile-preview.yml` needs; pull requests still run the gate.
 - verified-by: `the gate workflow runs on pull requests and on pushes to main only`
 
+### F1062 — The paid voice scripts can bill a finished experiment again
+- severity: P2
+- status: [ ]
+- where: scripts/ttsBlindCheck.mjs:25
+- note: S1b-1 and S1b-4. The guard looks in a cwd-relative folder the manifests were moved out of, so `--generate` passes it and spends up to the 3600-character cap.
+- verified-by: `a paid generator refuses when its committed manifest exists`
+- verified-by: `paid generator paths do not depend on the working directory or one home folder`
+
+### F1063 — The WAV writer and reader each have three homes
+- severity: P2
+- status: [ ]
+- where: scripts/quietSpeechHelpers.mjs:263
+- note: S1b-3. The two `readWav` copies throw a RangeError on an odd-length data chunk where `parseWav` truncates.
+- verified-by: `a WAV with an odd-length data chunk parses without throwing`
+- verified-by: `tts blind check writes a valid wav and reports speaking rate per model`
+
+### F1064 — A finished one-off script is still in scripts
+- severity: P2
+- status: [ ]
+- where: scripts/soften-daily-voice-samples.mjs:1
+- note: S1b-5. Run once on 2026-09-19 and referenced by nothing. The proof is that no doc link breaks.
+- verified-by: `every relative markdown link in tracked docs resolves`
+
+### F1065 — The HTTP survival harness is never run
+- severity: P2
+- status: [ ]
+- where: scripts/verifyHttpBoundary.mjs:1
+- note: S1b-6. It is the proof for audit item A01 and no script, gate step or workflow calls it.
+- verified-by: `the API child survives malformed authority, bad JSON, audio overflow and an interrupted upload`
+
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
 - severity: P2
 - status: [x]
