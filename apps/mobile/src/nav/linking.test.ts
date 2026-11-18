@@ -7,7 +7,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getStateFromPath as defaultStateFromPath, type NavigationState as AnyState, type PartialState } from '@react-navigation/core';
+import { getPathFromState as defaultPathFromState, getStateFromPath as defaultStateFromPath, type NavigationState as AnyState, type PartialState } from '@react-navigation/core';
 import { CommonActions, StackActions, StackRouter, type ParamListBase, type StackNavigationState } from '@react-navigation/routers';
 import { evidence } from '../../test/evidence.ts';
 import { linking } from './linking.ts';
@@ -37,6 +37,30 @@ describe('addresses', () => {
     assert.deepEqual(focused(resolve('/terms')), ['Terms']);
     assert.deepEqual(focused(resolve('/practice')), ['Tabs', 'Practice']);
     assert.equal(linking.getStateFromPath, undefined, 'a custom parser replaced the map this test reads');
+  });
+
+  // F1255: @react-navigation/core 7.22.1 replaced query-string with its own parser. This
+  // pins what the app's map reads and writes, and passes on both parsers. The one change
+  // the old one made, sorting keys on the way out, is deliberately not asserted here.
+  test('a deep link query round-trips through the navigation parser that replaced query-string', () => {
+    const config = linking.config as Parameters<typeof defaultStateFromPath>[1];
+    const params = (path: string) => resolve(path)?.routes[0]?.params;
+    const back = (path: string) => defaultPathFromState(resolve(path)!, config);
+    assert.deepEqual(params('/drill?tag=a&tag=b'), { tag: ['a', 'b'] }, 'a repeated key is a list');
+    assert.equal(back('/drill?tag=a&tag=b'), '/drill?tag=a&tag=b');
+    assert.deepEqual(params('/drill?q=caf%C3%A9+cr%C3%A8me'), { q: 'café crème' }, 'a plus is a space and UTF-8 decodes');
+    assert.equal(back('/drill?q=caf%C3%A9+cr%C3%A8me'), '/drill?q=caf%C3%A9%20cr%C3%A8me');
+    assert.deepEqual(params('/drill?q=%E2%9C%93'), { q: '✓' });
+    // A malformed percent sequence stays as text rather than throwing, and is escaped on the way out.
+    assert.deepEqual(params('/drill?q=%E0%A4%A'), { q: '%E0%A4%A' });
+    assert.equal(back('/drill?q=%E0%A4%A'), '/drill?q=%25E0%25A4%25A');
+    assert.deepEqual(params('/drill?q=&flag'), { q: '', flag: null }, 'an empty value and a bare key survive');
+    assert.deepEqual(params(back('/drill?q=&flag')), { q: '', flag: null }, 'compared as params, because the old parser sorted keys');
+    assert.deepEqual(params('/drill?a[]=1'), { 'a[]': '1' }, 'brackets are part of the key, not an array');
+    // The quadratic decode the advisory describes: a 20,000-character percent run stays bounded.
+    const started = performance.now();
+    assert.equal((params(`/drill?q=${'%'.repeat(20_000)}`) as { q?: string }).q?.length, 20_000);
+    assert.ok(performance.now() - started < 1_000, 'a long run of percent signs took over a second to parse');
   });
 });
 
