@@ -13083,6 +13083,20 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: S1b-6. It is the proof for audit item A01 and no script, gate step or workflow calls it.
 - verified-by: `the API child survives malformed authority, bad JSON, audio overflow and an interrupted upload`
 
+### F1300 — The HTTP survival proof fails at random when the server cuts off an oversized upload
+- severity: P1
+- status: [ ]
+- where: scripts/verifyHttpBoundary.mjs:19
+- note: The server answers 413 and destroys the request while the harness is still writing its 2 MB body, so `exchange` rejects with EPIPE or ECONNRESET and the harness prints FAIL though the child is healthy. Measured 5 of 80 runs at 8 in parallel, and 1 of 7 beside five sibling proof files.
+- verified-by: `an upload the server cuts off mid-body counts as refused, not as a harness failure`
+
+### F1301 — Resuming the finished voice speed run rewrites its committed evidence
+- severity: P2
+- status: [ ]
+- where: scripts/measureVoiceSpeed.mjs:129
+- note: With the local manifest present and complete, `--generate --resume` passes `refuseRerun`, sends no paid request, then overwrites `after` and `measuredCredits` in `docs/cogs-evidence/voice-speed-2026-10-25.json` with today's balance.
+- verified-by: `a finished voice speed measurement refuses a resume too`
+
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
 - severity: P2
 - status: [x]
