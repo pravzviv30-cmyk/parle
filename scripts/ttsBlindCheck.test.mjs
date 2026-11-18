@@ -7,7 +7,7 @@ import * as blind from './ttsBlindCheck.mjs';
 import * as speed from './measureVoiceSpeed.mjs';
 import * as compare from './compare-daily-voices.mjs';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -207,6 +207,16 @@ test('a finished voice comparison refuses a resume too', (t) => {
   assert.throws(() => compare.refuseRerun(manifestPath, false), /already exists/);
   assert.throws(() => compare.refuseRerun(join(dir, 'none.json'), true), /No experiment to resume/);
   assert.throws(() => compare.refuseRerun(resolve(ROOT, 'artifacts/voice-comparison-2026-09-19/manifest.json'), true), /complete/);
+});
+
+test('the voice comparison dry run prints its plan when started through a symlinked path', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'compare-link-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  symlinkSync(ROOT, join(dir, 'repo'));
+  const run = spawnSync(process.execPath, ['--experimental-strip-types', '--no-warnings', join(dir, 'repo', 'scripts', 'compare-daily-voices.mjs')],
+    { env: { PATH: process.env.PATH, HOME: dir }, encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(JSON.parse(run.stdout).destination, resolve(ROOT, 'artifacts/voice-comparison-2026-09-19'));
 });
 
 test('paid generator paths do not depend on the working directory or one home folder', (t) => {
