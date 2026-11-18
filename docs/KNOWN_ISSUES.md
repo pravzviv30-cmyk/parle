@@ -13389,3 +13389,75 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/rollback/20261117122000_down.sql:9
 - note: Found by push-reviewer, D1 PR D, 2026-11-17. Deleting the interlock block left databaseContract.test.ts at 43 of 43. 2026-11-17: fixed; the named test replays through 49, sees the rollback refuse without `luvani.rollback_erasure_retention` and leave 49's body, then with it compares `md5(prosrc)`, grants, settings and security definer to a replay that stops before 49. Deleting the interlock block in place turns it red.
 - verified-by: `the retention rollback refuses without its interlock and restores the earlier body`
+
+### F1245 — The journal cannot tell a finished erasure from one in flight
+- severity: P1
+- status: [ ]
+- where: deployment/deletion-journal/worker.ts:70
+- note: Founder, 2026-11-18, option A. Lane 1. Add `completed_at`, stamped by the store on `POST /records/<name>/completion`; a repeat moves it forward; the client never supplies the time.
+- verified-by: `completion is stamped by the store, repeats move it forward, and an unknown record is 404`
+- verified-by: `the D1 store passes the completion, removal and seal checks on real SQLite`
+
+### F1246 — The schema refuses every delete, so an entry can never be removed
+- severity: P1
+- status: [ ]
+- where: deployment/deletion-journal/schema.sql:15
+- note: Lane 1. Replace the two record triggers with `records_completion_only` and `records_delete_after_keep`; add `migrate-0002-removal.sql` (new triggers created before old ones are dropped) and `rollback-0002-removal.sql`. Name `BACKUP_WINDOW_DAYS`, `JOURNAL_MARGIN_DAYS`, `JOURNAL_KEEP_DAYS` in store.ts.
+- verified-by: `the schema lets a record change only by a completion stamped now, and refuses delete until 37 days after it`
+- verified-by: `the migration turns the old schema into schema.sql without an unguarded moment, and the rollback restores it`
+- verified-by: `the keep period is the backup window plus thirty days in code, schema and migration`
+
+### F1247 — Nothing removes a journal entry once its keep period has passed
+- severity: P1
+- status: [ ]
+- where: deployment/deletion-journal/worker.ts:116
+- note: Lane 1. `removeDue()` on the store, a `scheduled` handler, and a daily cron in wrangler.toml. It skips while any snapshot is unexpired.
+- verified-by: `cleanup removes only records completed more than the keep period ago`
+- verified-by: `cleanup waits while a sealed snapshot is unexpired, so a listing in progress stays whole`
+- verified-by: `the scheduled handler runs the cleanup and wrangler.toml declares its cron`
+
+### F1248 — Seal would reuse a snapshot that removal has made stale
+- severity: P1
+- status: [ ]
+- where: deployment/deletion-journal/d1.ts:28
+- note: Lane 1. Reuse is keyed on high water alone; after a removal the old count and hash fail every replay for up to 24 hours. Add the count check; give memoryStore a sequence that never goes down (memoryStore.ts:16).
+- verified-by: `seal never reuses a snapshot that removal has made stale`
+- verified-by: `a replay after removal verifies and applies exactly the entries that remain`
+
+### F1249 — The recovery drill fails a journal that shrank by legitimate removal
+- severity: P1
+- status: [ ]
+- where: deployment/recoveryDrill.mjs:30
+- note: Lane 1. Replace `journalHighWaterBefore/After` with `journalSequenceBefore/After` (AUTOINCREMENT sequence) and a required `backupTakenAt` inside `JOURNAL_KEEP_DAYS` of the replay phase. Update README :86-92 and BACKEND_RELEASE_RUNBOOK :19, :104.
+- verified-by: `the recovery drill accepts a journal that shrank by removal and refuses a sequence that went backwards or a backup older than the keep period`
+
+### F1250 — An erasure finishes without telling the journal
+- severity: P1
+- status: [ ]
+- where: services/token-server/src/privacyJobs.ts:27
+- note: Lane 2. Add `complete(userId)` to the client and call it after the identity is deleted and before `advance('identity-deleted')`; on failure advance `storage-failed` and retry. The end-to-end test is appended to worker.test.ts after PR 1 merges.
+- verified-by: `complete marks the entry for the user's keyed name and fails closed on any answer but 204`
+- verified-by: `an erasure marks its journal entry complete after the identity is gone and before the job is`
+- verified-by: `a failed completion mark leaves the job retrying and never completes it`
+- verified-by: `a retried erasure keeps its entry until 37 days after the last completion mark`
+
+### F1251 — Restore replay accepts a backup older than the journal's keep period
+- severity: P1
+- status: [ ]
+- where: scripts/replayDeletionJournal.mjs:14
+- note: Lane 2. Once entries go, a restore from an artefact older than `JOURNAL_KEEP_DAYS` would bring a deleted account back with nothing to replay. The freeze evidence gains a required `backupTakenAt`; an older or missing one is refused.
+- verified-by: `replay refuses a backup older than the journal's keep period`
+
+### F1252 — The notice and the privacy doc still say the journal entry has no expiry
+- severity: P1
+- status: [ ]
+- where: apps/mobile/src/legal/policy.ts:233
+- note: Lane 2. Founder-approved text, 2026-11-18, verbatim. Update PRIVACY_AND_SAFETY :45, :765-768, :1218, regenerate legal dist, append to DECISIONS.md.
+- verified-by: `the notice names what deletion keeps, the journal's removal and the 7-day backup window`
+
+### F1253 — The 7-day backup sentence has no release hold tying it to Supabase Pro
+- severity: P1
+- status: [ ]
+- where: docs/RELEASE_GATE.md:38
+- note: Lane 2. Add the unticked hold line. The test pins the notice's "7 days" to `BACKUP_WINDOW_DAYS` and requires the hold line while the sentence exists. Closing this entry does not tick the hold; the founder does at production setup.
+- verified-by: `the 7-day backup sentence matches the journal's backup window and carries its release hold`
