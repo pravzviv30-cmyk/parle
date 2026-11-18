@@ -13611,9 +13611,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1090 — The weekly Starter product id is read by the server but unknown to the config check and the environment contract
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/config.ts:91
-- note: B1-1. Set alone, the id passes the production config check and then crashes startup at server.ts:218. The contract lists it for neither api nor maintenance, so an operator who follows the contract leaves the renewal sweep reading weekly payers as unknown products. Names and one check only; no learner-facing change.
+- note: B1-1. Set alone, the id passes the production config check and then crashes startup at server.ts:218. The contract lists it for neither api nor maintenance, so an operator who follows the contract leaves the renewal sweep reading weekly payers as unknown products. Names and one check only; no learner-facing change. 2026-11-18: fixed. `productionConfigurationProblems` counts the weekly id with the two yearly ids, so a weekly id without the five billing keys is refused by name before startup. `deployment/environment-contract.json` lists it under api and maintenance, and the runbook's role list names it beside the yearly ids. The contract test reads the seven `REVENUECAT_*_ID` and `_KEY` names from `billing/revenuecat.ts` and requires each in both roles.
 - verified-by: `the environment contract names every billing product id the server reads`
 - verified-by: `a weekly product id without the five billing keys is a production configuration problem`
 
