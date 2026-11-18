@@ -167,8 +167,8 @@ test('the recovery drill accepts a journal that shrank by removal and refuses a 
   assert.equal(PHASES[3],'replayPostBackupDeletions');
   assert.equal(verifyDrill(drill).deletionsReplayed,6);
   for(const [mutate,message] of [[d=>d.journalSequenceAfter=8,/Post-backup deletion replay incomplete/],[d=>delete d.journalSequenceBefore,/journalSequenceBefore/],
-    [d=>d.backupTakenAt=new Date(replayStart-37*day).toISOString(),/keep period/],[d=>delete d.backupTakenAt,/backupTakenAt/],
-    [d=>d.backupTakenAt='not a time',/backupTakenAt/],[d=>d.backupTakenAt=new Date(replayStart+1).toISOString(),/backupTakenAt/]]) {
+    [d=>d.backupTakenAt=new Date(replayStart-37*day).toISOString(),/keep period/],[d=>delete d.backupTakenAt,/Missing measured backupTakenAt/],
+    [d=>d.backupTakenAt='not a time',/Missing measured backupTakenAt/],[d=>d.backupTakenAt=new Date(replayStart+1).toISOString(),/backupTakenAt is after the replay phase/]]) {
     const d=structuredClone(drill);mutate(d);assert.throws(()=>verifyDrill(d),message);
   }
 });
