@@ -70,19 +70,14 @@ test('Today leads with one ordered path of three steps', () => {
 });
 
 test('Today offers review when Review would deal cards', () => {
-  const { reviewRow } = todayView as unknown as { reviewRow: (deck: readonly ReviewCard[], now: number, lock: 'locked' | 'unlocked' | 'unknown') => { title: string; line: string; count: number } | null };
+  const { reviewRow } = todayView as unknown as { reviewRow: (deck: readonly ReviewCard[], now: number) => { title: string; line: string; count: number } | null };
   const talk = [card('a', 'conversation'), card('b', 'conversation')];
-  // A locked learner with only conversation phrases due: Review deals nothing, so no row.
-  assert.equal(reviewRow(talk, NOW, 'locked'), null);
-  assert.equal(reviewRow([], NOW, 'unlocked'), null);
-  const open = reviewRow(talk, NOW, 'unlocked');
-  assert.deepEqual(open, { title: 'Review 2 phrases', line: 'About 2 minutes', count: 2 });
+  // REV-003: conversation phrases are reviewed on every plan, so they draw the row.
+  assert.deepEqual(reviewRow(talk, NOW), { title: 'Review 2 phrases', line: 'About 2 minutes', count: 2 });
+  assert.equal(reviewRow([], NOW), null);
   const mixed = [...talk, card('c', 'curated')];
-  assert.equal(reviewRow(mixed, NOW, 'locked')?.title, 'Review 1 phrase');
-  // The count is what Review itself deals, for every standing.
-  for (const lock of ['locked', 'unlocked', 'unknown'] as const) {
-    assert.equal(reviewRow(mixed, NOW, lock)?.count ?? 0, dealForTier(mixed, NOW, lock).due.length);
-  }
+  // The count is what Review itself deals.
+  assert.equal(reviewRow(mixed, NOW)?.count, dealForTier(mixed, NOW).due.length);
   assert.match(HOME, /reviewRow\(/);
   assert.match(HOME, /nav\.navigate\('Review'\)/);
 });
@@ -243,7 +238,7 @@ test('Speak with my tutor waits until billing has answered', () => {
 
 test('the review row depends only on what Review would deal', () => {
   assert.doesNotMatch(HOME, /fixFrom === null \? null : reviewRow/);
-  assert.match(HOME, /reviewDeck === null \? null : reviewRow\(reviewDeck\.deck, reviewDeck\.now, locks\.access\('conversationPractice'\)\)/);
+  assert.match(HOME, /reviewDeck === null \? null : reviewRow\(reviewDeck\.deck, reviewDeck\.now\)/);
   assert.match(HOME, /setReviewRead\(\{ scope, deck, now: Date\.now\(\) \}\)/, 'the review row reads a clock other than its own load');
   assert.doesNotMatch(HOME, /reviewRow\([^)]*Date\.now\(\)/, 'the review row reads a render clock');
   assert.match(HOME, /loadDeck\(\)\.then\(\(deck\) => \{ if \(!cancelled && scopeGeneration\(\) === scope\) setReviewDeck\(deck\); \}\)/);
@@ -276,9 +271,9 @@ test("out of time past Starter offers a line at the learner's level", () => {
 // Round 3: one destination, one name, and only when Review has something to deal.
 test("a lead's Review door is Today's review row: its words, and only when it is drawn", () => {
   // Today's own row rule: nothing due is no row, and a due card is named by count.
-  assert.equal(todayView.reviewRow([], NOW, 'unlocked' as never), null);
+  assert.equal(todayView.reviewRow([], NOW), null);
   const flatTask = flat(TASK);
-  assert.match(flatTask, /const reviewDoor = value === null \? null : reviewRow\(value\.deck, value\.now, locks\.access\('conversationPractice'\)\);/, 'the lead decides Review by another rule than Today\'s row');
+  assert.match(flatTask, /const reviewDoor = value === null \? null : reviewRow\(value\.deck, value\.now\);/, 'the lead decides Review by another rule than Today\'s row');
   const held = flat(TASK.slice(TASK.indexOf("if ((lead === 'outOfTime' || lead === 'lapsed')"), TASK.indexOf("if (lead === 'explore')")));
   // Quiet moments (4A): the door is heroCarriesReview's, which asks reviewDoor; its tile is pinned below.
   assert.match(held, /onReview=\{heroReview === true \? \(\) => navigateOwned\('Review'\) : undefined\} reviewLabel=\{reviewDoor\?\.title\}/, 'the held Review door opens an empty Review or is named otherwise');

@@ -198,7 +198,7 @@ export function HomeTab() {
   const event = comingUp({ facts: visibleFacts(profile), paused: memoryPaused(profile.brain), tutorName, access: locks.access, now: Date.now() });
 
   // The review row (F934): only when Review would deal cards, by Review's own deal.
-  const review = reviewDeck === null ? null : reviewRow(reviewDeck.deck, reviewDeck.now, locks.access('conversationPractice'));
+  const review = reviewDeck === null ? null : reviewRow(reviewDeck.deck, reviewDeck.now);
   const three = <QuestsCard />;
   // One rule picks the hero and the rows under it (UI-012 order, UI-015), so
   // the hero's stop is never drawn twice.

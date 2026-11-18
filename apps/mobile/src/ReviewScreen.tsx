@@ -49,7 +49,7 @@ import {
 import { reviewXp, type DrillExercise, type ReviewCard, type ReviewGrade } from '@luvani/core';
 import { HIT, bType, corner, decorative, font, frenchText, space } from './theme.ts';
 import Svg, { Path } from 'react-native-svg';
-import { GhostButton, LipTile, PillButton } from './components.tsx';
+import { LipTile, PillButton } from './components.tsx';
 import { Screen, ScrollScreen, ScreenHeader } from './layout.tsx';
 import { useB, useThemedStyles, type B } from './main/bTheme.tsx';
 import { DrillFrame, DrillPrompt } from './drill/DrillFrame.tsx';
@@ -64,9 +64,7 @@ import { firstGradeAt } from './review/gradeGuard.ts';
 import { loadDrillBank } from './drill/store.ts';
 import { loadConversationPacks } from './conversationPacks/store.ts';
 import { loadDeck, gradeCard } from './review/store.ts';
-import { HELD_BACK_ACTION, dealForTier, heldBackLine } from './review/freeTier.ts';
-import { useAuth } from './auth/useAuth.tsx';
-import { useFeatureLocks } from './purchases/useFeatureLocks.ts';
+import { dealForTier } from './review/freeTier.ts';
 import {
   CARD_START,
   REVIEW_COPY,
@@ -114,14 +112,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
    * must not be able to bring it back.
    */
   const [opener, setOpener] = useState<string | null>(null);
-  // Free tier: due conversation-only cards left out of this sitting, counted
-  // once at the deal (review/freeTier.ts). Zero whenever the feature is open.
-  const [heldBack, setHeldBack] = useState(0);
-  const { user } = useAuth();
-  const locks = useFeatureLocks(user?.id ?? null);
-  // Read through a ref so the deal, which runs once, sees the lock at mount.
-  const lockAtDeal = useRef(locks.access);
-  lockAtDeal.current = locks.access;
   /**
    * The instant the sitting was dealt, and the only clock this screen reads
    * while it runs. `dueCards` picked the cards against it, so presentation is
@@ -188,11 +178,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       // back for their first real test to the front, and returns the same
       // cards in a different order. It has no way to select, so the cap and
       // the longest-overdue-first rule cannot be starved from here.
-      // When conversation practice is locked, the deck is narrowed to what
-      // the free tier reviews before `dueCards` caps it, so a free learner
-      // still gets a full sitting of their own free cards.
-      const deal = dealForTier(deck, now, lockAtDeal.current('conversationPractice'));
-      setHeldBack(deal.heldBack);
+      const deal = dealForTier(deck, now);
       const sitting = sittingView(deal.due, now);
       setFragments(Object.fromEntries(sitting.cards.map(card => [card.id, conversationContext(card, packs)])));
       setQueue(sitting.cards);
@@ -260,15 +246,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     );
   }
 
-  // One quiet row, only on the two terminal pages, only when cards were held back.
-  const heldLine = heldBackLine(heldBack);
-  const heldRow = heldLine === null ? null : (
-    <View style={st.held}>
-      <Text style={[bType.meta, { color: t.muted }]}>{heldLine}</Text>
-      <GhostButton small label={HELD_BACK_ACTION} color={t.muted} onPress={() => locks.open('conversationPractice')} />
-    </View>
-  );
-
   // Nothing due, or the sitting is done, and the two are told apart (F761).
   // The deck never announces a backlog and never asks for more than it dealt.
   // A terminal card, so Done is its one door and it carries no back header.
@@ -290,7 +267,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
                 <ActivityIndicator color={t.muted} />
               </>
             )}
-            {heldRow}
           </View>
         </ScrollScreen>
       );
@@ -310,7 +286,6 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
             action={{ label: 'Done', onPress: onDone }}
             ground="butter"
           />
-          {heldRow}
         </View>
       </ScrollScreen>
     );
@@ -569,7 +544,6 @@ function makeStyles(t: B) {
     // Nothing waiting: the calm card in the middle of the page.
     calm: { flexGrow: 1, justifyContent: 'center' },
     // The free tier's held-back row: small, soft, under the card, never a banner.
-    held: { marginTop: space(4), gap: space(1), alignItems: 'flex-start' },
     centred: { textAlign: 'center' },
     grow: { flex: 1, minWidth: 0 },
     promptStack: { gap: 6 },
