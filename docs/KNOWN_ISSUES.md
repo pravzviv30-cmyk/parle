@@ -13635,6 +13635,20 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: B1-3. isInventoryIpa, LESSON_SCORING_MAX_CALL_MILLIS, the paidBindings re-export in paidService.ts and the orphaned decoder comment in onboardingSpeech.ts. The 30 s assertion stays in the named test, written inline.
 - verified-by: `the reviewed envelope rests on a 30 s per-call ceiling shared by the gate and the live converter`
 
+### F1093 — A guest row can be accepted at up to 160 KB but is read back through a 64 KB cap
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/upstash.ts:12
+- note: Found by the B1 judge, 2026-11-18. The agent guest route reads a 160 KB body (server.ts:392) and stores its baseline pack in the guest row. upstashCommand refuses a Redis answer over 64 KB, so a row above that makes every later get throw and the guest cannot fetch results or claim. No honest input is known to reach it; a real guest pack was not measured. Either refuse a baseline that would push the row past the read cap at write time, or raise the cap for the guest store to match the route.
+- verified-by: `a guest row the agent route accepts can always be read back`
+
+### F1094 — Stalled request bodies can hold the busy cap for 30 to 35 s
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/requestBoundary.ts:34
+- note: Handed over from B2 (B2-3), 2026-11-18. After F1100 makes the 30 s request deadline real, 128 sockets that stall or trickle a body still fill the 128-slot busy cap; 128 every 30 s is 256 requests a minute, under the 600 a minute /events budget. NEEDS-PROBE first: if Railway's edge buffers request bodies, close this. If not, the bound is a shorter body deadline for the small-JSON routes in readRequestBytes or a per-address in-flight cap, either of which can refuse a real learner on a bad network, so it needs the founder's yes.
+- verified-by: `stalled request bodies cannot hold the busy cap past the body deadline`
+
 ### F1244 — The interlock and restored body on the migration 49 rollback are not pinned by a test
 - severity: P2
 - status: [x]
