@@ -16,8 +16,9 @@ export function validateReplayInputs(env,evidence,now=Date.now()) {
     || evidence.sourceAdmissionOff!==true || typeof evidence.reviewedBy!=='string' || !evidence.reviewedBy.trim() || evidence.reviewedBy.length>120
     || !/^[a-f0-9]{64}$/.test(evidence.evidenceSha256??'') || !Number.isFinite(Date.parse(evidence.expiresAt)) || Date.parse(evidence.expiresAt)<=now
     || Date.parse(evidence.expiresAt)>now+24*60*60_000)throw new Error('current source freeze/cutover evidence required');
+  // As recoveryDrill.mjs: a day short of the keep period, for the daily removal cron.
   const backup=Date.parse(evidence.backupTakenAt);
-  if(typeof evidence.backupTakenAt!=='string' || !Number.isFinite(backup) || backup>now || now-backup>=JOURNAL_KEEP_DAYS*24*60*60_000)throw new Error('backup taken inside the journal keep period required');
+  if(typeof evidence.backupTakenAt!=='string' || !Number.isFinite(backup) || backup>now || now-backup>=(JOURNAL_KEEP_DAYS-1)*24*60*60_000)throw new Error('backup taken inside the journal keep period required');
   const url=new URL(evidence.evidenceUrl);if(url.protocol!=='https:' || url.username || url.password)throw new Error('HTTPS freeze evidence required');
   return {target,source};
 }

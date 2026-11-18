@@ -60,9 +60,10 @@ test('nonempty authenticated sealed journals replay completed/pending jobs and r
 test("replay refuses a backup older than the journal's keep period",async()=>{
   const day=24*60*60_000,now=Date.now();
   assert.equal(JOURNAL_KEEP_DAYS,37);
-  assert.doesNotThrow(()=>validateReplayInputs(env,{...evidence(),backupTakenAt:new Date(now-JOURNAL_KEEP_DAYS*day+60_000).toISOString()},now));
+  // The drill's rule (recoveryDrill.mjs): a day short of the keep period, for the daily removal cron.
+  assert.doesNotThrow(()=>validateReplayInputs(env,{...evidence(),backupTakenAt:new Date(now-(JOURNAL_KEEP_DAYS-1)*day+60_000).toISOString()},now));
   const {backupTakenAt,...missing}=evidence();assert.ok(backupTakenAt);
-  for(const review of [missing,{...evidence(),backupTakenAt:'yesterday-ish'},{...evidence(),backupTakenAt:new Date(now-JOURNAL_KEEP_DAYS*day).toISOString()},{...evidence(),backupTakenAt:new Date(now-90*day).toISOString()},{...evidence(),backupTakenAt:new Date(now+60*60_000).toISOString()}]){
+  for(const review of [missing,{...evidence(),backupTakenAt:'yesterday-ish'},{...evidence(),backupTakenAt:new Date(now-(JOURNAL_KEEP_DAYS-1)*day).toISOString()},{...evidence(),backupTakenAt:new Date(now-90*day).toISOString()},{...evidence(),backupTakenAt:new Date(now+60*60_000).toISOString()}]){
     assert.throws(()=>validateReplayInputs(env,review,now),/backup/);
     let calls=0;await assert.rejects(replayRestore(env,review,{request:async()=>{calls++;throw new Error('unused');}}));assert.equal(calls,0);
   }

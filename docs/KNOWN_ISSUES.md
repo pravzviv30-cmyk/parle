@@ -13707,7 +13707,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P1
 - status: [x]
 - where: scripts/replayDeletionJournal.mjs:14
-- note: Lane 2. Once entries go, a restore from an artefact older than `JOURNAL_KEEP_DAYS` would bring a deleted account back with nothing to replay. The freeze evidence gains a required `backupTakenAt`; an older or missing one is refused.
+- note: Lane 2. Once entries go, a restore from an artefact older than `JOURNAL_KEEP_DAYS` would bring a deleted account back with nothing to replay. The freeze evidence gains a required `backupTakenAt`; a missing one, or one `JOURNAL_KEEP_DAYS - 1` (36) days old or more at freeze time, is refused, the same rule as `deployment/recoveryDrill.mjs`.
 - verified-by: `replay refuses a backup older than the journal's keep period`
 
 ### F1252 — The notice and the privacy doc still say the journal entry has no expiry

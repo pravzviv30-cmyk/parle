@@ -769,7 +769,8 @@ window plus 30 days (`JOURNAL_KEEP_DAYS`), so no backup that could still hold th
 account outlives its entry. The erasure job marks the entry finished only after the
 identity is deleted, and an entry never marked is never removed. D1 Time Travel keeps
 a further copy for up to 30 days, which is why the notice says "within about two
-months". A restore from a backup older than the keep period is refused
+months". A restore from a backup 36 days old or more at freeze time is refused, a
+day short of the keep period for the daily removal cron, as the recovery drill does
 (`scripts/replayDeletionJournal.mjs`, F1251). Database backups hold everything for up
 to 7 days, on Supabase Pro daily backups; `docs/RELEASE_GATE.md` holds production
 until that plan is confirmed (F1253, founder, 2026-11-18).

@@ -2540,7 +2540,8 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     an entry 37 days after its last mark: the 7-day backup window plus 30 days
     (`BACKUP_WINDOW_DAYS`, `JOURNAL_MARGIN_DAYS`, `JOURNAL_KEEP_DAYS`). A D1 trigger
     refuses any earlier delete. This supersedes DEPLOY-002's "never deleted".
-  - A restore from a backup older than the keep period is refused.
+  - A restore from a backup 36 days old or more is refused: a day short of the keep
+    period, for the daily removal cron. The replay and the recovery drill use the same rule.
   - The notice names what deletion keeps and says the journal entry is removed
     "within about two months" (D1 Time Travel adds up to 30 days), and that database
     backups roll off after 7 days. Founder-approved text, verbatim.
