@@ -1,5 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { realpathSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
@@ -144,6 +146,20 @@ describe('the schemas are safe for structured outputs', () => {
       const text = JSON.stringify(zodOutputFormat(schema));
       assert.ok(/"null"/.test(text), `expected null unions in ${name}`);
     }
+  });
+
+  test('the brain and the Anthropic helper convert schemas with the same zod instance', () => {
+    // zodOutputFormat calls its own zod's toJSONSchema on our schemas. With two
+    // installed copies (a nested one under the brain or under the SDK) the
+    // conversion runs on a zod that did not build the schema, which is the
+    // failure the F1258 probe produced. Same resolved file means one copy.
+    const fromBrain = createRequire(import.meta.url);
+    const fromHelper = createRequire(fromBrain.resolve('@anthropic-ai/sdk/helpers/zod'));
+    assert.equal(
+      realpathSync(fromHelper.resolve('zod/v4')),
+      realpathSync(fromBrain.resolve('zod/v4')),
+      'the brain and the Anthropic helper must load one zod; two copies means our schemas are converted by a zod that did not build them',
+    );
   });
 });
 
