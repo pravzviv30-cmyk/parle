@@ -2548,3 +2548,6 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Consequence: a journal outage after the identity is deleted now holds an erasure
   open until the mark succeeds. The 7-day sentence is true only on Supabase Pro daily
   backups, so `docs/RELEASE_GATE.md` holds production on it. Ledger F1245 to F1253.
+- Founder answers on the notice (2026-11-18): the backup sentence stays after
+  "Deleting your account removes"; the approved wording stays as it is; the practice
+  pack id is "kept for good so a late job cannot bring it back".
