@@ -13753,6 +13753,69 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `the scene frame schema the brain sends is pinned byte for byte`
 - verified-by: `the Anthropic turn schema is pinned byte for byte, as zod 3 sent it`
 
+### F1273 — Retention counts billed voice sessions only, so a learner who practises offline reads as gone
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:69
+- note: Add statement 2b: practice-day D1/D7/D30 by cohort from `activity.data.activeDays`, `activity.data.entries` with xp above 0, and `game.data.sittings`. Rows: one learner with game sittings only on days 0, 1 and 7 and no `session_usage`; one with activity entries only; one with `activeDays` only; one with a malformed payload that must not fail the statement.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: a learner with offline sittings on days 1 and 7 counts as retained by practice day`
+
+### F1274 — The cohort reads motivation while Settings writes onboardingGoal
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:31
+- note: The view reads `onboardingGoal` when the key is present and `motivation` only when it is absent. Rows: motivation trip with goal edited to food reads hobby; goal cleared to null reads unknown; an older profile with motivation only keeps its cohort.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the cohort follows the goal Settings wrote, and a cleared goal is unknown`
+
+### F1275 — No query tells a paying account from a store trial
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:238
+- note: Statement 7 from `entitlements`: paying (live paid row, `withheld_seconds` 0), store trial (live paid row, withheld above 0), lapsed, paid period ended and not yet lapsed, free. One synthetic row per status, with hand-computed percentages.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: paying accounts are counted apart from store trials`
+
+### F1276 — No net price figure exists
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:265
+- note: Statement 8: payers by plan and period, and one estimated net monthly dollars per payer at list price less the Small Business fee, yearly divided by 12. The test pins the inline price list to core's `PLANS`, `YEARLY_PLANS` and `STORE_FEE_RATES`, and hand-computes one monthly Core payer plus one yearly Max payer.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the net price estimate uses core's list prices and the Small Business rate`
+
+### F1277 — Minutes used against the allowance are not reported per plan and period
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:296
+- note: Statement 9 per plan and period (trial, month, year, unknown). Used is `seconds_used - withheld_seconds`; the allowance is `luvani_private.tutor_cap_v1(plan) - withheld_seconds`. Rows include a store trial whose withheld part must not count as use, and a yearly row in its last window with a null `allowance_window_end` that must still read year.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: minutes used against the allowance leave out the withheld part, per plan and period`
+
+### F1278 — The wall funnel cannot be read by door
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:331
+- note: Statement 10 attributes each later wall event to the learner's latest `wall_shown`. Rows: one learner with a `refused` showing that reaches plans and settles done, then a `settings` showing that leaves unchanged; one learner with `refused` and nothing after. The settings door must not inherit the purchase.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the wall funnel is split by door, and a purchase stays with the door that showed it`
+
+### F1279 — The report does not say what it cannot measure or whom it covers
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:1
+- note: Statement 11, constant rows: month-one renewal is `not measurable` and names the missing vendor event type; paid conversion is `snapshot` and names the trial-versus-paid history gap; net price is `estimate`; the funnel's basis is `consented learners only`. The header comment carries the same caveats. The test asserts the status and basis of each row.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the report says which numbers it cannot measure and which cover consented learners only`
+
+### F1280 — Billing events carry no vendor type, so trial-to-paid conversion and month-one renewal cannot be measured in the database
+- severity: P2
+- status: [ ]
+- where: supabase/migrations/202608300001_billing_events.sql:49
+- note: Not built here. `event_type` is `unknown` on every row and nothing records a period's kind. The candidate is to carry the vendor's closed event type and period kind through the projection. That needs a migration, a token-server change by `revenue-engineer`, `/backend-review`, and a row in the `PRIVACY_AND_SAFETY.md` table. It needs the founder's approval as its own step.
+- verified-by: `a renewal delivery is recorded with its vendor event type`
+
 ### F1265 — Free learners cannot earn a streak back
 - severity: P1
 - status: [x]

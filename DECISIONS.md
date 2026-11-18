@@ -2567,6 +2567,26 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Consequence: `oneFix` carries no lock and Home's tap navigates to the drill
   (`home/todayView.ts`, `tabs/HomeTab.tsx`); `fixesLocked` still locks Your fixes.
 
+## REV-003 — Spaced review of conversation phrases is free on every plan
+
+- Date: 2026-11-18
+- Status: accepted (founder, "Yes, unlock (Recommended)": "Free learners review
+  conversation phrases. Your fixes, Then and now and sound practice stay paid.")
+- Number: REV-002 is taken on `claude/free-fix` (Today's one fix), so this is REV-003.
+- Context: D24's addendum (2026-10-20) held conversation-only phrases out of a free
+  learner's Review behind one calm row. Spaced review costs no live minutes and is
+  the practice that most clearly teaches.
+- Decision: Review deals every due phrase on every plan, conversation phrases
+  included, and draws no held-back row. Drills of a whole conversation pack
+  (`conversationPractice`), Your fixes, Then and now, sound practice and the Max
+  doors stay paid.
+- Consequence: `review/freeTier.ts` reads no lock; Home's review row and card
+  (`home/todayView.ts` `reviewRow`, `tabs/HomeTab.tsx`, `practice/NextTaskCard.tsx`)
+  follow the same deal. The plans page's free list reads "Review of every phrase
+  you keep". The `conversationPractice` capability now guards pack drills only. Its comment in
+  `purchases/capabilities.ts` still reads "Review and drills", kept because
+  `wall/moneyUntouched.test.ts` pins that file's hash; it now covers pack drills only.
+
 ## REV-004 — Free earn-back once every 30 days, and a freeze banked by a two-practice day
 
 - Date: 2026-11-18

@@ -1,7 +1,6 @@
 /**
- * The free tier's share of a review sitting (founder decision 2026-10-20):
- * conversation-only phrases are part of the trial, every other source stays
- * reviewable, and each writer says where its phrases came from.
+ * The review sitting (REV-003, 2026-11-18: conversation phrases are reviewed
+ * free on every plan), and each writer says where its phrases came from.
  */
 
 import { afterEach, beforeEach, describe, test } from 'node:test';
@@ -11,11 +10,11 @@ import { fileURLToPath } from 'node:url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { newCard, type ReviewCard, type ReviewSource } from '@luvani/core';
 
-import { guiltIn } from '../copy/guilt.ts';
 import { setActiveUser, userKey } from '../storage/scope.ts';
 import { createSyncPolicy } from '../sync/policy.ts';
 import { resetSyncRegistry } from '../sync/registry.ts';
-import { HELD_BACK_ACTION, dealForTier, heldBackLine, offeredReview, reviewOffer } from './freeTier.ts';
+import { featureLockState, lockedRouteFeature } from '../purchases/featureLocks.ts';
+import { dealForTier, reviewOffer } from './freeTier.ts';
 import { addPhrases, loadDeck } from './store.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
@@ -30,73 +29,39 @@ const phrase = (fr: string) => ({ fr, en: 'x', frWritten: null, enLiteral: null,
 describe('dealForTier', () => {
   const deck = [card('old'), card('c1', ['conversation']), card('c2', ['conversation']), card('d', ['daily']), card('mix', ['conversation', 'sample'])];
 
-  test('unlocked and unknown deal everything and hold nothing back', () => {
-    for (const lock of ['unlocked', 'unknown'] as const) {
-      const deal = dealForTier(deck, NOW, lock);
-      assert.equal(deal.due.length, 5);
-      assert.equal(deal.heldBack, 0);
-    }
-  });
-
-  test('locked deals only free cards, keeps old untagged ones, and counts the rest', () => {
-    const deal = dealForTier(deck, NOW, 'locked');
-    assert.deepEqual(deal.due.map((c) => c.id).sort(), ['d', 'mix', 'old']);
-    assert.equal(deal.heldBack, 2);
-  });
-
-  test('locked with no conversation-only cards due holds nothing back', () => {
-    assert.equal(dealForTier([card('d', ['daily'])], NOW, 'locked').heldBack, 0);
-    const later = { ...card('c', ['conversation']), due: NOW + 86_400_000 };
-    assert.equal(dealForTier([later], NOW, 'locked').heldBack, 0);
+  // REV-003 (2026-11-18, founder): spaced review of conversation phrases is free on every plan.
+  test('every plan is dealt conversation-only cards, with nothing held back', () => {
+    const deal = dealForTier(deck, NOW);
+    assert.deepEqual(deal.due.map((c) => c.id).sort(), ['c1', 'c2', 'd', 'mix', 'old']);
+    assert.deepEqual(Object.keys(deal), ['due']);
   });
 });
 
 describe("Home's review offer", () => {
   const at = (c: ReviewCard, due: number): ReviewCard => ({ ...c, due });
 
-  test('locked with only conversation-only cards due offers nothing', () => {
-    const offer = reviewOffer([card('c1', ['conversation']), card('c2', ['conversation'])], NOW);
-    assert.equal(offeredReview(offer, 'locked'), null);
-  });
-
-  test('locked with a mix offers the free card, not the older conversation one', () => {
-    const deck = [at(card('c', ['conversation']), NOW - 5000), at(card('d', ['daily']), NOW - 1000)];
-    assert.equal(offeredReview(reviewOffer(deck, NOW), 'locked')?.id, 'd');
-  });
-
-  test('an untagged card counts as free', () => {
-    assert.equal(offeredReview(reviewOffer([card('old')], NOW), 'locked')?.id, 'old');
-  });
-
-  test('unlocked and unknown offer the oldest due card', () => {
+  test('only conversation-only cards due still offers the oldest', () => {
     const deck = [at(card('d', ['daily']), NOW - 1000), at(card('c', ['conversation']), NOW - 5000)];
-    for (const lock of ['unlocked', 'unknown'] as const) assert.equal(offeredReview(reviewOffer(deck, NOW), lock)?.id, 'c');
+    assert.equal(reviewOffer(deck, NOW)?.id, 'c');
+    assert.equal(reviewOffer([card('c1', ['conversation'])], NOW)?.id, 'c1');
+    assert.equal(reviewOffer([], NOW), null);
   });
 });
 
-describe('the held-back row copy', () => {
-  test('appears only when something was held back, and reads plainly', () => {
-    assert.equal(heldBackLine(0), null);
-    // F910 (2026-10-29): the plan that opens it, not the trial.
-    assert.equal(heldBackLine(1), '1 phrase from your conversations is part of Core.');
-    assert.equal(heldBackLine(3), '3 phrases from your conversations are part of Core.');
-    assert.equal(HELD_BACK_ACTION, 'See Core');
-  });
-
-  test('passes the guilt ban and the punctuation rule', () => {
-    for (const line of [heldBackLine(1)!, heldBackLine(4)!, HELD_BACK_ACTION]) {
-      assert.equal(guiltIn(line), undefined, line);
-      assert.doesNotMatch(line, /[·—–!]/);
-    }
-  });
-
-  test('ReviewScreen deals through the tier, reads the lock, and draws the row only when it has a line', () => {
+describe('Review reads no lock, pack drills stay locked', () => {
+  test('ReviewScreen deals the whole deck and draws no held-back row', () => {
     const screen = read('../ReviewScreen.tsx');
-    assert.match(screen, /useFeatureLocks\(user\?\.id \?\? null\)/);
-    assert.match(screen, /dealForTier\(deck, now, lockAtDeal\.current\('conversationPractice'\)\)/);
-    assert.match(screen, /const heldRow = heldLine === null \? null :/);
-    assert.match(screen, /locks\.open\('conversationPractice'\)/);
+    assert.match(screen, /dealForTier\(deck, now\)/);
+    assert.doesNotMatch(screen, /conversationPractice|heldRow|HELD_BACK_ACTION/);
     assert.doesNotMatch(screen, /dueCards\(/, 'a sitting dealt around the tier');
+  });
+
+  test('a drill of a whole conversation pack stays locked for the free plan', () => {
+    assert.equal(lockedRouteFeature('Review'), null);
+    assert.equal(lockedRouteFeature('Drill', { practice: 'pack', packId: 'p1' }), 'conversationPractice');
+    assert.equal(lockedRouteFeature('ConversationPractice', { packId: 'p1' }), 'conversationPractice');
+    const free = { plan: 'trial', secondsRemaining: 300, periodEnd: null, lapsed: false, canStart: true, reason: null } as const;
+    assert.equal(featureLockState('conversationPractice', free), 'locked');
   });
 });
 
@@ -143,7 +108,7 @@ describe('the deck keeps sources on disk and through sync', () => {
     const deck = await loadDeck();
     assert.equal(deck.length, 1);
     assert.equal(deck[0]!.sources, undefined);
-    assert.equal(dealForTier(deck, NOW, 'locked').due.length, 1);
+    assert.equal(dealForTier(deck, NOW).due.length, 1);
   });
 
   test('the sync merge unions sources on conflict', () => {

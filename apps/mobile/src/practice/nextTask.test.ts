@@ -25,7 +25,7 @@ test('legacy authored review stays useful offline and before an exhausted trial 
   const source = readFileSync(new URL('./NextTaskCard.tsx', import.meta.url), 'utf8');
   assert.match(source, /value.scope === scopeGeneration\(\)\) nav.navigate/);
   assert.match(source, /offer: reviewOffer\(deck, now\)/);
-  assert.match(source, /const review = offeredReview\(value\.offer, locks\.access\('conversationPractice'\)\)/, 'Home must offer only what Review deals a free learner');
+  assert.match(source, /const review = value\.offer;/, 'Home must offer what Review deals');
   assert.match(source, /nextTaskKind\([^)]*review !== null\)/);
   assert.match(source, /FrenchBlock french=\{review\.front\} \/>/);
   assert.doesNotMatch(source, /english=\{(?:value\.)?review\.back\}/, 'the review preview must not expose the hidden meaning before recall');
@@ -64,7 +64,7 @@ test("the review door reads the load's now, not a fresh clock", () => {
   // describe billing, read apart from the load, so they read the render clock.
   assert.equal(source.match(/Date\.now\(\)/g)?.length, 2, 'NextTaskCard reads the clock somewhere new');
   assert.match(source, /setValue\(\{ scope, now, /);
-  assert.match(source, /reviewRow\(value\.deck, value\.now, /);
+  assert.match(source, /reviewRow\(value\.deck, value\.now\)/);
   assert.match(source, /heldWords\(billing, Date\.now\(\)\)/);
   assert.doesNotMatch(source, /reviewRow\([^)]*Date\.now\(\)/, 'the review door reads a fresh clock');
 });

@@ -104,11 +104,10 @@ export const YOURS_BANK = 'Phrase bank: phrases picked from conversations';
 /**
  * F910 (2026-10-29): the free list names nothing Free keeps locked, held by
  * `lockedEntry.test.ts` against the locks themselves. Sound practice and the
- * progress section are locked on Free, so neither is listed here, and Free
- * review holds back conversation-only phrases (`review/freeTier.ts`), so the
- * review row names what Free is really dealt.
+ * progress section are locked on Free, so neither is listed here. Free
+ * review deals every kept phrase (REV-003, `review/freeTier.ts`).
  */
-export const YOURS_REVIEW = 'Review of your lesson, daily and sample phrases';
+export const YOURS_REVIEW = 'Review of every phrase you keep';
 export const YOURS_RECAPS = 'Your earned lesson recaps';
 
 /** The rows of page three, in the order they are drawn. */
