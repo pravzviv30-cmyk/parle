@@ -2571,4 +2571,6 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Consequence: `review/freeTier.ts` reads no lock; Home's review row and card
   (`home/todayView.ts` `reviewRow`, `tabs/HomeTab.tsx`, `practice/NextTaskCard.tsx`)
   follow the same deal. The plans page's free list reads "Review of every phrase
-  you keep". The `conversationPractice` capability now guards pack drills only.
+  you keep". The `conversationPractice` capability now guards pack drills only. Its comment in
+  `purchases/capabilities.ts` still reads "Review and drills", kept because
+  `wall/moneyUntouched.test.ts` pins that file's hash; it now covers pack drills only.

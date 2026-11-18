@@ -33,7 +33,7 @@ describe('dealForTier', () => {
   test('every plan is dealt conversation-only cards, with nothing held back', () => {
     const deal = dealForTier(deck, NOW);
     assert.deepEqual(deal.due.map((c) => c.id).sort(), ['c1', 'c2', 'd', 'mix', 'old']);
-    assert.equal((deal as { heldBack?: number }).heldBack ?? 0, 0);
+    assert.deepEqual(Object.keys(deal), ['due']);
   });
 });
 

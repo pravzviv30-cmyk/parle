@@ -543,7 +543,6 @@ function makeStyles(t: B) {
     ending: { gap: space(4) },
     // Nothing waiting: the calm card in the middle of the page.
     calm: { flexGrow: 1, justifyContent: 'center' },
-    // The free tier's held-back row: small, soft, under the card, never a banner.
     centred: { textAlign: 'center' },
     grow: { flex: 1, minWidth: 0 },
     promptStack: { gap: 6 },

@@ -257,10 +257,9 @@ conversation journal, conversation packs, recap keepsake and drill keeps
 another source keeps its scheduling and unions the tag; `mergeDecks` unions it
 on sync too, left out of the tiebreak like `evidence`. A card with no field
 predates tagging and stays untagged through both merges, so it is reviewable
-for everyone (fail open). The free tier uses it: when `conversationPractice` is
-locked, Review deals `reviewableFree` (everything not conversation-only) and
-shows one quiet row counting the due conversation-only cards held back
-(`apps/mobile/src/review/freeTier.ts`).
+for everyone (fail open). Since REV-003 (2026-11-18) Review reads no lock:
+every plan is dealt every due card, conversation phrases included, and no row
+is held back (`apps/mobile/src/review/freeTier.ts`).
 
 **Grading is deliberately not acknowledged.** An ordinary review sitting must
 never wait on a disk. The screen moves on the beat the learner tapped, and a

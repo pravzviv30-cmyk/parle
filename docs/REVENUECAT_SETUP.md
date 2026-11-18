@@ -414,8 +414,8 @@ one freeze, a Journey summary, and one free conversation every other day: ten
 minutes of live time, refilled 44 hours after the window's first use (REV-001,
 2026-10-23; five minutes a week before that), claimed once per device. Either active
 paid tier and its confirmed store trial open the rest: live time beyond the
-taste, tutor memory (in the tutor's sessions too), Your fixes, spaced review and
-drills of conversation phrases, Then and now, sound practice (including the café
+taste, tutor memory (in the tutor's sessions too), Your fixes, drills of a
+conversation pack (spaced review of conversation phrases is free), Then and now, sound practice (including the café
 pronunciation lesson), the full Journey, streak repair and the
 second freeze, and on Max "Prepare for something real" and continue arc. All
 tutor conversations still consume the server's allowance, and a sample is never
@@ -434,8 +434,8 @@ the AI tutor every other day. The minutes come back within two days of being
 first used and can be claimed once per device.
 
 A seven-day free trial (an App Store introductory offer) or a Core or Max plan
-opens the rest: longer live conversations, tutor memory, Your fixes, spaced
-review of conversation phrases, Then and now, sound practice, Prepare for
+opens the rest: longer live conversations, tutor memory, Your fixes, drills of
+a conversation pack, Then and now, sound practice, Prepare for
 something real, the full Journey, and streak repair with a second freeze.
 
 For learners without a plan or trial, the plans page appears at most once a
