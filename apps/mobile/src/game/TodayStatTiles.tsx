@@ -27,7 +27,7 @@ import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { CountUp } from '../motion/CountUp.tsx';
 import { PopOnce } from '../motion/PopOnce.tsx';
 import { ProgressRing } from '../motion/ProgressRing.tsx';
-import { HIT, bType, decorative, radius, space } from '../theme.ts';
+import { HIT, bType, decorative, space, corner } from '../theme.ts';
 import { StarMark } from '../today/TodayParts.tsx';
 import { RING_STEPS, type Counter } from '../home/homeDraw.ts';
 import type { SkyView } from '../home/skyView.ts';
@@ -175,5 +175,5 @@ const makeStyles = (_t: B) =>
     wordsSide: { flex: 1, minWidth: 0 },
     coin: { width: STAT_COIN, height: STAT_COIN, borderRadius: STAT_COIN / 2, alignItems: 'center', justifyContent: 'center' },
     unlit: { opacity: 0.45 },
-    block: { flex: 1, minWidth: 0, height: TILE_HEIGHT + LIP, borderRadius: radius.stat },
+    block: { flex: 1, minWidth: 0, height: TILE_HEIGHT + LIP, ...corner.tile },
   });

@@ -60,12 +60,10 @@ describe('the motion clock', () => {
     assert.equal(realClock.now(), wall, 'the beats trust a performance object with no now()');
 
     // Every gap the moving parts measure is on that clock.
-    for (const file of ['CountUp.tsx', 'MorphButton.tsx', 'ProgressRing.web.tsx']) {
+    for (const file of ['CountUp.tsx', 'ProgressRing.web.tsx']) {
       const body = code(file);
       assert.doesNotMatch(body, /\bDate\.now\(/, `motion/${file} measures a gap on the wall clock`);
       assert.match(body, /import \{ monotonicNow \} from '\.\/clock\.ts';/, `motion/${file} does not read the forward clock`);
     }
-    assert.match(code('MorphButton.tsx'), /busySince\.current = monotonicNow\(\);/, 'the spinner limit starts on another clock');
-    assert.match(code('MorphButton.tsx'), /monotonicNow\(\) - since >= MORPH\.spinMax/, 'the spinner limit is measured on another clock');
   });
 });

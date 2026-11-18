@@ -10,7 +10,7 @@
 
 import { View, Text } from 'react-native';
 import Svg, { Path, Circle, G } from 'react-native-svg';
-import { decorative, paper, radius, space, type, STROKE } from '../theme.ts';
+import { decorative, paper, space, type, STROKE, corner } from '../theme.ts';
 
 /** A person with a plus beside them — the add-friends mark. */
 export function PersonPlusGlyph({ size = 24, color = paper.ink }: { size?: number; color?: string }) {
@@ -32,7 +32,7 @@ export function SampleChip() {
     <View
       style={{
         backgroundColor: paper.groundDeep,
-        borderRadius: radius.chip,
+        ...corner.field,
         paddingHorizontal: space(2),
         paddingVertical: 2,
         alignSelf: 'flex-start',

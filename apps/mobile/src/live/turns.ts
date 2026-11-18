@@ -47,7 +47,17 @@ export const MAX_TURNS = 40;
  */
 export function pushTurn(list: readonly TurnLine[], line: Omit<TurnLine, 'id'>, id: string): TurnLine[] {
   const existing = list.findIndex(turn => turn.id === id);
-  if (existing >= 0) return list as TurnLine[];
+  if (existing >= 0) {
+    // F988: the line was shown as it was spoken. A later copy never changes its
+    // French; it only fills in what the first copy lacked.
+    const turn = list[existing]!;
+    const en = turn.en || line.en || null;
+    const frWritten = turn.frWritten || line.frWritten || null;
+    if (en === turn.en && frWritten === turn.frWritten) return list as TurnLine[];
+    const filled = [...list];
+    filled[existing] = { ...turn, en, frWritten };
+    return filled;
+  }
   const last = list[list.length - 1];
   if (last && last.who === line.who && last.fr === line.fr) {
     // Same line again, but a republish can carry recasts the first copy lacked.

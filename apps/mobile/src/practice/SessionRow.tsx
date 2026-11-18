@@ -14,7 +14,7 @@
 
 import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { ArrowRight, Card } from '../components.tsx';
-import { HIT, radius, signal, space, type } from '../theme.ts';
+import { HIT, corner, radius, signal, space, type } from '../theme.ts';
 import type { SessionCard } from './sessionCard.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
@@ -105,7 +105,7 @@ function makeSt(t: B) {
   topics: {
     marginTop: space(3),
     backgroundColor: t.ground,
-    borderRadius: radius.input,
+    ...corner.field,
     padding: space(3),
   },
   topicsLabel: { ...type.label, color: t.text },

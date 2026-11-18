@@ -54,7 +54,7 @@ import { dailyTutorVoice, tutorAudioForFrench } from '../daily/tutorAudio.ts';
 import { tutorVoice, type ConversationPack } from '@luvani/core';
 import { sourceForKeptFrench } from './phraseAudioSource.ts';
 import { useKeptPhraseAudio } from './useKeptPhraseAudio.ts';
-import { paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { corner, paper, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { loadDeck } from '../review/store.ts';
 import { loadTopics } from '../topics/store.ts';
 import { CadenceCard } from '../myfrench/CadenceCard.tsx';
@@ -176,11 +176,12 @@ export function PhrasebookScreen({ onBack }: { onBack: () => void }) {
   const empty = visibleBook !== null && !hasPhrases(visibleBook) && !hasSaved(visibleBook) && query.trim() === '';
   return (
     <ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: onBack }} />} footer={empty ? <PillButton label={PHRASEBOOK_EMPTY.action} onPress={() => nav.navigate('Missions')} lip /> : undefined}>
-      <View style={st.head}>
+      {/* While nothing is kept, the stage title is the only headline (F998). */}
+      {!empty && <View style={st.head}>
         <Text accessibilityRole="header" style={st.title}>
           {PHRASEBOOK_TITLE}
         </Text>
-      </View>
+      </View>}
 
       {visibleBook !== null && needsPhraseSearch(visibleBook) && <Field label="Find a phrase" value={query} onChangeText={setQuery} placeholder="French or English" maxLength={120} />}
       {visibleBook !== null && query.trim() !== '' && displayBook !== null && !hasPhrases(displayBook) && !hasSaved(displayBook) && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.text }]}>No matching phrases.</Text>}
@@ -328,7 +329,7 @@ function makeSt(t: B) {
   savedCard: { marginTop: space(3) },
   // The collection's row: a full-width target at the touch floor, no card of
   // its own, so it reads as a quiet door rather than another block of content.
-  disclosure: { minHeight: HIT, justifyContent: 'center', paddingVertical: space(2), borderRadius: radius.row },
+  disclosure: { minHeight: HIT, justifyContent: 'center', paddingVertical: space(2), ...corner.tile },
   // The words take the room and the button keeps its floor, so a long line
   // wraps rather than squeezing the control under the touch minimum.
   row: { flexDirection: 'row', alignItems: 'center', gap: space(3), minHeight: HIT, paddingVertical: space(2) },

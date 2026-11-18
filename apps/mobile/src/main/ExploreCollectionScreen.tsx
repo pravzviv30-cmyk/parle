@@ -9,7 +9,7 @@ import { dailyTutorVoice } from '../daily/tutorAudio.ts';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
 import { MainIllustration } from '../illustrations/MainIllustration.tsx';
 import { Icon } from '../icons/Icon.tsx';
-import { space, type, HIT, frenchText } from '../theme.ts';
+import { space, type, HIT, frenchText, corner } from '../theme.ts';
 import { MainButton, MainHeading, MainRow, MainScreen, MainText } from './MainUI.tsx';
 import { useMainAppearance } from './MainAppearance.tsx';
 import { learningSuggestions } from './learningSuggestions.ts';
@@ -75,4 +75,4 @@ export function ExploreCollectionScreen() {
     </>}
   </MainScreen>;
 }
-const s = StyleSheet.create({ art: { padding: space(4), borderRadius: 24, alignItems: 'center' }, search: { minHeight: 56, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: space(3), padding: space(4) }, input: { flex: 1, minWidth: 0, minHeight: HIT }, phrase: { gap: space(2), padding: space(4), borderRadius: 20 } });
+const s = StyleSheet.create({ art: { padding: space(4), ...corner.card, alignItems: 'center' }, search: { minHeight: 56, ...corner.card, flexDirection: 'row', alignItems: 'center', gap: space(3), padding: space(4) }, input: { flex: 1, minWidth: 0, minHeight: HIT }, phrase: { gap: space(2), padding: space(4), ...corner.card } });

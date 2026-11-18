@@ -149,7 +149,7 @@ describe('the scene Today leads with', () => {
 
 // 2026-10-22: the next scene leans towards the learner's onboarding goal (core `nextScene`).
 import { nextScene as coreNextScene } from '@luvani/core';
-import { sceneEyebrow } from './todayView.ts';
+import { sceneHeroLine, sceneTime } from './todayView.ts';
 
 describe('the onboarding goal orders the hero', () => {
   test('a brand-new learner starts on the opener whatever the goal', () => {
@@ -165,7 +165,7 @@ describe('the onboarding goal orders the hero', () => {
     assert.ok(hero !== null && hero.kind === 'scene');
     assert.equal(hero.mission.id, 'mission:voisin');
     assert.equal(hero.picked, 'goal');
-    assert.equal(sceneEyebrow(hero), 'Picked for your move');
+    assert.equal(sceneHeroLine(hero), `${sceneTime(hero)}. Picked for your move`);
   });
 
   test('no goal, or "because", is the spine, counted as before', () => {
@@ -174,7 +174,7 @@ describe('the onboarding goal orders the hero', () => {
       assert.ok(hero !== null && hero.kind === 'scene');
       assert.equal(hero.mission.id, spineFrom(progressWith()).next!.id);
       assert.equal(hero.picked, 'spine');
-      assert.match(sceneEyebrow(hero), /^Next scene, 1 of \d+$/);
+      assert.match(sceneHeroLine(hero), /^About \d+ minutes?, scene 1 of \d+$/);
     }
   });
 
@@ -183,7 +183,7 @@ describe('the onboarding goal orders the hero', () => {
     const hero = homeMissionFrom({ progress: progressWith(), records: [record], levelIndex: 0, goal: 'moving', now: EVENING });
     assert.ok(hero !== null && hero.kind === 'scene');
     assert.equal(hero.mission.id, 'mission:cafe');
-    assert.equal(sceneEyebrow(hero), HERO_LABELS.resume);
+    assert.equal(sceneHeroLine(hero), `${sceneTime(hero)}. ${HERO_LABELS.resume}`);
   });
 
   test('a goal changed or cleared in Learning preferences reorders the hero from the stored profile', () => {
@@ -194,18 +194,18 @@ describe('the onboarding goal orders the hero', () => {
     const moving = heroFor(profile);
     assert.ok(moving !== null && moving.kind === 'scene');
     assert.equal(moving.mission.id, 'mission:voisin');
-    assert.equal(sceneEyebrow(moving), 'Picked for your move');
+    assert.equal(sceneHeroLine(moving), `${sceneTime(moving)}. Picked for your move`);
 
     const food = heroFor(withOnboardingGoal(profile, 'food'));
     assert.ok(food !== null && food.kind === 'scene');
     assert.equal(food.mission.id, coreNextScene(opened, 'food')!.mission.id);
-    assert.equal(sceneEyebrow(food), 'Picked for ordering food and drinks');
+    assert.equal(sceneHeroLine(food), `${sceneTime(food)}. Picked for ordering food and drinks`);
 
     const cleared = heroFor(withOnboardingGoal(profile, null));
     assert.ok(cleared !== null && cleared.kind === 'scene');
     assert.equal(cleared.mission.id, spineFrom(opened).next!.id);
     assert.equal(cleared.picked, 'spine');
-    assert.match(sceneEyebrow(cleared), /^Next scene/);
+    assert.match(sceneHeroLine(cleared), /^About \d+ minutes?(, scene \d+ of \d+)?$/);
   });
 
   test('the hero is the scene core picks for the goal', () => {

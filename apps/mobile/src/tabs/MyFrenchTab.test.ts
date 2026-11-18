@@ -172,8 +172,8 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
     // 2026-10-20, B4, B-Journey: the header's numbers are the shared StatRow of
     // StatTiles, and the one outline button is the refused start's retry.
     for (const retired of ['<TintRow', '<IconRowCard', '<Stat ']) assert.ok(!SCREEN.includes(retired), `${retired} is back`);
-    assert.equal(tags(SCREEN, 'OutlineButton').length, 1);
-    gated('<OutlineButton', 'heldBack && (', 400);
+    assert.equal(tags(SCREEN, 'GhostButton').length, 1);
+    gated('<GhostButton', 'heldBack && (', 400);
   });
 
   test('every row goes somewhere and names itself', () => {
@@ -297,7 +297,7 @@ describe('Journey is Your French, the stage, the level, abilities, then and now,
 // brand token in both themes, and the clock over it is light in both.
 describe('the Journey band is brand blue with a light status bar', () => {
   test('the band reads t.brand, which is #3B2FE0 in light and dark, and the bar is light while focused', async () => {
-    assert.match(FLAT, /band: \{ backgroundColor: t\.brand, borderBottomLeftRadius: 36, borderBottomRightRadius: 36,/);
+    assert.match(FLAT, /band: \{ backgroundColor: t\.brand, borderBottomLeftRadius: radius\.card, borderBottomRightRadius: radius\.card, \.\.\.continuous,/);
     // 2026-10-21, simulator: the bar is a layout-free sibling before the
     // ScrollScreen, never a wrapper around it and never inside the scroll.
     assert.match(FLAT, /return \( <> \{focused \? <StatusBar style="light" \/> : null\} <ScrollScreen bottom="tab" padded=\{false\} bleedTop> <View style=\{st\.band\}>/);

@@ -805,8 +805,25 @@ export class LuvaniTutor extends voice.Agent {
     return ReadableStream.from(observeEvents(observeRecognitionConfidence(events), this.tap)) as ReadableStream<stt.SpeechEvent | string>;
   }
 
+  /**
+   * The learner said something. Every exit ends in StopResponse (F982): SDK 1.9
+   * lets the pipeline model answer when this hook throws anything else.
+   */
+  override async onUserTurnCompleted(chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    try {
+      await this.userTurnCompleted(chatCtx, newMessage);
+    } catch (error) {
+      if (error instanceof voice.StopResponse) throw error;
+      console.error('[luvani] the turn hook failed:', safeError(error));
+      console.error('[luvani:hook-failure] tutor=lesson');
+      // The body cleared the rescue clock; a stuck learner still gets rescued.
+      try { this.armRescue(this.session); } catch { /* the hook still stops the pipeline */ }
+    }
+    throw new voice.StopResponse();
+  }
+
   /** The learner said something. Grade it, move the ladder, re-brief the tutor. */
-  override async onUserTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+  private async userTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
     if (this.refused) throw new voice.StopResponse();
     this.clearRescue();
     this.learnerSpeaking = false;

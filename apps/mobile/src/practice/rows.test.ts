@@ -39,43 +39,25 @@ function stripComments(source: string): string {
   return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
 }
 
-/** The three files that draw the rows, plus the module that decides what is in them. */
+/** The file that draws the sound row, plus the module that decides what is in the rows. F999 deleted the replay and phrase rows, which nothing drew. */
 const ROWS = {
-  replay: stripComments(read('./ReplayMomentCard.tsx')),
-  phrase: stripComments(read('./MakePhraseCard.tsx')),
   sound: stripComments(read('./TuneSoundCard.tsx')),
 } as const;
 const MODEL = stripComments(read('./madeFrom.ts'));
 // 2026-10-20, B3, B-Practice: the made-from rows are no longer drawn on
 // Practice (a fix is tried on Your fixes, Today keeps the replay in B5); the
-// rows' own rules below still hold for the files, and the tab still stops any
-// voice it started when it goes.
+// tab still stops any voice it started when it goes.
 const TAB = stripComments(read('../tabs/PracticeTab.tsx'));
 
 describe('practice is three rows made from what the learner said — F574, F582', () => {
-  test('replay speaks the better line and stops it when the tab goes', () => {
-    // The tap plays the better way first and opens the sitting after, so the
-    // line is in the learner's ear before the exercise asks for it.
-    assert.match(ROWS.replay, /speak\(replay\.better\)/, 'the replay row never speaks the better line');
-    const press = ROWS.replay.slice(ROWS.replay.indexOf('onPress={'), ROWS.replay.indexOf('/>', ROWS.replay.indexOf('onPress={')));
-    assert.ok(press.length > 0, 'the replay row no longer has a press handler; this test is reading the wrong thing');
-    assert.ok(
-      press.indexOf('speak(replay.better)') < press.indexOf('onTry()'),
-      'the drill opens before the line is spoken, so the voice arrives over the exercise',
-    );
-    // It is the tutor's own voice module, which is playback and nothing else.
-    assert.match(ROWS.replay, /from '\.\.\/speech\/tutorVoice\.ts'/, 'the replay row speaks through something other than the tutor voice');
-    // And a voice started here stops when the tab goes. F304 is the whole
+  test('a voice started on practice stops when the tab goes', () => {
+    // A voice started here stops when the tab goes. F304 is the whole
     // reason: Speech.stop() runs before a line starts and nothing runs after.
     assert.match(
       TAB.replace(/\s+/g, ' '),
       /useEffect\(\(\) => \(\) => tutorVoice\.stop\(\), \[\]\)/,
       'the practice tab starts a voice and never stops it; it will follow the learner off this tab',
     );
-    // The row says what the tap will play, so a learner who cannot see the
-    // chevron is not told only "Replay a moment, button".
-    assert.match(ROWS.replay, /accessibilityLabel=\{`\$\{MADE_FROM\.replay\.label\}, \$\{MADE_FROM\.replay\.listen\}`\}/, 'the replay row does not say what it will play');
-    assert.equal(MADE_FROM.replay.listen, 'Hear the better line');
   });
 
   test('nothing on practice listens, records or scores', () => {
@@ -105,24 +87,8 @@ describe('practice is three rows made from what the learner said — F574, F582'
     assert.match(ROWS.sound, /onCheck\(measured\.missionId\)/, 'the sound lead no longer opens the check it names');
   });
 
-  test('each row is a ledger row: one ink mark and two lines, with no tint — notebook Phase 3', () => {
-    // 2026-09-27: the tinted rows retire with the notebook system. A row is a
-    // hairline ledger line with an ink glyph and no disc, so the three kinds
-    // of practice are told apart by their words and marks, never by a paper.
-    const GLYPHS = { replay: 'ReplayGlyph', phrase: 'QuoteGlyph' } as const;
-    for (const key of ['replay', 'phrase'] as const) {
-      const body = ROWS[key];
-      assert.match(body, /<LedgerRow\b/, `the ${key} row is not the shared ledger row`);
-      assert.ok(!/<TintRow\b|tint=|MADE_FROM_TINT/.test(body), `the ${key} row still carries a tint`);
-      assert.match(body, new RegExp(`<${GLYPHS[key]} color=\\{paper\\.ink\\}`), `the ${key} row draws the wrong mark, or draws it in something other than ink`);
-      assert.ok(!/accent\.feature|highlight/.test(body), `the ${key} row reaches for the highlighter`);
-      assert.match(body, new RegExp(`title=\\{MADE_FROM\\.${key}\\.label\\}`), `the ${key} row spells its own title`);
-      // The card anatomy is gone: no second Card, no button, no French printed
-      // on the tab. All of that lives in the sitting the row opens.
-      assert.ok(!/<Card\b/.test(body), `the ${key} row is still a card`);
-      assert.ok(!/<OutlineButton\b|<PillButton\b|<GhostButton\b/.test(body), `the ${key} row still carries a button of its own`);
-    }
-    // And the words the founder wrote, exactly.
+  test('the made-from rows keep the words the founder wrote', () => {
+    // The words the founder wrote, exactly.
     assert.equal(MADE_FROM.replay.label, 'Replay a moment');
     assert.equal(MADE_FROM.replay.gloss, 'Listen and try again');
     assert.equal(MADE_FROM.phrase.label, 'Make this phrase yours');
@@ -133,16 +99,6 @@ describe('practice is three rows made from what the learner said — F574, F582'
       assert.equal(guiltIn(line), undefined, `"${line}" carries a banned word`);
       assert.doesNotMatch(line, /—|\d/, `"${line}" carries an em dash or a digit`);
     }
-  });
-
-  test('the phrase row opens the sitting that asks for the learner’s own French', () => {
-    // The row used to deal a scoped sitting that asked the learner to reproduce
-    // the phrase they had just been shown, which is copying. The node it hands
-    // over now carries the meaning and the situation instead of an answer.
-    assert.match(ROWS.phrase, /ownWords: \{ fr: phrase\.fr, en: phrase\.en, situation: phrase\.from \}/, 'the phrase row no longer asks for the learner’s own words');
-    assert.match(ROWS.phrase, /phraseKeys: \[phrase\.key\]/, 'the sitting is opened on something other than this phrase');
-    // The answer is not smuggled along beside the question.
-    assert.ok(!/accepted/.test(ROWS.phrase), 'the phrase row hands the sitting an answer key');
   });
 });
 

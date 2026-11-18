@@ -11,7 +11,7 @@ import { BArt } from '../art/BArt.tsx';
 import { LipTile, Press } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BSpeaker, CheckDisc } from '../today/TodayParts.tsx';
-import { HIT, bType, decorative, frenchText } from '../theme.ts';
+import { HIT, bType, corner, decorative, frenchText, radius } from '../theme.ts';
 import { HEAR_IT_SAID } from './afterSessionView.ts';
 
 /** The 44pt lavender speaker that plays the tutor's voice saying a line. */
@@ -101,11 +101,11 @@ function makeStyles(t: B) {
     hear: { width: HIT, height: HIT, borderRadius: HIT / 2, alignItems: 'center', justifyContent: 'center' },
     center: { textAlign: 'center' },
     grow: { flex: 1, minWidth: 0 },
-    saidWell: { backgroundColor: t.card, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
-    tile: { width: 72, height: 72, borderRadius: 16, backgroundColor: t.peach, alignItems: 'center', justifyContent: 'center', overflow: 'visible', transform: [{ rotate: '-4deg' }] },
-    nextPill: { backgroundColor: t.sun, borderRadius: 14, paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'flex-start' },
+    saidWell: { backgroundColor: t.card, ...corner.card, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    tile: { width: 72, height: 72, ...corner.field, backgroundColor: t.peach, alignItems: 'center', justifyContent: 'center', overflow: 'visible', transform: [{ rotate: '-4deg' }] },
+    nextPill: { backgroundColor: t.sun, ...corner.field, paddingVertical: 6, paddingHorizontal: 12, alignSelf: 'flex-start' },
     goal: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 24 },
-    goalRing: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: t.field },
+    goalRing: { width: 22, height: 22, borderRadius: radius.pill, borderWidth: 2, borderColor: t.field },
     lineRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
     ruled: { borderBottomWidth: 1, borderBottomColor: t.line },
     fix: { paddingVertical: 14, paddingHorizontal: 16, gap: 8, alignItems: 'stretch' },

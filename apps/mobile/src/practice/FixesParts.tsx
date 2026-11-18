@@ -23,7 +23,7 @@ import { lockSaid } from '../access/featureAccess.ts';
 import { HearButton, OneWaveSpeaker, TickGlyph } from '../explore/ExploreParts.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BButton, BMic } from '../today/TodayParts.tsx';
-import { HIT, bType, frenchText } from '../theme.ts';
+import { HIT, bType, corner, frenchText } from '../theme.ts';
 import { drillStage } from '../drill/drillStage.ts';
 import type { PhraseTone } from './fixesView.ts';
 
@@ -251,19 +251,19 @@ const makeStyles = (t: B) =>
     practise: { minHeight: HIT, justifyContent: 'center', paddingHorizontal: 16 },
     // "Type it" beside the lip primary: a white `LipTile`, the pill's height.
     typeIt: { minHeight: 54, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
-    pattern: { backgroundColor: t.butter, borderRadius: 22, paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
+    pattern: { backgroundColor: t.butter, ...corner.card, paddingVertical: 16, paddingHorizontal: 16, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
     // Try it first, on its stage, with the brand edge of the card in hand.
-    attempt: { borderRadius: 22, padding: 16, gap: 10, borderWidth: 2, borderColor: t.brandMark },
+    attempt: { ...corner.card, padding: 16, gap: 10, borderWidth: 2, borderColor: t.brandMark },
     pair: { flexDirection: 'row', gap: 8 },
     // After your try: the white card on a `line` lip.
     compared: { padding: 16, gap: 10 },
-    better: { backgroundColor: t.mintWash, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    better: { backgroundColor: t.mintWash, ...corner.tile, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
     speaker: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     link: { minHeight: HIT, justifyContent: 'center', alignSelf: 'flex-start' },
-    waiting: { backgroundColor: t.card, borderRadius: 24, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    waiting: { backgroundColor: t.card, ...corner.card, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
     phrases: { gap: 10 },
-    list: { backgroundColor: t.card, borderRadius: 22, paddingVertical: 4, paddingHorizontal: 16 },
+    list: { backgroundColor: t.card, ...corner.card, paddingVertical: 4, paddingHorizontal: 16 },
     phrase: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, minHeight: HIT },
     divider: { borderBottomWidth: 1, borderBottomColor: t.line },
-    notice: { backgroundColor: t.card, borderRadius: 24, padding: 16, gap: 8 },
+    notice: { backgroundColor: t.card, ...corner.card, padding: 16, gap: 8 },
   });

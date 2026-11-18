@@ -43,10 +43,11 @@ is kept, so this skill never replaces it.
      govern. What still counts: a spring or loop that is not a named token, or
      motion written outside `motion/drive.ts`.
    - *Radius.* unslop's 8 to 10 controls and 12 to 16 cards do not apply. The
-     scale is `radius` in `theme.ts` (card 24, feature 28, tile 20, stat 18,
-     field 16, pill 999), and onboarding follows its own rule: pills, cards 20,
-     tiles 18, inputs 14. What still counts: a literal radius that matches no
-     token or documented rule, and nested radii that do not add up.
+     scale is `radius` in `theme.ts` (UI-023: pill 999, card 20, tile 18,
+     field 14, inset 12, mark 8, nib 4, with `corner.x` for continuous corners
+     on iOS), the same rule onboarding chose. What still counts: a literal
+     radius that matches no token or documented rule, and nested radii that do
+     not add up.
    - *Gradients.* unslop says none. Luvani has none either, except the one
      sanctioned soft sky (`art/sky/`, onboarding's sky window). The tutor orb's
      surface is the orb's own art. Anything else is slop.

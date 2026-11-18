@@ -19,7 +19,7 @@
  * 5. One door to the engine: `with*` calls live in motion/drive.ts alone, and
  *    every spring is a named token.
  * 6. SVG and layout: only dash offsets and opacity animate through props, and
- *    only MorphButton animates a layout prop.
+ *    nothing animates a layout prop.
  * 7. No test loads a module that imports an animation, audio or haptics engine.
  *
  * The allow-lists are directories and named files, so a later step that adds a
@@ -212,7 +212,7 @@ const usesLegacyAnimated = (body: string): boolean =>
   runtimeImports(body).some(({ spec, clause }) => spec === 'react-native' && /\bAnimated\b/.test(clause));
 
 /** Rule 4: where a loop may run. */
-const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'motion/MorphButton.tsx', 'icons/AnimatedIcon.tsx', 'onboarding/motion/C2Scene.tsx',
+const LOOP_FILES = ['launch/LaunchScreen.tsx', 'tutor/VoiceOrb.tsx', 'icons/AnimatedIcon.tsx', 'onboarding/motion/C2Scene.tsx',
   // Cloud's blink while the mic is live, paused by `active`.
   'motion/MascotMotion.tsx'];
 const loopAllowed = (short: string): boolean =>
@@ -312,9 +312,7 @@ describe('nothing animates a thing the native driver cannot carry', () => {
         }
       }
       // An animated style that moves a layout prop runs a layout pass per
-      // frame. MorphButton's width, the busy button closing to a circle, is
-      // the one allowed.
-      if (f.short === 'motion/MorphButton.tsx') continue;
+      // frame, so none may.
       for (const m of every(f.body, /\buseAnimatedStyle\(/g)) {
         const body = callBody(f.body, m.index + 'useAnimatedStyle'.length);
         for (const key of every(body, /[{,]\s*(width|height|top|left|right|bottom|margin\w*|padding\w*)\s*:/g)) {

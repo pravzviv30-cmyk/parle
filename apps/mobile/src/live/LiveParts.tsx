@@ -13,7 +13,7 @@ import { Press } from '../components.tsx';
 import { TickGlyph } from '../explore/ExploreParts.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BMic, BSpeaker } from '../main/bMarks.tsx';
-import { HIT, bType, decorative, frenchText } from '../theme.ts';
+import { HIT, bType, decorative, frenchText, corner, continuous, radius } from '../theme.ts';
 import type { LadderStep } from './liveRoomView.ts';
 
 // ─────────────────────────────────────────────────────────────── glyphs
@@ -207,22 +207,22 @@ function makeStyles(t: B) {
     topSpace: { width: HIT, height: HIT },
     center: { textAlign: 'center' },
     side: { width: 72, alignItems: 'center', gap: 6 },
-    sideDisc: { width: 56, height: 56, borderRadius: 28, backgroundColor: t.card, borderWidth: 1.5, borderColor: t.field, alignItems: 'center', justifyContent: 'center' },
+    sideDisc: { width: 56, height: 56, borderRadius: radius.pill, backgroundColor: t.card, borderWidth: 1.5, borderColor: t.field, alignItems: 'center', justifyContent: 'center' },
     disabled: { opacity: 0.55 },
     ladder: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', rowGap: 6 },
     ladderStep: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 6 },
     ladderRule: { width: 14, height: 2, backgroundColor: t.ring },
-    ladderPill: { minHeight: 32, paddingHorizontal: 12, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    choice: { minHeight: 60, borderWidth: 2, borderColor: t.field, borderRadius: 18, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 14, gap: 4 },
+    ladderPill: { minHeight: 32, paddingHorizontal: 12, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    choice: { minHeight: 60, borderWidth: 2, borderColor: t.field, ...corner.tile, backgroundColor: t.card, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, paddingRight: 14, gap: 4 },
     choicePress: { minHeight: 56, justifyContent: 'center', paddingVertical: 10 },
     choiceWords: { flex: 1, gap: 2, paddingVertical: 10 },
     choiceHear: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
-    sheet: { flexShrink: 1, backgroundColor: t.ground, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 12, paddingHorizontal: 22, gap: 14 },
-    grabber: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: t.ring },
+    sheet: { flexShrink: 1, backgroundColor: t.ground, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card, ...continuous, paddingTop: 12, paddingHorizontal: 22, gap: 14 },
+    grabber: { alignSelf: 'center', width: 44, height: 5, borderRadius: radius.pill, backgroundColor: t.ring },
     sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     sheetClose: { width: HIT, height: HIT, borderRadius: HIT / 2, backgroundColor: t.card, alignItems: 'center', justifyContent: 'center' },
-    asked: { backgroundColor: t.card, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 14, gap: 2 },
-    secondary: { minHeight: 46, borderRadius: 23, backgroundColor: t.card, borderWidth: 2, borderColor: t.field, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
-    primary: { minHeight: 54, borderRadius: 27, backgroundColor: t.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 18 },
+    asked: { backgroundColor: t.card, ...corner.field, paddingVertical: 10, paddingHorizontal: 14, gap: 2 },
+    secondary: { minHeight: 46, borderRadius: radius.pill, backgroundColor: t.card, borderWidth: 2, borderColor: t.field, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+    primary: { minHeight: 54, borderRadius: radius.pill, backgroundColor: t.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 18 },
   });
 }

@@ -46,7 +46,7 @@
   },
   "luvani": {
     "dependencyAudit": {
-      "reviewed": "2026-11-16",
+      "reviewed": "2026-11-18",
       "auditFailsAbove": "moderate",
       "note": "High and critical root advisories require an exact GHSA ID, vulnerable range, installed lock version, reachability argument and an unexpired review window of at most 30 days. New advisories on an accepted package fail. Stale acceptances and reported fixed advisories fail. audit:ci alone contacts the registry; the normal gate is offline.",
       "advisories": [
@@ -94,21 +94,21 @@
           "resolution": "2026-11-16: @expo/config-plugins 57.0.11 and later (still SDK 57) declare xcode ^4.0.0, and xcode 4.0.0 depends only on simple-plist, so uuid left the tree. Every dependant already allowed 57.0.13 (~57.0.10, ~57.0.9, ^57.0.9), so `npm update @expo/config-plugins` changed the lockfile only, with no override; an iOS `expo prebuild --no-install --clean` on xcode 4.0.0 succeeded and wrote a valid project.pbxproj."
         },
         {
-          "module": "decode-uri-component",
+          "module": "@react-navigation/core",
           "severity": "high",
-          "decision": "accepted",
-          "lockedAt": "0.2.2",
+          "decision": "fixed",
+          "lockedAt": "7.25.0",
+          "removedPackages": [
+            "query-string",
+            "decode-uri-component"
+          ],
           "advisories": [
-            "https://github.com/advisories/GHSA-qr28-fpjm-wq7f"
+            "https://github.com/advisories/GHSA-qr28-fpjm-wq7f",
+            "https://github.com/advisories/GHSA-vcc3-ghjq-m6fr"
           ],
           "chain": "@luvani/mobile -> @react-navigation/native -> @react-navigation/core -> query-string 7.1.3 -> decode-uri-component",
-          "reachability": "on-device only. react-navigation decodes deep-link paths and query strings through query-string, so a crafted link opened by a learner can reach the quadratic percent-decoding. The worst case is that learner freezing their own app. No server, service runtime, minutes or other learner is reached: no app server or service imports query-string or decode-uri-component.",
-          "why": "Fixed in 0.5.1, but query-string 7.1.3 declares ^0.2.2 and @react-navigation/core declares query-string ^7.1.3, so no lockfile-only update exists. A fix needs query-string 10 (which drops this package) through a react-navigation upgrade, or an override to 0.5.1, a version query-string never declared. Revisit at the next react-navigation upgrade. Re-reviewed 2026-11-16: GHSA-qr28-fpjm-wq7f is unchanged and not withdrawn, @react-navigation/core 7.25.0 (latest) still declares query-string ^7.1.3, no source file imports query-string or decode-uri-component, and the separate moderate GHSA-vcc3-ghjq-m6fr (<=0.4.2) is reported but cannot join this high record because audit:ci matches advisories to the record's single severity.",
-          "reviewed": "2026-11-16",
-          "expires": "2026-12-16",
-          "advisoryRanges": {
-            "https://github.com/advisories/GHSA-qr28-fpjm-wq7f": "<=0.5.0"
-          }
+          "reachability": "was reached in the web build only, and is now absent. App.tsx passes the linking config only when Platform.OS is web, so native never parsed links through it; on web, react-navigation decoded address paths and query strings through query-string, so a crafted link opened by a learner could reach the quadratic percent-decoding and freeze that learner's own app. No server, service runtime or other learner was reached, and no source file under apps, packages or services imports query-string or decode-uri-component.",
+          "resolution": "2026-11-18: @react-navigation/core 7.22.1 (2026-09-15) dropped query-string and parses queries with its own lib/module/queryString.js; 7.21.12 and 7.22.0 still declared query-string ^7.1.3. @react-navigation/native 7.3.16 declares core ^7.21.12, so `npm update @react-navigation/core` changed the lockfile only, with no override, and moved 8 entries: core 7.21.12 to 7.25.0, its nested react-is 19.2.8 to 19.3.1, @react-navigation/routers 7.6.4 to 7.6.6, and removed query-string, decode-uri-component, filter-obj, split-on-first and strict-uri-encode. The new serializer keeps query params in insertion order instead of sorting keys."
         },
         {
           "module": "zod",

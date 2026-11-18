@@ -16,7 +16,7 @@ import * as tutorVoice from '../../speech/tutorVoice.ts';
 import { holdMic } from '../../sound/audioFocus.ts';
 import { discardRecording } from '../../speech/discardRecording.ts';
 import { enterRecording, leaveRecording } from '../../sound/audioSession.ts';
-import { CAN_RECORD, HearRow, METERED_TAKE, kindTag } from './shared.tsx';
+import { CAN_RECORD, HearRow, METERED_TAKE } from './shared.tsx';
 import { SPEAK, makeDs } from './styles.ts';
 
 /** The quiet control's one string: what it shows is what Voice Control and VoiceOver call it (F951). */
@@ -170,7 +170,6 @@ export function RepeatThisView({
     <DrillFrame
       {...shell}
       stage={drillStage(exercise.kind, bt.mode)}
-      eyebrow={kindTag(exercise)}
       prompt={exercise.reference}
       english={exercise.referenceEn}
       stageExtra={<>

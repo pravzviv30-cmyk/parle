@@ -77,3 +77,8 @@ export function drillStage(surface: StageSurface, mode: 'light' | 'dark'): Drill
   const band = BAND[family];
   return { family, band, eyebrow: mode === 'dark' && band === 'butter' ? 'text' : 'link' };
 }
+
+/** A kind's task on the stage's meta line (F995): the tag first, a full stop, then any existing line. */
+export function taskLine(tag: string, line?: string): string {
+  return line === undefined ? tag : `${tag}. ${line}`;
+}

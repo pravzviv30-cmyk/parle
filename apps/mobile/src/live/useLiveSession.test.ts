@@ -1,7 +1,8 @@
 import { ownLeaseRetry } from './ownLease.ts';
 import { classifyFailure } from './failure.ts';
 import { unjoinedLease } from './unjoinedLease.ts';
-import { missionRoleLine, sceneTurns } from './roleLine.ts';
+import { missionRoleLine, sceneTurns, tutorLineTurns } from './roleLine.ts';
+import { thinkingAfter } from './thinking.ts';
 /**
  * What the live hook does with the messages it is sent, held to its own source.
  *
@@ -509,6 +510,60 @@ test('only agent-confirmed scene replies count, never a topic pick, a duplicate 
   // The optimistic typed line is shown before the agent dequeues it, and never counted.
   const hook = readFileSync(new URL('./useLiveSession.ts', import.meta.url), 'utf8');
   assert.equal((hook.match(/setSceneReplies\(\(n\) => n \+ 1\)/g) ?? []).length, 1, 'something other than a confirmed final counts a reply');
+});
+
+test('an overheard line is added to the turns without counting a scene reply or starting the thinking state', () => {
+  // F987: words said over an uninterruptible tutor line. Shown, never answered.
+  const { world } = switchWorld();
+  const turns: { line: { who: string; fr: string }; id: string | undefined }[] = [];
+  let replies = 0;
+  let confirmed = 0;
+  const contributions: unknown[] = [];
+  world.addTurn = (line: { who: string; fr: string }, id?: string) => turns.push({ line, id });
+  world.setSceneReplies = (next: (n: number) => number) => { replies = next(replies); };
+  world.contributionCallback = { current: (line: unknown) => contributions.push(line) };
+  world.replyClock = { current: { learnerTurnConfirmed: () => { confirmed += 1; } } };
+  world.confirmedIds = { current: new Set<string>() };
+  const overheard = { t: 'overheard', text: 'Here we go.', turnId: 'u7' } as const;
+  deliver(world, overheard);
+  deliver(world, overheard);
+  assert.deepEqual(turns.map(t => [t.line.who, t.line.fr]), [['learner', 'Here we go.'], ['learner', 'Here we go.']]);
+  assert.equal(new Set(turns.map(t => t.id)).size, 1, 'a re-sent overheard line must keep one id so pushTurn adds it once');
+  assert.notEqual(turns[0]!.id, 'u7', 'the overheard id must not take the id of the confirmed turn that follows');
+  assert.equal(replies, 0, 'an overheard line counted as a scene reply');
+  assert.equal(confirmed, 0, 'an overheard line started the reply clock');
+  assert.equal(contributions.length, 0, 'an overheard line reached the contribution callback');
+  // The thinking rule: neither starts the wait nor ends one.
+  assert.equal(thinkingAfter(false, overheard), false);
+  assert.equal(thinkingAfter(true, overheard), true);
+});
+
+test('a tutor-line with no view after it is never journalled or counted', async () => {
+  // F988: the early line is shown at once; only a view (after the checkpoint)
+  // may reach the journal, the saved text or the counts.
+  const { world, seen } = switchWorld();
+  const turns: { who: string; fr: string; en: string | null }[] = [];
+  let replies = 0;
+  const contributions: unknown[] = [];
+  world.tutorLineTurns = tutorLineTurns;
+  // Mid-scene: the first view has already shown who the tutor plays.
+  world.roleShownRef = { current: true };
+  world.addTurn = (line: typeof turns[number]) => turns.push(line);
+  world.setSceneReplies = (next: (n: number) => number) => { replies = next(replies); };
+  world.contributionCallback = { current: (line: unknown) => contributions.push(line) };
+  const early = { t: 'tutor-line', textTurnId: 'c9', narration: null, coach: null, reply: { speaker: 'Karim', fr: 'Et avec ceci ?' } } as const;
+  const recorder = new ConversationTextRecorder();
+  world.conversationTextRef = { current: recorder };
+  for (const msg of [early, RECAP_MSG]) {
+    recorder.receive(msg as ServerMessage);
+    deliver(world, msg);
+  }
+  assert.deepEqual(turns.map(t => [t.who, t.fr, t.en]), [['tutor', 'Et avec ceci ?', null]], 'the early line is shown');
+  assert.equal(replies, 0);
+  assert.equal(contributions.length, 0);
+  assert.equal(seen.journalled.length, 1, 'the recap is journalled as before');
+  assert.doesNotMatch(JSON.stringify(seen.journalled), /Et avec ceci/, 'a tutor-line reached the journal');
+  assert.doesNotMatch(JSON.stringify(recorder.snapshot()), /Et avec ceci/, 'a tutor-line reached the saved conversation text');
 });
 
 describe('the safety decision the hook holds — F136', () => {

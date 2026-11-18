@@ -1122,6 +1122,7 @@ export function DrillScreen({
           title="Nothing to review."
           body="Your next session adds more."
           action={{ label: 'Done', onPress: finishAndLeave }}
+          ground="butter"
         />
       </ScrollScreen>
     );

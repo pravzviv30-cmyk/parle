@@ -1,6 +1,6 @@
 import { prepareGuestLive, prepareGuestScene, guestLiveOperation, guestLiveResult, endGuestLive, GUEST_SCENE_MODES } from './guestLive.ts';
 import { MemoryGuestSceneLedger, RedisGuestSceneLedger, guestSceneAdmission, guestSceneDaily, guestSceneGaps, GUEST_SCENE_DEFAULT_DAILY } from './guestSceneAdmission.ts';
-import { GUEST_SCENE, GUEST_CAFE_SCENE } from '@luvani/core';
+import { GUEST_SCENE, GUEST_CAFE_SCENE, getLesson } from '@luvani/core';
 import { firstPracticeScenario, parseFirstPracticeBrief } from '@luvani/core';
 import { reserveGuestDecoder } from '../../shared/audioDecode.ts';
 import { guestSpeechAvailable, guestSpeechGaps, guestSpeechLimits, transcribeGuestTake } from './onboardingSpeech.ts';
@@ -85,7 +85,7 @@ import {
   validConversationPackFor,
 } from './conversationPacks.ts';
 import { applyHttpSecurity, createOriginPolicy } from './httpSecurity.ts';
-import { answerRequestError, protectHttpHandler, readRequestJson, requestUrl, withRequestSignal } from './requestBoundary.ts';
+import { HttpInputError, answerRequestError, protectHttpHandler, readRequestJson, requestUrl, withRequestSignal } from './requestBoundary.ts';
 import {
   refreshSubscriber,
   revenueCatConfiguration,
@@ -722,6 +722,8 @@ const server = createServer(protectHttpHandler(async (req, res) => {
               ? ('lesson-text' as const)
               : ('lesson' as const);
       if (!supportsSessionMode(mode)) return json(res, 503, { error: 'voice-unavailable', message: 'Voice is unavailable here. You can start a typed conversation.', supportedModes: supportedSessionModes() });
+      // F968: a lesson room runs the signed lesson, so an id the worker's catalogue lacks is refused before any claim.
+      if ((mode === 'lesson' || mode === 'lesson-text') && !getLesson(lessonId)) throw new HttpInputError(400, 'unknown lesson');
       // Fitted under the brain's byte budget, which guards older app builds (LEARN-014).
       const fitted = sessionSnapshot(body.snapshot);
       if (!fitted.ok) return json(res, 413, { error: 'snapshot-too-large', message: 'We could not start this session. Please update the app and try again.' });

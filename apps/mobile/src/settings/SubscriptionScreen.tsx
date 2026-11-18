@@ -34,7 +34,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { Press } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
-import { radius, space, type } from '../theme.ts';
+import { space, type, corner } from '../theme.ts';
 import { useAuth } from '../auth/useAuth.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { PlanCard } from '../profile/PlanCard.tsx';
@@ -167,8 +167,8 @@ export function SubscriptionScreen() {
 
 const st = StyleSheet.create({
   unknown: { gap: space(4) },
-  notice: { borderRadius: radius.tile, padding: space(4), gap: space(1) },
-  retry: { minHeight: 56, borderRadius: radius.feature, justifyContent: 'center', paddingHorizontal: space(4) },
+  notice: { ...corner.tile, padding: space(4), gap: space(1) },
+  retry: { minHeight: 56, ...corner.card, justifyContent: 'center', paddingHorizontal: space(4) },
   last: { paddingBottom: space(6) },
   storeLine: { paddingHorizontal: space(4), paddingTop: space(3) },
 });

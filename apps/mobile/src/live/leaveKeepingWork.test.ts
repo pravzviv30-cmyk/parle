@@ -81,7 +81,8 @@ describe('leaving keeps the work once the learner has replied — F905', () => {
     assert.deepEqual(leaveOnConfirm({ ...open, learnerReplies: 0 }), [{ kind: 'teardown' }]);
 
     const hook = read('./useLiveSession.ts');
-    assert.equal((hook.match(/addTurn\(learnerLine\(\{/g) ?? []).length, 2, 'a learner line is added without the choosing mark');
+    // The confirmed final, the optimistic typed line and the overheard line (F987).
+    assert.equal((hook.match(/addTurn\(learnerLine\(\{/g) ?? []).length, 3, 'a learner line is added without the choosing mark');
     assert.doesNotMatch(hook, /addTurn\(\{ who: 'learner'/);
     assert.match(hook, /setOpening\(null\);\s*choosingRef\.current = false;/);
     assert.match(hook, /setOpening\(\{ prompt: msg\.prompt \}\);\s*choosingRef\.current = true;/);

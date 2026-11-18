@@ -39,9 +39,9 @@ test('the empty-state card can draw a mascot in place of the art, and stand cent
   const card = readFileSync(new URL('./EmptyStateCard.tsx', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '').replace(/\s+/g, ' ');
   assert.match(card, /\{art \? <BArt name=\{art\.name\} width=\{art\.width\} height=\{art\.height\} \/> : figure\}/, 'the mascot is not drawn in place of the art');
   assert.match(card, /<View style=\{stage \? s\.stage : \[s\.card, \{ backgroundColor: t\[ground\] \}\]\}>/, 'centre stage still draws the card');
-  assert.match(card, /style=\{\[stage \? bType\.title26 : bType\.bold19, s\.centred, \{ color: t\.text \}\]\}/, 'the stage title is not the larger title');
+  assert.match(card, /style=\{\[stage \? bType\.bandTitle : bType\.bold19, s\.centred, \{ color: t\.text \}\]\}/, 'the stage title is not the larger title');
   assert.match(card, /<Text style=\{\[bType\.para15, s\.centred, \{ color: t\.secondary \}\]\}>\{body\}<\/Text>/);
-  assert.match(card, /card: \{ borderRadius: 26, paddingVertical: 20, paddingHorizontal: 18, gap: 8, alignItems: 'center', alignSelf: 'stretch' \}/);
+  assert.match(card, /card: \{ \.\.\.corner\.card, paddingVertical: 20, paddingHorizontal: 18, gap: 8, alignItems: 'center', alignSelf: 'stretch' \}/);
   assert.match(card, /stage: \{ gap: 8, alignItems: 'center', alignSelf: 'stretch' \}/, 'the stage has a ground, radius or padding');
 });
 
@@ -84,6 +84,23 @@ test('the quiet previews draw the extracted parts inside a ScrollScreen, as thei
   const preview = flatSource('../dev/OnboardingPreview.tsx');
   assert.match(preview, /'quiet-toast', 'quiet-phrasebook', 'quiet-speak',/);
   assert.match(preview, /'quiet-phrasebook': 'Phrasebook, nothing kept yet', 'quiet-speak': 'Speak, out of the free conversation',/);
-  assert.match(preview, /\{screen === 'quiet-phrasebook' && <ModeScope mode=\{yourFrenchMode\}><ScrollScreen bottom="inset" header=\{<ScreenHeader back=\{\{ onPress: \(\) => go\('select'\) \}\} \/>\} footer=\{<PillButton label=\{PHRASEBOOK_EMPTY\.action\} onPress=\{\(\) => go\('select'\)\} lip \/>\}><Text accessibilityRole="header" style=\{\[type\.display, \{ color: b\[yourFrenchMode\]\.text, marginTop: space\(2\) \}\]\}>\{PHRASEBOOK_TITLE\}<\/Text><PhrasebookEmpty title=\{PHRASEBOOK_EMPTY\.title\} body=\{PHRASEBOOK_EMPTY\.body\} \/><\/ScrollScreen><\/ModeScope>\}/);
+  assert.match(preview, /\{screen === 'quiet-phrasebook' && <ModeScope mode=\{yourFrenchMode\}><ScrollScreen bottom="inset" header=\{<ScreenHeader back=\{\{ onPress: \(\) => go\('select'\) \}\} \/>\} footer=\{<PillButton label=\{PHRASEBOOK_EMPTY\.action\} onPress=\{\(\) => go\('select'\)\} lip \/>\}><PhrasebookEmpty title=\{PHRASEBOOK_EMPTY\.title\} body=\{PHRASEBOOK_EMPTY\.body\} \/><\/ScrollScreen><\/ModeScope>\}/);
   assert.match(preview, /\{screen === 'quiet-speak' && <ModeScope mode=\{yourFrenchMode\}><ScrollScreen bottom="inset"><OutOfTimeMoment card=\{QUIET_OUT_OF_TIME\} onPlans=\{\(\) => go\('select'\)\} \/><\/ScrollScreen><\/ModeScope>\}/);
+});
+
+// F997, F998 (systemic pass): the centre stage title takes the stage title role, and both "nothing to review" cards sit on butter.
+test('the centre stage title is the stage title role', () => {
+  const card = flatSource('./EmptyStateCard.tsx');
+  assert.match(card, /style=\{\[stage \? bType\.bandTitle : bType\.bold19, s\.centred, \{ color: t\.text \}\]\}/, 'the stage title is not the stage title role');
+  assert.doesNotMatch(card, /title26/);
+});
+
+test('nothing to review sits on butter in Review and the drill bank', () => {
+  for (const [path, title] of [['../ReviewScreen.tsx', 'Nothing waiting.'], ['../DrillScreen.tsx', 'Nothing to review.']] as const) {
+    const src = flatSource(path);
+    const at = src.indexOf(`title="${title}"`);
+    assert.ok(at > 0, path);
+    const card = src.slice(src.lastIndexOf('<EmptyStateCard', at), src.indexOf('/>', src.indexOf('action=', at)) + 2);
+    assert.match(card, /\bground="butter"/, `${path}: the card is not on butter`);
+  }
 });

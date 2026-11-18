@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { levelFor, missionStates, totalXp } from '@luvani/core';
-import { Card, ColourCard, FrenchBlock, IconAction, LipTile, PillButton } from '../components.tsx';
+import { Card, ColourCard, FrenchBlock, GhostButton, IconAction, LipTile, PillButton } from '../components.tsx';
 import { bType, paper, space, type } from '../theme.ts';
 import { Icon } from '../icons/Icon.tsx';
 import { useAuth } from '../auth/useAuth.tsx';
@@ -42,7 +42,7 @@ import { practiceCard, type PracticeCard } from './practiceCard.ts';
 import { practiceRouteParams } from './practiceRoute.ts';
 import { homeMissionFrom, type HomeMission } from '../home/homeMission.ts';
 import { MissionHero } from '../home/MissionHero.tsx';
-import { aboutMinutes, buildsOn, reviewRow, sceneRowLine } from '../home/todayView.ts';
+import { aboutMinutes, buildsOn, reviewRow, sceneRowLine, type PhraseItem } from '../home/todayView.ts';
 import type { ReviewCard } from '@luvani/core';
 import { LocalPracticeCard } from './LocalPracticeCard.tsx';
 import { TUTOR_OFFLINE } from '../tutor/gate.ts';
@@ -63,7 +63,7 @@ export type LeadPlacement = 'hero' | 'row';
  * primary action, and nothing while loading or failed (the hero shows those).
  * With no placement it draws as it always has.
  */
-export function NextTaskCard({ vivid = false, placement, last = false, starter = null, onHeroReview }: { vivid?: boolean; placement?: LeadPlacement; /** placement row: the final row on the path. */ last?: boolean; starter?: GuestPractice | null; /** placement hero: whether the hero carries Review (`heroCarriesReview`), once it knows; null when it goes. */ onHeroReview?: (carries: boolean | null) => void }) {
+export function NextTaskCard({ vivid = false, placement, last = false, starter = null, onHeroReview, onHeroCafe }: { vivid?: boolean; placement?: LeadPlacement; /** placement row: the final row on the path. */ last?: boolean; starter?: GuestPractice | null; /** placement hero: whether the hero carries Review (`heroCarriesReview`), once it knows; null when it goes. */ onHeroReview?: (carries: boolean | null) => void; /** placement hero: the café line a held lead at Starter hands to Today's phrase row (F996), else null. */ onHeroCafe?: (cafe: PhraseItem | null) => void }) {
   const nav = useNavigation<{ navigate(screen: string, params?: object): void }>();
   const { live } = useLive();
   const { user } = useAuth();
@@ -139,11 +139,17 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
   useEffect(() => { if (bare && heroReview !== null) onHeroReview?.(heroReview); }, [bare, heroReview, onHeroReview]);
   // A hero that goes takes its answer with it, so the next hero starts undecided.
   useEffect(() => () => { if (bare) onHeroReview?.(null); }, [bare, onHeroReview]);
-  if (failed && vivid) return row ? null : (<View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>);
+  // Held at Starter with no starter card (F996): the café line leaves the hero
+  // and Today's phrase row carries it, so it is drawn once.
+  const heldCafe = value !== null && value.scope === scopeGeneration() && (lead === 'outOfTime' || lead === 'lapsed') && billing !== null && starter === null && cafeOffered ? local : null;
+  useEffect(() => { if (bare) onHeroCafe?.(heldCafe); }, [bare, heldCafe, onHeroCafe]);
+  useEffect(() => () => { if (bare) onHeroCafe?.(null); }, [bare, onHeroCafe]);
+  if (failed && vivid) return row ? null : (<View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => { onHeroReview?.(null); setAttempt(n => n + 1); }} /></View>);
   if (failed) return <View><Text style={[type.body, { color: t.text }]}>Your next task could not be read.</Text><LocalPracticeCard /><IconAction layout="inline" icon="refresh" label="Retry next task" onPress={() => setAttempt(n => n + 1)} /></View>;
-  if (value === null || value.scope !== scopeGeneration()) return row ? null : <Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>;
+  // On the hero the frame draws the one sand block while the lead decides (F996).
+  if (value === null || value.scope !== scopeGeneration()) return row || bare ? null : <Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>;
   if (vivid) {
-    if (lead === 'loading') return row ? null : <Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>;
+    if (lead === 'loading') return row || bare ? null : <Text style={[type.small, { color: t.text }]}>Finding your next task…</Text>;
     // The starter's typed line opens in the card's own sheet, so on a row the
     // card draws a flat LeadRow as its face and the row's tap opens that sheet,
     // which is the card's primary action, Continue practice (fix round 1).
@@ -158,7 +164,8 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
     }
     if ((lead === 'outOfTime' || lead === 'lapsed') && billing !== null) {
       // The words, then practice that needs no minutes, with a real button
-      // (fix-verifier round 2): the starter's typed line, or the local card.
+      // (fix-verifier round 2): the starter's typed line. Without it, at
+      // Starter the café line rides Today's phrase row (`onHeroCafe`, F996).
       const words = heldWords(billing, Date.now());
       const then = afterHeld(starter !== null) === 'starter' && starter !== null ? 'starter' : 'local';
       const cafe = local !== null && offlineOffer(value.levelIndex) === 'cafe';
@@ -172,7 +179,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
         return cafe ? leadRow(lead, () => nav.navigate('DailyPractice', { id: local.id, mode: 'shadowing' })) : null;
       }
       return <HeldLeadBody bare={bare} words={words} onPlans={() => navigateOwned('Wall', { entry: 'refused' })} onReview={heroReview === true ? () => navigateOwned('Review') : undefined} reviewLabel={reviewDoor?.title}>
-        {then === 'starter' && starter !== null ? starterCard(starter) : cafe ? <LocalPracticeCard bare={bare} levelIndex={value.levelIndex} variant={words.plans ? 'secondary' : 'primary'} /> : undefined}
+        {starter !== null ? starterCard(starter) : undefined}
       </HeldLeadBody>;
     }
     if (lead === 'explore') {
@@ -181,7 +188,7 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
     }
     if (lead === 'starter' && starter !== null && row) return starterRow(starter);
     if (lead === 'starter' && starter !== null) return <StarterContinuation initial={starter} bare={bare} onTutor={starterTutorOpen({ live, billing, answered: billingAnswered }) ? () => nav.navigate('Tutor') : undefined} onPlans={offersPlans(billing) ? () => nav.navigate('Wall', { entry: 'recap' }) : undefined} />;
-    if (lead === 'scene' && value.hero !== null) return row ? <SceneRow hero={value.hero} last={last} /> : <MissionHero hero={value.hero} vivid buildsOn={value.buildsOn} />;
+    if (lead === 'scene' && value.hero !== null) return row ? <SceneRow hero={value.hero} last={last} /> : <MissionHero hero={value.hero} vivid buildsOn={value.buildsOn} levelIndex={value.levelIndex} />;
     if (row) return localRow();
     return <LocalPracticeCard vivid bare={bare} levelIndex={value.levelIndex} />;
   }
@@ -219,14 +226,13 @@ export function NextTaskCard({ vivid = false, placement, last = false, starter =
  */
 export function PlansLeadBody({ onSun, body, onPlans, onCafe, onReview, reviewLabel }: { onSun: boolean; body: string; onPlans: () => void; /** Only at Starter: past it the café line is a first order. */ onCafe?: () => void; /** Past Starter, when Review has something to deal: Today's review row's door. */ onReview?: () => void; reviewLabel?: string }) {
   const t = useB();
-  return <><Text accessibilityRole="header" style={[type.heading, onSun ? null : { color: t.text }]}>{PLANS_LEAD.title}</Text><Text style={[type.body, onSun ? null : { color: t.text }]}>{body}</Text><Text style={[type.small, onSun ? null : { color: t.muted }]}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={onPlans} />{onCafe !== undefined && <IconAction layout="inline" ground={onSun ? 'sun' : undefined} icon="headphones" label="Try the offline café line" onPress={onCafe} />}{onCafe === undefined && onReview !== undefined && reviewLabel !== undefined && <PillButton label={reviewLabel} variant="secondary" onPress={onReview} />}</>;
+  return <><Text accessibilityRole="header" style={[type.heading, onSun ? null : { color: t.text }]}>{PLANS_LEAD.title}</Text><Text style={[type.body, onSun ? null : { color: t.text }]}>{body}</Text><Text style={[type.small, onSun ? null : { color: t.muted }]}>{PLANS_LEAD.keeps}</Text><PillButton label={PLANS_LEAD.action} onPress={onPlans} />{onCafe !== undefined && <GhostButton label="Try the offline café line" color={onSun ? paper.ink : undefined} onPress={onCafe} />}{onCafe === undefined && onReview !== undefined && reviewLabel !== undefined && <PillButton label={reviewLabel} variant="secondary" pastel={onSun ? undefined : 'sage'} onPress={onReview} />}</>;
 }
 
 /**
  * Out of time or lapsed, props in (F946, shared with the dev preview): the
  * held words, then practice that needs no minutes with a real button. That is
- * `children` when given (the starter's typed line, or the café line at
- * Starter), and otherwise Review when the hero carries it
+ * `children` when given (the starter's typed line), and otherwise Review when the hero carries it
  * (`heroCarriesReview`): a sage tile with the watering plant, named as
  * Today's review row, so See plans stays the one primary and Today's path
  * drops its own Review row (quiet moments 4A). With neither, the words stand alone.
@@ -281,6 +287,6 @@ function SceneRow({ hero, last }: { hero: HomeMission; last: boolean }) {
 export function LeadRow({ lead, last, title, line, disabled = false, onPress }: { lead: TodayLead | 'explore'; last: boolean; title: string; line: string | null; disabled?: boolean; onPress: () => void }) {
   const t = useB();
   const { art, ground } = leadRowArt(lead);
-  return <RouteRow mark={last ? 'end' : 'stop'} last={last} thumb={<BArt name={art} width={ROW_ART} height={ROW_ART} />} thumbGround={t[ground]} title={title} line={line} chevron disabled={disabled} onPress={onPress} />;
+  return <RouteRow mark={last ? 'end' : 'stop'} last={last} thumb={<BArt name={art} width={ROW_ART} height={ROW_ART} />} thumbGround={t[ground]} title={title} line={line} disabled={disabled} onPress={onPress} />;
 }
 

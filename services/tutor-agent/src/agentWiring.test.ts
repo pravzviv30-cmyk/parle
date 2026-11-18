@@ -237,6 +237,14 @@ describe('one hiccup is survivable and the exit is named', () => {
     const entryCatch = CODE.slice(CODE.lastIndexOf('} catch (error) {'));
     assert.match(entryCatch.slice(0, entryCatch.indexOf('throw error;')), /^\} catch \(error\) \{\s*exit\.mark\('start'\);/, 'the entry catch does not mark start first');
   });
+  test('a room refused for an unknown lesson logs session-exit start', () => {
+    const exitAt = CODE.indexOf('ctx.addShutdownCallback(async () => { exit.log(); });');
+    const pick = CODE.indexOf('roomLesson(meta.mode, scene, meta.lessonId)');
+    assert.ok(exitAt > 0 && pick > exitAt, 'the lesson is chosen after the exit is logged at shutdown');
+    assert.ok(pick < CODE.indexOf('await claimSessionLifecycle('), 'the refusal happens before any claim');
+    assert.match(CODE, /try \{ lesson = roomLesson\(meta\.mode, scene, meta\.lessonId\); \} catch \(error\) \{ exit\.mark\('start'\); throw error; \}/);
+    assert.doesNotMatch(CODE, /signed lesson differs from the worker catalogue/);
+  });
   test('one recorder per session reaches both tutors and is logged on close and on shutdown', () => {
     assert.match(CODE, /const exit = new SessionExit\(\)/);
     // Each constructor's own argument list, so an `exit` in a later call cannot satisfy an earlier one.
@@ -265,5 +273,15 @@ describe('one hiccup is survivable and the exit is named', () => {
     const start = CODE.indexOf("ctx.room.on('participantDisconnected'");
     const left = CODE.slice(start, CODE.indexOf('return tutor.finish()', start));
     assert.match(left, /exit\.mark\('learner-left'\);[^]*stopPaidWork\(\);/);
+  });
+});
+
+describe('the voice vendor connection is warmed at join (F984)', () => {
+  test('the worker preconnects the voice vendor after the proxy is built in a spoken session', () => {
+    const lastBuild = CODE.lastIndexOf('proxy = await createPaidVoiceProxy(');
+    const call = CODE.indexOf('proxy.preconnect()');
+    assert.ok(lastBuild > 0 && call > lastBuild, 'after both proxies are built');
+    assert.match(CODE.slice(lastBuild, call + 20), /if \(proxy && !voiceless\) proxy\.preconnect\(\);/);
+    assert.equal(CODE.split('preconnect(').length - 1, 1, 'called once');
   });
 });

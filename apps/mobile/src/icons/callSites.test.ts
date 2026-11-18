@@ -7,7 +7,9 @@ import ts from 'typescript';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const allowed = JSON.parse(readFileSync(new URL('./ghostLinks.json', import.meta.url), 'utf8')) as { file: string; label: string }[];
 const key = (file: string, label: string) => `${file}:${label}`;
-const GHOST_CEILING = 60;
+// 60 to 93 in the systemic pass (F993, UI-023): OutlineButton folded into GhostButton, the founder's Q4 pick, so its word-only quiet actions are listed in ghostLinks.json.
+// 93 to 94 (UI-023 Q4, push-check 2026-11-17): the plans hero's "Try the offline café line" is Today's one quiet action, the underlined word.
+const GHOST_CEILING = 94;
 function files(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(path.join(dir, entry.name)) : entry.name.endsWith('.tsx') ? [path.join(dir, entry.name)] : []);
 }

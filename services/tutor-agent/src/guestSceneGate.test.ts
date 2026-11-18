@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { tokenize } from '@livekit/agents';
-import { GUEST_CAFE_SCENE, GUEST_SCENE, GUEST_SCENE_MAX_SECONDS, directiveFor, type Rung } from '@luvani/core';
+import { CAFE_LESSON, GUEST_CAFE_SCENE, GUEST_SCENE, GUEST_SCENE_MAX_SECONDS, LESSONS, directiveFor, type Rung } from '@luvani/core';
 import {
   GUEST_SCENE_STT_SOCKETS,
   GUEST_SCENE_TTS_CALLS,
@@ -14,6 +14,7 @@ import {
   assertGuestSceneBinding,
   createGuestSceneGate,
   guestSceneSpeech,
+  roomLesson,
   sceneLesson,
 } from './guestSceneGate.ts';
 import { createPaidVoiceProxy, type VendorSocket, type PaidVoiceProxy } from './paidVoiceProxy.ts';
@@ -246,5 +247,22 @@ describe('agent.ts wiring for scenes (tripwires: agent.ts cannot be imported)', 
   test('the session input is bound to the signed participant, so a second participant is never heard', () => {
     assert.match(CODE, /inputOptions: \{ participantIdentity: participant\.identity/);
     assert.match(CODE, /source\.identity !== tutor\.learnerId/);
+  });
+});
+
+describe('the lesson a room runs (F968)', () => {
+  test('the tutor runs the lesson the token server signed, or refuses the room', () => {
+    for (const mode of ['lesson', 'lesson-text']) {
+      for (const lesson of LESSONS) assert.equal(roomLesson(mode, undefined, lesson.id), lesson);
+      assert.equal(roomLesson(mode, undefined, undefined), CAFE_LESSON);
+      assert.throws(() => roomLesson(mode, undefined, 'not-a-lesson'), /unknown signed lesson/);
+      assert.equal(roomLesson(mode, GUEST_SCENE, GUEST_CAFE_SCENE.id), sceneLesson(GUEST_SCENE));
+      assert.equal(roomLesson(mode, GUEST_SCENE, 'not-a-lesson'), sceneLesson(GUEST_SCENE), 'the scene name selects it; lessonId never does');
+    }
+  });
+  test("a conversation's signed lesson label is not compared with the lesson catalogue", () => {
+    for (const mode of ['convo', 'convo-text']) {
+      for (const label of ['convo-01', undefined, 'anything']) assert.doesNotThrow(() => roomLesson(mode, undefined, label));
+    }
   });
 });

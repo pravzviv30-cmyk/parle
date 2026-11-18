@@ -28,8 +28,8 @@
 
 import { useState } from 'react';
 import { View, Text } from 'react-native';
-import { paper, space, type } from '../theme.ts';
-import { Card, OutlineButton } from '../components.tsx';
+import { paper, space, type, corner } from '../theme.ts';
+import { Card, GhostButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { openLink } from '../settings/links.ts';
@@ -55,7 +55,7 @@ export function TermsScreen({ onBack }: { onBack: () => void }) {
         {TERMS_TITLE}
       </Text>
       <View style={{ marginTop: space(6), paddingBottom: space(6) }}>
-        <Card style={{ backgroundColor: t.lavender, borderRadius: 24 }}>
+        <Card style={{ backgroundColor: t.lavender, ...corner.card }}>
           {TERMS_BODY.map((paragraph, index) => (
             <Text
               key={`terms:${index}`}
@@ -65,7 +65,7 @@ export function TermsScreen({ onBack }: { onBack: () => void }) {
             </Text>
           ))}
         </Card>
-        <Card style={{ backgroundColor: t.lavender, borderRadius: 24, marginTop: space(4) }}>
+        <Card style={{ backgroundColor: t.lavender, ...corner.card, marginTop: space(4) }}>
           <Text accessibilityRole="header" style={[type.heading, { color: t.text }]}>
             {TERMS_SUBSCRIPTIONS_HEADING}
           </Text>
@@ -84,7 +84,7 @@ export function TermsScreen({ onBack }: { onBack: () => void }) {
           </Text>
         )}
         <View style={{ marginTop: space(6) }}>
-          <OutlineButton
+          <GhostButton
             label={TERMS_LINK_LABEL}
             onPress={() => {
               setTrouble(null);

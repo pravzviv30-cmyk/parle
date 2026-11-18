@@ -30,7 +30,7 @@ import { useFeatureAccess } from '../access/useFeatureAccess.ts';
 import { useExploreAccess } from '../purchases/useExploreAccess.ts';
 import { dailyTutorVoice, tutorAudioFor } from '../daily/tutorAudio.ts';
 import { TUTOR_DAILY_AUDIO } from '../daily/tutorAudioManifest.ts';
-import { Ledger, LedgerRow, OutlineButton } from '../components.tsx';
+import { Ledger, LedgerRow, GhostButton } from '../components.tsx';
 import { Columns, ScrollScreen, TabHeader } from '../layout.tsx';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { tutorNameOf } from '../tutor/tutorName.ts';
@@ -89,7 +89,7 @@ export function ExploreTab() {
         <TabHeader title="Explore" trailing={<ProfileButton />} />
         <SearchField value={query} onChangeText={setQuery} placeholder="Search topics, situations or French" />
         <FilterRow filters={EXPLORE_FILTERS} chosen={filters} onToggle={key => setFilters(now => toggleFilter(now, key))} />
-        {narrowing && <OutlineButton label={searching ? 'Clear search and filters' : 'Clear filters'} onPress={clear} />}
+        {narrowing && <GhostButton label={searching ? 'Clear search and filters' : 'Clear filters'} onPress={clear} />}
       </View>
 
       <Columns>
@@ -119,7 +119,7 @@ export function ExploreTab() {
               return <SituationRow key={facts.id} title={facts.title} practise={facts.practise} meta={meta} tile={situationTile(facts.topic)} last={index === situationList.length - 1} onPress={() => nav.navigate(target.screen, target.params)} />;
             })}</ListCard>}
             {situationList.length === 0 && <Text style={[bType.line16, { color: t.muted }]}>No situation matches yet. Try another word, or clear the filters.</Text>}
-            {narrowing && situations.length > limit && <OutlineButton label="Show more situations" onPress={() => setLimit(n => n + 12)} />}
+            {narrowing && situations.length > limit && <GhostButton label="Show more situations" onPress={() => setLimit(n => n + 12)} />}
           </View>}
 
           {searching && <Ledger><LedgerRow title={seedRowTitle(topicSeed !== null, nothingFound)} gloss="Start your own conversation with your tutor and change direction as you go." disabled={conversation.checking} onPress={() => topicSeed ? conversation.start({ seedTopic: topicSeed }) : nav.navigate('Tutor')} /></Ledger>}
@@ -156,7 +156,7 @@ export function ExploreTab() {
               return <WordRow key={item.id} fr={item.fr} en={item.en} hear={hear} last={index === shownWords.length - 1} onPress={() => nav.navigate('DailyPractice', { id: item.id })} />;
             })}</ListCard>}
             {shownWords.length === 0 && <Text style={[bType.line16, { color: t.muted }]}>No phrases match yet. Try another word or browse a topic.</Text>}
-            {narrowing && words.length > limit && <OutlineButton label="Show more phrases" onPress={() => setLimit(n => n + 12)} />}
+            {narrowing && words.length > limit && <GhostButton label="Show more phrases" onPress={() => setLimit(n => n + 12)} />}
           </View>}
 
           <Ledger><LedgerRow title="From your conversations" gloss="Practise phrases from your saved conversation notes in Journey." onPress={() => nav.navigate('MyFrench')} /></Ledger>

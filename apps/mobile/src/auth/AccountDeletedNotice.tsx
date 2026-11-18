@@ -14,7 +14,7 @@
 import { useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { paper, space, type } from '../theme.ts';
-import { OutlineButton, PillButton } from '../components.tsx';
+import { GhostButton, PillButton } from '../components.tsx';
 import { ScrollScreen } from '../layout.tsx';
 import { TroubleLine } from '../settings/TroubleLine.tsx';
 import { openLink } from '../settings/links.ts';
@@ -38,7 +38,7 @@ export function AccountDeletedNotice({ onDismiss }: { onDismiss: () => void }) {
       <TroubleLine message={ACCOUNT_DELETED_BODY} strong />
       {url === null ? null : (
         <View style={{ marginTop: space(6) }}>
-          <OutlineButton
+          <GhostButton
             label={ACCOUNT_DELETED_STORE}
             onPress={() => {
               setTrouble(null);

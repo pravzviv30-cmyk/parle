@@ -129,6 +129,36 @@ test('reply-first: the hand-over fires at fr close with no coach, and the defaul
   assert.equal(new SpokenFieldsWatcher().feed(text), null, 'the default schema needs coach before the reply');
 });
 
+test('reply-first: the watcher hands over again when coach closes, carrying the coach', () => {
+  const coach = [sampleCoachItem({ quote: '"]" and a ] in a string' })];
+  const turn = sampleTurn({ coach, coachLine: 'Dites « un café ».',
+    sceneReply: { speaker: 'Karim', fr: 'Bonjour !', frWritten: 'Bonjour!', en: 'Hello!' } });
+  const text = inSchemaOrder(turn, ReplyFirstTurnSchema);
+  const coachEnds = text.indexOf(',"support"'); // just after the coach array closes
+  for (const size of [1, 7, 40, text.length]) {
+    const watcher = new SpokenFieldsWatcher(ReplyFirstEarlySpokenTurnSchema);
+    const got: { fields: unknown; at: number }[] = [];
+    let seen = 0;
+    for (const piece of pieces(text, size)) {
+      seen += piece.length;
+      // Drain: one chunk may hold both hand-overs.
+      for (let early = watcher.feed(piece); early; early = watcher.feed('')) got.push({ fields: early, at: seen });
+    }
+    assert.equal(got.length, 2, `chunk size ${size}: the reply, then the coach`);
+    assert.ok(!('coach' in (got[0]!.fields as object)), 'the first hand-over has no coach');
+    assert.deepEqual(got[1]!.fields, {
+      assessment: turn.assessment, coach, coachLine: turn.coachLine, narration: turn.narration,
+      sceneReply: { speaker: 'Karim', fr: 'Bonjour !' },
+    });
+    assert.ok(got[1]!.at <= coachEnds + size, `chunk size ${size}: handed over at coach close`);
+    assert.equal(watcher.feed(''), null, 'and never a third time');
+  }
+  // The default order already carried the coach: one hand-over, as before.
+  const watcher = new SpokenFieldsWatcher();
+  assert.ok(watcher.feed(inSchemaOrder(turn)));
+  assert.equal(watcher.feed(''), null);
+});
+
 /** A Responses API event stream carrying the turn as text deltas. */
 function eventStream(text: string, size: number, extra: { type: string; [key: string]: unknown }[] = []): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
@@ -220,7 +250,7 @@ test('with the reply-first switch the request, the early hand-over and the parse
   });
   const keys = Object.keys(((bodies[0]!.text as { format: { schema: { properties: object } } }).format.schema.properties));
   assert.ok(keys.indexOf('coach') > keys.indexOf('sceneReply'));
-  assert.equal(early.length, 1);
+  assert.equal(early.length, 2, 'at the reply, then again at the coach (F983)');
   assert.ok(!('coach' in (early[0] as object)));
   assert.deepEqual(result.turn.coach, turn.coach, 'the full turn still carries its coach');
 });

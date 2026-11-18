@@ -2431,6 +2431,100 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - **The saved-phrase toast** gets a 1.5pt edge in `b.dark.line` (#514967) in every
     mode, because it cannot read the mode where it is drawn.
 
+## VOICE-024 — The tutor's words arrive with its voice, and words said over it are shown
+
+- Date: 2026-11-17
+- Status: accepted (founder's answers to the voice-latency contract, 2026-11-17, Q1, Q4, Q5)
+- Decision:
+  - **The early tutor-line (F988).** When a reply is spoken before its whole turn has
+    arrived, the worker publishes a `tutor-line` frame (narration, the spoken coach line,
+    the reply's French) in the same step as the `say`, under the turn id the later view
+    reuses. The view (English, support, goal ticks, recap) still waits for the checkpoint.
+    A refused checkpoint after an early line publishes no view: the learner has heard and
+    seen that French, and the room ends as before.
+  - **The spoken coach line is a tutor line.** A view whose coach line was spoken (an
+    English reach or a way back) carries `coachSpoken: true`. The coach notice stays for
+    now, so the words can show twice (Q5); removing it belongs to the design partnership.
+  - **The overheard line (F987).** Words the SDK dropped because they were said over an
+    uninterruptible tutor line are shown as their own `overheard` frame before the next
+    turn's line, after the safety check. They are not answered, not sent to the brain and
+    not counted as a reply (Q4); the silence rescue still covers a stuck learner. It is a
+    new tag so an older app drops it instead of counting it.
+  - Captions, the join and the overheard line ship behind `LUVANI_LEARNER_CAPTIONS`, off by
+    default and switched on at the device session (VOICE-022). `LUVANI_STREAM_TURN=0`
+    turns off all early speech, including the early tutor-line.
+- Reason: on 2026-11-10 the learner heard each reply seconds before its text appeared, and
+  lost their own words whenever they overlapped an uninterruptible line ("skipping user
+  input"). The early text costs nothing the learner was not already hearing.
+- Ruled out: publishing the provisional view early (it shows undecided support and goals
+  and moves the rescue clock); captions with no overheard line (the words would appear,
+  then vanish); a timer to settle dropped words (it guesses at SDK commit timing).
+
+## UI-023 — The systemic pass: one radius rule, two card parts, one quiet action, eyebrows folded, type roles
+
+- Date: 2026-11-16 (the founder's board answers); contract approved 2026-11-17
+- Status: accepted and built on `claude/systemic`. Landing waits on the founder's OK
+  on the after shots.
+  - Board: https://claude.ai/artifact/5ckVkiWUqifAc9pq31pbd9. The founder took all
+    eight answers as recommended.
+  - Brief: `handoffs/2026-11-10-systemic-pass-brief.md` (outside the repo). Change
+    record: [docs/changes/systemic.md](docs/changes/systemic.md).
+  - Screen queue 5, the pass the founder put between the recap and onboarding on
+    2026-11-03.
+- Context:
+  - The same kind of tap (a primary, a choice, a quiet action, a row) looked and
+    pressed four different ways, so each screen's one focal point competed with
+    kickers, second headlines and stray button styles.
+  - UI-021 chose a radius rule, continuous corners and a subtle 3pt lip for
+    onboarding, and left "the systemic pass or this build" to decide where the
+    tokens change.
+- Decision:
+  - **Q1, radius and press, app-wide.** One radius scale: pill 999, card 20,
+    tile 18, field 14, with inset 12, mark 8 and nib 4 for nested marks. The
+    feature radius folds into card. Corners are continuous on iOS. Every ink
+    primary pill sits on a 3pt lip and sinks 2pt into it.
+  - **Q2, BoldChoice and BoldButton.** `BoldChoice` folds into `Choice`, and
+    `Choice` draws the raised tile everywhere. `BoldButton` stays on purpose, as
+    the named alias of `PillButton` whose one addition is the wake glint.
+  - **Q3, two card parts.** `Card` groups: flat, never nested, and never holding
+    a `LipTile`. `LipTile` is anything pressed as a game button, a choice, an
+    answer or a stat. `ColourCard` is the one colour surface.
+  - **Q4, one quiet action.** A row opens with a chevron and carries no action
+    word. At most one underlined word sits under a primary. `OutlineButton`
+    folds into `GhostButton`.
+  - **Q5, eyebrows.** They retire on Today, every drill stage and the shared
+    parts; the rest go with each screen's redesign. The unslop scan counts them
+    so the number cannot rise.
+  - **Q6, literal radii.** Every literal radius outside onboarding and the tab
+    bar moves to the scale.
+  - **Q7, type roles.** The scale is named by role, and the greeting fits its
+    column at every text size (F957).
+  - **Q8, the queued Today rows, all four:** held at Starter, the hero's
+    secondaries on a pastel, the hero loading in one look, and the 320 hero
+    title through `fitTitle`.
+  - **Contract approval (2026-11-17):** Today's hero buttons move from `BButton`
+    to `PillButton`, so the lip reaches Today. Bands and sheets follow the rule
+    down to 20, judged at the after shots.
+- Revisits D7 (come alive, "Buttons stay flat with richer motion. No 3D lip."):
+  - Q1 and Q2 give the ink primary and every `Choice` a lip. The lip is a View
+    under the face, never a shadow, so the flat look and the press motion D7
+    asked for stay.
+  - A choice not chosen keeps its field ring (F921 needs 3:1), not the 2pt line
+    hairline the contract first drew. On a white card its face is the paper, so
+    a choice never matches its ground.
+- Reason:
+  - The founder's 2026-11-03 council call: one pass in the shared parts, not a
+    fix in every screen session.
+  - Onboarding (queue 6) assumes one action style and one `Choice` when it
+    starts.
+- Consequence:
+  - Onboarding's own literal radii and bands stay until its build. The tab bar
+    keeps its sizes (UI-018 owns it).
+  - Eyebrows on Journey, Speak, Practice, Recap, Profile, the answer sheet's
+    "Notice" and the fix sheet's "Try this" stay until those screens' redesigns.
+  - "At most one underlined word under a primary" applies to Today only for now.
+  - Ledger: F990 to F999, with F954 and F957 fixed by the pass.
+
 ## PRIV-001 — Deletion-journal entries are removed 37 days after the erasure finishes
 
 - Date: 2026-11-18
