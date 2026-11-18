@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { describe, test } from 'node:test';
 
+import { FREE_REPAIR_EVERY_DAYS, REPAIR_EVERY_DAYS } from '@luvani/core';
 import { guiltIn, streakGuiltIn } from '../copy/guilt.ts';
 import { PAID_PLANS } from './adapter.ts';
 import { billingStatusIn } from './billingStatus.ts';
@@ -131,7 +132,7 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
   test('a learner on the trial meets an honest line and a door to plans, and an unknown plan reads as the trial', () => {
     // An unknown plan reads as the free plan, except that it holds no freeze (D23).
     assert.deepEqual({ ...capabilitiesFor('unknown'), streakProtection: null }, { ...capabilitiesFor('trial'), streakProtection: null }, 'a plan nobody could read opens a door the free plan does not');
-    assert.deepEqual(capabilitiesFor('unknown').streakProtection, { freezes: 0, repair: false });
+    assert.deepEqual(capabilitiesFor('unknown').streakProtection, { freezes: 0, repair: false, repairEveryDays: 0 });
     assert.equal(capabilitiesFor('trial').customRehearsal, false);
     const screen = readFileSync(join(SRC, 'tutor', 'RealMomentScreen.tsx'), 'utf8');
     assert.match(screen, /status === null \? null : capabilitiesFor\(status\.plan, status\.lapsed\)\.customRehearsal/, 'an unread plan cannot be treated as an upgrade opportunity');
@@ -142,16 +143,17 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
 
   test('two freezes and the repair come with a paid plan; the free plan holds one freeze (D23)', () => {
     // D4 (2026-10-05): two freezes and the one-tap repair on either paid tier.
-    // D23 (2026-10-20): the free plan, and so a lapsed plan, holds one freeze and
-    // no repair. A plan nobody could read holds none: a freeze that applied
+    // D23 (2026-10-20): the free plan, and so a lapsed plan, holds one freeze;
+    // F1266 (2026-11-18) gives it a repair once every 30 days, paid every 7.
+    // A plan nobody could read holds none: a freeze that applied
     // because a check failed would be a perk the plan may not hold.
     for (const plan of ['starter', 'regular'] as const) {
-      assert.deepEqual(capabilitiesFor(plan).streakProtection, { freezes: 2, repair: true }, `${plan} holds no streak protection`);
-      assert.deepEqual(capabilitiesFor(plan, true).streakProtection, { freezes: 1, repair: false }, `a lapsed ${plan} kept its paid protection, or lost the free freeze`);
+      assert.deepEqual(capabilitiesFor(plan).streakProtection, { freezes: 2, repair: true, repairEveryDays: 7 }, `${plan} holds no streak protection`);
+      assert.deepEqual(capabilitiesFor(plan, true).streakProtection, { freezes: 1, repair: true, repairEveryDays: 30 }, `a lapsed ${plan} kept its paid protection, or lost the free freeze`);
     }
-    assert.deepEqual(capabilitiesFor('trial').streakProtection, { freezes: 1, repair: false });
-    assert.deepEqual(capabilitiesFor('trial', true).streakProtection, { freezes: 1, repair: false });
-    assert.deepEqual(capabilitiesFor('unknown').streakProtection, { freezes: 0, repair: false }, 'an unread plan was given a freeze');
+    assert.deepEqual(capabilitiesFor('trial').streakProtection, { freezes: 1, repair: true, repairEveryDays: 30 });
+    assert.deepEqual(capabilitiesFor('trial', true).streakProtection, { freezes: 1, repair: true, repairEveryDays: 30 });
+    assert.deepEqual(capabilitiesFor('unknown').streakProtection, { freezes: 0, repair: false, repairEveryDays: 0 }, 'an unread plan was given a freeze');
 
     // A store free trial is answered by the server as the plan itself, unlapsed,
     // with a week of minutes, so the trial holds the perk as D4 says it should.
@@ -159,7 +161,7 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
       plan: 'starter', secondsRemaining: 42 * 60, periodEnd: '2026-10-12T09:00:00.000Z', lapsed: false, canStart: true, reason: null,
     });
     assert.ok(storeTrial, 'a store trial status did not read');
-    assert.deepEqual(capabilitiesFor(storeTrial.plan, storeTrial.lapsed).streakProtection, { freezes: 2, repair: true });
+    assert.deepEqual(capabilitiesFor(storeTrial.plan, storeTrial.lapsed).streakProtection, { freezes: 2, repair: true, repairEveryDays: 7 });
 
     // Each answer is its own: one caller cannot spend another caller's freezes.
     const held = capabilitiesFor('regular');
@@ -173,7 +175,8 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     // where what a plan opens is said, and true of every plan the page sells:
     // both tiers, monthly or yearly, during the store's free trial too.
     // F913, founder decision 13 (2026-10-29): "Every plan" read as if Free held it too.
-    assert.equal(INCLUSIONS.streak, 'Paid plans add a second streak freeze and a one-tap repair.');
+    // F1266 (2026-11-18): the free plan repairs too, so the line names the weekly repair.
+    assert.equal(INCLUSIONS.streak, 'Paid plans add a second streak freeze and a streak repair every week.');
     assert.ok(CAPABILITY_COPY.includes(INCLUSIONS.streak), 'the streak line escapes the copy sweeps');
     assert.equal(guiltIn(INCLUSIONS.streak), undefined);
     assert.equal(streakGuiltIn(INCLUSIONS.streak), undefined, 'the streak line threatens');
@@ -182,8 +185,8 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
       const protection = capabilitiesFor(plan).streakProtection;
       assert.ok(protection.freezes > 0 && protection.repair, `the plans page promises ${plan} a protection it does not hold`);
     }
-    // The free plan holds one freeze and no repair, so the line is never one of its own.
-    assert.equal(capabilitiesFor('trial').streakProtection.repair, false);
+    // The free plan holds one freeze and a repair every 30 days, so the line is never one of its own.
+    assert.ok(capabilitiesFor('trial').streakProtection.repairEveryDays > capabilitiesFor('starter').streakProtection.repairEveryDays, 'a repair "every week" is not more often than the free plan holds');
     assert.ok(capabilitiesFor('trial').streakProtection.freezes < capabilitiesFor('starter').streakProtection.freezes, 'a "second" freeze is not more than the free plan holds');
     for (const plan of ['trial', 'starter', 'regular'] as const) {
       assert.ok(!planInclusions(plan).includes(INCLUSIONS.streak), 'the streak line is listed per plan, where the free minutes share Starter\'s list');
@@ -195,5 +198,35 @@ describe('what a plan opens, said in one place (F564, F565)', () => {
     assert.equal((page.match(/\{INCLUSIONS\.streak\}/g) ?? []).length, 1, 'the streak line is not said on the plans page, or is said twice');
     assert.ok(page.indexOf('{INCLUSIONS.streak}') > page.lastIndexOf('row.offers.map('), 'the streak line sits inside one plan\'s rows');
     assert.match(page, /<Sheet reading surface=\{colors\.surface\} ink=\{colors\.text\} visible=\{comparing\}/);
+  });
+
+  test('the free plan repairs once every 30 days, a paid plan once every 7, and an unknown plan never', () => {
+    // F1266, founder F4 (2026-11-18): a free learner can earn a broken run back
+    // once every 30 days; a paid plan keeps D19's weekly repair. The numbers are
+    // core's, so the plan table and the repair rule cannot drift apart.
+    assert.equal(FREE_REPAIR_EVERY_DAYS, 30);
+    assert.equal(REPAIR_EVERY_DAYS, 7);
+    for (const plan of PAID_PLANS) {
+      assert.deepEqual(capabilitiesFor(plan).streakProtection, { freezes: 2, repair: true, repairEveryDays: REPAIR_EVERY_DAYS });
+      assert.deepEqual(capabilitiesFor(plan, true).streakProtection, { freezes: 1, repair: true, repairEveryDays: FREE_REPAIR_EVERY_DAYS }, `a lapsed ${plan} is not on the free repair`);
+    }
+    assert.deepEqual(capabilitiesFor('trial').streakProtection, { freezes: 1, repair: true, repairEveryDays: FREE_REPAIR_EVERY_DAYS });
+    assert.deepEqual(capabilitiesFor('trial', true).streakProtection, { freezes: 1, repair: true, repairEveryDays: FREE_REPAIR_EVERY_DAYS });
+    // 0 means "no limit" inside core, so an unknown plan must also say repair: false.
+    assert.deepEqual(capabilitiesFor('unknown').streakProtection, { freezes: 0, repair: false, repairEveryDays: 0 }, 'an unread plan was given a repair');
+  });
+
+  test('the plans page streak line no longer says repair is paid-only', () => {
+    // F1266: the free plan repairs too, so the line names what paid plans add:
+    // the second freeze and a repair every week (founder Q3 (a), 2026-11-18).
+    assert.equal(INCLUSIONS.streak, 'Paid plans add a second streak freeze and a streak repair every week.');
+    assert.doesNotMatch(INCLUSIONS.streak, /one-tap/);
+    assert.doesNotMatch(INCLUSIONS.streak, /\d|—|–|·|%/);
+    assert.equal(guiltIn(INCLUSIONS.streak), undefined);
+    assert.equal(streakGuiltIn(INCLUSIONS.streak), undefined);
+    assert.ok(CAPABILITY_COPY.includes(INCLUSIONS.streak));
+    // "every week" is true of every paid plan, and more often than the free plan's.
+    for (const plan of PAID_PLANS) assert.equal(capabilitiesFor(plan).streakProtection.repairEveryDays, 7);
+    assert.ok(capabilitiesFor('trial').streakProtection.repairEveryDays > capabilitiesFor('starter').streakProtection.repairEveryDays);
   });
 });

@@ -11,7 +11,7 @@
  * does not actually do.
  *
  * An unknown plan reads as the free plan, with one difference: it holds no
- * streak freeze, because a freeze applied while nobody could check the plan is
+ * streak freeze or repair, because a freeze applied while nobody could check the plan is
  * a perk the plan may not hold. The status read can fail, and a door that
  * opened because nobody could check is a door that lies about the plan. A
  * lapsed plan reads as the free plan too, because that is what the server
@@ -23,7 +23,7 @@
  * every live minute whatever this table says.
  */
 
-import type { Plan } from '@luvani/core';
+import { FREE_REPAIR_EVERY_DAYS, REPAIR_EVERY_DAYS, type Plan } from '@luvani/core';
 
 /**
  * The D24 features a free learner sees locked, in the order of direction B's
@@ -58,8 +58,9 @@ export type PlanTier = Plan | 'unknown';
  *
  * Two freezes and the repair on either paid tier, monthly or yearly, and during
  * the store's free trial too, because the server answers that trial as the
- * plan itself. The free plan and a lapsed plan hold one freeze and no repair
- * (D23, 2026-10-20). An unknown plan holds none. This says what a plan opens
+ * plan itself, with a repair once every 7 days (D19). The free plan and a
+ * lapsed plan hold one freeze (D23, 2026-10-20) and a repair once every 30
+ * days (founder F4, 2026-11-18). An unknown plan holds none. This says what a plan opens
  * and nothing about a learner's streak; the game layer decides when a freeze
  * is spent.
  */
@@ -67,6 +68,8 @@ export interface StreakProtection {
   /** How many freezes the plan holds. */
   freezes: number;
   repair: boolean;
+  /** Days between repairs. 0 only beside `repair: false`, because 0 means no limit in core. */
+  repairEveryDays: number;
 }
 
 export interface Capabilities {
@@ -86,10 +89,10 @@ export interface Capabilities {
 const EARNED = { packs: true, savedPhrases: true, missions: true, memory: true } as const;
 
 /** What an unlapsed paid plan holds. Two freezes is D4's number, not a store's. */
-const PAID_PROTECTION: StreakProtection = { freezes: 2, repair: true };
-/** What the free plan holds (D23): one freeze, no repair. */
-const FREE_PROTECTION: StreakProtection = { freezes: 1, repair: false };
-const NO_PROTECTION: StreakProtection = { freezes: 0, repair: false };
+const PAID_PROTECTION: StreakProtection = { freezes: 2, repair: true, repairEveryDays: REPAIR_EVERY_DAYS };
+/** What the free plan holds (D23, F4): one freeze, a repair once every 30 days. */
+const FREE_PROTECTION: StreakProtection = { freezes: 1, repair: true, repairEveryDays: FREE_REPAIR_EVERY_DAYS };
+const NO_PROTECTION: StreakProtection = { freezes: 0, repair: false, repairEveryDays: 0 };
 
 const unlocksWhere = (open: (feature: LockedFeature) => boolean): Readonly<Record<LockedFeature, boolean>> =>
   Object.fromEntries(LOCKED_FEATURES.map((feature) => [feature, open(feature)])) as Record<LockedFeature, boolean>;
@@ -120,12 +123,12 @@ export const INCLUSIONS = {
   /**
    * Streak protection, said once on the plans page for every plan on it (F734,
    * D4, D23). True of both paid tiers, monthly or yearly and during the store's
-   * free trial, because `streakProtection` above opens two freezes and the
-   * repair for any unlapsed paid plan; the free plan holds one freeze and no
-   * repair, so this is not a line of `planInclusions`, which the free plan
-   * shares with Core.
+   * free trial, because `streakProtection` above opens two freezes and a
+   * weekly repair for any unlapsed paid plan; the free plan holds one freeze
+   * and a repair once every 30 days (F1266), so this is not a line of
+   * `planInclusions`, which the free plan shares with Core.
    */
-  streak: 'Paid plans add a second streak freeze and a one-tap repair.',
+  streak: 'Paid plans add a second streak freeze and a streak repair every week.',
 } as const;
 
 export function planInclusions(plan: Plan): readonly string[] {
