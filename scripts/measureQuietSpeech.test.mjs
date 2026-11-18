@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -51,10 +51,12 @@ test('energy filter replay drops quiet frames once the 1 s cooldown is spent', (
   assert.ok(energyFilterSends(loud).every(Boolean));
 });
 
-test('a WAV with an odd-length data chunk parses without throwing', () => {
+test('a WAV with an odd-length data chunk parses without throwing', (t) => {
   const wav = wavBytes(Int16Array.from([1000, -1000, 7]), 16000);
   wav.writeUInt32LE(5, 40); // data chunk claims 5 bytes: two whole samples and half of a third
-  const path = join(mkdtempSync(join(tmpdir(), 'odd-wav-')), 'odd.wav');
+  const dir = mkdtempSync(join(tmpdir(), 'odd-wav-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const path = join(dir, 'odd.wav');
   writeFileSync(path, wav);
   const { rate, pcm } = readWav(path);
   assert.equal(rate, 16000);

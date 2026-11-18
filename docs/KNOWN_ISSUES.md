@@ -13056,7 +13056,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1062 — The paid voice scripts can bill a finished experiment again
 - severity: P2
 - status: [x]
-- where: scripts/ttsBlindCheck.mjs:25
+- where: scripts/ttsBlindCheck.mjs:27
 - note: S1b-1 and S1b-4. The guard looks in a cwd-relative folder the manifests were moved out of, so `--generate` passes it and spends up to the 3600-character cap.
 - verified-by: `a paid generator refuses when its committed manifest exists`
 - verified-by: `paid generator paths do not depend on the working directory or one home folder`
@@ -13097,6 +13097,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: scripts/measureVoiceSpeed.mjs:129
 - note: With the local manifest present and complete, `--generate --resume` passes `refuseRerun`, sends no paid request, then overwrites `after` and `measuredCredits` in `docs/cogs-evidence/voice-speed-2026-10-25.json` with today's balance.
 - verified-by: `a finished voice speed measurement refuses a resume too`
+
+### F1302 — Resuming the finished voice comparison rewrites its committed manifest
+- severity: P2
+- status: [x]
+- where: scripts/compare-daily-voices.mjs:34
+- note: Same failure as F1301. The tracked manifest is complete, so a resume skips every clip, sends no paid request, then overwrites after, measuredCredits and accountedCredits with today's balance.
+- verified-by: `a finished voice comparison refuses a resume too`
 
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
 - severity: P2

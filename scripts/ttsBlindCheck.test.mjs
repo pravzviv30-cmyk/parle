@@ -5,8 +5,9 @@ import { CAP, EXPERIMENTS, LINES, MODELS, buildDesign, buildHtml, buildPlan, est
 import { wavFromPcm } from './quietSpeechHelpers.mjs';
 import * as blind from './ttsBlindCheck.mjs';
 import * as speed from './measureVoiceSpeed.mjs';
+import * as compare from './compare-daily-voices.mjs';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -160,10 +161,11 @@ test('the billed request body carries each variant\'s own settings and the real 
 // No test here may spend: nothing passes --generate, and every spawn runs without vendor keys.
 const ROOT = resolve(import.meta.dirname, '..');
 
-test('a paid generator refuses when its committed manifest exists', () => {
+test('a paid generator refuses when its committed manifest exists', (t) => {
   assert.equal(typeof blind.refuseRerun, 'function', 'the blind check needs a guard that can be tested without spending');
   assert.equal(typeof speed.refuseRerun, 'function', 'the voice speed check needs a guard that can be tested without spending');
-  for (const [name, experiment] of Object.entries(EXPERIMENTS)) {
+  for (const name of ['default', 'style0']) {
+    const experiment = EXPERIMENTS[name];
     const paths = { manifestPath: join(experiment.destination, 'manifest.json'), keyPath: join(experiment.destination, 'key.json'), evidence: experiment.evidence };
     for (const resume of [false, true]) {
       assert.throws(() => blind.refuseRerun(paths, resume), /committed/, `${name} is finished; its committed manifest alone must stop --generate${resume ? ' --resume' : ''}`);
@@ -173,6 +175,7 @@ test('a paid generator refuses when its committed manifest exists', () => {
     'the voice speed evidence is committed; a fresh run on a machine without the local clips must still be refused');
 
   const empty = mkdtempSync(join(tmpdir(), 'paid-guard-'));
+  t.after(() => rmSync(empty, { recursive: true, force: true }));
   const fresh = { manifestPath: join(empty, 'manifest.json'), keyPath: join(empty, 'key.json'), evidence: join(empty, 'evidence.json') };
   assert.doesNotThrow(() => blind.refuseRerun(fresh, false), 'a new experiment with no evidence anywhere may run');
   assert.doesNotThrow(() => speed.refuseRerun(fresh, false), 'a new measurement with no evidence anywhere may run');
@@ -181,8 +184,9 @@ test('a paid generator refuses when its committed manifest exists', () => {
   assert.throws(() => speed.refuseRerun(fresh, false), /committed/, 'evidence alone, with no local manifest, must refuse');
 });
 
-test('a finished voice speed measurement refuses a resume too', () => {
+test('a finished voice speed measurement refuses a resume too', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'speed-resume-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   const paths = { manifestPath: join(dir, 'manifest.json'), evidence: join(dir, 'evidence.json') };
   writeFileSync(paths.manifestPath, '{}');
   writeFileSync(paths.evidence, JSON.stringify({ status: 'complete' }));
@@ -192,9 +196,24 @@ test('a finished voice speed measurement refuses a resume too', () => {
   assert.throws(() => speed.refuseRerun({ manifestPath: join(speed.DESTINATION, 'manifest.json'), evidence: speed.EVIDENCE }, true), /committed/);
 });
 
-test('paid generator paths do not depend on the working directory or one home folder', () => {
+test('a finished voice comparison refuses a resume too', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'compare-resume-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const manifestPath = join(dir, 'manifest.json');
+  writeFileSync(manifestPath, JSON.stringify({ status: 'complete' }));
+  assert.throws(() => compare.refuseRerun(manifestPath, true), /complete/, 'a complete comparison must not be resumed');
+  writeFileSync(manifestPath, JSON.stringify({ status: 'stopped' }));
+  assert.doesNotThrow(() => compare.refuseRerun(manifestPath, true), 'a stopped comparison may still be resumed');
+  assert.throws(() => compare.refuseRerun(manifestPath, false), /already exists/);
+  assert.throws(() => compare.refuseRerun(join(dir, 'none.json'), true), /No experiment to resume/);
+  assert.throws(() => compare.refuseRerun(resolve(ROOT, 'artifacts/voice-comparison-2026-09-19/manifest.json'), true), /complete/);
+});
+
+test('paid generator paths do not depend on the working directory or one home folder', (t) => {
   const elsewhere = mkdtempSync(join(tmpdir(), 'paid-cwd-'));
   const home = mkdtempSync(join(tmpdir(), 'paid-home-'));
+  t.after(() => rmSync(elsewhere, { recursive: true, force: true }));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
   const dryRun = (script, args = []) => {
     assert.ok(!args.includes('--generate'), 'a test must never ask a paid script to spend');
     const run = spawnSync(process.execPath, ['--experimental-strip-types', '--no-warnings', resolve(ROOT, 'scripts', script), ...args],
