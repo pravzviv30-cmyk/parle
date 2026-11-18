@@ -39,7 +39,7 @@ import { Cloud } from '../art/mascots/Cloud.tsx';
 import { HOP, Hop, PopIn } from '../motion/MascotMotion.tsx';
 import { Enter } from '../motion/layout.tsx';
 import { DUR } from '../motion/tokens.ts';
-import { HIT, bType, decorative, frenchText, space } from '../theme.ts';
+import { HIT, bType, continuous, corner, decorative, frenchText, radius, space } from '../theme.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';
 import { SHEET_COPY, continueName, sheetArrival, spokenSheet, type AnswerSheetModel, type SheetTone } from './answerSheet.ts';
@@ -232,7 +232,7 @@ export function AnswerSheet({
 
 function makeStyles(t: B) {
   return StyleSheet.create({
-    sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: PAD.top, paddingHorizontal: PAD.side, gap: 12 },
+    sheet: { borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card, ...continuous, paddingTop: PAD.top, paddingHorizontal: PAD.side, gap: 12 },
     // The miss is the card under a 2pt line edge at its top, and nothing else.
     calm: { borderTopWidth: 2, borderColor: t.line },
     tap: { minHeight: HIT, justifyContent: 'center' },
@@ -246,7 +246,7 @@ function makeStyles(t: B) {
     between: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     hearPill: { minHeight: HIT, borderRadius: HIT / 2, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 6 },
     hearDisc: { width: HIT, height: HIT, borderRadius: HIT / 2, alignItems: 'center', justifyContent: 'center' },
-    notice: { borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, gap: 2 },
+    notice: { ...corner.field, paddingVertical: 10, paddingHorizontal: 12, gap: 2 },
     reason: { flexDirection: 'row', flexWrap: 'wrap' },
     mark: { width: MARK, height: MARK, borderRadius: MARK / 2, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center' },
   });

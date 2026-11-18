@@ -58,7 +58,8 @@ const FLAT = flat(SCREEN);
  * `todayStops`, and handed to TodayLayout, so the render starts there.
  */
 const RENDER = SCREEN.slice(SCREEN.indexOf('const stops = todayStops('));
-const PHRASE_ROW = "<RouteRow key=\"phrase\" mark={last ? 'end' : 'stop'} last={last} thumb={<BArt name=\"voice-chat\" width={ROW_ART} height={ROW_ART} />} thumbGround={t.lavender} eyebrow={TODAY_COPY.phrase} title={daily.phrase.fr ?? daily.phrase.en} titleLang={daily.phrase.fr ? 'fr' : undefined} line={daily.phrase.fr ? daily.phrase.en : null} action={{ label: TODAY_COPY.sayRow }} onPress={() => nav.navigate(TODAY_ROUTES.phrase, { id: daily.phrase.id })} />";
+/** F954, F996: the phrase row's words come from `phraseRow` (today's phrase, or the café line held at Starter), with no action word. */
+const PHRASE_ROW = "const phrase = phraseRow({ daily: daily.phrase, cafe: heroCafe }); return ( <RouteRow key=\"phrase\" mark={last ? 'end' : 'stop'} last={last} thumb={<BArt name=\"voice-chat\" width={ROW_ART} height={ROW_ART} />} thumbGround={t.lavender} title={phrase.title} titleLang={phrase.titleLang} line={phrase.line} onPress={() => nav.navigate(phrase.route.screen, phrase.route.params)} /> );";
 /** TodayLayout draws its slots in this order; the screen fills them. */
 const LAYOUT = stripComments(read('../home/TodayLayout.tsx'));
 
@@ -344,7 +345,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
   test('day one draws no block of its own, and the page reads in the artboard order', () => {
     // 2026-10-29 (F934): Today's path takes its stops and the review row from the view.
     // UI-015: the hero and rows come from todayStops and rowMarks; pathStep's words left with RouteNode.
-    assert.match(FLAT, /import \{ COMING_UP_COPY, TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, reviewRow, rowMarks, startingPoint, todayStops, weekInFrench, type StartingPoint \} from '\.\.\/home\/todayView\.ts'/);
+    assert.match(FLAT, /import \{ COMING_UP_COPY, TODAY_COPY, TODAY_ROUTES, comingUp, dismissComingUp, oneFix, phraseRow, reviewRow, rowMarks, startingPoint, todayStops, weekInFrench, type PhraseItem, type StartingPoint \} from '\.\.\/home\/todayView\.ts'/);
     assert.match(FLAT, /setStart\(startingPoint\(progress\)\)/);
     assert.match(FLAT, /ready=\{!interacted && !unowned && !readFailed && start !== null\}/, 'the arrival no longer waits for the read');
     assert.ok(!RENDER.includes('{start !== null && ('), 'the day-one block is back on Today');
@@ -503,7 +504,7 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     // Shaped like the page (UI-015): the hero card, the path's rows, the three.
     assert.equal(
       skeleton[0],
-      "<Skeleton blocks={[{ height: 262, radius: radius.feature }, { height: 168, radius: radius.card }, { height: 196, radius: radius.card }]} />",
+      "<Skeleton blocks={[HERO_SAND, { height: 168, radius: radius.card }, { height: 196, radius: radius.card }]} />",
       'the sand blocks are not shaped like the page',
     );
     // Everything else waits: the rows, the three, Coming up and the week are
@@ -552,8 +553,8 @@ describe('Today under the brief: the week, day one, and today\'s phrase', () => 
     const sayIt = between(flat(DAILY), 'const sayIt = ', '; const contents', 'the practice has one handler');
     assert.ok(sayIt.indexOf('releaseDailyPlayback(player)') < sayIt.indexOf("nav.navigate('DailyPractice', { id: item.id })"), 'the practice opens over the tutor still speaking');
     assert.match(DAILY, /<IconAction layout="inline" icon="microphone" label="Say it" onPress=\{sayIt\} \/>/, 'the library and Today practise a phrase two ways');
-    // Today's row opens the same practice.
-    assert.match(FLAT, /onPress=\{\(\) => nav\.navigate\(TODAY_ROUTES\.phrase, \{ id: daily\.phrase\.id \}\)\}/);
+    // Today's row opens the same practice (its route is `phraseRow`'s: DailyPractice by id).
+    assert.match(FLAT, /onPress=\{\(\) => nav\.navigate\(phrase\.route\.screen, phrase\.route\.params\)\}/);
   });
 
   test('Home names no weekday, counts no days this week, shows no rate and draws no tag', () => {
@@ -617,7 +618,7 @@ describe('Today keeps its day when the disk will not answer', () => {
   test('an account switch clears the old recommendation before any new read resolves', () => {
     // 2026-10-07 (F768): the clearing waits on the account having changed, so
     // a refresh for the same account keeps the page drawn.
-    assert.match(FLAT, /const scope = scopeGeneration\(\); setReadOwner\(scope\); if \(refreshClears\(drawnFor\.current, scope\)\) \{ setDaily\(todayItems\(0, now\)\); setHero\(null\); setStarter\(null\); setStart\(null\); setWeek\(null\); setFixFrom\(null\); setHeroReview\(null\); \}/);
+    assert.match(FLAT, /const scope = scopeGeneration\(\); setReadOwner\(scope\); if \(refreshClears\(drawnFor\.current, scope\)\) \{ setDaily\(todayItems\(0, now\)\); setHero\(null\); setStarter\(null\); setStart\(null\); setWeek\(null\); setFixFrom\(null\); setHeroReview\(null\); setHeroCafe\(null\); \}/);
     assert.match(FLAT, /const unowned = readOwner !== scopeGeneration\(\);/);
     // UI-015: the failed read is the hero card's own branch.
     assert.match(FLAT, /const failedHero = !unowned && readFailed;/);
@@ -693,8 +694,10 @@ describe('the two tabs fit a phone at every reading size — F409', () => {
     for (const { path, body } of files) {
       // Nothing truncates and nothing caps the reading size. A learner at the
       // largest text setting reads the same words as everybody else.
+      // F957, the one exemption: the greeting's hour word is capped only as far as it still fits its column.
+      const scaled = path === 'home/SkyBand.tsx' ? body.replace('maxFontSizeMultiplier={greetingMaxScale(width)}', '') : body;
       for (const capped of ['numberOfLines', 'maxFontSizeMultiplier', 'ellipsizeMode', 'allowFontScaling']) {
-        assert.ok(!body.includes(capped), `${path} carries ${capped}, which clips a line rather than letting it wrap`);
+        assert.ok(!scaled.includes(capped), `${path} carries ${capped}, which clips a line rather than letting it wrap`);
       }
       // Every size is a token, so the whole page grows together.
       assert.doesNotMatch(body, /fontSize:/, `${path} names a raw font size instead of a type token`);
@@ -889,15 +892,16 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
   test('the yellow lead keeps the gated start and adds the eyebrow, the line and the honest chip', () => {
     const vivid = flat(between(HERO, 'if (vivid) {', 'return (\n    <SceneBrief', 'the hero has a Today look'));
     assert.match(vivid, /<SceneLead /, 'the lead is not the B yellow card');
-    assert.match(vivid, /eyebrow=\{sceneEyebrow\(hero\)\}/, 'the eyebrow is not the scene place from the view model');
-    // Founder, 2026-10-29: only the scene's length under the title.
-    assert.match(vivid, /french=\{null\} rest=\{time\}/);
+    // F995, F996: no eyebrow; the scene's place joins the time on the one meta line.
+    assert.doesNotMatch(vivid, /eyebrow=/, 'the scene hero draws an eyebrow');
+    assert.match(vivid, /french=\{null\} rest=\{sceneHeroLine\(hero\)\}/);
     assert.match(vivid, /uses=\{buildsOn != null \? buildsOnLine\(buildsOn\) : null\}/, 'the Uses chip is drawn without a real meeting');
     // The same start as the blue brief: the gate, the learner's mode, and the
     // other mode as a quiet link.
     assert.match(vivid, /start=\{\{ label, mode: modes\.mode, accessibilityLabel: `\$\{label\}: \$\{hero\.title\}, \$\{time\}`, disabled: checking, onPress: \(\) => open\(modes\.textMode\) \}\}/);
     assert.match(vivid, /other=\{\{ label: modes\.other\.label, disabled: checking, onPress: \(\) => open\(modes\.other\.textMode\) \}\}/);
-    assert.match(vivid, /heldBack=\{heldBack === null \? null : \{ body: TUTOR_OFFLINE\.body, retry: TUTOR_OFFLINE\.retry, disabled: checking, onRetry: \(\) => open\(heldBack\.textMode\) \}\}/, 'the yellow lead lost its held-back answer');
+    // F996: a held-back start leads with the offline line and the same start as Check again.
+    assert.match(vivid, /if \(heldBack !== null\) return <LocalPracticeCard vivid bare levelIndex=\{levelIndex\} held=\{\{ checking, onRetry: \(\) => open\(heldBack\.textMode\) \}\} \/>;/, 'the yellow lead lost its held-back answer');
     // 2026-10-31 UI-015: re-pinned from the yellow card to the scene hero on
     // the hero card's ground: the café in a 108 by 84 butter tile, the words
     // beside it while the card is wide enough (else the tile goes above), the
@@ -908,11 +912,12 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(lead, /<View style=\{side \? s\.leadSide : s\.leadStacked\}>/);
     assert.match(lead, /<Text \{\.\.\.frenchText\}>\{french\}<\/Text>/, 'the French title is not tagged as French');
     assert.match(lead, /<Text \{\.\.\.frenchText\}>\{uses\.french\}<\/Text>/, 'the quoted phrase is not tagged as French');
-    assert.match(lead, /<Text accessibilityRole="header" style=\{\[bType\.stat24, \{ color: t\.text \}\]\}>\{title\}<\/Text>/);
-    assert.match(lead, /height=\{54\} ground=\{t\.primary\} ink=\{t\.onPrimary\} text=\{bType\.bold16\} icon=\{start\.mode === 'type'/);
-    assert.match(PARTS, /leadTile: \{ width: SCENE_TILE\.width, height: SCENE_TILE\.height, borderRadius: 20,/);
+    // F997: the title fits its column (28, 24 or 20); F991: the Start is the lipped ink PillButton.
+    assert.match(lead, /<Text accessibilityRole="header" style=\{\[fitTitle\(title, sceneTitleColumn\(measured \?\? windowWidth - HERO_INSET, side\)\), \{ color: t\.text \}\]\}>\{title\}<\/Text>/);
+    assert.match(lead, /<PillButton label=\{start\.label\} accessibilityLabel=\{start\.accessibilityLabel\} icon=\{start\.mode === 'type'/);
+    assert.match(PARTS, /leadTile: \{ width: SCENE_TILE\.width, height: SCENE_TILE\.height, \.\.\.corner\.card,/);
     assert.doesNotMatch(lead, /heroGround|heroText|heroCta/, 'the scene hero still draws the yellow card on the white one');
-    assert.match(PARTS, /usesChip: \{[^}]*paddingVertical: 5, paddingHorizontal: 10, borderRadius: 12 \}/);
+    assert.match(PARTS, /usesChip: \{[^}]*paddingVertical: 5, paddingHorizontal: 10, \.\.\.corner\.inset \}/);
     // The engine is still main's lock-aware NextTaskCard.
     const task = read('../practice/NextTaskCard.tsx');
     assert.match(task, /const review = offeredReview\(value\.offer, locks\.access\('conversationPractice'\)\);/);
@@ -922,7 +927,7 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     // is no fix and the scene row when there is, and the starter card is drawn
     // by the lead rule (F936), with the same starter guard.
     assert.match(FLAT, /const starterFor = starter !== null && profile\.brain\.stats\.sessions === 0 \? starter : null;/);
-    assert.match(FLAT, /\{stops\.hero === 'fix' \? fixHero : <NextTaskCard vivid placement="hero" starter=\{starterFor\} onHeroReview=\{setHeroReview\} \/>\}/);
+    assert.match(FLAT, /\{stops\.hero === 'fix' \? fixHero : <NextTaskCard vivid placement="hero" starter=\{starterFor\} onHeroReview=\{setHeroReview\} onHeroCafe=\{setHeroCafe\} \/>\}/);
     assert.match(FLAT, /if \(row === 'scene'\) return <NextTaskCard key="scene" vivid placement="row" last=\{last\} starter=\{starterFor\} \/>;/);
   });
 
@@ -944,15 +949,15 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(card, /accessibilityLabel=\{fix\.locked \? lockSaid\(TODAY_COPY\.fixAction, 'fixes', true\) : undefined\}/);
     assert.match(card, /onPress=\{onTry\}/, 'the fix button does not press through what the screen hands it');
     assert.match(card, /<View \{\.\.\.decorative\}><OutlineLock size=\{18\} color=\{t\.muted\} \/><\/View>/, 'the outline lock beside the line is not hidden from a screen reader');
-    assert.match(card, /height=\{50\} ground=\{t\.primary\} ink=\{t\.onPrimary\}/, 'the fix button is not the 50pt primary');
-    // UI-015 (was: the RouteNode stop named the card): the hero names it with
-    // its own eyebrow, "One fix to try" in link, a header, and the card is the
-    // hero frame (TodayHeroCard), not the mint-edged card.
-    assert.match(card, /<Text accessibilityRole="header" style=\{\[bType\.eyebrow, \{ color: t\.link \}\]\}>\{TODAY_COPY\.fix\}<\/Text>/);
-    assert.match(card, /<Text style=\{\[bType\.bold20, \{ color: t\.text \}\]\}>\{fix\.english\}<\/Text>/);
-    assert.match(FLAT, /<TodayHeroCard> \{stops\.hero === 'fix' \? fixHero :/);
+    // F991: the lipped ink primary.
+    assert.match(card, /<PillButton label=\{TODAY_COPY\.fixAction\}/, 'the fix button is not the lipped primary');
+    // F996 (was UI-015's eyebrow): no label over the fix; the English line is
+    // the header and leads, and the card is the hero frame (TodayHeroCard).
+    assert.doesNotMatch(card, /bType\.eyebrow|\{TODAY_COPY\.fix\}/);
+    assert.match(card, /<Text accessibilityRole="header" style=\{\[bType\.bold20, \{ color: t\.text \}\]\}>\{fix\.english\}<\/Text>/);
+    assert.match(FLAT, /<TodayHeroCard plain=\{plain\} pending=\{[^}]*\}> \{stops\.hero === 'fix' \? fixHero :/);
     assert.match(style(heroesSrc, 'after'), /minHeight: HIT/);
-    assert.match(style(heroesSrc, 'after'), /backgroundColor: t\.inset, borderRadius: 14/);
+    assert.match(style(heroesSrc, 'after'), /backgroundColor: t\.inset, \.\.\.corner\.field/);
     assert.doesNotMatch(SCREEN, /borderColor: t\.mint/, 'the fix still draws its own mint-edged card inside the hero');
   });
 
@@ -1019,7 +1024,8 @@ describe('Today is drawn to B-Today, 2026-10-20, B5', () => {
     assert.match(quests, /<View \{\.\.\.decorative\}>/, 'the quest mark is announced on its own');
     assert.match(quests, /<SmallPill label=\{trailing\.label\} ground=\{trailing\.kind === 'xp' && trailing\.earned \? t\.sage : t\.butter\} \/>/);
     assert.match(quests, /doneWords: \{ color: t\.muted, textDecorationLine: 'line-through' \}/, 'a done quest is not struck through');
-    assert.match(quests, /card: \{ backgroundColor: t\.card, borderRadius: 22, paddingVertical: space\(1\), paddingHorizontal: space\(4\) \}/);
+    // F994: the sweep's card corner (game/QuestsCard.tsx).
+    assert.match(quests, /card: \{ backgroundColor: t\.card, \.\.\.corner\.card, paddingVertical: space\(1\), paddingHorizontal: space\(4\) \}/);
     assert.match(quests, /minHeight: 52/);
     assert.ok(!SCREEN.includes('<Sheet'), 'the quests sit in a sheet again');
   });

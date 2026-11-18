@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View, Share } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScrollScreen, TabHeader, ScreenHeader } from '../layout.tsx';
-import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow, PillButton, OutlineButton, Field } from '../components.tsx';
+import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow, PillButton, Field } from '../components.tsx';
 import { space, type } from '../theme.ts';
 import { ProfileButton } from '../profile/ProfileButton.tsx';
 import { useSocial } from '../friends/useSocial.ts';
@@ -77,7 +77,7 @@ export function FriendsTab({ pushed = false }: { pushed?: boolean } = {}) {
             <GhostButton label="Remove friend" onPress={() => void act('remove', { id: f.id })} />
             <GhostButton label="Block this person" onPress={() => void act('block', { id: f.id })} />
             <Field label="Reason for reporting (private)" value={reason} onChangeText={setReason} placeholder="e.g. Unwanted messages" maxLength={500} />
-            <OutlineButton label="Report and block" disabled={!reason.trim() || busy} onPress={() => void act('report', { id: f.id, reason: reason.trim() })} />
+            <GhostButton label="Report and block" disabled={!reason.trim() || busy} onPress={() => void act('report', { id: f.id, reason: reason.trim() })} />
           </View>}
         </Card>)}
       </View>

@@ -335,7 +335,7 @@ describe('a waiting answer sheet takes the screen reader with it — F775', () =
 
     // PillButton hands the ref to its press, and the press to the pressable that a reader lands on.
     const components = stripComments(read('../components.tsx')).replace(/\s+/g, ' ');
-    const pill = components.slice(components.indexOf('export function PillButton('), components.indexOf('export function OutlineButton('));
+    const pill = components.slice(components.indexOf('export function PillButton('), components.indexOf('export function GhostButton('));
     assert.match(pill, /ref\?: Ref<View>;/, 'PillButton takes no ref');
     assert.match(pill, /<Press haptic="light"[^>]*ref=\{ref\}>/, 'PillButton does not hand its ref to the press');
     const pressProps = components.slice(components.indexOf('export type PressProps'), components.indexOf('export type Ground'));

@@ -56,26 +56,6 @@ export function greetingWord(now: number): 'Bonjour' | 'Bonsoir' {
 }
 
 /**
- * The question under the greeting, one per part of the day.
- *
- * The windows tile the whole clock with no gap and no overlap, which the suite
- * checks at all twenty-four hours. The evening window is the greeting's own, so
- * the word and the question below it can never describe two parts of one day.
- */
-export const GREETING_SUBLINES: readonly { hours: HourWindow; line: string }[] = [
-  { hours: { from: 5, to: 12 }, line: 'Ready to speak French this morning?' },
-  { hours: { from: 12, to: 18 }, line: 'Ready to speak French today?' },
-  { hours: EVENING, line: 'Ready to speak French tonight?' },
-];
-
-/** The hour's question. An unreadable clock lands on midday, the neutral one. */
-export function greetingSubline(now: number): string {
-  const hour = localHour(now);
-  const match = GREETING_SUBLINES.find((subline) => withinWindow(hour, subline.hours));
-  return match?.line ?? GREETING_SUBLINES[1]!.line;
-}
-
-/**
  * Today's header: "Bonjour, Name" or "Bonsoir, Name", and the word alone
  * with no name, with no full stop. Direction A's sky (UI-015, founder 2026-10-30) brings back the
  * hour's word, superseding direction B's one word all day (2026-10-20, B5): the

@@ -5,7 +5,7 @@ import { Illustration } from '../art/flat/Illustration.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { useCompactPhone } from '../layout.tsx';
-import { decorative, radius, space, type } from '../theme.ts';
+import { decorative, space, type, corner } from '../theme.ts';
 import {
   ADDS_ROWS, ADDS_TITLE, YOURS_DECLINE, YOURS_FREE_TITLE,
   YOURS_ONLY, YOURS_ROWS, YOURS_TITLE,
@@ -44,7 +44,7 @@ const st = StyleSheet.create({
   title: { ...type.display },
   art: { alignItems: 'center' },
   heading: { ...type.heading },
-  card: { padding: space(4), borderRadius: radius.tile, gap: space(2) },
+  card: { padding: space(4), ...corner.tile, gap: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   line: { ...type.body, flex: 1, minWidth: 0 },
   only: { ...type.body, textAlign: 'center' },

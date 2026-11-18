@@ -8675,7 +8675,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   scene brief for the spine's next scene, with no picture, and the minutes line reads "About N min". A
   three-line daily scene is still seven minutes, and the scripted opener is about three, derived from
   its script.
-- verified-by: `every hour has exactly one subline`
+- note: 2026-11-17, the systemic pass (UI-023): the hour's line had no production caller left, so `greetingSubline` and its test went (founder, 2026-11-10); the greeting has no subline.
+- verified-by: `the greeting has no subline`
 - verified-by: `a three-line daily scene is about seven minutes, and an open mission is longer per beat`
 - verified-by: `a first run leads with the opener, as a brief: level, French title, can-do, lines and about three minutes`
 
@@ -8804,7 +8805,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/practice/madeFrom.ts:1
 - note: revamp A. "Listen and try again" is the tutor's voice reading the better line, then the drill;
   no recording and no transcript are ever kept, by the existing privacy contract.
-- verified-by: `replay speaks the better line and stops it when the tab goes`
+- note: 2026-11-17, the systemic pass (UI-023, F999): the replay row had no production caller and went with `ReplayMomentCard.tsx`, and its test with it; what remains true is that a voice started on practice stops when the tab goes.
+- verified-by: `a voice started on practice stops when the tab goes`
 - verified-by: `nothing on practice listens, records or scores`
 
 ### F583 — The tab bar keeps every whole word at the largest reading size
@@ -8947,7 +8949,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: apps/mobile/src/theme.ts:27
 - note: Stage 1 of revamp B. `theme.ts` names the five Outfit cuts (400 to 800) with the old font names kept as aliases, the STYLE §3 scale by token (hero 112, display 44, title 30, heading 20, frenchLg 28, french 20, body 17, label 16 sentence case, small 14, tab 12) with the French tokens kept by name in Outfit 600 and frenchLg still larger than heading, and radii card 24, feature 28, tile 20, field 16, pill 999. `App.tsx` loads exactly those five files and the Fraunces and DM Sans files leave the bundle; Acknowledgements credits Outfit under the OFL. `theme.test.ts` is rewritten to the new values and gains a check that the theme, the loader and the fonts folder agree.
 - verified-by: `Outfit is the only face, at the STYLE scale, and every French style is Outfit SemiBold`
-- verified-by: `B corners: card 24, feature 28, tile 20, field 16, pill 999, and the aliases point at them`
+- note: 2026-11-17, the systemic pass (UI-023, F990) replaced the radii with the scale card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill.
+- verified-by: `the radius scale is card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill`
 - verified-by: `the theme names the six Outfit cuts App.tsx loads, and the bundle carries no other face`
 - verified-by: `Acknowledgements credits Outfit under the OFL and names no retired face`
 
@@ -9027,7 +9030,6 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: Stage 3, area 1 of revamp B. `Screen` stops drawing a paper hairline over a colour ground's footer and lights the status bar on blue, coral and ink; `Field`'s error sits beside the alert mark; `TutorCard` is restyled; `SceneMark` and `canDoSentence` are appended. Hear it and First line are blue with white and ink bubbles, the round next and the Highlight beside a mint tick; the one-tap answers are option rows; the plan is the sun page with the hero minutes, the scenes in French, the tutor and how it works, and no picture or pickers; the save page's pill reads "I am 13 or older, create account" and the under-13 refusal is its own page with the frame drawing. FirstScene is the blue brief with a white Start, and a refusal turns to paper with the microphone drawing and typing first. The age check and the auth screens are working titles on paper, with Apple above Google at the top of the form and one ink pill in the footer. Two files leave the punctuation allowlist, and two state drawings leave the not-yet-drawn list. The recovery route's `OnboardingFlow.tsx` was left unchanged, because swapping its `OptionCard` for `OptionRow` would take the voice samples off; that deferral is F634.
 - verified-by: `a colour ground draws no paper hairline over its footer, and lights the status bar on blue, coral and ink`
 - verified-by: `a field error sits beside the alert mark in ink, and is still announced`
-- verified-by: `the tutor card is white: the orb, the name and voice, a play disc and a quiet change link`
 - verified-by: `a scene mark is a mint tick, a sun dot or a field ring, and names its state`
 - verified-by: `a can-do reads as one sentence after "You'll be able to"`
 - verified-by: `welcome and recap share cream progress chrome with a readable bottom action`
@@ -12235,13 +12237,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F954 — Today names one review twice when the hero offers it
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/practice/NextTaskCard.tsx (the held and plans leads' Review door) and the Today path's review row action (`todayView.ts` `practise`)
 - note: Found 2026-11-02 by the Impeccable reviewer in /push-check on claude/bug-fix, in older code
   outside that diff. When the held or plans lead offers Review, its button reads "Review 4 phrases",
   while the path row for the same review says "Practise" as its action, so one intent has two labels
   on one screen. Fix: name the review action once (for example "Review" on the row), with a test that
   pins the two labels agree.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
 - verified-by: `Today names the review action once`
 - note: 2026-11-10: the founder put this into the systemic pass (queue 5, `handoffs/2026-11-10-systemic-pass-brief.md`), with the Today tutor-unreachable headline, the dead `greetingSubline`/`GREETING_SUBLINES` and a preview key for `LiveErrorView`.
 
@@ -12284,7 +12287,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F957 — At accessibility-extra-large, Today's greeting breaks inside its first word
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/SkyBand.tsx (the greeting `Text`, `bType.greeting`)
 - note: Found 2026-11-03 on the iPhone 17 simulator while checking the phone fixes, and the same on
   main 4ff3aff2: at accessibility-extra-large "Bonsoir," is wider than the column, so it draws as
@@ -12294,6 +12297,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
   (`maxFontSizeMultiplier` sized so the longest hour word and its comma fit 343pt), which caps
   one text's scaling, so it waits for the founder's call. Founder 2026-11-06: fold into the systemic
   pass, as part of the type scale.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
 - verified-by: `the greeting's longest hour word fits its column at the largest text size`
 
 ### F958 — Every tutor join fails on staging: the image has no CA store for LiveKit's native client
@@ -12829,6 +12833,105 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a mission's keyterms are at most 16 terms and 400 bytes, full phrases first`
 - verified-by: `a conversation with a mission passes its keyterms to Flux and a free topic passes none`
 - verified-by: `the conversation quote carries both the keyterm and the plain Flux stream`
+
+### F990 — The radius scale and continuous corners are tokens
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/theme.ts:245
+- note: card 20, tile 18, field 14, inset 12, mark 8, nib 4, pill; `corner` and `continuous` carry the iOS curve.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `the radius scale is card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill`
+- verified-by: `a corner fragment carries its radius and the continuous curve on iOS only`
+
+### F991 — Lip colours are named and every ink primary pill sits on a 3pt lip
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:368
+- note: Q1. The lip defaults on for the ink primary and sinks 2pt; the palette names paper, peach, lilac, sun and blue.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `every ink primary pill sits on a 3pt lip and sinks 2pt`
+- verified-by: `the lip colours are named once in the palette`
+
+### F992 — Choice draws the raised tile and BoldChoice folds into it
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:2561
+- note: Q2, revisiting D7. White face with the field ring (F921's 3:1), 4pt paper lip; chosen blue on the blue lip; radio and checkbox both say checked.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `a choice is the raised tile and still says checked`
+- verified-by: `onboarding's plan editor draws Choice and BoldChoice is gone`
+
+### F993 — OutlineButton folds into GhostButton
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/components.tsx:401
+- note: Q4. One quiet action, the underlined word.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `the one quiet action is the underlined word`
+
+### F994 — Literal radii outside onboarding and the tab bar move to the scale
+- severity: P1
+- status: [x]
+- where: scripts/unslop-scan.baseline.json:1
+- note: Q6. The baseline shrinks to onboarding and the three tab-bar files, and the scan holds it there.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `literal radii remain only in onboarding and the tab bar`
+- verified-by: `the app is clean against the unslop baseline`
+- verified-by: `a zero radius is not a literal radius`
+
+### F995 — Eyebrows fold on Today and every drill stage
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/drill/DrillFrame.tsx:126
+- note: Q5. The label becomes the heading or joins the meta line; the scan's eyebrow rule stops the count rising.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `Today and the drill stages draw no eyebrow`
+- verified-by: `the drill stages draw no eyebrow`
+- verified-by: `a drill's task joins its meta line`
+- verified-by: `a planted eyebrow is flagged`
+
+### F996 — Today's hero states after the folds
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/practice/NextTaskCard.tsx:222
+- note: Q3 and Q8. The held state is the card family's first fix: a LipTile never sits on a Card.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `a held hero sets its words on the paper and its LipTile is not on a card`
+- verified-by: `held at Starter the café line lives once, as the phrase row`
+- verified-by: `a start the tutor could not take leads with the offline line and one Check again`
+- verified-by: `the hero loads in one look`
+- verified-by: `the fix hero leads with the English line`
+- verified-by: `the scene's place joins its meta line`
+- verified-by: `a secondary pill on the hero takes a pastel`
+
+### F997 — Type roles are named and the stage and hero titles follow them
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/theme.ts:113
+- note: Q7 and Q8-4. Roles alias existing tokens; only the centre stage title moves, 26 to 28.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `every type role names a token at its stated size`
+- verified-by: `the centre stage title is the stage title role`
+- verified-by: `the hero title steps 28, 24, 20 to fit its column`
+
+### F998 — The folded practice rows and the two housekeeping rows
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/phrases/PhrasebookScreen.tsx:180
+- note: Founder yes, 2026-11-06 and 2026-11-10.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `nothing to review sits on butter in Review and the drill bank`
+- verified-by: `an empty phrasebook has one headline`
+- verified-by: `the greeting has no subline`
+- verified-by: `the live error view has a preview key`
+
+### F999 — Exports with no production caller go
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/motion/MorphButton.tsx:53
+- note: The count targets the founder accepted: Card/Tile/Hero 60 or fewer, Button/Pill 21.
+- fixed: 2026-11-17 on claude/systemic (systemic pass, UI-023).
+- verified-by: `the dead card and button exports are gone`
 
 ### F1006 — Audit exceptions re-reviewed: uuid fixed, decode-uri-component and zod renewed to 2026-12-16
 - severity: P3

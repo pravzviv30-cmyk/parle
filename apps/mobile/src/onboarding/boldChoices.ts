@@ -1,12 +1,5 @@
 import type { Interest, PreAccountPage } from './preAccountDraft.ts';
 
-const BOLD_CHOICE_TONES = ['sage', 'peach', 'lavender', 'butter'] as const;
-
-/** Shared presentation palette for questions and their plan-edit counterparts. */
-export function boldChoiceTone(index: number): typeof BOLD_CHOICE_TONES[number] {
-  return BOLD_CHOICE_TONES[index % BOLD_CHOICE_TONES.length] ?? BOLD_CHOICE_TONES[0];
-}
-
 export const INTERESTS: readonly { key: Interest; title: string; detail: string }[] = [
   { key: 'food', title: 'Food and cafés', detail: 'A coffee, a market, a good meal' },
   { key: 'travel', title: 'Travel and places', detail: 'Near and far' },

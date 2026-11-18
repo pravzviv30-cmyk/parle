@@ -7,7 +7,7 @@ import { Press } from '../components.tsx';
 import { AnimatedIcon } from '../icons/AnimatedIcon.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { useMainAppearance } from '../main/MainAppearance.tsx';
-import { HIT, decorative, font, space, type } from '../theme.ts';
+import { HIT, decorative, font, space, type, corner, radius } from '../theme.ts';
 import { PLANS_PRIVACY, PLANS_TERMS, PAYWALL_RESTORE } from './wallCopy.ts';
 import type { PaywallNotice } from './trialPaywall.ts';
 
@@ -148,15 +148,15 @@ export const wallType = StyleSheet.create({
 const st = StyleSheet.create({
   top: { minHeight: HIT, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: space(2) },
   close: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center' },
-  cta: { minHeight: 56, borderRadius: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2), paddingHorizontal: space(6), paddingVertical: space(3), alignSelf: 'stretch' },
+  cta: { minHeight: 56, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2), paddingHorizontal: space(6), paddingVertical: space(3), alignSelf: 'stretch' },
   ctaLabel: { ...type.button, textAlign: 'center', flexShrink: 1 },
   mark: { width: 22, height: 22 },
-  notice: { borderRadius: 20, padding: space(4), gap: space(1) },
+  notice: { ...corner.card, padding: space(4), gap: space(1) },
   noticeTitle: { ...type.bodyStrong },
   noticeBody: { ...type.small },
   links: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: space(1) },
   link: { minHeight: HIT, minWidth: HIT, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(1) },
-  dot: { width: 3, height: 3, borderRadius: 1.5 },
+  dot: { width: 3, height: 3, borderRadius: radius.pill },
   small: { ...type.small, textAlign: 'center' },
   body: { ...type.mainBody },
   benefit: { flexDirection: 'row', alignItems: 'flex-start', gap: space(3) },

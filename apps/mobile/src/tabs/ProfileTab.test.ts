@@ -39,7 +39,6 @@ const TAB = stripComments(read('./ProfileTab.tsx'));
  */
 // 2026-10-20 UI-008: from the screen's own return (a hook below it also returns).
 const BODY = TAB.slice(TAB.indexOf('<SettingsAppearance b>'));
-const CARD = stripComments(read('../profile/TutorMemoryCard.tsx'));
 const SETTINGS = stripComments(read('../settings/SettingsScreen.tsx'));
 
 /**
@@ -83,7 +82,7 @@ describe('the tab that is a person — P2, 2026-10-19', () => {
 
     // ───────────────────────────────────── the learner, by their own initial
     assert.equal((TAB.match(/initialOf\(profile\.name\)/g) ?? []).length, 1, 'the learner initial is drawn more than once, or not at all');
-    assert.match(PARTS, /avatar: \{ width: 76, height: 76, borderRadius: 38, backgroundColor: t\.sun/, 'the avatar is not the 76pt sun disc');
+    assert.match(PARTS, /avatar: \{ width: 76, height: 76, borderRadius: radius\.pill, backgroundColor: t\.sun/, 'the avatar is not the 76pt sun disc');
     assert.match(TAB, /name=\{profile\.name \?\? NAME_UNSET\}/, 'the header says something other than the learner, or spells the fallback itself');
     assert.match(PARTS, /since !== null \? <Text/, 'the since line is drawn when the date is unknown');
     assert.ok(!TAB.includes('levelName'), 'the level line is back under the name, ranking somebody who came to change a setting');

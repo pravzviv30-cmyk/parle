@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { IconAction, Card, GhostButton, Label, OutlineButton, PillButton } from '../components.tsx';
-import { HAIRLINE, HIT, font, paper, radius, space, type } from '../theme.ts';
+import { IconAction, Card, GhostButton, Label, PillButton } from '../components.tsx';
+import { HAIRLINE, HIT, corner, font, paper, radius, space, type } from '../theme.ts';
 import { CARD_START, SAID_IT, cardView, typedAttemptReady, type ReviewTurn } from '../review/cardView.ts';
 import { gradeCard } from '../review/store.ts';
 import { CHECK, CLOSING_LINE, GRADE_LABELS, ONE_LINE_LABEL, TYPE_LABEL, TYPE_PROMPT, type OneLine } from './oneLine.ts';
@@ -95,7 +95,7 @@ export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () =>
             accessibilityLabel={TYPE_LABEL}
             style={[st.input, { fontFamily: font.regular, fontSize: type.body.fontSize }]}
           />
-          <OutlineButton
+          <GhostButton
             label={CHECK}
             disabled={!typedAttemptReady(turn.typed)}
             onPress={() => setTurn((t) => ({ ...t, attempt: 'typed' }))}
@@ -106,7 +106,7 @@ export function OneLineCard({ line, onGraded }: { line: OneLine; onGraded: () =>
 
       {grades && (
         <View style={st.grades}>
-          <OutlineButton
+          <GhostButton
             label={GRADE_LABELS.good}
             onPress={() => {
               void gradeCard(line.card.id, 'good', view.gradeContext);
@@ -144,7 +144,7 @@ function makeSt(t: B) {
     backgroundColor: t.card,
     borderWidth: HAIRLINE,
     borderColor: t.field,
-    borderRadius: radius.input,
+    ...corner.field,
     paddingHorizontal: space(4),
     paddingVertical: space(3),
     color: t.text,

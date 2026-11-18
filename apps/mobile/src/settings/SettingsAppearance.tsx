@@ -2,7 +2,7 @@ import { createContext, useContext, type ComponentProps, type ReactNode } from '
 import { Text, View } from 'react-native';
 import { Card as PaperCard, Field as PaperField, Press } from '../components.tsx';
 import { useB } from '../main/bTheme.tsx';
-import { colour, paper, signal, space, type } from '../theme.ts';
+import { colour, paper, signal, space, type, corner } from '../theme.ts';
 import { mainApp } from '../palette.ts';
 
 const paperColors = { surface: paper.card as string, background: paper.ground as string, text: paper.ink as string, muted: paper.inkSoft as string, border: paper.lineOnCard as string, trouble: signal.correspondance as string, link: colour.blue as string, danger: mainApp.light.danger as string, inset: mainApp.light.inset as string };
@@ -35,7 +35,7 @@ export function useBRows(): boolean {
 
 /** Inputs sit in a well of the scoped surface (white in light, the dark card in dark) with their existing label and error ink. */
 export function SettingsField(props: ComponentProps<typeof PaperField>) {
-  return <View style={{ backgroundColor: useSettingsColors().surface, padding: space(3), borderRadius: 16 }}><PaperField {...props} /></View>;
+  return <View style={{ backgroundColor: useSettingsColors().surface, padding: space(3), ...corner.field }}><PaperField {...props} /></View>;
 }
 
 /** Existing secondary form actions, with the scoped surface and disabled ink. */
@@ -43,11 +43,11 @@ export function SettingsFormAction({ label, disabled, onPress }: { label: string
   const colors = useSettingsColors();
   const t = useB();
   // 2026-11-06, the founder's dark mark: a disabled action in dark takes the inset and a control edge, not a dark hole.
-  return <Press onPress={onPress} disabled={disabled} haptic="selection" accessibilityRole="button" accessibilityLabel={label} style={[{ minHeight: 52, padding: space(3), borderRadius: 16, backgroundColor: colors.background, justifyContent: 'center' }, disabled && t.mode === 'dark' && { backgroundColor: t.inset, borderWidth: 1.5, borderColor: t.field }]}><Text style={[type.label, { color: disabled ? colors.muted : colors.text, textAlign: 'center' }]}>{label}</Text></Press>;
+  return <Press onPress={onPress} disabled={disabled} haptic="selection" accessibilityRole="button" accessibilityLabel={label} style={[{ minHeight: 52, padding: space(3), ...corner.field, backgroundColor: colors.background, justifyContent: 'center' }, disabled && t.mode === 'dark' && { backgroundColor: t.inset, borderWidth: 1.5, borderColor: t.field }]}><Text style={[type.label, { color: disabled ? colors.muted : colors.text, textAlign: 'center' }]}>{label}</Text></Press>;
 }
 export function useSettingsColors() { return useContext(SettingsColors); }
 
 export function SettingsCard({ style, tone, ...props }: ComponentProps<typeof PaperCard>) {
   const colors = useSettingsColors();
-  return <PaperCard {...props} tone={tone} style={[{ backgroundColor: tone === 'journal' ? colors.background : colors.surface, borderRadius: 24 }, style]} />;
+  return <PaperCard {...props} tone={tone} style={[{ backgroundColor: tone === 'journal' ? colors.background : colors.surface, ...corner.card }, style]} />;
 }

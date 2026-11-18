@@ -39,24 +39,67 @@ function block(source: string, start: string, end: string): string {
 }
 
 describe('the revamp tokens are named once, in the theme — F569', () => {
-  test('B corners: card 24, feature 28, tile 20, field 16, pill 999, and the aliases point at them', () => {
-    // Revamp B, STYLE section 8: a card turns 24, a feature card 28, a stat tile
-    // 20 and a field 16, and a real button is a full capsule. Every one is a name
-    // rather than a number at the call site: a screen writes `radius.card`, never
-    // a 24. The four older names stay as aliases of the B value their screens
-    // mean until those screens are redrawn: a row is a tile, and a chip, an
-    // input and a control are a field.
+  test('the radius scale is card 20, tile 18, field 14, inset 12, mark 8, nib 4 and pill', () => {
+    // F990, the systemic pass (Q1, Q6): one scale, each step a nesting step
+    // (a tile's inset is 18 minus 6, a field's mark 14 minus 6). Chip, input and
+    // control stay aliases of field for onboarding and auth. Step 8 deleted the
+    // deprecated stat, row and feature aliases (the last two Skeletons read card).
     const radius = block(themeSource(), 'export const radius = {', '} as const;');
-    assert.match(radius, /\bcard: 24,/, 'the one Card no longer turns the B corner of 24');
-    assert.match(radius, /\bfeature: 28,/, 'a feature card no longer turns 28');
-    assert.match(radius, /\btile: 20,/, 'a stat tile no longer turns 20');
-    assert.match(radius, /\bstat: 18,/, 'the chunky Today stat tile no longer turns 18');
-    assert.match(radius, /\bfield: 16,/, 'a field no longer turns 16');
-    assert.match(radius, /\bpill: 999,/, 'the primary pill is no longer fully rounded like the logo');
-    assert.match(radius, /\brow: 20,/, 'the row alias no longer points at the tile corner');
-    assert.match(radius, /\bchip: 16,/, 'the chip alias no longer points at the field corner');
-    assert.match(radius, /\binput: 16,/, 'the input alias no longer points at the field corner');
-    assert.match(radius, /\bcontrol: 16,/, 'the control alias no longer points at the field corner');
+    for (const [name, value] of [
+      ['pill', '999'], ['card', '20'], ['tile', '18'], ['field', '14'], ['inset', '12'], ['mark', '8'], ['nib', '4'],
+    ] as const) {
+      assert.match(radius, new RegExp(`\\b${name}: ${value},`), `radius.${name} is not ${value}`);
+    }
+    for (const gone of ['stat', 'row', 'feature']) {
+      assert.doesNotMatch(radius, new RegExp(`\\b${gone}:`), `the deprecated radius.${gone} alias is back`);
+    }
+    for (const alias of ['chip', 'input', 'control']) {
+      assert.match(radius, new RegExp(`\\b${alias}: 14,`), `radius.${alias} no longer points at the field corner`);
+    }
+  });
+
+  test('a corner fragment carries its radius and the continuous curve on iOS only', () => {
+    // F990: iOS draws the squircle, the web and Android a plain arc, so the
+    // curve is spread from one fragment and never written per platform at a call site.
+    const source = themeSource();
+    assert.match(
+      source,
+      /export const continuous: \{ borderCurve\?: 'continuous' \} =\s*Platform\.OS === 'ios' \? \{ borderCurve: 'continuous' \} : \{\};/,
+      'continuous is not the iOS-only continuous curve',
+    );
+    const corner = block(source, 'export const corner = {', '} as const;');
+    const names = [...corner.matchAll(/^\s{2}(\w+): \{ borderRadius: radius\.(\w+), \.\.\.continuous \},$/gm)];
+    assert.deepEqual(names.map((m) => m[1]), ['card', 'tile', 'field', 'inset', 'mark', 'nib'], 'corner does not name the six cornered steps');
+    for (const m of names) assert.equal(m[2], m[1], `corner.${m[1]} carries radius.${m[2]}`);
+  });
+
+  test('every type role names a token at its stated size', () => {
+    // F997, Q7: the roles alias existing tokens, so no size changes here; the
+    // stage title is bandTitle's 28 (DESIGN_PARTNERSHIP 2026-11-04, Q8-4).
+    const source = themeSource();
+    const roles = block(source, 'export const role = {', '} as const;');
+    const want: [string, string, number][] = [
+      ['display', 'type.display', 44],
+      ['screenTitle', 'type.title', 34],
+      ['greeting', 'bType.greeting', 34],
+      ['stageTitle', 'bType.bandTitle', 28],
+      ['section', 'bType.section21', 21],
+      ['cardHeading', 'type.cardTitle', 20],
+      ['frenchLead', 'type.frenchLg', 28],
+      ['body', 'type.body', 17],
+      ['meta', 'type.small', 14],
+      ['label', 'type.label', 16],
+    ];
+    const named = [...roles.matchAll(/^\s{2}(\w+): (type|bType)\.(\w+),$/gm)];
+    assert.deepEqual(named.map((m) => m[1]), want.map(([r]) => r), 'role does not name exactly the ten roles, in order');
+    for (const [r, token, fontSize] of want) {
+      const m = named.find((n) => n[1] === r)!;
+      assert.equal(`${m[2]}.${m[3]}`, token, `role.${r} is not ${token}`);
+      const scale = block(source, `export const ${m[2]} = {`, '} as const;');
+      const size = new RegExp(`\\b${m[3]}: \\{ fontFamily: font\\.\\w+, fontSize: (\\d+),`).exec(scale);
+      assert.ok(size, `${token} is not in theme.ts`);
+      assert.equal(Number(size[1]), fontSize, `role.${r} (${token}) is not ${fontSize}`);
+    }
   });
 
   test('the theme exports exactly one shadow token, the soft lift, and no whisper', () => {

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, EarGlyph, Label } from '../components.tsx';
 import * as tutorVoice from '../speech/tutorVoice.ts';
-import { radius, space, type, HAIRLINE, HIT } from '../theme.ts';
+import { corner, radius, space, type, HAIRLINE, HIT } from '../theme.ts';
 import { ACOUSTIC, type Acoustic, type AcousticWord } from './acoustic.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
@@ -111,7 +111,7 @@ function makeSt(t: B) {
     paddingHorizontal: space(3.5),
     borderWidth: HAIRLINE,
     borderColor: t.field,
-    borderRadius: radius.row,
+    ...corner.tile,
     backgroundColor: t.card,
   },
   wordPressed: { backgroundColor: t.skeleton },

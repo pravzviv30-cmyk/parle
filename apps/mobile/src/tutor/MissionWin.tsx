@@ -38,7 +38,7 @@ import { useAnswered } from '../motion/landing.ts';
 import { Enter } from '../motion/layout.tsx';
 import { DUR } from '../motion/tokens.ts';
 import { scopeGeneration } from '../storage/scope.ts';
-import { colour, radius, space, type } from '../theme.ts';
+import { colour, space, type, corner } from '../theme.ts';
 import { SCENE_WON_BEATS, SCENE_WON_BURST, type WinCard } from './missionWin.ts';
 import { useB } from '../main/bTheme.tsx';
 
@@ -141,7 +141,7 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: space(2),
     backgroundColor: colour.blue,
-    borderRadius: radius.tile,
+    ...corner.tile,
     overflow: 'hidden',
   },
   // The place drawings share one 350 by 220 box, drawn here at ART_HEIGHT.

@@ -1,84 +1,30 @@
 {
   "apps/mobile/src/RecapScreen.tsx": {
-    "literal-radius": 3
-  },
-  "apps/mobile/src/ReviewScreen.tsx": {
-    "literal-radius": 3
-  },
-  "apps/mobile/src/SessionView.tsx": {
-    "literal-radius": 1
-  },
-  "apps/mobile/src/auth/AccountField.tsx": {
-    "literal-radius": 3
-  },
-  "apps/mobile/src/auth/PasswordMeter.tsx": {
-    "literal-radius": 2
-  },
-  "apps/mobile/src/auth/ProviderButtonBase.tsx": {
-    "literal-radius": 1
-  },
-  "apps/mobile/src/auth/SetNewPasswordScreen.tsx": {
-    "literal-radius": 1
-  },
-  "apps/mobile/src/celebrate/EndScene.tsx": {
-    "literal-radius": 1
-  },
-  "apps/mobile/src/components.tsx": {
-    "literal-radius": 4
-  },
-  "apps/mobile/src/conversationPacks/ConversationPracticeScreen.tsx": {
-    "literal-radius": 2
+    "eyebrow": 1
   },
   "apps/mobile/src/drill/AnswerSheet.tsx": {
-    "literal-radius": 2
-  },
-  "apps/mobile/src/drill/DrillFrame.tsx": {
-    "literal-radius": 1
+    "eyebrow": 1
   },
   "apps/mobile/src/drill/FixLineSheet.tsx": {
-    "literal-radius": 1
+    "eyebrow": 1
   },
-  "apps/mobile/src/drill/kinds/styles.ts": {
-    "literal-radius": 4
+  "apps/mobile/src/drill/drillStage.ts": {
+    "eyebrow": 2
   },
   "apps/mobile/src/empty/EmptyStateCard.tsx": {
-    "literal-radius": 1
-  },
-  "apps/mobile/src/explore/ExploreParts.tsx": {
-    "literal-radius": 16
-  },
-  "apps/mobile/src/game/QuestsCard.tsx": {
-    "literal-radius": 1
-  },
-  "apps/mobile/src/game/StreakParts.tsx": {
-    "literal-radius": 10
-  },
-  "apps/mobile/src/game/StreakScreen.tsx": {
-    "literal-radius": 2
-  },
-  "apps/mobile/src/home/TodayHeroes.tsx": {
-    "literal-radius": 1
+    "eyebrow": 1
   },
   "apps/mobile/src/journey/JourneyParts.tsx": {
-    "literal-radius": 23
+    "eyebrow": 1
   },
-  "apps/mobile/src/legal/TermsScreen.tsx": {
-    "literal-radius": 2
+  "apps/mobile/src/journey/journeyView.ts": {
+    "eyebrow": 2
   },
-  "apps/mobile/src/live/C2LiveRoom.tsx": {
-    "literal-radius": 10
+  "apps/mobile/src/layout.tsx": {
+    "eyebrow": 1
   },
-  "apps/mobile/src/live/LiveParts.tsx": {
-    "literal-radius": 8
-  },
-  "apps/mobile/src/live/NotebookParts.tsx": {
-    "literal-radius": 2
-  },
-  "apps/mobile/src/main/ExploreCollectionScreen.tsx": {
-    "literal-radius": 1
-  },
-  "apps/mobile/src/main/MainUI.tsx": {
-    "literal-radius": 1
+  "apps/mobile/src/live/StageParts.tsx": {
+    "eyebrow": 1
   },
   "apps/mobile/src/nav/LuvaniTabBar.tsx": {
     "literal-radius": 3
@@ -92,10 +38,8 @@
   "apps/mobile/src/onboarding/BOnboardingParts.tsx": {
     "literal-radius": 36
   },
-  "apps/mobile/src/onboarding/BoldChoice.tsx": {
-    "literal-radius": 5
-  },
   "apps/mobile/src/onboarding/FirstSceneScreen.tsx": {
+    "eyebrow": 2,
     "literal-radius": 2
   },
   "apps/mobile/src/onboarding/FirstSessionResult.tsx": {
@@ -113,6 +57,9 @@
   "apps/mobile/src/onboarding/PlanEditRow.tsx": {
     "literal-radius": 1
   },
+  "apps/mobile/src/onboarding/PreAccountOnboarding.tsx": {
+    "eyebrow": 2
+  },
   "apps/mobile/src/onboarding/TutorSelection.tsx": {
     "literal-radius": 2
   },
@@ -120,64 +67,49 @@
     "literal-radius": 3
   },
   "apps/mobile/src/practice/FixesParts.tsx": {
-    "literal-radius": 6
+    "eyebrow": 3
+  },
+  "apps/mobile/src/practice/FixesScreen.tsx": {
+    "eyebrow": 1
   },
   "apps/mobile/src/practice/PracticeParts.tsx": {
-    "literal-radius": 24
+    "eyebrow": 1
   },
-  "apps/mobile/src/recap/KeptPhraseCard.tsx": {
-    "literal-radius": 2
-  },
-  "apps/mobile/src/recap/RecapParts.tsx": {
-    "literal-radius": 8
+  "apps/mobile/src/recap/afterSessionView.ts": {
+    "eyebrow": 2
   },
   "apps/mobile/src/scenes/ScenePreviewScreen.tsx": {
-    "literal-radius": 4
+    "eyebrow": 2
   },
-  "apps/mobile/src/settings/DisplayPreferences.tsx": {
-    "literal-radius": 1
+  "apps/mobile/src/scenes/scenePreview.ts": {
+    "eyebrow": 3
   },
   "apps/mobile/src/settings/ProfileParts.tsx": {
-    "literal-radius": 5
-  },
-  "apps/mobile/src/settings/SettingsAppearance.tsx": {
-    "literal-radius": 3
+    "eyebrow": 1
   },
   "apps/mobile/src/settings/SettingsGroup.tsx": {
-    "literal-radius": 1
-  },
-  "apps/mobile/src/soundcheck/SoundCheckScreen.tsx": {
-    "literal-radius": 1
+    "eyebrow": 1
   },
   "apps/mobile/src/streak/StreakFlame.shared.tsx": {
     "gradient": 2
   },
   "apps/mobile/src/tabs/MyFrenchTab.tsx": {
-    "literal-radius": 2
+    "eyebrow": 2
+  },
+  "apps/mobile/src/tabs/PracticeTab.tsx": {
+    "eyebrow": 1
+  },
+  "apps/mobile/src/tabs/ProfileTab.tsx": {
+    "eyebrow": 1
   },
   "apps/mobile/src/tabs/TutorTab.tsx": {
-    "literal-radius": 16
-  },
-  "apps/mobile/src/today/TodayParts.tsx": {
-    "literal-radius": 6
+    "eyebrow": 1
   },
   "apps/mobile/src/tutor/OrbSurface.tsx": {
     "gradient": 7
   },
-  "apps/mobile/src/tutor/Transcript.tsx": {
-    "literal-radius": 5
-  },
-  "apps/mobile/src/wall/WallParts.tsx": {
-    "literal-radius": 3
-  },
-  "apps/mobile/src/wall/WallPeriodSwitch.tsx": {
-    "literal-radius": 3
-  },
-  "apps/mobile/src/wall/WallPlansPage.tsx": {
-    "literal-radius": 3
-  },
-  "apps/mobile/src/wall/WallScreen.tsx": {
-    "literal-radius": 1
+  "apps/mobile/src/tutor/speakTabView.ts": {
+    "eyebrow": 2
   },
   "apps/mobile/src/wall/wallCopy.ts": {
     "hype-word": 1

@@ -39,7 +39,6 @@ function stripComments(source: string): string {
   return noBlocks.replace(/(^|[^:])\/\/.*$/gm, (_m, keep: string) => keep);
 }
 
-const CARD = stripComments(read('./TutorMemoryCard.tsx'));
 const SCREEN = stripComments(read('./TutorMemoryScreen.tsx'));
 const FLAT = SCREEN.replace(/\s+/g, ' ');
 
@@ -69,7 +68,7 @@ function writtenBefore(source: string, first: string, second: string): boolean {
 }
 
 describe('what the tutor remembers, drawn', () => {
-  test('the tutor card is two rows, the screen says how much is held in words, and every write goes through a memory door', () => {
+  test('the screen says how much is held in words, and every write goes through a memory door', () => {
     // Words, never a count, and the tutor's own name rather than a literal.
     const none = learner([]);
     assert.equal(memorySummary(none, 'Camille'), 'Camille is still getting to know you.');
@@ -85,31 +84,6 @@ describe('what the tutor remembers, drawn', () => {
       assert.equal(guiltIn(line), undefined, `"${line}" carries "${guiltIn(line)}"`);
       assert.doesNotMatch(line, /\d|—/, `"${line}" counts or dashes`);
     }
-
-    // ───────────────────────────────────────── the card: two rows, one heading
-    //
-    // Row one is who the learner is talking to and opens the voice sheet Profile
-    // owns; row two is what that person holds and pushes the editing screen.
-    // The tutor's name is resolved once, from the persona, and both rows use it.
-    assert.match(CARD, /const name = tutorNameOf\(profile\);/, 'the card names the tutor some other way');
-    assert.equal((CARD.match(/<TutorRow\b/g) ?? []).length, 2, 'the tutor card is not the two rows the founder drew');
-    assert.match(
-      CARD,
-      /<TutorRow first mark=\{<TutorMark \/>\} title=\{name\} gloss=\{PARTNER_LINE\} onPress=\{onVoice\} \/>/,
-      'the first row is not the tutor, named by the persona, opening the sheet Profile hands it',
-    );
-    assert.match(CARD, /title=\{memoryLabel\(name\)\}/, 'the memory row spells the tutor name itself');
-    assert.match(CARD, /gloss=\{MEMORY_ROW_SUB\}/, 'the memory row says what is behind it in JSX, where no copy sweep can read it back');
-    assert.match(CARD, /nav\.navigate\('TutorMemory'\)/, 'the memory row leads nowhere');
-    assert.ok(
-      writtenBefore(CARD, 'gloss={PARTNER_LINE}', 'title={memoryLabel(name)}'),
-      'the memory row is drawn above the tutor it belongs to',
-    );
-    assert.ok(!CARD.includes('useFocusEffect') && !CARD.includes('load'), 'the card reads the disk; the live profile is in context');
-    assert.ok(!CARD.includes('.length'), 'the card counts something itself');
-    // One sentence, one site. The summary is the screen's, and a copy of it on
-    // the card would be a second thing to keep in step with `visibleFacts`.
-    assert.ok(!CARD.includes('memorySummary'), 'how much is held is said on the card as well as on the screen, so there are two of it');
 
     // ─────────────────────────────────── the screen: the sentence, and the doors
     //

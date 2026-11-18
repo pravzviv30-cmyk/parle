@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useMainAppearance } from '../main/MainAppearance.tsx';
-import { space, type } from '../theme.ts';
+import { space, type, corner } from '../theme.ts';
 
 import { useAuth } from '../auth/useAuth.tsx';
 import { beginPendingPurchase, clearPendingPurchase, confirmsPendingPurchase, loadPendingPurchase, markPendingDeferred, resolvePendingCheckout, type PendingPurchase } from '../purchases/pendingPurchase.ts';
@@ -691,6 +691,6 @@ const st = StyleSheet.create({
   body: { paddingHorizontal: space(2), paddingTop: space(5), gap: space(3) },
   centred: { textAlign: 'center' },
   unavailable: { alignItems: 'stretch', gap: space(4) },
-  summary: { borderRadius: 20, paddingHorizontal: space(4), marginTop: space(3) },
+  summary: { ...corner.card, paddingHorizontal: space(4), marginTop: space(3) },
   summaryRow: { minHeight: 48, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: space(3) },
 });

@@ -50,12 +50,13 @@ them.
 
 | unslop intent | Luvani token |
 | --- | --- |
-| Card 12 to 16 | `radius.card` (24), `radius.feature` (28) |
-| Tile | `radius.tile` (20), `radius.stat` (18) |
-| Row, input, button 8 to 10 | `radius.field` (16) and its aliases `chip`, `input`, `control`; `radius.row` aliases `tile` |
-| Pill | `radius.pill` (999) |
-| Onboarding | its own rule (UI-021): pills, cards 20, tiles 18, inputs 14 |
-| Nested radius | kept: inner = outer minus padding, never below 4 |
+| Card 12 to 16 | `radius.card` (20), drawn as `...corner.card` |
+| Tile | `radius.tile` (18), `...corner.tile` |
+| Row, input, button 8 to 10 | `radius.field` (14) and its aliases `chip`, `input`, `control` |
+| Chip or mark inside a tile, card or field | `radius.inset` (12), `radius.mark` (8), `radius.nib` (4) |
+| Pill | `radius.pill` (999), no continuous curve |
+| Onboarding | the same scale (UI-021 chose it; UI-023 made it app-wide) |
+| Nested radius | kept: inner = outer minus padding, never below 4 (`radius.nib`) |
 
 ## Icons
 

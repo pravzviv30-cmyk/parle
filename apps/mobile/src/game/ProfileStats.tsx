@@ -14,7 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { Press } from '../components.tsx';
 import { Icon } from '../icons/Icon.tsx';
-import { HIT, accent, paper, radius, space, type } from '../theme.ts';
+import { HIT, accent, paper, space, type, corner } from '../theme.ts';
 import { Flame } from './art/Flame.tsx';
 import { FreezeMark } from './art/FreezeMark.tsx';
 import { useGame, useLevel, useStreak } from './GameProvider.tsx';
@@ -68,7 +68,7 @@ const st = StyleSheet.create({
   block: { marginTop: space(4), gap: space(3) },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: space(3) },
   frame: { flexBasis: '40%', flexGrow: 1, minWidth: 0 },
-  tile: { minHeight: HIT + space(6), flexDirection: 'row', alignItems: 'center', gap: space(3), padding: space(4), borderRadius: radius.tile, backgroundColor: paper.card },
+  tile: { minHeight: HIT + space(6), flexDirection: 'row', alignItems: 'center', gap: space(3), padding: space(4), ...corner.tile, backgroundColor: paper.card },
   words: { flexShrink: 1, minWidth: 0 },
   freezes: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
 });

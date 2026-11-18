@@ -175,7 +175,7 @@ describe('the screen is layout over the model (source probes)', () => {
     assert.match(screen, /<ScrollScreen bottom="inset" padded=\{false\} bleedTop>/);
     assert.match(screen, /<View style=\{st\.band\}>\s*<TopInset \/>\s*<BArt name=\{model\.art\} width=\{150\} height=\{137\} style=\{st\.bandArt\} \/>\s*<View style=\{st\.bandTop\}>\s*<RoundButton kind="back" onPress=\{back\}/);
     assert.doesNotMatch(screen, /useSafeAreaInsets/, 'the frame stays the one reader of the safe area');
-    assert.match(screen, /band: \{ backgroundColor: t\.heroGround, borderBottomLeftRadius: 36, borderBottomRightRadius: 36,/, 'rounded bottom corners only');
+    assert.match(screen, /band: \{ backgroundColor: t\.heroGround, borderBottomLeftRadius: radius\.card, borderBottomRightRadius: radius\.card, \.\.\.continuous,/, 'rounded bottom corners only');
     assert.match(screen, /bandArt: \{ position: 'absolute', right: -6, top: 70 \}/);
     assert.match(screen, /bandTop: \{[^}]*minHeight: HIT/, 'the back row keeps the touch floor');
     assert.match(screen, /body: \{[^}]*paddingHorizontal: 22/, 'the body keeps the page gutter');

@@ -2018,7 +2018,8 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     // Quiet moments (4A): the held lead's Review is a sage LipTile, not a pill, so See the plans stays its one primary.
     assert.equal((task.match(/<PillButton\b/g) ?? []).length, 6, 'personal practice, authored review, allowance, lapsed, plans review and no-scene are exclusive');
     assert.match(task, /<LipTile tone="sage" onPress=\{onReview\}/, 'the held Review is the sage tile beside See the plans');
-    assert.match(task, /<PillButton label=\{reviewLabel\} variant="secondary" onPress=\{onReview\} \/>/, 'the plans lead\'s Review is a second primary');
+    // F996: on the white hero the secondary takes the sage pastel.
+    assert.match(task, /<PillButton label=\{reviewLabel\} variant="secondary" pastel=\{onSun \? undefined : 'sage'\} onPress=\{onReview\} \/>/, 'the plans lead\'s Review is a second primary');
     assert.equal((local.match(/<PillButton\b/g) ?? []).length, 2);
     // 2026-10-20 UI-008, artboard B-Today: the yellow lead's Start is the B
     // part's one 54pt BButton (today/TodayParts SceneLead); the blue brief
@@ -2028,13 +2029,14 @@ describe('one primary pill per door, and none on a list — F342, F406', () => {
     assert.equal((hero.match(/<(?:PillButton|BoldButton)\b/g) ?? []).length, 1);
     const parts = named('today/TodayParts.tsx');
     const lead = parts.slice(parts.indexOf('export function SceneLead('), parts.indexOf('const HERO_INSET'));
-    assert.equal((lead.match(/<BButton\b/g) ?? []).length, 1, 'the yellow lead carries other than one Start');
+    // F991, founder 2026-11-17: Today's hero primaries are the lipped PillButton.
+    assert.equal((lead.match(/<(?:BButton|PillButton)\b/g) ?? []).length, 1, 'the yellow lead carries other than one Start');
     // T5: the fix hero is home/TodayHeroes.tsx FixHero, shared with the preview.
     assert.equal((named('tabs/HomeTab.tsx').match(/<BButton\b/g) ?? []).length, 0, 'Home draws a primary of its own beside its parts');
     const heroes = named('home/TodayHeroes.tsx');
     const fixPart = heroes.slice(heroes.indexOf('export function FixHero('), heroes.indexOf('export function TodayFailedHero('));
-    assert.equal((fixPart.match(/<BButton\b/g) ?? []).length, 1, 'the fix card carries other than one primary');
-    assert.equal((heroes.match(/<BButton\b/g) ?? []).length, 1, 'the shared hero bodies carry a second primary');
+    assert.equal((fixPart.match(/<(?:BButton|PillButton)\b/g) ?? []).length, 1, 'the fix card carries other than one primary');
+    assert.equal((heroes.match(/<BButton\b/g) ?? []).length, 0, 'the shared hero bodies carry a second primary');
     assert.match(task, /if \(value.card !== null && !vivid\)/);
     assert.match(task, /if \(kind === 'plans'\)/);
     assert.match(task, /kind === 'scene' && value.hero !== null \? <MissionHero/);
@@ -2526,7 +2528,8 @@ describe('the notes the mockup review left behind — F378, F379, F381', () => {
     assert.match(named('home/SkyBand.tsx'), /accessibilityLabel=\{greeting\.title\}/);
     // Revamp B (F602), UI-015: today's phrase is its row on Today's path, a
     // thumb drawing and words, still no picture of the phrase itself.
-    assert.match(home, /<RouteRow key="phrase"[\s\S]*?title=\{daily\.phrase\.fr \?\? daily\.phrase\.en\} titleLang=\{daily\.phrase\.fr \? 'fr' : undefined\}/);
+    // F996: the row's words are `phraseRow`'s (today's phrase, or the café line held at Starter).
+    assert.match(home, /const phrase = phraseRow\(\{ daily: daily\.phrase, cafe: heroCafe \}\);[\s\S]*?<RouteRow key="phrase"[\s\S]*?title=\{phrase\.title\} titleLang=\{phrase\.titleLang\}/);
     assert.doesNotMatch(named('daily/DailyCard.tsx'), /<Art\b|<WordScene\b|sceneForDaily/);
     // 2026-10-20, B2, B-Speak: Speak's one primary is its own Start, on the
     // Recommended card; connection retry stays a quiet IconAction.

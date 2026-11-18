@@ -152,10 +152,10 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(card, /rec\.prepare !== null && \(/);
     assert.match(card, /<BButton label=\{PREPARE_FIRST\} height=\{48\} ground=\{t\.heroChip\} ink=\{t\.heroText\} text=\{bType\.bold16\} onPress=\{\(\) => nav\.navigate\(rec\.prepare!\.screen, rec\.prepare!\.params\)\} \/>/);
     const style = between(FLAT, 'hero: {', '},', 'the hero has a style');
-    for (const part of ['backgroundColor: t.heroGround', 'borderRadius: 28', 'padding: 20', 'gap: 6']) assert.ok(style.includes(part), `the hero lost ${part}`);
-    assert.match(FLAT, /segment: \{ marginTop: 10, flexDirection: 'row', gap: 4, padding: 4, borderRadius: 24, backgroundColor: t\.butter \}/);
+    for (const part of ['backgroundColor: t.heroGround', '...corner.card', 'padding: 20', 'gap: 6']) assert.ok(style.includes(part), `the hero lost ${part}`);
+    assert.match(FLAT, /segment: \{ marginTop: 10, flexDirection: 'row', gap: 4, padding: 4, borderRadius: radius\.pill, backgroundColor: t\.butter \}/);
     // 2026-10-20 UI-008, sim check: the chips are the artboard's exact 36 / 0 12 / 13/600, hugging their words.
-    assert.match(FLAT, /outline: \{ minHeight: 36, borderRadius: 18, borderWidth: 1\.5, paddingHorizontal: 12, paddingVertical: 0,/);
+    assert.match(FLAT, /outline: \{ minHeight: 36, borderRadius: radius\.pill, borderWidth: 1\.5, paddingHorizontal: 12, paddingVertical: 0,/);
     assert.match(FLAT, /<Text style=\{\[bType\.semi13, \{ color: t\.heroText \}\]\}>\{label\}<\/Text>/);
     assert.match(FLAT, /frame=\{st\.hug\} style=\{\[st\.outline/);
   });
@@ -212,7 +212,7 @@ describe('Speak follows B-Speak, in the artboard order (2026-10-20, B2, B-Speak)
     assert.match(RENDER_FLAT, /<BArt name=\{tile\.art\.name\} width=\{tile\.art\.width\} height=\{tile\.art\.height\} \/>/);
     assert.match(RENDER_FLAT, /backgroundColor: t\[tile\.ground\]/);
     // 2026-10-20 UI-008, sim check: the padding is tileLayout's (12, or 10 to keep three up).
-    assert.match(FLAT, /tile: \{ flex: 1, minWidth: 0, minHeight: 120, borderRadius: 20, gap: 6 \}/);
+    assert.match(FLAT, /tile: \{ flex: 1, minWidth: 0, minHeight: 120, \.\.\.corner\.card, gap: 6 \}/);
     assert.match(RENDER_FLAT, /backgroundColor: t\[tile\.ground\], padding: tilePad/);
     // 2026-10-20 UI-008, sim check: the band line and the link are one centred column.
     assert.match(FLAT, /footer: \{ alignItems: 'center', gap: 2 \}/);

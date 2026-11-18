@@ -79,12 +79,12 @@ import {
   hidesAnswer,
   oneFix,
   questTrailing,
-  sceneEyebrow,
   sceneTime,
   threeDone,
   weekInFrench,
   weekStart,
 } from './todayView.ts';
+import * as todayViewModule from './todayView.ts';
 import { readFileSync } from 'node:fs';
 
 const B5_NOW = new Date(2026, 9, 20, 14, 0, 0).getTime();
@@ -117,15 +117,19 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.doesNotMatch(JSON.stringify(homeGreeting('Yasmin', morning)), /Bonsoir|\?/);
   });
 
-  test('the eyebrow is the scene place in its stage, with commas', () => {
+  test('the scene place in its stage rides the meta line, with commas', () => {
+    // F995, F996: the eyebrow went, so its words and the unused phrase label go too (push-check, 2026-11-17).
+    assert.ok(!('sceneEyebrow' in todayViewModule), 'sceneEyebrow outlived the eyebrow');
+    assert.ok(!('phrase' in TODAY_COPY), "TODAY_COPY still names Today's phrase that nothing draws");
+    const line = (id: string) => sceneHeroLine(sceneFor(id));
     const a0 = SCENE_SPINE.map((id) => getMission(id)!).filter((m) => m.cefr === 'A0');
-    assert.equal(sceneEyebrow(sceneFor('mission:premier-cafe')), `Next scene, 1 of ${a0.length}`);
-    assert.equal(sceneEyebrow(sceneFor('mission:cafe')), `Next scene, 2 of ${a0.length}`);
+    assert.equal(line('mission:premier-cafe'), `${sceneTime(sceneFor('mission:premier-cafe'))}, scene 1 of ${a0.length}`);
+    assert.equal(line('mission:cafe'), `${sceneTime(sceneFor('mission:cafe'))}, scene 2 of ${a0.length}`);
     const a1 = SCENE_SPINE.map((id) => getMission(id)!).filter((m) => m.cefr === 'A1');
     const firstA1 = a1[0]!;
-    assert.equal(sceneEyebrow(sceneFor(firstA1.id)), `Next scene, 1 of ${a1.length}`);
-    assert.equal(sceneEyebrow({ ...sceneFor('mission:cafe'), label: 'Pick up where you left off' }), 'Pick up where you left off');
-    for (const id of SCENE_SPINE) assert.doesNotMatch(sceneEyebrow(sceneFor(id)), /[·—]/);
+    assert.equal(line(firstA1.id), `${sceneTime(sceneFor(firstA1.id))}, scene 1 of ${a1.length}`);
+    assert.equal(sceneHeroLine({ ...sceneFor('mission:cafe'), label: 'Pick up where you left off' }), `${sceneTime(sceneFor('mission:cafe'))}. Pick up where you left off`);
+    for (const id of SCENE_SPINE) assert.doesNotMatch(line(id), /[·—]/);
     // Founder, 2026-10-29: the card says only the scene's length, not its French name or the tutor.
     assert.match(sceneTime(sceneFor('mission:cafe')), /^About \d+ minutes?$/);
   });
@@ -331,5 +335,139 @@ describe('Today stops (UI-012, UI-015)', () => {
     assert.deepEqual(todayStops({ fix: true, review: false }), { hero: 'fix', rows: ['scene', 'phrase'] });
     assert.deepEqual(todayStops({ fix: false, review: true }), { hero: 'lead', rows: ['phrase', 'review'] });
     assert.deepEqual(todayStops({ fix: false, review: false }), { hero: 'lead', rows: ['phrase'] });
+  });
+});
+
+/*
+ * F996: Today's hero states after the systemic pass's folds (contract,
+ * "Today after the folds"). Read as source where the rule is a wiring, and
+ * called where it is a function; the suite has no renderer.
+ */
+import { OFFLINE_LEAD_TITLE } from '../practice/nextTask.ts';
+import { phraseRow, sceneHeroLine, sceneRowLine, sceneTitleColumn } from './todayView.ts';
+import { SCENE_TILE } from '../responsiveLayout.ts';
+
+describe("Today's hero after the folds (F996)", () => {
+  const source = (path: string): string => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1').replace(/\s+/g, ' ');
+  const between = (body: string, from: string, to: string): string => {
+    const at = body.indexOf(from);
+    assert.notEqual(at, -1, `${from} is missing`);
+    const end = body.indexOf(to, at + from.length);
+    return body.slice(at, end === -1 ? body.length : end);
+  };
+  const HOME = () => source('../tabs/HomeTab.tsx');
+  const TASK = () => source('../practice/NextTaskCard.tsx');
+  const CARD = () => source('./TodayHeroCard.tsx');
+
+  test("the scene's place joins its meta line", () => {
+    const cafe = sceneFor('mission:cafe');
+    const time = sceneTime(cafe);
+    const a0 = SCENE_SPINE.map((id) => getMission(id)!).filter((m) => m.cefr === 'A0');
+    assert.equal(sceneHeroLine(cafe), `${time}, scene 2 of ${a0.length}`);
+    assert.equal(sceneHeroLine({ ...cafe, mission: { ...(cafe as Extract<HomeMission, { kind: 'scene' }>).mission, id: 'mission:off-the-spine' } } as never), time, 'a bare next scene says more than its time');
+    assert.equal(sceneHeroLine({ ...cafe, label: 'Pick up where you left off' }), `${time}. Pick up where you left off`);
+    assert.equal(sceneHeroLine({ kind: 'today', minutes: 3 } as never), "About 3 minutes. Today's scene");
+    for (const id of SCENE_SPINE) assert.equal(sceneRowLine(sceneFor(id)), sceneHeroLine(sceneFor(id)), 'the row and the hero say the place two ways');
+    // The title fits the words' own column: beside the tile, the card less the tile and its gap.
+    assert.equal(sceneTitleColumn(300, false), 300);
+    assert.equal(sceneTitleColumn(300, true), 300 - SCENE_TILE.width - SCENE_TILE.gap);
+    const hero = source('./MissionHero.tsx');
+    assert.match(hero, /<SceneLead title=\{hero\.title\} french=\{null\} rest=\{sceneHeroLine\(hero\)\}/, 'the hero does not draw the joined meta line');
+    const lead = between(source('../today/TodayParts.tsx'), 'export function SceneLead(', 'const HERO_INSET');
+    assert.doesNotMatch(lead, /eyebrow|heldBack/, 'the scene hero keeps an eyebrow or the held-back answer');
+    assert.match(lead, /<Text accessibilityRole="header" style=\{\[fitTitle\(title, sceneTitleColumn\(measured \?\? windowWidth - HERO_INSET, side\)\), \{ color: t\.text \}\]\}>\{title\}<\/Text>/, 'the hero title does not fit its column');
+    assert.equal((lead.match(/<PillButton /g) ?? []).length, 1, 'the scene hero carries other than one primary');
+    assert.match(lead, /<PillButton label=\{start\.label\} accessibilityLabel=\{start\.accessibilityLabel\} icon=\{start\.mode === 'type' \? <KeyboardMark/);
+    assert.equal((lead.match(/<GhostButton /g) ?? []).length, 1, 'Type instead is not the one quiet action');
+    assert.doesNotMatch(lead, /<BButton|<Pressable/, 'the scene hero draws its own buttons');
+  });
+
+  test('the fix hero leads with the English line', () => {
+    assert.equal(TODAY_COPY.fixAsk, 'One fix: how would you say this in French?');
+    const fix = between(source('./TodayHeroes.tsx'), 'export function FixHero(', 'export function TodayFailedHero(');
+    const texts = fix.match(/<Text [^>]*>[^<]*<\/Text>/g) ?? [];
+    assert.match(texts[0] ?? '', /^<Text accessibilityRole="header" style=\{\[bType\.bold20, \{ color: t\.text \}\]\}>\{fix\.english\}<\/Text>$/, 'the English line is not the header that leads');
+    assert.match(texts[1] ?? '', /\{TODAY_COPY\.fixAsk\}/, 'the ask does not follow the English');
+    assert.doesNotMatch(fix, /TODAY_COPY\.fix\}|eyebrow|<BButton/, 'the fix hero keeps its label or its flat button');
+    assert.match(fix, /<PillButton label=\{TODAY_COPY\.fixAction\} accessibilityLabel=\{fix\.locked \? lockSaid\(TODAY_COPY\.fixAction, 'fixes', true\) : undefined\} icon=\{<BMic /);
+    assert.ok(fix.indexOf('<LockBadge') < fix.indexOf('{fix.english}'), 'the lock does not sit above the line it locks');
+  });
+
+  test('a held hero sets its words on the paper and its LipTile is not on a card', () => {
+    const home = HOME();
+    assert.match(home, /const plain = stops\.hero === 'lead' && heroReview === true;/);
+    assert.match(home, /<TodayHeroCard plain=\{plain\}/);
+    assert.equal((home.match(/overlap=\{plain \? 0 : TODAY_OVERLAP\}/g) ?? []).length, 2, 'the sky and the layout disagree on the overlap');
+    const card = CARD();
+    assert.match(card, /style=\{pending \? undefined : plain \? s\.plain : s\.lift\}/);
+    assert.match(card, /pending \? s\.hidden : plain \? s\.plainBody : s\.card/);
+    const plainStyles = between(card, 'plain: {', '}') + between(card, 'plainBody: {', '}');
+    assert.doesNotMatch(plainStyles, /backgroundColor|borderRadius/, 'the plain hero draws a card');
+    assert.match(card, /plainBody: \{ paddingTop: space\(5\),/, 'the held words do not sit 20pt under the sky');
+    // The review tile is HeldLeadBody's, drawn only when the hero carries Review, which is when the hero is plain.
+    const held = between(TASK(), 'export function HeldLeadBody(', 'export function ExploreLeadBody(');
+    assert.match(held, /<LipTile tone="sage"/);
+    assert.match(TASK(), /onReview=\{heroReview === true \? \(\) => navigateOwned\('Review'\) : undefined\}/);
+    // The preview draws the held state the same way.
+    const preview = source('../dev/TodayPreview.tsx');
+    assert.match(preview, /<TodayHeroCard plain=\{heroReview\}>/);
+    assert.equal((preview.match(/overlap=\{heroReview \? 0 : TODAY_OVERLAP\}/g) ?? []).length, 2);
+  });
+
+  test('held at Starter the café line lives once, as the phrase row', () => {
+    const daily = { id: 'd1', fr: 'Bonne journée', en: 'Have a good day' };
+    assert.deepEqual(phraseRow({ daily, cafe: null }), { title: 'Bonne journée', titleLang: 'fr', line: 'Have a good day', route: { screen: TODAY_ROUTES.phrase, params: { id: 'd1' } } });
+    assert.deepEqual(phraseRow({ daily: { id: 'd2', fr: '', en: 'Hello' }, cafe: null }), { title: 'Hello', titleLang: undefined, line: null, route: { screen: TODAY_ROUTES.phrase, params: { id: 'd2' } } });
+    const cafe = { id: 'c1', fr: 'Un café, s’il vous plaît.', en: 'A coffee, please.' };
+    assert.deepEqual(phraseRow({ daily, cafe }), { title: cafe.fr, titleLang: 'fr', line: 'A coffee, please. Free offline practice.', route: { screen: TODAY_ROUTES.phrase, params: { id: 'c1', mode: 'shadowing' } } });
+    assert.equal(phraseRow({ daily, cafe: { ...cafe, en: 'A coffee' } }).line, 'A coffee. Free offline practice.');
+    const task = TASK();
+    const heldBranch = between(task, 'return <HeldLeadBody bare={bare}', '</HeldLeadBody>');
+    assert.doesNotMatch(heldBranch, /LocalPracticeCard|cafe/, 'the café line is still drawn in the hero');
+    assert.match(heldBranch, /\{starter !== null \? starterCard\(starter\) : undefined\}/, 'the starter child changed');
+    assert.match(task, /useEffect\(\(\) => \{ if \(bare\) onHeroCafe\?\.\(heldCafe\); \}, \[bare, heldCafe, onHeroCafe\]\);/);
+    assert.match(task, /useEffect\(\(\) => \(\) => \{ if \(bare\) onHeroCafe\?\.\(null\); \}, \[bare, onHeroCafe\]\);/);
+    const home = HOME();
+    assert.match(home, /onHeroCafe=\{setHeroCafe\}/);
+    assert.match(home, /const phrase = phraseRow\(\{ daily: daily\.phrase, cafe: heroCafe \}\);/);
+    assert.match(home, /<RouteRow key="phrase" [^]*?title=\{phrase\.title\} titleLang=\{phrase\.titleLang\} line=\{phrase\.line\} onPress=\{\(\) => nav\.navigate\(phrase\.route\.screen, phrase\.route\.params\)\} \/>/);
+  });
+
+  test('a start the tutor could not take leads with the offline line and one Check again', () => {
+    assert.equal(OFFLINE_LEAD_TITLE, 'Something you can do now');
+    assert.match(readFileSync(new URL('../tutor/gate.ts', import.meta.url), 'utf8'), /retry: 'Check again'/);
+    const hero = source('./MissionHero.tsx');
+    assert.match(hero, /if \(heldBack !== null\) return <LocalPracticeCard vivid bare levelIndex=\{levelIndex\} held=\{\{ checking, onRetry: \(\) => open\(heldBack\.textMode\) \}\} \/>;/, 'a held start still draws the scene');
+    assert.match(TASK(), /<MissionHero hero=\{value\.hero\} vivid buildsOn=\{value\.buildsOn\} levelIndex=\{value\.levelIndex\} \/>/);
+    const local = source('../practice/LocalPracticeCard.tsx');
+    assert.match(local, /notice=\{offlineNotice\(deviceOnLine\(\)\)\}/, 'the held start does not say what the device says');
+    assert.match(local, /checking=\{held\?\.checking \?\? checking\}/);
+    assert.match(local, /onRecheck=\{held !== undefined \? held\.onRetry :/, 'Check again does not rerun the held start');
+    const lead = between(local, 'export function OfflineLeadBody(', '</View>; }');
+    assert.match(lead, /<Text accessibilityRole="header" style=\{\[type\.heading, \{ color: t\.text \}\]\}>\{OFFLINE_LEAD_TITLE\}<\/Text>/);
+    assert.match(lead, /<Text accessibilityLiveRegion="polite" style=\{\[type\.body, \{ color: t\.text \}\]\}>\{notice\}<\/Text>/);
+    assert.equal((lead.match(/<GhostButton /g) ?? []).length, 1, 'the lead carries other than one Check again');
+    assert.match(lead, /<GhostButton label=\{checking \? TUTOR_OFFLINE\.checking : TUTOR_OFFLINE\.retry\} disabled=\{checking\} onPress=\{onRecheck\} \/>/);
+    assert.doesNotMatch(lead, /<IconAction|Start speaking|Type instead/);
+  });
+
+  test('the hero loads in one look', () => {
+    assert.match(HOME(), /<TodayHeroCard plain=\{plain\} pending=\{stops\.hero === 'lead' && heroReview === null\}>/);
+    const card = CARD();
+    assert.match(card, /export const HERO_SAND = \{ height: 262, radius: radius\.card \} as const;/);
+    assert.match(card, /\{pending \? <Skeleton blocks=\{\[HERO_SAND\]\} \/> : null\}/);
+    assert.match(card, /hidden: \{ display: 'none' \}/, 'the waiting hero unmounts what it hides');
+    assert.match(source('./TodayHeroes.tsx'), /<Skeleton blocks=\{\[HERO_SAND, /, 'the page skeleton and the hero draw two sand blocks');
+    const task = TASK();
+    assert.equal((task.match(/return row \|\| bare \? null : <Text style=\{\[type\.small, \{ color: t\.text \}\]\}>Finding your next task…<\/Text>;/g) ?? []).length, 2, 'the hero says it is finding the next task');
+  });
+
+  test('a secondary pill on the hero takes a pastel', () => {
+    assert.match(between(TASK(), 'export function PlansLeadBody(', 'export function HeldLeadBody('), /<PillButton label=\{reviewLabel\} variant="secondary" pastel=\{onSun \? undefined : 'sage'\}/);
+    for (const path of ['../practice/NextTaskCard.tsx', '../practice/LocalPracticeCard.tsx', './TodayHeroes.tsx', './MissionHero.tsx', '../today/TodayParts.tsx']) {
+      for (const pill of source(path).match(/<PillButton [^>]*variant="secondary"[^>]*>/g) ?? []) {
+        assert.match(pill, /pastel=/, `${path} draws a white secondary on the white hero`);
+      }
+    }
   });
 });

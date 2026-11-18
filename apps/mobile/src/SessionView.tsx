@@ -9,7 +9,7 @@
 import { useState, type ReactNode } from 'react';
 import { View, Text, Pressable, PixelRatio, StyleSheet, TextInput } from 'react-native';
 import type { SessionPrompt } from '@luvani/core';
-import { paper, radius, rungLabel, space, type, HAIRLINE, HIT, frenchText } from './theme.ts';
+import { paper, radius, rungLabel, space, type, HAIRLINE, HIT, frenchText, corner } from './theme.ts';
 import { Card, GhostButton, Label, SpeakCircle, EarGlyph, HelpGlyph, fitDisplay, Press, ChevronRight, ControlTile } from './components.tsx';
 import { ScrollScreen } from './layout.tsx';
 import { KeyboardGlyph } from './glyphs.tsx';
@@ -135,7 +135,7 @@ export function SupportBlock({
 
 function makeSupportStyles(t: B) {
   return StyleSheet.create({
-    card: { backgroundColor: t.card, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, gap: 6 },
+    card: { backgroundColor: t.card, ...corner.field, paddingVertical: 12, paddingHorizontal: 14, gap: 6 },
   });
 }
 
@@ -443,7 +443,7 @@ function makeSt(t: B) {
     color: t.text,
     borderWidth: HAIRLINE,
     borderColor: t.field,
-    borderRadius: radius.input,
+    ...corner.field,
     paddingHorizontal: space(3),
     paddingVertical: space(2.5),
     backgroundColor: t.card,

@@ -3,7 +3,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleS
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { Press } from '../components.tsx';
-import { bType, decorative } from '../theme.ts';
+import { bType, decorative, corner, continuous, radius } from '../theme.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import type { OrbState } from '../tutor/VoiceOrb.tsx';
 import { enterSubmits, keyPressFrom } from '../tutor/enterSubmit.ts';
@@ -267,11 +267,11 @@ function makeStyles(t: B) {
     shell: { flex: 1, minHeight: 0, backgroundColor: t.brand },
     column: { flex: 1, minHeight: 0, width: '100%', maxWidth: 560, alignSelf: 'center' },
     head: { flexShrink: 0, paddingHorizontal: 16 },
-    leave: { width: 44, height: 44, borderRadius: 22, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
+    leave: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
     // The room menu: the leave disc's size and colour, at the other end of the bar.
-    menu: { width: 44, height: 44, borderRadius: 22, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
+    menu: { width: 44, height: 44, borderRadius: radius.pill, backgroundColor: t.violetDeep, alignItems: 'center', justifyContent: 'center' },
     // A report saved for the end card: a 10pt sun dot on the menu disc.
-    reportPending: { position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: t.sun },
+    reportPending: { position: 'absolute', top: 2, right: 2, width: 10, height: 10, borderRadius: radius.pill, backgroundColor: t.sun },
     center: { textAlign: 'center' },
     top: { flexGrow: 0, flexShrink: 0, maxHeight: '20%', paddingTop: 8, paddingHorizontal: 22 },
     stage: { flex: 1, minHeight: 0, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
@@ -279,7 +279,7 @@ function makeStyles(t: B) {
     // screen reader still reads (opacity 0 would hide it from VoiceOver).
     spoken: { position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'hidden', color: t.brand },
     // The notebook and the dock on the theme's ground; its own height up to the cap.
-    sheet: { flexShrink: 1, maxHeight: '64%', paddingTop: 22, overflow: 'hidden', backgroundColor: t.ground, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+    sheet: { flexShrink: 1, maxHeight: '64%', paddingTop: 22, overflow: 'hidden', backgroundColor: t.ground, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card, ...continuous },
     sheetLarge: { maxHeight: '75%' },
     notice: { paddingVertical: 6, paddingHorizontal: 20, textAlign: 'center', color: t.muted },
     support: { flexGrow: 0, flexShrink: 1 },
@@ -287,16 +287,16 @@ function makeStyles(t: B) {
     scrim: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: t.scrim, opacity: 0.4 },
     // 54 by 60 over the top edge, 96pt from the right: the close button sits in the last 66.
     peek: { position: 'absolute', top: -50, right: 96, width: 54, height: 60, overflow: 'hidden' },
-    sheetLayer: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '80%', backgroundColor: t.ground, borderTopLeftRadius: 32, borderTopRightRadius: 32 },
+    sheetLayer: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '80%', backgroundColor: t.ground, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card, ...continuous },
     footer: { gap: 10, paddingTop: 4, paddingHorizontal: 28 },
-    footerPanel: { backgroundColor: t.card, borderRadius: 24, padding: 16, gap: 10 },
-    composer: { backgroundColor: t.card, borderColor: t.field, borderWidth: 1.5, borderRadius: 22, paddingTop: 8, paddingBottom: 8 },
-    composerFocus: { borderRadius: 22, borderColor: t.text, borderWidth: 2 },
+    footerPanel: { backgroundColor: t.card, ...corner.card, padding: 16, gap: 10 },
+    composer: { backgroundColor: t.card, borderColor: t.field, borderWidth: 1.5, ...corner.card, paddingTop: 8, paddingBottom: 8 },
+    composerFocus: { ...corner.card, borderColor: t.text, borderWidth: 2 },
     composerRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 10, gap: 8 },
     input: { color: t.text, flex: 1, minHeight: 36, maxHeight: 104, padding: 0, paddingVertical: 4, ...(Platform.OS === 'web' ? { outlineStyle: 'solid' as const, outlineWidth: 0 } : {}) },
-    send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: t.brand },
+    send: { width: 44, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: t.brand },
     // Mint: Send is the end of the learner's own turn.
-    sendTurn: { minHeight: 54, borderRadius: 27, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, alignSelf: 'center', minWidth: 160 },
+    sendTurn: { minHeight: 54, borderRadius: radius.pill, backgroundColor: t.mint, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, alignSelf: 'center', minWidth: 160 },
     controlRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     micSpace: { width: CLOUD.slot }, sideSpace: { width: 72 },
     disabled: { opacity: 0.55 },
