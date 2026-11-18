@@ -13628,7 +13628,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1092 — Three shared exports nothing imports, and a comment attached to nothing
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/shared/phoneMap.ts:77
 - note: B1-3. isInventoryIpa, LESSON_SCORING_MAX_CALL_MILLIS, the paidBindings re-export in paidService.ts and the orphaned decoder comment in onboardingSpeech.ts. The 30 s assertion stays in the named test, written inline.
 - verified-by: `the reviewed envelope rests on a 30 s per-call ceiling shared by the gate and the live converter`

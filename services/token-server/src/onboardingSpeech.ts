@@ -63,13 +63,6 @@ export interface GuestSpeechVendor {
 }
 
 /**
- * Anonymous guests share this process's two audio decoders with paid scoring and
- * paid transcription, which answer nothing when both are busy. A guest take may
- * hold one at most, so a flood of guests can never take the last.
- */
-
-
-/**
  * One admitted take, transcribed at most once and settled exactly once.
  *
  * Without a reservation issued by the guest admission, nothing is sent. In
