@@ -13637,3 +13637,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: docs/KNOWN_ISSUES.md:12722
 - note: Found by work-judge (Fable 5.2), audit fix slice A, 2026-11-18. The contract asked for a one-line pointer on F1006; it now says decode-uri-component is fixed by F1254 and zod is still accepted. Docs only; the title below is the existing test that holds the record.
 - verified-by: `every advisory decision names a package the lockfile carries, an advisory and a reachability argument`
+
+### F1256 — The Expo CLI still pins zod 3, which blocks every zod fix
+- severity: P1
+- status: [ ]
+- where: package-lock.json:6071
+- note: @expo/cli 57.0.28 declares zod ^3.25.76; 57.0.33 dropped it. The narrow move is ruled out by the registry, not by npm (deploy-engineer, 2026-11-18): @expo/cli 57.0.33 and later need @expo/prebuild-config ^57.0.20, whose only releases need expo-modules-autolinking ~57.0.17 or ~57.0.18, and the lock holds 57.0.14. So the CLI cannot move without native build tooling. The founder allowed the Expo patch update as the fallback ("Allow it if needed", 2026-11-18), as its own PR ahead of the zod record: `npm update expo` 57.0.27 to 57.0.33 inside apps/mobile's ~57.0.27. It moves expo-modules-jsi off the patched 57.1.1, so the last two tests apply; the fingerprint runtime version likely changes, so existing preview builds need a new build before they take OTA updates again.
+- verified-by: `the Expo CLI no longer depends on zod`
+- verified-by: `the unpatched Expo tooling roots keep their exact reviewed versions and dependency chains`
+- verified-by: `the locked expo-modules-jsi is a version the iOS signing workaround has been checked against`
+- verified-by: `the installed expo-modules-jsi build leaves its intermediate framework unsigned`
