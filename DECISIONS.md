@@ -2430,3 +2430,32 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     rather than gaining a second line.
   - **The saved-phrase toast** gets a 1.5pt edge in `b.dark.line` (#514967) in every
     mode, because it cannot read the mode where it is drawn.
+
+## VOICE-024 — The tutor's words arrive with its voice, and words said over it are shown
+
+- Date: 2026-11-17
+- Status: accepted (founder's answers to the voice-latency contract, 2026-11-17, Q1, Q4, Q5)
+- Decision:
+  - **The early tutor-line (F988).** When a reply is spoken before its whole turn has
+    arrived, the worker publishes a `tutor-line` frame (narration, the spoken coach line,
+    the reply's French) in the same step as the `say`, under the turn id the later view
+    reuses. The view (English, support, goal ticks, recap) still waits for the checkpoint.
+    A refused checkpoint after an early line publishes no view: the learner has heard and
+    seen that French, and the room ends as before.
+  - **The spoken coach line is a tutor line.** A view whose coach line was spoken (an
+    English reach or a way back) carries `coachSpoken: true`. The coach notice stays for
+    now, so the words can show twice (Q5); removing it belongs to the design partnership.
+  - **The overheard line (F987).** Words the SDK dropped because they were said over an
+    uninterruptible tutor line are shown as their own `overheard` frame before the next
+    turn's line, after the safety check. They are not answered, not sent to the brain and
+    not counted as a reply (Q4); the silence rescue still covers a stuck learner. It is a
+    new tag so an older app drops it instead of counting it.
+  - Captions, the join and the overheard line ship behind `LUVANI_LEARNER_CAPTIONS`, off by
+    default and switched on at the device session (VOICE-022). `LUVANI_STREAM_TURN=0`
+    turns off all early speech, including the early tutor-line.
+- Reason: on 2026-11-10 the learner heard each reply seconds before its text appeared, and
+  lost their own words whenever they overlapped an uninterruptible line ("skipping user
+  input"). The early text costs nothing the learner was not already hearing.
+- Ruled out: publishing the provisional view early (it shows undecided support and goals
+  and moves the rescue clock); captions with no overheard line (the words would appear,
+  then vanish); a timer to settle dropped words (it guesses at SDK commit timing).

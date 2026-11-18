@@ -61,6 +61,15 @@ describe('is the tutor still deciding', () => {
   });
 });
 
+describe('the early tutor line (F988) and the overheard line (F987)', () => {
+  test('a tutor-line ends the thinking state', () => {
+    // It is the reply, arriving with its voice rather than after the checkpoint.
+    const early: ServerMessage = { t: 'tutor-line', textTurnId: 'c1', narration: null, coach: null, reply: { speaker: 'Karim', fr: 'Et avec ceci ?' } };
+    assert.equal(thinkingAfter(WAITING, early), false);
+    assert.equal(thinkingAfter(false, early), false);
+  });
+});
+
 describe('a long wait is said honestly', () => {
   test('after six seconds of real thinking the room says it is still thinking, and never before', () => {
     assert.equal(thinkingLine(0), null);

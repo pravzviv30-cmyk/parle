@@ -23,6 +23,7 @@ import { voice, type llm, type stt } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream } from 'node:stream/web';
 import { observeRecognitionConfidence } from './recognitionConfidence.ts';
+import { LearnerCaptions, learnerCaptionsEnabled, observeLearnerCaptions, type SplitHeard } from './learnerCaptions.ts';
 import { UtteranceTap, audioScoringEnabled, observeEvents, observeFrames } from './utterance.ts';
 import { LiveScoring, nearHardLimit, saidTheLine } from './liveScoring.ts';
 import { CONVO_SCORING_EFFECTS } from '../../shared/lessonScoringQuote.ts';
@@ -207,6 +208,8 @@ export function toConvoView(view: TurnView): ConvoView {
     // learner just did a real thing in French would never come.
     missionDone: view.missionDone,
     ...(Object.hasOwn(view, 'missionTasks') ? { missionTasks: view.missionTasks } : {}),
+    // Spoken by `spokenTurn`, so it is a tutor line too (F988).
+    ...((view.reachedForEnglish || view.wayBack) && view.coachLine?.trim() ? { coachSpoken: true as const } : {}),
   };
 }
 
@@ -734,6 +737,8 @@ interface EarlySpeech {
   recastUsed: boolean;
   /** The turn as far as it had arrived, kept in case the rest never does. */
   provisional: TutorTurn;
+  /** Sent with the tutor-line; the turn's view reuses it (F988). */
+  textTurnId: string;
 }
 
 /**
@@ -1725,6 +1730,7 @@ export class LuvaniConversation extends voice.Agent {
   }
 
   private say(text: string, options: { allowInterruptions?: boolean } = {}): SpokenLine {
+    this.linesSaid += 1;
     if (this.voiceless) return undefined;
     return this.session.say(text, options);
   }
@@ -2347,6 +2353,7 @@ export class LuvaniConversation extends voice.Agent {
     // is simply not said — the scene still opens, on its opening line.
     if (narrationOk) this.say(narration.en, { allowInterruptions: false });
     this.say(opening.fr, { allowInterruptions: false });
+    this.warmBrain();
   }
 
   /**
@@ -2805,14 +2812,23 @@ export class LuvaniConversation extends voice.Agent {
   ): Promise<ReadableStream<stt.SpeechEvent | string> | null> {
     if (!audioScoringEnabled()) {
       const events = await voice.Agent.default.sttNode(this, audio, modelSettings);
+      if (events && this.captions) return ReadableStream.from(observeLearnerCaptions(observeRecognitionConfidence(events), this.captions));
       return events ? ReadableStream.from(observeRecognitionConfidence(events)) : events;
     }
     const tap = new UtteranceTap();
     this.tap = tap;
     const events = await voice.Agent.default.sttNode(this, observeFrames(audio, tap), modelSettings);
     if (!events) return events;
+    if (this.captions) return ReadableStream.from(observeEvents(observeLearnerCaptions(observeRecognitionConfidence(events), this.captions), tap)) as ReadableStream<stt.SpeechEvent | string>;
     return ReadableStream.from(observeEvents(observeRecognitionConfidence(events), tap)) as ReadableStream<stt.SpeechEvent | string>;
   }
+
+  /** LUVANI_LEARNER_CAPTIONS=1 (default off): the learner's words live, joined, and overheard (F985 to F987). */
+  private readonly captions = learnerCaptionsEnabled()
+    ? new LearnerCaptions((text) => { if (!this.ended && !this.voiceless) this.publish({ t: 'transcript', text, final: false }); })
+    : null;
+  /** The hook published an overheard line, which is not its own final line. */
+  private overheardThisTurn = false;
 
   /**
    * The full line on screen right now, if the learner has been handed one.
@@ -2825,8 +2841,50 @@ export class LuvaniConversation extends voice.Agent {
     return support?.kind === 'full-line' && support.line.trim().length > 0 ? support.line : null;
   }
 
+  /** Consecutive hook failures (F982); a second in a row ends the session. */
+  private hookFailures = 0;
+  /** Every line handed to `say`, so a failed hook knows whether its turn spoke. */
+  private linesSaid = 0;
+
+  /**
+   * The learner said something. Every exit ends in StopResponse (F982): SDK 1.9
+   * lets the pipeline model answer when this hook throws anything else.
+   */
+  override async onUserTurnCompleted(chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    const saidBefore = this.linesSaid;
+    // Every segment since the last exit is taken now, so the buffer is empty
+    // whichever way this hook leaves.
+    const heard = this.captions?.take(newMessage.textContent ?? '') ?? null;
+    const linesBefore = this.inputSequence;
+    this.overheardThisTurn = false;
+    try {
+      await this.userTurnCompleted(chatCtx, newMessage, heard);
+    } catch (error) {
+      if (error instanceof voice.StopResponse) { this.hookFailures = 0; throw error; }
+      console.error('[luvani] the turn hook failed:', safeError(error));
+      console.error('[luvani:hook-failure] tutor=convo');
+      // Read the signal; assertActive() would fail the lifecycle as a side effect.
+      const live = !this.ended && !this.liveWork.signal.aborted && !this.lifecycle?.signal.aborted;
+      try {
+        if (live && ++this.hookFailures >= 2 && this.lifecycle) await this.failInfrastructure();
+        else if (live && this.linesSaid === saidBefore) this.recover();
+      } catch (recoveryError) {
+        console.error('[luvani] the hook recovery failed:', safeError(recoveryError));
+      }
+    } finally {
+      if (heard) {
+        console.info(`[luvani:captions] frames=${heard.frames}`);
+        // No final line from this exit: take the caption down, unless the learner has started again since.
+        if (this.inputSequence - linesBefore <= (this.overheardThisTurn ? 1 : 0) && this.captions?.idle && !this.ended && !this.voiceless) {
+          this.publish({ t: 'transcript', text: '', final: false });
+        }
+      }
+    }
+    throw new voice.StopResponse();
+  }
+
   /** The learner said something. Run it through the brain, speak the answer. */
-  override async onUserTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+  private async userTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage, heard: SplitHeard | null = null): Promise<void> {
     if (this.refused) {
       this.beginReplyTiming?.(false);
       throw new voice.StopResponse();
@@ -2834,7 +2892,8 @@ export class LuvaniConversation extends voice.Agent {
     this.releaseMoment();
     this.clearRescue();
     this.learnerSpeaking = false;
-    const text = (newMessage.textContent ?? '').trim();
+    // With captions on, the joined text: the same words reach the screen, the repair and the brain (F986).
+    const text = heard ? heard.text : (newMessage.textContent ?? '').trim();
     // A committed turn with words. If they start again a moment from now, this
     // turn cut them off, and the pause floor rises (thinkingTime.ts).
     if (text.length > 0) this.thinkingTime.turnCommitted();
@@ -2852,6 +2911,14 @@ export class LuvaniConversation extends voice.Agent {
       throw new voice.StopResponse();
     }
     if (text.length > 0 && !this.ended) {
+      // Words said over an uninterruptible line, which the SDK dropped (F987):
+      // shown before this turn's line, never answered or counted, safety first.
+      if (heard?.overheard) {
+        if (this.handleSafety(heard.overheard)) { timing?.finish('cancelled'); throw new voice.StopResponse(); }
+        this.publish({ t: 'overheard', text: heard.overheard, turnId: `u${++this.inputSequence}` });
+        this.overheardThisTurn = true;
+        console.info(`[luvani:overheard] n=${heard.dropped}`);
+      }
       if (this.handleSafety(text)) {
         timing?.finish('cancelled');
         throw new voice.StopResponse();
@@ -2993,23 +3060,7 @@ export class LuvaniConversation extends voice.Agent {
     if (this.ended) return;
     this.lifecycle?.assertActive();
     if (input.type === 'spoke' && this.handleSafety(input.text)) return;
-    // The fifth system-block call, and the only one that is not written as one.
-    // brain's `prepareTurn` builds the blocks itself and has no persona to
-    // build them from, so its `buildSystemBlocks()` is the catalogue default.
-    // This is the prompt the learner actually hears, every single turn: leave
-    // it and the scene, the recap and tomorrow's drills all speak as the person
-    // they chose while the spoken reply introduces Luc in her voice. Overridden
-    // with brain's own builder rather than worked around, and the real repair is
-    // a persona argument on `prepareTurn`, which lives in brain's territory and
-    // is filed rather than edited here. This line comes out the day that lands.
-    const prepared = prepareTurn(this.state, input);
-    const request = {
-      ...prepared,
-      system: buildSystemBlocks(this.persona),
-      messages: [...prepared.messages, { role: 'system' as const, text: this.teachingBrief },
-        ...(this.firstPractice ? [{ role: 'system' as const, text: firstPracticePrompt(this.firstPractice, this.lifecycle?.elapsedSeconds() ?? 0) }] : []),
-        ...(this.memoryBrief ? [{ role: 'system' as const, text: this.memoryBrief }] : [])],
-    };
+    const request = this.turnRequest(input);
     let turn;
     // A bridged turn is followed by at least one unbridged turn, whatever its latency.
     const bridgeThisTurn = spoken && this.spokenBridge && !this.voiceless && !this.bridgedLast && !this.wrappedUp;
@@ -3020,6 +3071,9 @@ export class LuvaniConversation extends voice.Agent {
     const spokenEarly: { value: EarlySpeech | null } = { value: null };
     const onSpokenFields = this.voiceless || !streamedTurnsEnabled() ? undefined
       : (fields: EarlySpokenTurn) => {
+        // Reply-first hands over twice, at the reply and at the coach (F983).
+        // Whichever speaks first wins; nothing is ever said twice.
+        if (spokenEarly.value !== null) return;
         try { spokenEarly.value = this.speakEarly(input, fields, timing, inputTiming); }
         catch (error) {
           // The full turn still lands and is spoken the ordinary way, so this
@@ -3170,7 +3224,7 @@ export class LuvaniConversation extends voice.Agent {
     await this.checkpoint();
     if (this.lifecycle) inputTiming?.mark('checkpointAcknowledged');
     if (this.ended) return;
-    const finalView = this.publishView(publishedView);
+    const finalView = this.publishView(early === null ? publishedView : { ...publishedView, textTurnId: early.textTurnId });
     inputTiming?.mark('viewDispatched');
     if (early === null) {
       this.speak(guarded, timing);
@@ -3190,6 +3244,56 @@ export class LuvaniConversation extends voice.Agent {
     }
 
     if (view.recapDue) { this.exit?.mark('done'); await this.finish(); }
+  }
+
+  /** The turn request, shared by real turns and the warm-up (F984) so both carry one body shape. */
+  private turnRequest(input: LearnerTurnInput) {
+    // The fifth system-block call, and the only one that is not written as one.
+    // brain's `prepareTurn` builds the blocks itself and has no persona to
+    // build them from, so its `buildSystemBlocks()` is the catalogue default.
+    // This is the prompt the learner actually hears, every single turn: leave
+    // it and the scene, the recap and tomorrow's drills all speak as the person
+    // they chose while the spoken reply introduces Luc in her voice. Overridden
+    // with brain's own builder rather than worked around, and the real repair is
+    // a persona argument on `prepareTurn`, which lives in brain's territory and
+    // is filed rather than edited here. This line comes out the day that lands.
+    const prepared = prepareTurn(this.state, input);
+    return {
+      ...prepared,
+      system: buildSystemBlocks(this.persona),
+      messages: [...prepared.messages, { role: 'system' as const, text: this.teachingBrief },
+        ...(this.firstPractice ? [{ role: 'system' as const, text: firstPracticePrompt(this.firstPractice, this.lifecycle?.elapsedSeconds() ?? 0) }] : []),
+        ...(this.memoryBrief ? [{ role: 'system' as const, text: this.memoryBrief }] : [])],
+    };
+  }
+
+  /** LUVANI_BRAIN_WARMUP=1 (default off, VOICE-022): one discarded turn call at the scene opening. */
+  private readonly brainWarmup = process.env.LUVANI_BRAIN_WARMUP === '1';
+  private warmedUp = false;
+
+  /**
+   * Warm the provider's prompt cache before the first real turn (F984). One
+   * call per session, unawaited and outside the queue, with the session's own
+   * body shape (a no-op `onSpokenFields` exactly when real turns stream), so
+   * the paid identity is unchanged. Its answer is discarded: it touches no
+   * state, timing, bridge or view, and a failure is metered and nothing else.
+   */
+  private warmBrain(): void {
+    if (!this.brainWarmup || this.warmedUp || this.closingForTime || this.ended || this.liveWork.signal.aborted) return;
+    this.warmedUp = true;
+    const request = this.turnRequest({ type: 'silence', durationMs: 0 });
+    const streamed = !this.voiceless && streamedTurnsEnabled();
+    console.info('[luvani:brain-warmup] sent');
+    void withDeadline(
+      (signal) => this.client.turn({ ...request, signal, ...(streamed ? { onSpokenFields: () => {} } : {}) }),
+      this.turnTimeoutMs,
+      'turn',
+      () => this.noteAbandoned('turn', this.turnTimeoutMs),
+      this.liveWork.signal,
+    ).then(
+      (result) => { this.recordBrainUsage('turn', result.usage); console.info('[luvani:brain-warmup] done'); },
+      (error: unknown) => { this.recordFailedCall('turn', error); console.info('[luvani:brain-warmup] failed', safeError(error)); },
+    );
   }
 
   /**
@@ -3239,9 +3343,14 @@ export class LuvaniConversation extends voice.Agent {
     // Reply-first has no coach yet, so its grade cannot see a blocking error that
     // would drop rung 3 to 2, where the line is uninterruptible. Assume it might.
     const preTurnRung = this.state.ladder.rung;
+    // The words go with the voice (F988); the view, under the same id, still waits for the checkpoint.
+    const textTurnId = `v${++this.textTurnSequence}`;
+    const shown = toConvoView(recast.view);
+    this.publish({ t: 'tutor-line', textTurnId, narration: shown.narration, coach: shown.coachSpoken ? shown.coachLine : null,
+      reply: { speaker: shown.sceneReply.speaker, fr: shown.sceneReply.fr } });
     this.speak(recast.view, timing, turnIsUninterruptible(recast.view) || (fields.coach === undefined && preTurnRung <= 3));
     inputTiming?.mark('sayCalled');
-    return { view: recast.view, recastUsed: recast.used, provisional };
+    return { view: recast.view, recastUsed: recast.used, provisional, textTurnId };
   }
 
   /**

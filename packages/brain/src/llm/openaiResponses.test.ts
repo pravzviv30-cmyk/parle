@@ -1,10 +1,11 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 
-import { sampleTurn } from '../contract/samples.ts';
-import { TurnSchema } from '../contract/schemas.ts';
+import { sampleCoachItem, sampleTurn } from '../contract/samples.ts';
+import { ReplyFirstTurnSchema, TurnSchema } from '../contract/schemas.ts';
 import { CAFE_FRAME } from '../fixtures.ts';
 import type { BrainTurnRequest } from './client.ts';
 import {
@@ -500,4 +501,35 @@ describe('OpenAI Responses brain: the reply-first turn order', () => {
     process.env.LUVANI_TURN_REPLY_FIRST = 'true';
     assert.deepEqual(await order(), Object.keys(TurnSchema.shape), 'only "1" turns it on');
   });
+});
+
+test('a reply-first stream calls onSpokenFields at the reply and at the coach, and the request body is unchanged', async () => {
+  const turn = sampleTurn({ coach: [sampleCoachItem()] });
+  const ordered: Record<string, unknown> = {};
+  for (const key of Object.keys(ReplyFirstTurnSchema.shape)) ordered[key] = (turn as Record<string, unknown>)[key];
+  const text = JSON.stringify(ordered);
+  const encoder = new TextEncoder();
+  // The whole turn in one delta, so both hand-overs land on the same chunk.
+  const events = [{ type: 'response.output_text.delta', delta: text },
+    { type: 'response.completed', response: { status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text }] }], usage: { input_tokens: 1, output_tokens: 1 } } }];
+  const wire = events.map((event) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`).join('');
+  let body = '';
+  const fetchFn = async (_url: string, init: { body: string }) => {
+    body = init.body;
+    return { ok: true, status: 200, json: async () => { throw new Error('a stream has no JSON body'); },
+      body: new ReadableStream({ start(c) { c.enqueue(encoder.encode(wire)); c.close(); } }) };
+  };
+  const client = new OpenAiResponsesBrainClient({ apiKey: 'test', turnReplyFirst: '1' }, fetchFn as never, async () => {});
+  const early: Record<string, unknown>[] = [];
+  const result = await client.turn({
+    kind: 'turn', system: { persona: 'p', pack: 'f', contract: 'c' }, messages: [{ role: 'user', text: 'Bonjour' }],
+    onSpokenFields: (fields) => { early.push(fields); if (early.length === 1) throw new Error('a caller bug costs neither the coach nor the turn'); },
+  });
+  assert.equal(early.length, 2);
+  assert.ok(!('coach' in early[0]!), 'at the reply: no coach yet');
+  assert.deepEqual(early[1]!.coach, turn.coach, 'at the coach: the coach');
+  assert.deepEqual(result.turn.coach, turn.coach);
+  // Pinned byte for byte: the second hand-over is read from the same stream,
+  // so the request (and the quote it is metered under) does not move.
+  assert.equal(createHash('sha256').update(body).digest('hex'), '47558a3adf8555457c705f0ed7633351183bba71964cdcc9cb61a9f2e95c5c83');
 });
