@@ -13105,6 +13105,20 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Same failure as F1301. The tracked manifest is complete, so a resume skips every clip, sends no paid request, then overwrites after, measuredCredits and accountedCredits with today's balance.
 - verified-by: `a finished voice comparison refuses a resume too`
 
+### F1303 — The harness can be killed before its signal handler exists, and its test fails at random
+- severity: P1
+- status: [ ]
+- where: scripts/verifyHttpBoundary.mjs:15
+- note: The SIGTERM and SIGINT handlers are registered after `spawn`, so a signal sent as soon as the child is visible kills the harness by default action and leaks the child. `a harness stopped by SIGTERM takes its API child down with it` failed 3 of 120 runs at 8 in parallel with `{ code: null, signal: 'SIGTERM' }`.
+- verified-by: `a harness stopped by SIGTERM takes its API child down with it`
+
+### F1304 — The voice comparison script does nothing when run through a symlinked path
+- severity: P2
+- status: [ ]
+- where: scripts/compare-daily-voices.mjs:126
+- note: The run guard compares the unresolved `process.argv[1]` with the resolved module path, so `node <symlinked absolute path>/scripts/compare-daily-voices.mjs` prints no plan and exits 0. Before the `main()` restructure it ran from any path.
+- verified-by: `the voice comparison dry run prints its plan when started through a symlinked path`
+
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
 - severity: P2
 - status: [x]
