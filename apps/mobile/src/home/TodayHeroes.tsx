@@ -8,26 +8,23 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 
-import { IconAction, LockBadge, PillButton, Skeleton } from '../components.tsx';
+import { IconAction, PillButton, Skeleton } from '../components.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { BMic, OutlineLock } from '../today/TodayParts.tsx';
 import { HIT, bType, corner, decorative, radius, space, type } from '../theme.ts';
-import { lockSaid } from '../access/featureAccess.ts';
 import { TODAY_COPY, type OneFix } from './todayView.ts';
 import { HERO_SAND, TodayHeroCard } from './TodayHeroCard.tsx';
 
 /**
- * One fix to try (F996): the lock when locked, the English line as the header
+ * One fix to try (F996), free on every plan (founder, 2026-11-18): the English line as the header
  * that leads, the ask under it, what shows after the try on the inset panel,
- * and the lipped primary. No label over it. The caller routes the press
- * through the lock seam.
+ * and the lipped primary. No label over it.
  */
-export function FixHero({ fix, onTry }: { fix: Pick<OneFix, 'english' | 'after' | 'locked'>; onTry: () => void }) {
+export function FixHero({ fix, onTry }: { fix: Pick<OneFix, 'english' | 'after'>; onTry: () => void }) {
   const t = useB();
   const st = useThemedStyles(makeStyles);
   return (
     <>
-      {fix.locked && <View style={st.lockRow}><LockBadge feature="fixes" said /></View>}
       <Text accessibilityRole="header" style={[bType.bold20, { color: t.text }]}>{fix.english}</Text>
       <Text style={[bType.note, { color: t.muted }]}>{TODAY_COPY.fixAsk}</Text>
       {/* What shows after the try, on the inset panel with the outline lock. */}
@@ -37,7 +34,6 @@ export function FixHero({ fix, onTry }: { fix: Pick<OneFix, 'english' | 'after' 
       </View>
       <PillButton
         label={TODAY_COPY.fixAction}
-        accessibilityLabel={fix.locked ? lockSaid(TODAY_COPY.fixAction, 'fixes', true) : undefined}
         icon={<BMic size={18} color={t.onPrimary} />}
         onPress={onTry}
       />
@@ -66,7 +62,6 @@ export function TodayLoadingHero() {
 const makeStyles = (t: B) =>
   StyleSheet.create({
     grow: { flex: 1, minWidth: 0 },
-    lockRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space(2) },
     // The after-the-try note: the inset panel with the outline lock.
     after: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: HIT, backgroundColor: t.inset, ...corner.field, paddingVertical: 10, paddingHorizontal: space(3) },
   });

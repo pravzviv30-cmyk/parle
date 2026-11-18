@@ -2555,6 +2555,18 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Consequence: the onboarding build waits on the mascot session, the baseline and
   a timing of the café scene. Toast gains its first pose.
 
+## REV-002 — Today's one fix is free on every plan
+- Date: 2026-11-18, founder ("Yes, unlock it").
+- Context: Today's "One fix to try" hero is the newest conversation's first
+  correction. For a free learner it drew a lock and opened the Wall, though the same
+  fix is already free as the recap's "Practise this phrase" drill.
+- Decision: the hero opens straight into its drill for every plan, one fix a day
+  from the learner's own newest conversation. The rest of D24's lock stays: Your
+  fixes, older fixes, "Comes up often", Then and now and spaced review of
+  conversation phrases stay Core and Max.
+- Consequence: `oneFix` carries no lock and Home's tap navigates to the drill
+  (`home/todayView.ts`, `tabs/HomeTab.tsx`); `fixesLocked` still locks Your fixes.
+
 ## REV-004 — Free earn-back once every 30 days, and a freeze banked by a two-practice day
 
 - Date: 2026-11-18
