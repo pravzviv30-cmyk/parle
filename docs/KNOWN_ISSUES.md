@@ -11173,6 +11173,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: services/tutor-agent/src/agent.ts (guest scene rooms), services/token-server/src/guestSceneAdmission.ts
 - note: Found 2026-10-23 in the guest first scene review (UI-011). The service-wide daily ceiling (`LUVANI_GUEST_SCENE_DAILY`) bounds money, but nothing bounds how many guest scenes run at once. A burst of guests, honest or not, can take every worker slot and delay a paying learner's room. Add a small concurrent-scene cap at the worker claim (for example three live scene rooms), or reserve worker capacity for authenticated sessions, before raising the ceiling above the default.
+- note: 2026-11-18, founder: no cap now. A guest concurrency cap must be decided before the daily guest scene ceiling (GUEST_SCENE_DEFAULT_DAILY, 24) is raised. Fleet capacity not measured.
 - verified-by: `a guest scene claim is refused while the concurrent scene cap is full`
 
 ### F868 — The one-scene-per-device limit is a forgeable installation id
@@ -13625,11 +13626,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `each Upstash adapter posts its command as JSON with the bearer token`
 - verified-by: `an Upstash failure keeps each adapter's own error wording`
 - verified-by: `every Upstash command goes through one bounded helper that refuses a redirect and an oversized answer`
+- verified-by: `an error answer from the lease store is a failure, not a busy session`
 
 ### F1092 — Three shared exports nothing imports, and a comment attached to nothing
 - severity: P2
 - status: [x]
-- where: services/shared/phoneMap.ts:77
+- where: services/shared/lessonScoringQuote.ts:7
 - note: B1-3. isInventoryIpa, LESSON_SCORING_MAX_CALL_MILLIS, the paidBindings re-export in paidService.ts and the orphaned decoder comment in onboardingSpeech.ts. The 30 s assertion stays in the named test, written inline.
 - verified-by: `the reviewed envelope rests on a 30 s per-call ceiling shared by the gate and the live converter`
 

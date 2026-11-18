@@ -37,7 +37,7 @@ const adapters = [
     run: (f: typeof fetch) => new UpstashRateLimiter(BASE, TOKEN, f).consume({ name: 'r', limit: 2, windowSec: 60 }, 's'),
   },
   {
-    name: 'UpstashSessionLeaseStore', converted: false, wording: 'distributed session lease returned',
+    name: 'UpstashSessionLeaseStore', converted: true, wording: 'distributed session lease returned',
     command: ['SET', 'luvani:active-session:u', 'sid', 'NX', 'EX', '30'], ok: { result: 'OK' },
     run: (f: typeof fetch) => new UpstashSessionLeaseStore(BASE, TOKEN, f).acquire('u', 'sid', 30),
   },
@@ -100,5 +100,14 @@ describe('Upstash REST adapters', () => {
     assert.equal(await upstashCommand(fake(json(200, { result: 'OK' }), seen), BASE, TOKEN, ['PING'], (s) => new Error(`x ${s}`)), 'OK');
     assert.equal(seen[0]!.init.redirect, 'error');
     await assert.rejects(upstashCommand(fake(oversized), BASE, TOKEN, ['PING'], (s) => new Error(`x ${s}`)));
+  });
+
+  test('an error answer from the lease store is a failure, not a busy session', async () => {
+    const leases = new UpstashSessionLeaseStore(BASE, TOKEN, fake(json(200, { error: 'ERR wrong type' })));
+    await assert.rejects(leases.acquire('u', 'sid', 30), { message: 'distributed session lease returned 200' });
+    await assert.rejects(leases.release('u', 'sid'), { message: 'distributed session lease returned 200' });
+    const seen: Seen[] = [];
+    await new UpstashSessionLeaseStore(BASE, TOKEN, fake(json(200, { result: 1 }), seen)).release('u', 'sid');
+    assert.equal(seen[0]!.init.redirect, 'error');
   });
 });

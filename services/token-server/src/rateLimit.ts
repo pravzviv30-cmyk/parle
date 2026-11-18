@@ -136,14 +136,7 @@ export class UpstashSessionLeaseStore implements SessionLeaseStore {
   }
 
   async #command(command: readonly string[]): Promise<unknown> {
-    const response = await this.fetcher(this.url, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' },
-      signal: AbortSignal.timeout(3_000),
-      body: JSON.stringify(command),
-    });
-    if (!response.ok) throw new Error(`distributed session lease returned ${response.status}`);
-    return ((await response.json()) as { result?: unknown }).result;
+    return upstashCommand(this.fetcher, this.url, this.token, command, (status) => new Error(`distributed session lease returned ${status}`));
   }
 
   async acquire(userSignal: string, sessionId: string, ttlSec: number): Promise<boolean> {
