@@ -13461,3 +13461,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: docs/RELEASE_GATE.md:38
 - note: Lane 2. Add the unticked hold line. The test pins the notice's "7 days" to `BACKUP_WINDOW_DAYS` and requires the hold line while the sentence exists. Closing this entry does not tick the hold; the founder does at production setup.
 - verified-by: `the 7-day backup sentence matches the journal's backup window and carries its release hold`
+
+### F1260 — INSERT OR REPLACE would get past the journal's delete trigger
+- severity: P2
+- status: [ ]
+- where: deployment/deletion-journal/schema.sql:20
+- note: Found by design-architect while writing the journal-removal contract, 2026-11-18. SQLite's REPLACE conflict resolution deletes the old row without firing delete triggers unless recursive_triggers is on, so an `INSERT OR REPLACE` into records would remove an entry inside its keep period. The Worker only ever uses `ON CONFLICT(name) DO NOTHING` (no REPLACE anywhere in the lane), so it is not reachable today; a test should keep it that way.
+- verified-by: `no journal statement uses REPLACE, so no entry can be replaced inside its keep period`
