@@ -13693,6 +13693,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Work-judge (Fable 5.2), 2026-11-18, push-check round of journal-removal lane 1. `journalRecordsAfter >= journalSnapshotRecords` only covers rows lost after the seal. If the journal is restored to an earlier point after `journalSequenceBefore` is read and before the replay seals, the snapshot is smaller, the replay's rejected PUTs lift the sequence past its old value, and the drill passes (sequence 9 read, journal restored to 7 rows, seal 7, sequence 14, count 7). Only an independently derived `deletionsExpected` catches it. Needs a deliberate mid-drill restore of the journal; the contract claimed no more than `after >= before`. Candidate: read the sequence and seal in one step, or record the snapshot's high water and require it to be at least `journalSequenceBefore`.
 - verified-by: `the recovery drill refuses a journal rolled back between the sequence read and the replay's seal`
 
+### F1262 — Enums in the brain's structured-output schemas are not enforced by either provider
+- severity: P2
+- status: [ ]
+- where: packages/brain/node_modules/@anthropic-ai/sdk/src/lib/transform-json-schema.ts:112
+- note: api-engineer, 2026-11-18, found while proving F1258. The Anthropic SDK's transform keeps only the keywords it knows (`type`, `properties`, `required`, `items`, `anyOf`, supported `format`, `minItems` of 0 or 1) and writes every other keyword into `description` as text, `enum` included. So a field like `CoachItem.kind` reaches Anthropic as `{"type":"string","description":"{enum: [...]}"}`, and OpenAI gets the same, because `packages/brain/src/llm/openaiResponses.ts:241` builds its strict schema with the same `zodOutputFormat`. This is the same on zod 3.25.76 and 4.6.7 (6 demoted enums in the captured OpenAI turn body under both), so it is not a zod regression. What catches a wrong enum today is our own zod parse after the call: `packages/brain/src/llm/anthropic.ts:288` (turn) and the SDK's `zodObject.safeParse` at `packages/brain/node_modules/@anthropic-ai/sdk/helpers/zod.js:33` (other activities) on Anthropic, and `packages/brain/src/llm/openaiResponses.ts:493` on OpenAI. A slip is a paid `BrainParseError`, not a constrained decode. Candidate: re-attach `enum` after the SDK transform in the brain's schema conversion. That is a wire change for both providers, so it needs a live check before it lands.
+- verified-by: `every enum the brain sends reaches the provider as an enum, not as description text`
+
 ### F1256 — The Expo CLI still pins zod 3, which blocks every zod fix
 - severity: P1
 - status: [x]
