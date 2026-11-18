@@ -54,6 +54,7 @@ import {
   FREEZE_CAP,
   QUEST_XP,
   addDays,
+  doublePracticeDays,
   freezeCoverDays,
   localDayKey,
   milestoneCrossed,
@@ -281,7 +282,9 @@ function coversToApply(i: {
 }): StreakCover[] {
   const protection = protectionOf(i.facts.billing);
   if (protection === null) return [];
-  const input = { practiceDays: i.facts.practiceDays, covers: i.facts.game.covers, today: i.today };
+  const sittings = finishedSittings(i.facts);
+  // The bank's days by the same calendar `repairOffer` reads below (its default, `localDayKey`).
+  const input = { practiceDays: i.facts.practiceDays, covers: i.facts.game.covers, today: i.today, bankDays: doublePracticeDays(sittings, localDayKey) };
   const paid = protection.cap >= FREEZE_CAP;
   // Travel first, so a trip never spends a freeze. Paid-only, as it was (D4).
   if (i.mode === 'practice' && paid && i.offsetNow !== undefined) {
@@ -294,9 +297,10 @@ function coversToApply(i: {
     if (days.length > 0) return days.map((day) => ({ day, kind: 'freeze' as const, at: i.now }));
   }
   // A repair is earned by practice (two finished sittings in the window) and
-  // limited to once every REPAIR_EVERY_DAYS (D19), both inside `repairOffer`.
+  // limited to once every `repairEveryDays`, 7 on a paid plan (D19) and 30 on
+  // the free plan (D26), both inside `repairOffer`.
   if (i.mode === 'practice' && protection.repair) {
-    const offer = repairOffer({ ...input, entitled: true, sittings: finishedSittings(i.facts) });
+    const offer = repairOffer({ ...input, entitled: true, sittings, everyDays: protection.repairEveryDays });
     if (offer !== null && offer.ready) return offer.days.map((day) => ({ day, kind: 'repair' as const, at: i.now }));
   }
   return [];

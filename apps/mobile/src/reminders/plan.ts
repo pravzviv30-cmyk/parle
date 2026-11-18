@@ -43,6 +43,7 @@
 import {
   addDays,
   dayKeyOf,
+  doublePracticeDays,
   FREE_FREEZE_CAP,
   FREEZE_CAP,
   freezeCoverDays,
@@ -175,7 +176,7 @@ export interface PlanInput {
   now: number;
   calendar: Calendar;
   choice: StoredReminder;
-  /** Finished practices, epoch ms. Only the last 14 days are read. */
+  /** Finished practices, epoch ms. The smart time reads the last 14 days; the freeze bank reads every day with two. */
   finishes: readonly number[];
   /** The learner's practice days: the streak's own source. */
   practiceDays: readonly DayKey[];
@@ -456,6 +457,8 @@ export function planReminders(input: PlanInput): ReminderSlot[] {
   const pauseLine = input.guest === true ? GUEST_PAUSE_LINE : PAUSE_LINE;
   const protection = input.guest === true ? undefined : input.freezes;
   let covers: readonly StreakCover[] = input.covers;
+  // Days with two finished practices bank a freeze, read by the same rule settle reads.
+  const bankDays = doublePracticeDays(input.finishes.map((at) => ({ at })), calendar.dayOf);
   let projectedTo: DayKey | null = protection === undefined ? null : today;
   // The line the day before said: the last one that arrived, then each slot's own.
   let previous: { day: DayKey; line: string } | null = input.log.last ?? null;
@@ -466,12 +469,12 @@ export function planReminders(input: PlanInput): ReminderSlot[] {
     // Each day up to it spends the freezes the streak would spend (the same
     // rule, core `freezeCoverDays`), so the reminder and the streak agree.
     for (; projectedTo !== null && projectedTo <= day; projectedTo = addDays(projectedTo, 1)) {
-      const spent = freezeCoverDays(protection!, { practiceDays, covers, today: projectedTo });
+      const spent = freezeCoverDays(protection!, { practiceDays, covers, today: projectedTo, bankDays });
       covers = [...covers, ...spent.map((cover) => ({ day: cover, kind: 'freeze' as const, at: now }))];
     }
     const n = streakFrom({ practiceDays, covers, today: day }).current;
     // A cliff: no freeze would cover `day` once it is over.
-    const cliff = protection !== undefined && freezeCoverDays(protection, { practiceDays, covers, today: addDays(day, 1) }).length === 0;
+    const cliff = protection !== undefined && freezeCoverDays(protection, { practiceDays, covers, today: addDays(day, 1), bankDays }).length === 0;
     const avoid = previous !== null && previous.day === addDays(day, -1) ? previous.line : null;
     const line = pause ? pauseLine : lineFor(day, n, lifetime, mentionStreak, avoid, cliff);
     previous = { day, line: line.id };

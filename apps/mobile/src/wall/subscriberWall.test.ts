@@ -108,10 +108,10 @@ describe('F913: the compare sheet', () => {
     for (const extra of Object.values(PLAN_EXTRAS)) {
       assert.equal(COMPARE_INTRO.includes(extra), planExtras('regular').includes(extra) && !planExtras('starter').includes(extra));
     }
-    // The streak line: paid plans add a second freeze and the repair, which Free does not hold.
-    assert.equal(INCLUSIONS.streak, 'Paid plans add a second streak freeze and a one-tap repair.');
-    for (const plan of ['starter', 'regular'] as const) assert.deepEqual(capabilitiesFor(plan).streakProtection, { freezes: 2, repair: true });
-    assert.deepEqual(capabilitiesFor('trial').streakProtection, { freezes: 1, repair: false });
+    // The streak line: paid plans add a second freeze and a weekly repair; Free repairs every 30 days (F1266).
+    assert.equal(INCLUSIONS.streak, 'Paid plans add a second streak freeze and a streak repair every week.');
+    for (const plan of ['starter', 'regular'] as const) assert.deepEqual(capabilitiesFor(plan).streakProtection, { freezes: 2, repair: true, repairEveryDays: 7 });
+    assert.deepEqual(capabilitiesFor('trial').streakProtection, { freezes: 1, repair: true, repairEveryDays: 30 });
     // The sheet draws the card's own allowance and no separate Max line.
     assert.doesNotMatch(page, /INCLUSIONS\.maxCompact/);
     assert.match(page, /\{card\.allowance\}/);

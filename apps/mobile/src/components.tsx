@@ -1756,7 +1756,7 @@ export function Chip(props:
  *
  * The plan is the feature's (`requiredPlan`, from the capability table), never
  * the learner's, so a learner in Core's store trial still sees a Max lock say
- * Max. A badge that is not a feature lock (the paid streak repair) names its
+ * Max. A badge that is not a feature lock (the weekly streak repair on a paid plan) names its
  * plan directly.
  *
  * Pure presentation. Whether a feature is locked is `access/featureAccess.ts`'s
