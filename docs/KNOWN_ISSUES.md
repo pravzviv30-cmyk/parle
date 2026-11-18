@@ -13071,7 +13071,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1064 — A finished one-off script is still in scripts
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/soften-daily-voice-samples.mjs:1
 - note: S1b-5. Run once on 2026-09-19 and referenced by nothing. The proof is that no doc link breaks.
 - verified-by: `every relative markdown link in tracked docs resolves`
