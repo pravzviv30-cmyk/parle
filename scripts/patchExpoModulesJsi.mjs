@@ -9,7 +9,9 @@
  *
  * 57.1.1, which arrived with Expo 57.0.27, still signs the intermediate
  * framework: its only change to the nested build is two coverage settings after
- * the anchor below. A version not listed here is left alone, and
+ * the anchor below. 57.1.3, with Expo 57.0.33 (checked 2026-11-18), still signs it
+ * too: it adds STRIP_SWIFT_SYMBOLS=NO and an OTHER_LDFLAGS line, and nothing that
+ * turns signing off. A version not listed here is left alone, and
  * `apps/mobile/src/app/deviceBuildContract.test.ts` fails the gate until someone
  * has read the new build script and either listed it or deleted this patch.
  */
@@ -24,9 +26,9 @@ const BUILD_SCRIPT = path.join(
   ROOT,
   'node_modules/expo-modules-jsi/apple/scripts/build-xcframework.sh',
 );
-const AFFECTED_VERSIONS = ['57.0.6', '57.1.1'];
+const AFFECTED_VERSIONS = ['57.0.6', '57.1.1', '57.1.3'];
 // The setting the signing switch goes straight after. In 57.0.6 it closes the
-// nested xcodebuild call; in 57.1.1 two coverage settings follow it.
+// nested xcodebuild call; in 57.1.1 and 57.1.3 more settings follow it.
 const ANCHOR = '    SWIFT_COMPILATION_MODE=wholemodule \\\n';
 const SIGNING = '    CODE_SIGNING_ALLOWED=NO \\\n';
 
