@@ -13622,7 +13622,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - severity: P2
 - status: [x]
 - where: services/token-server/src/rateLimit.ts:106
-- note: B1-2. One upstashCommand helper over boundedFetchJson replaces the copies in rateLimit.ts (two), onboardingGuest.ts, guestSceneAdmission.ts and guestSpeechAdmission.ts. The first two tests are characterization, written and green before the refactor. The lease copy joins only if the founder says yes to question 1; its test is then added to this entry.
+- note: B1-2. One upstashCommand helper over boundedFetchJson replaces the copies in rateLimit.ts (two), onboardingGuest.ts, guestSceneAdmission.ts and guestSpeechAdmission.ts. The first two tests are characterization, written and green before the refactor. The founder chose "Treat as service failure" on 2026-11-18, so the lease copy joined too: a store error on acquire is now a failure (the route's internal error), not a 409 busy session.
 - verified-by: `each Upstash adapter posts its command as JSON with the bearer token`
 - verified-by: `an Upstash failure keeps each adapter's own error wording`
 - verified-by: `every Upstash command goes through one bounded helper that refuses a redirect and an oversized answer`
