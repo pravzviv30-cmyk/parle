@@ -50,7 +50,7 @@ export interface DrillScoreDeps {
   score(request: { reference: string; audio: Uint8Array }, signal?: AbortSignal,user?:Extract<ResolvedUser,{ok:true}>): Promise<PhonemeObservation[]>;
 }
 
-function json(res: ServerResponse, status: number, body: unknown): void {
+export function json(res: ServerResponse, status: number, body: unknown): void {
   if (res.destroyed || res.writableEnded) return;
   const payload = JSON.stringify(body);
   res.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) });

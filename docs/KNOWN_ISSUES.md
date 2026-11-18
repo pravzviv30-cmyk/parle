@@ -13794,7 +13794,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1104 — The fix-line judge and the transcribe handler copy helpers their neighbours already have
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/token-server/src/fixLineJudge.ts:10
 - note: B2-8, narrowed to the two pairs that already import each other. Removes a second home of the CEFR band list and the line check. The first test is characterization, written and green before the change.
 - verified-by: `a correction retry trims its lines, refuses an over-long one and reads an unknown level as A2`
