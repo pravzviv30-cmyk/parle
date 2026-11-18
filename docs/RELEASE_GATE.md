@@ -37,6 +37,12 @@ asks for those missing release proofs rather than reopening the fixed defects.
 
 ## Policy and operational checks
 
+- [ ] Production Supabase is on the Pro plan with daily backups kept 7 days, and no
+  dump, export or drill copy of the main database is kept longer. The notice says
+  database backups roll off after 7 days, and the deletion journal keeps an entry
+  for that window plus 30 days. If the plan, a Point-in-Time Recovery add-on or a
+  kept copy changes the window, `BACKUP_WINDOW_DAYS` and the notice change together
+  (F1253, founder, 2026-11-18).
 - [ ] Professional review approves the privacy policy and terms after the
   controller identity, contact route, governing law, vendor terms and retention
   schedule have been confirmed. Publish the reviewed versions before inviting

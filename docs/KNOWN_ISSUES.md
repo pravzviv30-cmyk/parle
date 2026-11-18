@@ -13443,21 +13443,21 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1251 — Restore replay accepts a backup older than the journal's keep period
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: scripts/replayDeletionJournal.mjs:14
 - note: Lane 2. Once entries go, a restore from an artefact older than `JOURNAL_KEEP_DAYS` would bring a deleted account back with nothing to replay. The freeze evidence gains a required `backupTakenAt`; an older or missing one is refused.
 - verified-by: `replay refuses a backup older than the journal's keep period`
 
 ### F1252 — The notice and the privacy doc still say the journal entry has no expiry
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/legal/policy.ts:233
 - note: Lane 2. Founder-approved text, 2026-11-18, verbatim. Update PRIVACY_AND_SAFETY :45, :765-768, :1218, regenerate legal dist, append to DECISIONS.md.
 - verified-by: `the notice names what deletion keeps, the journal's removal and the 7-day backup window`
 
 ### F1253 — The 7-day backup sentence has no release hold tying it to Supabase Pro
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: docs/RELEASE_GATE.md:38
 - note: Lane 2. Add the unticked hold line. The test pins the notice's "7 days" to `BACKUP_WINDOW_DAYS` and requires the hold line while the sentence exists. Closing this entry does not tick the hold; the founder does at production setup.
 - verified-by: `the 7-day backup sentence matches the journal's backup window and carries its release hold`
