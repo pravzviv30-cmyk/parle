@@ -13392,7 +13392,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1245 — The journal cannot tell a finished erasure from one in flight
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: deployment/deletion-journal/worker.ts:70
 - note: Founder, 2026-11-18, option A. Lane 1. Add `completed_at`, stamped by the store on `POST /records/<name>/completion`; a repeat moves it forward; the client never supplies the time.
 - verified-by: `completion is stamped by the store, repeats move it forward, and an unknown record is 404`
@@ -13400,7 +13400,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1246 — The schema refuses every delete, so an entry can never be removed
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: deployment/deletion-journal/schema.sql:15
 - note: Lane 1. Replace the two record triggers with `records_completion_only` and `records_delete_after_keep`; add `migrate-0002-removal.sql` (new triggers created before old ones are dropped) and `rollback-0002-removal.sql`. Name `BACKUP_WINDOW_DAYS`, `JOURNAL_MARGIN_DAYS`, `JOURNAL_KEEP_DAYS` in store.ts.
 - verified-by: `the schema lets a record change only by a completion stamped now, and refuses delete until 37 days after it`
@@ -13409,7 +13409,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1247 — Nothing removes a journal entry once its keep period has passed
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: deployment/deletion-journal/worker.ts:116
 - note: Lane 1. `removeDue()` on the store, a `scheduled` handler, and a daily cron in wrangler.toml. It skips while any snapshot is unexpired.
 - verified-by: `cleanup removes only records completed more than the keep period ago`
@@ -13418,7 +13418,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1248 — Seal would reuse a snapshot that removal has made stale
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: deployment/deletion-journal/d1.ts:28
 - note: Lane 1. Reuse is keyed on high water alone; after a removal the old count and hash fail every replay for up to 24 hours. Add the count check; give memoryStore a sequence that never goes down (memoryStore.ts:16).
 - verified-by: `seal never reuses a snapshot that removal has made stale`
@@ -13426,7 +13426,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1249 — The recovery drill fails a journal that shrank by legitimate removal
 - severity: P1
-- status: [ ]
+- status: [x]
 - where: deployment/recoveryDrill.mjs:30
 - note: Lane 1. Replace `journalHighWaterBefore/After` with `journalSequenceBefore/After` (AUTOINCREMENT sequence) and a required `backupTakenAt` inside `JOURNAL_KEEP_DAYS` of the replay phase. Update README :86-92 and BACKEND_RELEASE_RUNBOOK :19, :104.
 - verified-by: `the recovery drill accepts a journal that shrank by removal and refuses a sequence that went backwards or a backup older than the keep period`
