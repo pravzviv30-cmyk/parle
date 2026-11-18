@@ -11,6 +11,7 @@ import { describe, test } from 'node:test';
 import { buildConversationPack, newCard, phraseKeyOf, type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
 
 import type { LockedFeature } from '../access/featureAccess.ts';
+import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fixLabel, fixRows, fixesFor, fixesLocked, fixesPack, fixesSubtitle, inSentence, phraseRows, phraseTone, practiseAll, practiseAllDoor } from './fixesView.ts';
 
 const DAY = 86_400_000;
@@ -140,6 +141,8 @@ describe('the rest of the screen', () => {
   test('the lock comes from the seam only, and the screen asks neither the plan nor the continue arc', () => {
     assert.equal(fixesLocked((_f: LockedFeature) => 'locked'), true);
     assert.equal(fixesLocked(), false);
+    // Founder 2026-11-18 frees only Today's one fix: Your fixes stays a paid feature.
+    assert.equal(fixesLocked((f: LockedFeature) => (capabilitiesFor('trial').unlocks[f] ? 'unlocked' : 'locked')), true, 'Your fixes opened for the free plan along with the one fix');
     const screen = readFileSync(fileURLToPath(new URL('./FixesScreen.tsx', import.meta.url)), 'utf8');
     // 2026-10-20, lock seam wiring: the screen holds the reactive hook and hands its access to the view;
     // the badge sits under the title, above the conversation line, as B-Fixes draws it.

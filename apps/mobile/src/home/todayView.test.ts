@@ -12,6 +12,7 @@ import { describe, test } from 'node:test';
 import { SCENE_SPINE, getMission, missionStates } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
+import { lockedRouteFeature } from '../purchases/featureLocks.ts';
 import { STARTING_LABEL, WEEK_LINES_MAX, startingPoint, weekLines } from './todayView.ts';
 
 const NOW = new Date(2026, 8, 12, 21, 0, 0).getTime();
@@ -154,7 +155,7 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.deepEqual(questTrailing({ complete: false, done: 0, target: 1, count: '0 of 1' }), { kind: 'xp', label: '+10 XP', earned: false });
   });
 
-  test('one fix to try: present only when the drill would ask for the French without showing it, attempt first, behind the seam', () => {
+  test('one fix to try: present only when the drill would ask for the French without showing it, attempt first, free on every plan', () => {
     const better = 'Je peux payer par carte ?';
     const key = keyOf(better);
     const replay = { packId: 'p1', from: 'At the café', quote: 'je veux payer', better, betterEn: 'Can I pay by card?', why: 'Softer.', key, sayable: true };
@@ -164,8 +165,7 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     const choice: DrillExercise = { id: 'mc', phraseKey: key, difficulty: 'recognition', kind: 'best-sentence', prompt: 'x', candidates: [{ fr: better, en: 'x' }], correctIndex: 0 } as DrillExercise;
     // The bank a real pack leaves for its repair: a typed translation and a line to repeat.
     const bank = [translate('en-fr'), repeat];
-    const open = () => 'unlocked' as const;
-    const base = { replay, deck: [] as ReviewCard[], bank, tutorName: 'Tutor', access: open, now: B5_NOW };
+    const base = { replay, deck: [] as ReviewCard[], bank, tutorName: 'Tutor', now: B5_NOW };
     const fix = oneFix(base);
     assert.ok(fix !== null, 'a new repair, opened on its typed translation, is not offered');
     assert.equal(fix.english, 'Can I pay by card?');
@@ -173,9 +173,10 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.doesNotMatch(JSON.stringify(fix), /je veux payer|Je peux payer|Softer|Your line/);
     assert.deepEqual(fix.route, { screen: TODAY_ROUTES.fix, params: { node: { id: `fix:p1:${key}`, title: TODAY_COPY.fix, phraseKeys: [key] } } });
     assert.ok(!('moment' in fix.route.params.node), 'the drill opens with the answer drawn above it');
-    assert.equal(fix.feature, 'fixes');
-    assert.equal(fix.locked, false);
-    assert.equal(oneFix({ ...base, access: () => 'locked' })!.locked, true);
+    // Founder decision 2026-11-18: Today's one fix is free on every plan, so the
+    // card carries no lock and asks no plan; Your fixes stays locked (fixesView).
+    assert.ok(!('locked' in fix) && !('feature' in fix), 'the one fix still carries a lock for the free plan');
+    assert.equal(lockedRouteFeature(fix.route.screen, fix.route.params), null, 'the route guard sends the free one fix to the Wall');
 
     // The answer stays hidden until a try: an exercise that shows or plays the
     // French first is never what the card opens on.
@@ -315,7 +316,7 @@ describe('One fix to try names the day, 2026-10-20 UI-008, artboard B-Today', ()
     const key = keyOf(better);
     const replay = { packId: 'p1', from: 'At the café', quote: 'je veux payer', better, betterEn: 'Can I pay by card?', why: 'Softer.', key, sayable: true };
     const bank: DrillExercise[] = [{ id: 't', phraseKey: key, difficulty: 'production', kind: 'translate', fr: better, en: 'Can I pay by card?', direction: 'en-fr', accepted: [better] }];
-    const base = { replay, deck: [] as ReviewCard[], bank, tutorName: 'Tutor', access: () => 'unlocked' as const, now: B5_NOW };
+    const base = { replay, deck: [] as ReviewCard[], bank, tutorName: 'Tutor', now: B5_NOW };
     const yesterday = oneFix({ ...base, packs: [b5Pack({ id: 'p1', at: B5_NOW - 24 * 3_600_000 })] })!;
     assert.equal(yesterday.after, "Your line from yesterday and Tutor's version show after you try");
     assert.deepEqual(yesterday.route.params.node.moment, { quote: 'je veux payer', better, why: 'Softer.' });
@@ -389,8 +390,7 @@ describe("Today's hero after the folds (F996)", () => {
     assert.match(texts[0] ?? '', /^<Text accessibilityRole="header" style=\{\[bType\.bold20, \{ color: t\.text \}\]\}>\{fix\.english\}<\/Text>$/, 'the English line is not the header that leads');
     assert.match(texts[1] ?? '', /\{TODAY_COPY\.fixAsk\}/, 'the ask does not follow the English');
     assert.doesNotMatch(fix, /TODAY_COPY\.fix\}|eyebrow|<BButton/, 'the fix hero keeps its label or its flat button');
-    assert.match(fix, /<PillButton label=\{TODAY_COPY\.fixAction\} accessibilityLabel=\{fix\.locked \? lockSaid\(TODAY_COPY\.fixAction, 'fixes', true\) : undefined\} icon=\{<BMic /);
-    assert.ok(fix.indexOf('<LockBadge') < fix.indexOf('{fix.english}'), 'the lock does not sit above the line it locks');
+    assert.match(fix, /<PillButton label=\{TODAY_COPY\.fixAction\} icon=\{<BMic /);
   });
 
   test('a held hero sets its words on the paper and its LipTile is not on a card', () => {

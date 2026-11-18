@@ -20,8 +20,8 @@ import { NextTaskCard } from '../practice/NextTaskCard.tsx';
  * (F768): only a read for an account nothing was drawn for brings the sand back.
  *
  * `todayStops` (UI-012 order: fix, scene, phrase, review) picks the hero and
- * the rows. The hero is the fix when there is one (behind the trial's lock
- * through the one access seam), otherwise the shared `NextTaskCard` lead
+ * the rows. The hero is the fix when there is one (free on every plan,
+ * founder 2026-11-18), otherwise the shared `NextTaskCard` lead
  * (`todayLead`: the scene, plans, starter, explore or offline). The rows are
  * the stops after it on Luvani's route rail (`home/RoutePath.tsx` `RouteRow`),
  * so the hero's stop is never drawn twice: the scene, today's phrase, and
@@ -192,13 +192,13 @@ export function HomeTab() {
     }, [revision]),
   );
   const unowned = readOwner !== scopeGeneration();
-  // Asked at draw time, so the lock follows the plan the moment it changes.
-  const fix = fixFrom === null ? null : oneFix({ ...fixFrom, tutorName, access: locks.access });
+  // Free on every plan (founder, 2026-11-18), so the fix asks no lock.
+  const fix = fixFrom === null ? null : oneFix({ ...fixFrom, tutorName });
   // The latest life event the tutor remembers, unless memory is paused.
   const event = comingUp({ facts: visibleFacts(profile), paused: memoryPaused(profile.brain), tutorName, access: locks.access, now: Date.now() });
 
   // The review row (F934): only when Review would deal cards, by Review's own deal.
-  const review = reviewDeck === null ? null : reviewRow(reviewDeck.deck, reviewDeck.now, locks.access('conversationPractice'));
+  const review = reviewDeck === null ? null : reviewRow(reviewDeck.deck, reviewDeck.now);
   const three = <QuestsCard />;
   // One rule picks the hero and the rows under it (UI-012 order, UI-015), so
   // the hero's stop is never drawn twice.
@@ -214,7 +214,7 @@ export function HomeTab() {
   const plain = stops.hero === 'lead' && heroReview === true;
 
   const fixHero = fix !== null && (
-    <FixHero fix={fix} onTry={() => tapThrough(locks.access, fix.feature, locks.open, () => nav.navigate(fix.route.screen, fix.route.params))} />
+    <FixHero fix={fix} onTry={() => nav.navigate(fix.route.screen, fix.route.params)} />
   );
 
   // HomeLoading: the storage read has not answered, so still sand blocks

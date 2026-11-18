@@ -34,7 +34,9 @@ export {
   freezesHeld,
   nextFreezeReturn,
   freezesToApply,
+  freezeCoverDays,
   type FreezeInput,
+  type FreezeProtection,
 } from './freeze.ts';
 export {
   REPAIR_MAX_GAP,

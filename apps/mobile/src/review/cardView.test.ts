@@ -384,8 +384,8 @@ describe('the review sitting on screen', () => {
     // an introduction depending on the minute, which is a coin toss deciding
     // whether the learner is asked to produce anything.
     assert.match(screen, /dealtAt\.current = now/, 'the sitting no longer pins the instant it was dealt');
-    // Dealt through the free tier (review/freeTier.ts), which runs `dueCards` on the same `now`.
-    assert.match(screen, /dealForTier\(deck, now, /, 'the cards and their presentation are chosen against different clocks');
+    // Dealt through review/freeTier.ts, which runs `dueCards` on the same `now`.
+    assert.match(screen, /dealForTier\(deck, now\)/, 'the cards and their presentation are chosen against different clocks');
     const body = screen.slice(screen.indexOf('export function ReviewScreen'));
     // Three reads now, and the third is named rather than allowed. F395 gave the
     // sitting a duration, and a duration needs an end. What this rule was always

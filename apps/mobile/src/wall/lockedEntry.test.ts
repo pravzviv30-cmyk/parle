@@ -160,11 +160,6 @@ describe('F910: locks name their plan', () => {
 // opened the wall with no brief and no plan.
 describe('F910 verifier round', () => {
   test('no learner-facing lock names the trial as what unlocks it', async () => {
-    const { HELD_BACK_ACTION, heldBackLine } = await import('../review/freeTier.ts');
-    const core = unlockPlanName(requiredPlan('conversationPractice'));
-    assert.equal(heldBackLine(1), `1 phrase from your conversations is part of ${core}.`);
-    assert.equal(heldBackLine(3), `3 phrases from your conversations are part of ${core}.`);
-    assert.equal(HELD_BACK_ACTION, `See ${core}`);
     // Every source file, comments stripped, so only strings and code are read.
     // The wall's own trial-offer copy ("How your trial works") does not match.
     const LOCK_TRIAL = /included with (your|the|a) trial|part of (your|the) trial|see the trial|unlock(s|ed)? with (your|the) trial|LOCK_BADGE_LABEL/i;
@@ -182,18 +177,16 @@ describe('F910 verifier round', () => {
     const { dealForTier } = await import('../review/freeTier.ts');
     const now = 1_700_000_000_000;
     const card = (id: string, sources: readonly string[]) => ({ ...newCard({ id, kind: 'vocab', front: id, back: 'x', context: '', ipa: '' }, now - 1000), sources }) as never;
-    // On Free a conversation-only phrase is held back from review.
-    const deal = dealForTier([card('c', ['conversation']), card('d', ['daily'])], now, 'locked');
-    assert.equal(deal.heldBack, 1);
-    assert.deepEqual(deal.due.map((c) => c.id), ['d']);
-    // So no row that offers review or practice may promise conversation phrases,
-    // and none may sit straight under the bank's conversation phrases as if it reviewed them.
+    // REV-003 (2026-11-18): Free reviews conversation phrases too.
+    const deal = dealForTier([card('c', ['conversation']), card('d', ['daily'])], now);
+    assert.deepEqual(deal.due.map((c) => c.id).sort(), ['c', 'd']);
+    // So the review row may say every kept phrase, and drills of a conversation stay unpromised.
     for (const row of YOURS_ROWS) {
-      if (/review|practi[cs]e|drill/i.test(row)) assert.doesNotMatch(row, /conversation/i, `the free list offers review of conversation phrases: ${row}`);
+      if (/practi[cs]e|drill/i.test(row)) assert.doesNotMatch(row, /conversation/i, `the free list offers drills of conversation phrases: ${row}`);
     }
+    assert.ok(YOURS_ROWS.includes('Review of every phrase you keep'), 'the free list undersells Free review');
     const reviewRow = YOURS_ROWS.find((row) => /review/i.test(row));
     assert.ok(reviewRow !== undefined, 'the free list no longer says what Free reviews');
-    assert.match(reviewRow, /lesson|daily|sample/i, `the review row does not name what Free reviews: ${reviewRow}`);
   });
 
   test('an Explore plan lock opens the locked wall on Core with a brief', () => {
