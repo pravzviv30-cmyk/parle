@@ -1,5 +1,6 @@
 /**
- * Luvani deletion journal: append-only encrypted erasure records outside the main database's rollback domain.
+ * Luvani deletion journal: write-once encrypted erasure records outside the main database's rollback domain, each removed
+ * JOURNAL_KEEP_DAYS after its erasure is marked complete.
  * Implements exactly the contract of services/token-server/src/deletionJournal.ts. Web Crypto only (no nodejs_compat).
  */
 import { d1Store, type D1Like } from './d1.ts';
@@ -86,6 +87,15 @@ export async function handle(request: Request, env: Pick<Env, 'JOURNAL_TOKEN' | 
     return (await store.insertOnce(name, text)) === 'inserted' ? new Response(null, { status: 201 }) : new Response(null, { status: 412 });
   }
 
+  if (path[0] === 'records' && path[2] === 'completion' && path.length === 3) {
+    const name = path[1]!;
+    if (!NAME.test(name)) return fail(404, 'not-found');
+    if (request.method !== 'POST') return fail(405, 'method-not-allowed');
+    // No body and no query: the store's clock is the only source of the time.
+    if (url.search || (await boundedText(request, 0)) !== '') return fail(400, 'bad-request');
+    return (await store.complete(name)) === 'completed' ? new Response(null, { status: 204 }) : fail(404, 'not-found');
+  }
+
   if (path[0] === 'snapshots' && path.length === 1) {
     if (request.method !== 'POST') return fail(405, 'method-not-allowed');
     if (url.search || !isJson(request)) return fail(400, 'bad-request');
@@ -117,5 +127,9 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try { return await handle(request, env, d1Store(env.DB)); }
     catch { return fail(500, 'internal'); }
+  },
+  /** Daily cron (wrangler.toml): remove entries past their keep period. A failure surfaces in the Worker's logs and the next run retries. */
+  async scheduled(_controller: unknown, env: Env): Promise<void> {
+    await d1Store(env.DB).removeDue();
   },
 };
