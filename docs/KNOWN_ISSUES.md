@@ -13078,7 +13078,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1065 — The HTTP survival harness is never run
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: scripts/verifyHttpBoundary.mjs:1
 - note: S1b-6. It is the proof for audit item A01 and no script, gate step or workflow calls it.
 - verified-by: `the API child survives malformed authority, bad JSON, audio overflow and an interrupted upload`
