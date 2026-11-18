@@ -383,3 +383,11 @@ test('a replay after removal verifies and applies exactly the entries that remai
   assert.equal(await journal.replay(async id => { again.push(id); }), 3);
   assert.deepEqual(again.sort(), [ids[1]!, ids[2]!, late].sort());
 });
+
+test('cleanup leaves a record completed less than the keep period ago, on D1', async () => {
+  // A cutoff earlier than the trigger's would pick this row, the trigger would abort the whole DELETE, and cleanup would stop every day.
+  const d1 = freshD1(); const store = d1Store(d1);
+  plant(d1.db, nameA, "datetime('now', '-37 days', '-1 second')"); plant(d1.db, nameB, "datetime('now', '-36 days', '-12 hours')");
+  assert.equal(await store.removeDue(), 1);
+  assert.deepEqual(names(d1.db), [nameB]);
+});
