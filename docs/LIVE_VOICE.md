@@ -810,7 +810,8 @@ about a minute before and closes warmly after one more exchange
   its copy still end the session at the cap. Since F1107 (2026-11-19) the
   lifecycle stop at the cap keeps the legacy order: paid work stops, the
   time-limit line goes out, the session settles and sends its summary or
-  recap, and then the room closes. The room closes within 5 s
+  recap, and then the room closes. Once that close has begun, pipeline
+  errors are logged and not sent to the app (F1308). The room closes within 5 s
   (`CAP_CLOSE_MS`) even if settlement never answers, so the app shows the
   recap and not the drop screen. A lost lease still disconnects at once,
   with no line. A guest scene keeps its own stop, 2 s earlier. The signed
@@ -964,8 +965,9 @@ second try before the learner hears "cannot carry on":
   waits 1 s before the next one, cut to the lease time left, so a token server that
   refuses at once no longer spends all three tries in the same millisecond. The same
   wait sits between the two tries of a claim and of a turn save; their attempt counts
-  are unchanged. A completion runs after the lifecycle has stopped, so its wait ends at
-  once. A staging restart probe decides whether 1 s is enough.
+  are unchanged. A failing completion also waits 1 s between its tries: it runs after
+  the lifecycle has stopped, and the wait only ends early on a stop that comes while
+  it is already running. A staging restart probe decides whether 1 s is enough.
 
 None of this charges the learner twice: the learner is settled on session seconds,
 and a retry spends vendor effects inside the existing quotes.

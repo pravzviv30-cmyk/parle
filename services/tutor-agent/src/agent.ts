@@ -202,6 +202,7 @@ export default defineAgent({
     let stopPaidWork = () => { void closeProxy().catch(() => {}); };
     let finish = async (): Promise<void> => { if (lifecycle) await lifecycle.complete({ learnerTurns: 0 }); };
     let notifyTimeLimit = (): void => {};
+    let capClosing = false;
     completions.set(ctx, () => finish());
     ctx.addShutdownCallback(async () => { stopPaidWork(); await closeProxy(); await finish(); });
     lifecycle?.onStop(() => {
@@ -210,7 +211,7 @@ export default defineAgent({
       // At the cap the app needs the line and the recap before the room closes, or it shows the
       // drop screen. Paid work is already off; the room closes within 5 s whatever settlement does.
       // A scene has its own stop, 2 s earlier, and its own line.
-      if (lifecycle.stoppedAtDeadline && !scene) { armSceneHardStop({ remainingMillis: CAP_CLOSE_MS, graceMillis: CAP_CLOSE_MS,
+      if (lifecycle.stoppedAtDeadline && !scene) { capClosing = true; armSceneHardStop({ remainingMillis: CAP_CLOSE_MS, graceMillis: CAP_CLOSE_MS,
         stopPaidWork: () => stopPaidWork(), notify: () => notifyTimeLimit(), settle: () => finish(), disconnect: () => ctx.room.disconnect() }); return; }
       // A lost lease disconnects now: settlement retries must not keep STT/TTS spending.
       void ctx.room.disconnect().catch(() => {});
@@ -533,6 +534,8 @@ export default defineAgent({
       // A TTS outage without this handler is indistinguishable from silence:
       // prompts keep flowing and the learner hears nothing. Tell them plainly.
       console.error('[luvani] pipeline error:', safeError(ev.error));
+      // Errors after our own stop at the cap are artefacts of the stop, not a service failure (F1308).
+      if (capClosing) return;
 
       // Which half broke, and whether it is coming back. Every arm of the
       // pipeline's error union already carries both (events.ts: STTError,

@@ -300,6 +300,25 @@ describe('one hiccup is survivable and the exit is named', () => {
     assert.doesNotMatch(lease, /notify|publishError|armSceneHardStop/);
     assert.match(body.slice(0, branch), /exit\.mark\(exitForStop\(lifecycle\)\);\s*stopPaidWork\(\);\s*$/, 'paid work stops before either branch');
   });
+  // F1308: a vendor error caused by our own stop must not replace the recap with a failure screen.
+  test('a pipeline error after the cap close has begun sends no error frame to the app', () => {
+    assert.match(CODE, /let capClosing = false;/);
+    const body = onStopBody();
+    const branch = body.indexOf('if (lifecycle.stoppedAtDeadline && !scene)');
+    assert.ok(branch > 0);
+    const cap = body.slice(branch, body.indexOf('return; }', branch));
+    const flag = cap.indexOf('capClosing = true;');
+    assert.ok(flag > 0 && flag < cap.indexOf('armSceneHardStop('), 'the flag is set before the close is armed');
+    assert.doesNotMatch(body.slice(body.indexOf('return; }', branch)), /capClosing/, 'a lost lease is unchanged');
+    const start = CODE.indexOf('session.on(voice.AgentSessionEventTypes.Error');
+    assert.ok(start > 0);
+    const handler = CODE.slice(start, CODE.indexOf('session.on(voice.AgentSessionEventTypes.AgentStateChanged', start));
+    const log = handler.indexOf("console.error('[luvani] pipeline error:'");
+    const guard = handler.indexOf('if (capClosing) return;');
+    assert.ok(log > 0 && guard > log, 'the vendor error is still logged');
+    assert.ok(guard < handler.indexOf('tutor.terminalFailureFor('), 'no service failure is recorded for our own stop');
+    assert.ok(guard < handler.indexOf('publish({'), 'no error frame reaches the app');
+  });
   test('the learner leaving is marked before paid work stops', () => {
     const start = CODE.indexOf("ctx.room.on('participantDisconnected'");
     const left = CODE.slice(start, CODE.indexOf('return tutor.finish()', start));
