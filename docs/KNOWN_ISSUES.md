@@ -1816,7 +1816,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   with roughly 90s of leeway, accepting credentials 30s past expiry and refusing at 900s, so
   the five-minute ttl in tokens.ts is a floor on the replay window rather than a ceiling.
   Room name reuse after a session has been reported is the seam to close.
-- verified-by: `a join credential cannot re-open a room whose session has already been reported`
+- note: Re-pointed 2026-11-19 (F1311). The durable `claim_tutor_session_v1` claim refuses a
+  replay. The in-memory reported-session set, and the test that named it, were removed under
+  F1311, because each job is its own process and the set was always empty.
+- verified-by: `a claim the database refuses throws before any provider is built`
 
 ### F78 — An abandoned room holds a tutor worker for half a minute
 - severity: P2

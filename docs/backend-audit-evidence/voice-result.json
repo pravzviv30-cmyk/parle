@@ -27,8 +27,8 @@
     "terminalErrorMessages": 0
   },
   "replay": {
-    "markedInOneJob": "true",
-    "seenInFreshJob": "false",
+    "inMemoryLedger": "removed under F1311",
+    "durableGuard": "claim_tutor_session_v1",
     "liveRoomReplayTest": false
   },
   "logging": {

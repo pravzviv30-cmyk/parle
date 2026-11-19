@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { MOMENT_GRACE_MS, MOMENT_HOLD_CAP_MS, TEXT_SILENCE_MS } from './convo.ts';
 import type { ThinkingTimeSink } from './thinkingTime.ts';
 import { buildPrompt } from './prompt.ts';
-import { LuvaniTutor, SCORE_SETTLE_MS, forgetReportedSessions, saidTheReferenceLine } from './tutor.ts';
+import { LuvaniTutor, SCORE_SETTLE_MS, saidTheReferenceLine } from './tutor.ts';
 import { scriptedSpeech } from './scriptedSpeech.ts';
 import { CLOSE_LINE, CLOSE_LINE_PLAYOUT_MS, HEADS_UP_LINE, SessionEndClock } from './sessionEnd.ts';
 import type { ClipCandidate, ClipSink } from './speechClips.ts';
@@ -361,7 +361,6 @@ describe('what a session is allowed to bill', () => {
   }
 
   test('a session with no learner turn bills nothing even after a silence rescue', async () => {
-    forgetReportedSessions();
     const { debits, restore } = captureDebits();
     const { tutor, session } = build(RUNGS.PROMPTED, {
       voiceless: true,
@@ -392,7 +391,6 @@ describe('what a session is allowed to bill', () => {
   });
 
   test('a session the learner did speak in is billed for its wall clock', async () => {
-    forgetReportedSessions();
     const { debits, restore } = captureDebits();
     const { tutor, session } = build(RUNGS.PROMPTED, {
       voiceless: true,
@@ -416,7 +414,6 @@ describe('what a session is allowed to bill', () => {
   });
 
   test('a room rescued into silence over and over still bills nothing', async () => {
-    forgetReportedSessions();
     const { debits, restore } = captureDebits();
     const { tutor, session } = build(RUNGS.PROMPTED, {
       voiceless: true,
@@ -443,60 +440,7 @@ describe('what a session is allowed to bill', () => {
  * nothing. The tutor dispatched into it is what would cost a free session.
  */
 describe('a credential that has already been spent', () => {
-  test('a join credential cannot re-open a room whose session has already been reported', async () => {
-    forgetReportedSessions();
-    const debits: { sessionId: string; seconds: number }[] = [];
-    const real = globalThis.fetch;
-    globalThis.fetch = (async (_input: unknown, init?: { body?: unknown }) => {
-      debits.push(JSON.parse(String(init?.body)));
-      return { ok: true, json: async () => ({ secondsRemaining: 600 }) };
-    }) as unknown as typeof fetch;
-
-    const sessionId = '33333333-3333-4333-8333-333333333333';
-    const first = build(RUNGS.PROMPTED, { voiceless: true, sessionId });
-    // Built after the first session has been reported, because that is the
-    // order the attack happens in: the room closes, then the captured
-    // credential opens it again and a second tutor is dispatched into it.
-    let replay: ReturnType<typeof build> | undefined;
-    try {
-      // One real session: the learner answers, it ends, the seconds are reported.
-      await first.tutor.handleClientMessage(first.session, tapped({ t: 'say', text: 'un café, s\'il vous plaît' }));
-      await first.tutor.settled();
-      first.tutor.clearRescue();
-      await first.tutor.finish();
-      assert.equal(debits.length, 1, 'the real session reported exactly once');
-
-      // The same credential presented again, inside its ttl, against the room
-      // LiveKit just re-created. Every way in is tried.
-      replay = build(RUNGS.PROMPTED, { voiceless: true, sessionId });
-      replay.tutor.sendCurrentPrompt(replay.session);
-      await replay.tutor.handleClientMessage(replay.session, tapped({ t: 'ready' }));
-      await replay.tutor.handleClientMessage(replay.session, tapped({ t: 'say', text: 'bonjour' }));
-      await replay.tutor.settled();
-      await replay.tutor.finish();
-
-      assert.equal(debits.length, 1, 'the replay never reached the token server');
-      assert.equal(replay.tutor.sessionState.turnIndex, 0, 'nor moved the ladder');
-      assert.equal(replay.calls.generateReply.length, 0, 'nor spent a model call');
-      assert.equal(replay.calls.said.length, 0, 'nor a word of synthesis');
-      assert.deepEqual(
-        replay.published.filter((m) => m.t === 'prompt'),
-        [],
-        'nor taught a line of the lesson',
-      );
-      const errors = replay.published.filter((m) => m.t === 'error');
-      assert.equal(errors.length, 1, 'and the learner is told, once, in plain words');
-      assert.match(errors[0]!.message, /already finished/i);
-    } finally {
-      first.tutor.clearRescue();
-      replay?.tutor.clearRescue();
-      globalThis.fetch = real;
-      forgetReportedSessions();
-    }
-  });
-
   test('an unreported session id is served normally, so the guard cannot lock a learner out', () => {
-    forgetReportedSessions();
     const { tutor, published } = build(RUNGS.PROMPTED, {
       voiceless: true,
       sessionId: '44444444-4444-4444-8444-444444444444',
@@ -647,7 +591,6 @@ describe('the tutor speaks as the person the learner chose', () => {
 });
 
  test('concurrent scripted finishes await one acknowledged service settlement', async () => {
-  forgetReportedSessions();
   const real = globalThis.fetch;
   let answer!: (value: Response) => void;
   const request = new Promise<Response>(resolve => { answer = resolve; });
@@ -666,7 +609,7 @@ describe('the tutor speaks as the person the learner chose', () => {
     assert.equal(requests, 1);
     assert.equal(published.filter(m => m.t === 'settlement').length, 1);
     assert.equal(tutor.terminalFailureFor('tts_error', false, true), null, 'finished sessions cannot gain a new failure cause');
-  } finally { answer(new Response('{}')); globalThis.fetch = real; forgetReportedSessions(); }
+  } finally { answer(new Response('{}')); globalThis.fetch = real; }
  });
 
 describe('a scripted lesson speaks from the script, not the model', () => {

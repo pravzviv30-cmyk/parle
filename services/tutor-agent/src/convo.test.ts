@@ -101,7 +101,7 @@ import {
   type SttLanguage,
 } from './convo.ts';
 import { AUTHORED_SPEECH_LINES } from './authoredSpeech.ts';
-import { LuvaniTutor, forgetReportedSessions, noteSessionReported } from './tutor.ts';
+import { LuvaniTutor } from './tutor.ts';
 import { createInputReplyTiming, createSceneReplyTiming } from './sceneReplyTiming.ts';
 import { SCORE_SETTLE_MS, nearHardLimit, saidTheLine } from './liveScoring.ts';
 import type { scoreUtterance } from '../../shared/pronunciation.ts';
@@ -3449,32 +3449,7 @@ describe('what a conversation is allowed to bill', () => {
  * a scene build and a model call per turn.
  */
 describe('a conversation credential that has already been spent', () => {
-  test('a spent credential opens no scene, so a replayed room costs no model call', async (t) => {
-    const sessionId = '88888888-8888-4888-8888-888888888888';
-    noteSessionReported(sessionId);
-    try {
-      const { convo, session, published, client, said } = buildConvo(t, { voiceless: true, sessionId });
-      convo.open(session);
-      await sceneSettled();
-      await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Au café' }));
-      await sceneSettled();
-      await convo.settled();
-
-      assert.deepEqual(published.filter((m) => m.t === 'opening'), [], 'no opening question');
-      assert.deepEqual(views(published), [], 'no scene');
-      assert.equal(client.frameRequests.length, 0, 'nothing designed');
-      assert.equal(client.turnRequests.length, 0, 'and not one model call against a room that is not a session');
-      assert.deepEqual(said, [], 'nor a word of synthesis');
-      const errors = published.filter((m) => m.t === 'error');
-      assert.equal(errors.length, 1, 'the learner is told, once, in plain words');
-      assert.match(errors[0]!.message, /already finished/i);
-    } finally {
-      forgetReportedSessions();
-    }
-  });
-
   test('an unreported session id opens the conversation normally', async (t) => {
-    forgetReportedSessions();
     const { convo, session, published } = buildConvo(t, {
       voiceless: true,
       sessionId: '99999999-9999-4999-8999-999999999999',
@@ -3527,7 +3502,6 @@ describe('where a safety decision leaves', () => {
     assert.equal(hiccup?.t, 'error', 'ordinary pipeline trouble still has somewhere to go');
 
     // 2. The scripted lesson, typed, which never speaks at all.
-    forgetReportedSessions();
     const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
     const lessonSession = stubSession();
     Object.defineProperty(tutor, 'session', { value: lessonSession.session, configurable: true });
@@ -3577,7 +3551,6 @@ describe('a safety decision leaves a record', () => {
   test("a safety decision is recorded with category, action and rule, never the learner's words", async (t) => {
     const { restore } = captureDebits();
     t.after(restore);
-    forgetReportedSessions();
     const logged: string[] = [];
     t.mock.method(console, 'log', (...args: unknown[]) => {
       logged.push(args.map((a) => String(a)).join(' '));
@@ -3615,7 +3588,6 @@ describe('a safety decision leaves a record', () => {
 
     // The scripted lesson keeps the same record under its own mode, because one
     // grep has to answer for both tutors.
-    forgetReportedSessions();
     logged.length = 0;
     const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
     const lesson = stubSession();
@@ -3633,7 +3605,6 @@ describe('a safety decision leaves a record', () => {
       /^\[luvani\] SAFETY_DECISION session=9b2d4e60 category=self-harm action=stop rule=none mode=lesson voiceless=true$/,
       `the lesson record changed shape: ${lessonRecords[0]}`,
     );
-    forgetReportedSessions();
   });
 });
 
@@ -3885,7 +3856,6 @@ describe('a stop closes the room', () => {
 
     // 4. The scripted lesson closes its room the same way, because the two
     //    tutors have to be one person at the worst moment of somebody's day.
-    forgetReportedSessions();
     const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED, { voiceless: true });
     const lesson = stubSession();
     Object.defineProperty(tutor, 'session', { value: lesson.session, configurable: true });
@@ -4233,7 +4203,6 @@ describe('switching to text without leaving the scene', () => {
     //    to be one person. There the script speaks through `say` and the
     //    pipeline through `generateReply`, so what stops is both, and the
     //    published turn becomes the handover.
-    forgetReportedSessions();
     const tutor = new LuvaniTutor(CAFE_LESSON, RUNGS.PROMPTED);
     const lesson = stubSwitchableSession();
     Object.defineProperty(tutor, 'session', { value: lesson.session, configurable: true });
