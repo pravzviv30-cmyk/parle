@@ -330,6 +330,16 @@ describe('chooseFrame', () => {
     assert.equal(profile.preferences.lastScenarios[0], APERO_FRAME.title);
     assert.equal(chooseFrame(profile), CAFE_FRAME);
   });
+
+  test('the brain sees the newest recent scenes when a profile carries more than twelve', () => {
+    // F1307: lastScenarios is newest first, so the cap keeps the front.
+    const stored = createProfile();
+    stored.preferences.lastScenarios = Array.from({ length: 14 }, (_, i) => `Scene ${i + 1}`);
+    const kept = parseStoredProfile(stored).preferences.lastScenarios;
+    assert.equal(kept.length, 12);
+    assert.equal(kept[0], 'Scene 1', 'the newest scene survives the cap');
+    assert.ok(!kept.includes('Scene 14'), 'the oldest scene is the one dropped');
+  });
 });
 
 describe('the choosing moment', () => {

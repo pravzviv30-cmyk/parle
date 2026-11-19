@@ -14110,6 +14110,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Fixed 2026-11-19 on claude/review-b3b: chooseFrame reads lastScenarios[0]; the named test failed with the apéro before and passes with the café after, and the two old-order fixtures are flipped with their titles kept.
 - verified-by: `the scene rotation reads the newest scene where finishSession writes it`
 
+### F1307 — safeModelProfile keeps the oldest twelve recent scenes, not the newest
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:308
+- note: Found by the B3b /code-review, 2026-11-19. finishSession writes lastScenarios newest first, so slice(-12) handed the brain the oldest twelve and dropped the newest. Reachable only for a profile carrying more than twelve, since finishSession caps at five. Same misreading F1113 fixed in chooseFrame.
+- note: Fixed 2026-11-19 on claude/review-b3b: the cap is slice(0, 12). The named test failed with 'Scene 3' at the front before and passes with 'Scene 1' after.
+- verified-by: `the brain sees the newest recent scenes when a profile carries more than twelve`
+
 ### F1310 — Stale comments, a dead re-export shim and five unused names in the tutor agent
 - severity: P2
 - status: [x]

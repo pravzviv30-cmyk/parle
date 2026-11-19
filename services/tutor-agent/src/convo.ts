@@ -305,7 +305,7 @@ function safeModelProfile(profile: LearnerProfile): LearnerProfile {
     estimate: ['A0','A1','A2','B1','B2','C1','C2'].includes(profile.cefr.estimate) ? profile.cefr.estimate : fresh.cefr.estimate,
     confidence: ['low','medium','high'].includes(profile.cefr.confidence) ? profile.cefr.confidence : fresh.cefr.confidence },
     errorPatterns, phrases, preferences: { ...profile.preferences,
-      lastScenarios: profile.preferences.lastScenarios.slice(-12).filter(safeContextText) },
+      lastScenarios: profile.preferences.lastScenarios.slice(0, 12).filter(safeContextText) },
     memory: { ...memory, facts: profile.memory.facts.filter(fact => safeContextText(fact.en)
       && (fact.fr === null || safeContextText(fact.fr)) && !sensitiveConversationFact(fact)),
       opener: profile.memory.opener && safeContextText(profile.memory.opener.fr) && safeContextText(profile.memory.opener.en)
