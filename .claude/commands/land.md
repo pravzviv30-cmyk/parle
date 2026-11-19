@@ -130,6 +130,9 @@ through a GitHub pull request (founder, 2026-11-15), in this order:
    any further push to that branch first disables it (`gh pr merge <n> --disable-auto`);
    then the new tip gets `/push-check --main` again and auto-merge is re-enabled with the
    new `--match-head-commit`.
+   The guard checks `gh pr merge <n> --disable-auto` like a merge, so it needs a passing stamp on
+   the PR head; if the head has none (it was pushed from the founder's own terminal), disable
+   auto-merge from the PR page on GitHub instead.
 6. Fallback, when auto-merge is unavailable (not enabled on the repo, or `gh` refuses it):
    wait with `gh pr checks <n> --watch` until `gate` and `source-contract` are green, then
    `gh pr merge <n> --merge --delete-branch`. `--merge` keeps one revertable merge

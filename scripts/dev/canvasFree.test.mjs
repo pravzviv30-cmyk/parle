@@ -78,6 +78,17 @@ test('the web env blanks Supabase and sets the canvas flags, and carries no toke
   assert.equal(env.LIVEKIT_API_SECRET, undefined);
 });
 
+test('the web env points at the local token server and drops every other EXPO_PUBLIC value from the shell', () => {
+  const env = buildWebEnv({ base: { PATH: '/bin', EXPO_PUBLIC_TOKEN_SERVER_URL: 'https://remote.example', EXPO_PUBLIC_REVENUECAT_IOS_KEY: 'x', EXPO_PUBLIC_OTHER: 'y' } });
+  assert.equal(env.EXPO_PUBLIC_TOKEN_SERVER_URL, 'http://localhost:8787');
+  assert.equal('EXPO_PUBLIC_REVENUECAT_IOS_KEY' in env, false);
+  assert.equal('EXPO_PUBLIC_OTHER' in env, false);
+  assert.deepEqual(Object.keys(env).filter((name) => name.startsWith('EXPO_PUBLIC_')).sort(), [
+    'EXPO_PUBLIC_LUVANI_CANVAS_LEARNER', 'EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT', 'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+    'EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_TOKEN_SERVER_URL',
+  ]);
+});
+
 test('the printed text never carries a secret value', () => {
   const env = build();
   const text = printable({ port: 8094 });

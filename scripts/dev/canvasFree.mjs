@@ -74,10 +74,15 @@ export function buildTokenEnv({ envText, port, agentSecret, storePath, base }) {
   };
 }
 
-/** The Expo web build's environment: no token-server secret, Supabase blank, the canvas learner on. */
+/**
+ * The Expo web build's environment: no token-server secret, Supabase blank, the canvas learner on,
+ * the local token server, and no other EXPO_PUBLIC_ value from the shell (a remote server URL or a
+ * RevenueCat key would end up in the bundle).
+ */
 export function buildWebEnv({ base }) {
   return {
-    ...withoutUnset(base),
+    ...pick(withoutUnset(base), (name) => !name.startsWith('EXPO_PUBLIC_')),
+    EXPO_PUBLIC_TOKEN_SERVER_URL: `http://localhost:${TOKEN_PORT}`,
     EXPO_PUBLIC_SUPABASE_URL: '',
     EXPO_PUBLIC_SUPABASE_ANON_KEY: '',
     EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT: '1',
