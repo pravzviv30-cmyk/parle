@@ -3,7 +3,6 @@ import {paidAdmission,paidAdmissionRpc,PaidAdmissionError,type PaidActivity,type
 import {paidProviderFetch,reservationGate} from '../../shared/paidExecution.ts';
 import {tutorDigest} from '../../shared/tutorLifecycle.ts';
 import type {ResolvedUser} from './auth.ts';
-export {paidBindings} from '../../shared/paidBindings.ts';
 import {paidBindings} from '../../shared/paidBindings.ts';
 export function paidService(env:Record<string,string|undefined>,request:typeof fetch=fetch) {
  if(!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY)throw new PaidAdmissionError();

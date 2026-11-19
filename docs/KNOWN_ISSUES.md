@@ -4302,7 +4302,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F272 — The account export had never been run, and did not work the first time it was
 - severity: P2
 - status: [ ]
-- where: services/token-server/src/accountExport.ts:60
+- where: services/token-server/src/server.ts:980
 - note: the first real execution of `GET /account/export` against the development project — a
   signed-in learner, a valid bearer, the running stack — answered **500**. The server log says
   `billing_events export failed (404)`: migrations 8, 9 and 10 have never been applied to that
@@ -4319,7 +4319,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   This is also the concrete cost of F271: Phase 8 landed with no ledger entry, `IMPLEMENTATION_EVIDENCE.md`
   called the export "implemented and tested locally", and no test or human had ever executed it.
   Found by running it, not by reading it.
-- verified-by: `a missing billing table is reported as unconfigured rather than as an internal error`
+- note: 2026-11-18 (B2 review): the app has called only the paged export, `POST /account/export-v2`, since 2026-10-04, so this entry now follows that route. Its code half is fixed on claude/review-b2 (built by api-engineer): an `account-export-unavailable` error answers 503 `account export unavailable` instead of 500. The entry stays open until one real export has run on staging.
+- verified-by: `a missing export function answers 503 account export unavailable, not an internal error`
 ### F273 — A least-privilege ElevenLabs key that can speak is reported as revoked
 - severity: P1
 - status: [x]
@@ -11181,6 +11182,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: services/tutor-agent/src/agent.ts (guest scene rooms), services/token-server/src/guestSceneAdmission.ts
 - note: Found 2026-10-23 in the guest first scene review (UI-011). The service-wide daily ceiling (`LUVANI_GUEST_SCENE_DAILY`) bounds money, but nothing bounds how many guest scenes run at once. A burst of guests, honest or not, can take every worker slot and delay a paying learner's room. Add a small concurrent-scene cap at the worker claim (for example three live scene rooms), or reserve worker capacity for authenticated sessions, before raising the ceiling above the default.
+- note: 2026-11-18, founder: no cap now. A guest concurrency cap must be decided before the daily guest scene ceiling (GUEST_SCENE_DEFAULT_DAILY, 24) is raised. Fleet capacity not measured.
 - verified-by: `a guest scene claim is refused while the concurrent scene cap is full`
 
 ### F868 — The one-scene-per-device limit is a forgeable installation id
@@ -11328,6 +11330,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: deployment/deletion-journal/ (new), services/token-server/src/deletionJournal.ts
 - note: Found 2026-10-26 preparing staging. `maintenance` refuses to start without the four `LUVANI_DELETION_JOURNAL_*` variables, and no store implemented the client's contract. Built a Cloudflare Worker with D1 (DEPLOY-002): append-only records with triggers refusing UPDATE and DELETE, sealed 24-hour snapshots for replay, constant-time bearer auth, one project per deployment; 10 tests drive the real client against it. Stays open until a recovery drill has replayed through it. Done 2026-10-27: deployed at `luvani-deletion-journal.pravzviv30.workers.dev` (D1 `luvani-deletion-journal`), the real client sealed and replayed an empty snapshot against it, the four variables are on Railway `maintenance`, and `maintenance` started on staging and runs idle.
+- note: 2026-11-18 (B2 review): the server exists and its test runs in the gate. What remains is a staging recovery drill with real records; only an empty snapshot has been replayed.
 - verified-by: `replay through a sealed snapshot returns exactly the recorded users and excludes later writes`
 
 ### F884 — A refused or failed ElevenLabs request crashed the tutor worker
@@ -13061,6 +13064,84 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: S1a-10. Founder approved 2026-11-17 ("Yes, PRs and main only"). The push trigger narrows to `main`, which `mobile-preview.yml` needs; pull requests still run the gate.
 - verified-by: `the gate workflow runs on pull requests and on pushes to main only`
 
+### F1062 — The paid voice scripts can bill a finished experiment again
+- severity: P2
+- status: [x]
+- where: scripts/ttsBlindCheck.mjs:27
+- note: S1b-1 and S1b-4. The guard looks in a cwd-relative folder the manifests were moved out of, so `--generate` passes it and spends up to the 3600-character cap.
+- verified-by: `a paid generator refuses when its committed manifest exists`
+- verified-by: `paid generator paths do not depend on the working directory or one home folder`
+
+### F1063 — The WAV writer and reader each have three homes
+- severity: P2
+- status: [x]
+- where: scripts/quietSpeechHelpers.mjs:268
+- note: S1b-3. The two `readWav` copies throw a RangeError on an odd-length data chunk where `parseWav` truncates.
+- verified-by: `a WAV with an odd-length data chunk parses without throwing`
+- verified-by: `tts blind check writes a valid wav and reports speaking rate per model`
+
+### F1064 — A finished one-off script is still in scripts
+- severity: P2
+- status: [x]
+- where: scripts/soften-daily-voice-samples.mjs:1
+- note: S1b-5. Run once on 2026-09-19 and referenced by nothing. The proof is that no doc link breaks.
+- verified-by: `every relative markdown link in tracked docs resolves`
+
+### F1065 — The HTTP survival harness is never run
+- severity: P2
+- status: [ ]
+- where: scripts/verifyHttpBoundary.mjs:1
+- note: S1b-6. It is the proof for audit item A01 and no script, gate step or workflow calls it.
+- note: 2026-11-18, founder: taken out of releaseProofTests after five judge rounds; it passes 239 of 240 under 8-way parallel load and the remaining failure's cause is unknown. Runs by hand with `node --experimental-strip-types --no-warnings --test scripts/verifyHttpBoundary.manual.mjs`, renamed from `verifyHttpBoundary.test.mjs` so the gate's hygiene check stays as strict. Back into the gate once a diagnostic run (the harness printing which check failed, never the child's output) finds and fixes it.
+- verified-by: `the API child survives malformed authority, bad JSON, audio overflow and an interrupted upload`
+
+### F1300 — The HTTP survival proof fails at random when the server cuts off an oversized upload
+- severity: P2
+- status: [ ]
+- where: scripts/verifyHttpBoundary.mjs:19
+- note: The server answers 413 and destroys the request while the harness is still writing its 2 MB body, so `exchange` rejects with EPIPE or ECONNRESET and the harness prints FAIL though the child is healthy. Measured 5 of 80 runs at 8 in parallel, and 1 of 7 beside five sibling proof files.
+- note: 2026-11-18, founder: reopened as P2 with F1065, because its test now runs by hand, outside the gate. See F1065's 2026-11-18 note.
+- verified-by: `an upload the server cuts off mid-body counts as refused, not as a harness failure`
+- verified-by: `a reset after the whole body was sent still fails the overflow check`
+
+### F1301 — Resuming the finished voice speed run rewrites its committed evidence
+- severity: P2
+- status: [x]
+- where: scripts/measureVoiceSpeed.mjs:129
+- note: With the local manifest present and complete, `--generate --resume` passes `refuseRerun`, sends no paid request, then overwrites `after` and `measuredCredits` in `docs/cogs-evidence/voice-speed-2026-10-25.json` with today's balance.
+- verified-by: `a finished voice speed measurement refuses a resume too`
+
+### F1302 — Resuming the finished voice comparison rewrites its committed manifest
+- severity: P2
+- status: [x]
+- where: scripts/compare-daily-voices.mjs:34
+- note: Same failure as F1301. The tracked manifest is complete, so a resume skips every clip, sends no paid request, then overwrites after, measuredCredits and accountedCredits with today's balance.
+- verified-by: `a finished voice comparison refuses a resume too`
+
+### F1303 — The harness can be killed before its signal handler exists, and its test fails at random
+- severity: P2
+- status: [ ]
+- where: scripts/verifyHttpBoundary.mjs:10
+- note: The SIGTERM and SIGINT handlers are registered after `spawn`, so a signal sent as soon as the child is visible kills the harness by default action and leaks the child. `a harness stopped by SIGTERM takes its API child down with it` failed 3 of 120 runs at 8 in parallel with `{ code: null, signal: 'SIGTERM' }`.
+- note: 2026-11-18, founder: reopened as P2 with F1065, because its test now runs by hand, outside the gate. See F1065's 2026-11-18 note.
+- verified-by: `a harness stopped by SIGTERM takes its API child down with it`
+
+### F1304 — The voice comparison script does nothing when run through a symlinked path
+- severity: P2
+- status: [x]
+- where: scripts/compare-daily-voices.mjs:126
+- note: The run guard compares the unresolved `process.argv[1]` with the resolved module path, so `node <symlinked absolute path>/scripts/compare-daily-voices.mjs` prints no plan and exits 0. Before the `main()` restructure it ran from any path.
+- verified-by: `the voice comparison dry run prints its plan when started through a symlinked path`
+
+### F1305 — The survival proof still fails at random, because a write the kernel accepted is taken as a body the server read
+- severity: P2
+- status: [ ]
+- where: scripts/httpBoundaryExchange.mjs:22
+- note: `sent` turns true when the kernel accepts the 2 MB body, so a server that cuts the upload mid-body is sometimes rejected as "reset after the whole body". 2 of 120 runs of `scripts/verifyHttpBoundary.test.mjs` failed at 8 in parallel, once with `read ECONNRESET` in the cut-off test and once with the harness printing FAIL.
+- note: 2026-11-18: 239 of 240 at 8 in parallel; one unexplained harness FAIL (run 222) not reproduced in 640 isolated runs.
+- note: 2026-11-18, founder: reopened as P2 with F1065, because its test now runs by hand, outside the gate. See F1065's 2026-11-18 note.
+- verified-by: `only an upload left unfinished can count a reset as refused`
+
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
 - severity: P2
 - status: [x]
@@ -13617,6 +13698,47 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Founder Q4 sets when; needs probe P0 and a hosted capture. `data-engineer`. Regenerate the record and the runbook's opening paragraph together. The test ties the two to each other, not to the migration folder. 2026-11-18: the runbook's opening paragraph now names `wtexbzuyfersdtiekrvp` with 48 migrations applied and 42 held, and says the JSON is the 2026-10-07 capture of `cfimkuustkhthujdpjlq`. The regeneration is blocked while migration 42 is held, because `scripts/verifyCurrentHostedSchema.mjs` requires the hosted migration history to equal every source migration (and the expected catalog includes 42's table). It unblocks once 42 is applied, or through a held-migration rule in the verifier, which is its own decision.
 - verified-by: `the staging record and the runbook name the same project and migration count`
 
+### F1090 — The weekly Starter product id is read by the server but unknown to the config check and the environment contract
+- severity: P2
+- status: [x]
+- where: services/token-server/src/config.ts:91
+- note: B1-1. Set alone, the id passes the production config check and then crashes startup at server.ts:218. The contract lists it for neither api nor maintenance, so an operator who follows the contract leaves the renewal sweep reading weekly payers as unknown products. Names and one check only; no learner-facing change. 2026-11-18: fixed. `productionConfigurationProblems` counts the weekly id with the two yearly ids, so a weekly id without the five billing keys is refused by name before startup. `deployment/environment-contract.json` lists it under api and maintenance, and the runbook's role list names it beside the yearly ids. The contract test reads the seven `REVENUECAT_*_ID` and `_KEY` names from `billing/revenuecat.ts` and requires each in both roles.
+- verified-by: `the environment contract names every billing product id the server reads`
+- verified-by: `a weekly product id without the five billing keys is a production configuration problem`
+
+### F1091 — The Upstash REST command is written five times, none through the bounded fetch
+- severity: P2
+- status: [x]
+- where: services/token-server/src/rateLimit.ts:106
+- note: B1-2. One upstashCommand helper over boundedFetchJson replaces the copies in rateLimit.ts (two), onboardingGuest.ts, guestSceneAdmission.ts and guestSpeechAdmission.ts. The first two tests are characterization, written and green before the refactor. The founder chose "Treat as service failure" on 2026-11-18, so the lease copy joined too: a store error on acquire is now a failure (the route's internal error), not a 409 busy session.
+- note: Accepted difference 3 of the B1 contract: UpstashRateLimiter's error for a 200 carrying `error` changed from "distributed rate limiter returned an invalid decision" to "distributed rate limiter returned 200". Both refuse.
+- verified-by: `each Upstash adapter posts its command as JSON with the bearer token`
+- verified-by: `an Upstash failure keeps each adapter's own error wording`
+- verified-by: `every Upstash command goes through one bounded helper that refuses a redirect and an oversized answer`
+- verified-by: `an error answer from the lease store is a failure, not a busy session`
+
+### F1092 — Three shared exports nothing imports, and a comment attached to nothing
+- severity: P2
+- status: [x]
+- where: services/shared/lessonScoringQuote.ts:7
+- note: B1-3. isInventoryIpa, LESSON_SCORING_MAX_CALL_MILLIS, the paidBindings re-export in paidService.ts and the orphaned decoder comment in onboardingSpeech.ts. The 30 s assertion stays in the named test, written inline.
+- verified-by: `the reviewed envelope rests on a 30 s per-call ceiling shared by the gate and the live converter`
+
+### F1093 — A guest row can be accepted at up to 160 KB but is read back through a 64 KB cap
+- severity: P2
+- status: [x]
+- where: services/token-server/src/onboardingGuest.ts:124
+- note: Found by the B1 judge, 2026-11-18, as a regression this branch introduced (before B1 there was no read cap). The agent guest route reads a 160 KB body (server.ts:392) and stores its baseline pack in the guest row. Redis GET answers the row as a JSON string inside JSON, so each quote or backslash doubles, and the 64 KB cap applied after that escaping: an all-quote row failed from about 32 KB raw (2 x 32,762 bytes plus the 13-byte wrapper passes 65,536), and mixed quote-heavy rows of about 35 to 55 KB, all well under 64 KB raw. Every later get, update, claimGuest and shrinkClaimed then threw network-response-limit for the row's 30-day TTL. No honest input is known to reach it; a real guest pack was not measured.
+- note: Fixed in B1, 2026-11-18. upstashCommand takes an optional maxBytes (default 64 KB, unchanged for every other adapter) and RedisGuestStore reads with 1 MiB. Arithmetic: a row is one body of at most 160 KB plus a small rest (a checkpoint replaces the baseline, it never accumulates). Plain escaping is at most 2x, about 320 KB (the test's 160 KB quote row answers 327,521 bytes). An encoder that writes \uXXXX for HTML or non-ASCII characters can reach 6x, 960 KB, which still leaves 64 KB of the 1 MiB cap for the rest of the row and the wrapper. Whether Upstash escapes that way was not checked.
+- verified-by: `a guest row the agent route accepts can always be read back`
+
+### F1094 — Stalled request bodies can hold the busy cap for 30 to 35 s
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/requestBoundary.ts:34
+- note: Handed over from B2 (B2-3), 2026-11-18. After F1100 makes the 30 s request deadline real, 128 sockets that stall or trickle a body still fill the 128-slot busy cap; 128 every 30 s is 256 requests a minute, under the 600 a minute /events budget. NEEDS-PROBE first: if Railway's edge buffers request bodies, close this. If not, the bound is a shorter body deadline for the small-JSON routes in readRequestBytes or a per-address in-flight cap, either of which can refuse a real learner on a bad network, so it needs the founder's yes.
+- verified-by: `stalled request bodies cannot hold the busy cap past the body deadline`
+
 ### F1244 — The interlock and restored body on the migration 49 rollback are not pinned by a test
 - severity: P2
 - status: [x]
@@ -13760,6 +13882,209 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `uses Luna for a live turn, strict structured output, and a developer channel for app context`
 - verified-by: `the scene frame schema the brain sends is pinned byte for byte`
 - verified-by: `the Anthropic turn schema is pinned byte for byte, as zod 3 sent it`
+
+### F1273 — Retention counts billed voice sessions only, so a learner who practises offline reads as gone
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:69
+- note: Add statement 2b: practice-day D1/D7/D30 by cohort from `activity.data.activeDays`, `activity.data.entries` with xp above 0, and `game.data.sittings`. Rows: one learner with game sittings only on days 0, 1 and 7 and no `session_usage`; one with activity entries only; one with `activeDays` only; one with a malformed payload that must not fail the statement.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: a learner with offline sittings on days 1 and 7 counts as retained by practice day`
+
+### F1274 — The cohort reads motivation while Settings writes onboardingGoal
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:31
+- note: The view reads `onboardingGoal` when the key is present and `motivation` only when it is absent. Rows: motivation trip with goal edited to food reads hobby; goal cleared to null reads unknown; an older profile with motivation only keeps its cohort.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the cohort follows the goal Settings wrote, and a cleared goal is unknown`
+
+### F1275 — No query tells a paying account from a store trial
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:238
+- note: Statement 7 from `entitlements`: paying (live paid row, `withheld_seconds` 0), store trial (live paid row, withheld above 0), lapsed, paid period ended and not yet lapsed, free. One synthetic row per status, with hand-computed percentages.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: paying accounts are counted apart from store trials`
+
+### F1276 — No net price figure exists
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:265
+- note: Statement 8: payers by plan and period, and one estimated net monthly dollars per payer at list price less the Small Business fee, yearly divided by 12. The test pins the inline price list to core's `PLANS`, `YEARLY_PLANS` and `STORE_FEE_RATES`, and hand-computes one monthly Core payer plus one yearly Max payer.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the net price estimate uses core's list prices and the Small Business rate`
+
+### F1277 — Minutes used against the allowance are not reported per plan and period
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:296
+- note: Statement 9 per plan and period (trial, month, year, unknown). Used is `seconds_used - withheld_seconds`; the allowance is `luvani_private.tutor_cap_v1(plan) - withheld_seconds`. Rows include a store trial whose withheld part must not count as use, and a yearly row in its last window with a null `allowance_window_end` that must still read year.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: minutes used against the allowance leave out the withheld part, per plan and period`
+
+### F1278 — The wall funnel cannot be read by door
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:331
+- note: Statement 10 attributes each later wall event to the learner's latest `wall_shown`. Rows: one learner with a `refused` showing that reaches plans and settles done, then a `settings` showing that leaves unchanged; one learner with `refused` and nothing after. The settings door must not inherit the purchase.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the wall funnel is split by door, and a purchase stays with the door that showed it`
+
+### F1279 — The report does not say what it cannot measure or whom it covers
+- severity: P1
+- status: [x]
+- where: deployment/beta-metrics.sql:1
+- note: Statement 11, constant rows: month-one renewal is `not measurable` and names the missing vendor event type; paid conversion is `snapshot` and names the trial-versus-paid history gap; net price is `estimate`; the funnel's basis is `consented learners only`. The header comment carries the same caveats. The test asserts the status and basis of each row.
+- note: Fixed 2026-11-18 on claude/metrics-report (/forge round 1, work-judge SHIP): `deployment/beta-metrics.sql` with its synthetic-row test in `scripts/betaMetrics.test.mjs`.
+- verified-by: `beta-metrics.sql: the report says which numbers it cannot measure and which cover consented learners only`
+
+### F1280 — Billing events carry no vendor type, so trial-to-paid conversion and month-one renewal cannot be measured in the database
+- severity: P2
+- status: [ ]
+- where: supabase/migrations/202608300001_billing_events.sql:49
+- note: Not built here. `event_type` is `unknown` on every row and nothing records a period's kind. The candidate is to carry the vendor's closed event type and period kind through the projection. That needs a migration, a token-server change by `revenue-engineer`, `/backend-review`, and a row in the `PRIVACY_AND_SAFETY.md` table. It needs the founder's approval as its own step.
+- verified-by: `a renewal delivery is recorded with its vendor event type`
+
+### F1265 — Free learners cannot earn a streak back
+- severity: P1
+- status: [x]
+- where: packages/core/src/streak/repair.ts:113
+- note: Founder F4, 2026-11-18. `repairOffer` takes the plan's limit through `everyDays`; `FREE_REPAIR_EVERY_DAYS` is 30 and paid stays 7 (D19). A repair cover used under any plan counts against the current plan's limit.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `a free learner's repair is offered once in 30 days and a subscriber's once in 7`
+- verified-by: `a repair made on a paid plan counts against the free 30 days`
+
+### F1266 — The plan table says the free plan has no repair
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/purchases/capabilities.ts:91
+- note: `StreakProtection` gains `repairEveryDays`; free and lapsed hold repair at 30, paid at 7, unknown none. `INCLUSIONS.streak` no longer says repair is paid-only.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `the free plan repairs once every 30 days, a paid plan once every 7, and an unknown plan never`
+- verified-by: `the plans page streak line no longer says repair is paid-only`
+
+### F1267 — Settle and the game view never complete a free learner's repair
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/game/settle.ts:298
+- note: `coversToApply` and `gameViewFrom` pass the plan's `repairEveryDays`. A free learner's second practice in the window writes the repair covers; a second break inside 30 days writes none.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `a free learner's second practice in the window repairs the run, and not a second time inside 30 days`
+
+### F1268 — A second practice in a day earns nothing
+- severity: P1
+- status: [x]
+- where: packages/core/src/streak/freeze.ts:59
+- note: Founder F5, 2026-11-18. The bank is derived from `bankDays` and resolved covers: one slot above the cap, spent first, earned again no sooner than 7 days after the day it covered, never reaching a day before its earn day or before protection began, none for an unknown plan.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `two finished practices in a day bank one freeze above the cap, and never a second`
+- verified-by: `a banked freeze is spent before the plan's own and is earned again only a week after the day it covered`
+- verified-by: `a second practice today never banks a freeze for a day already gone`
+- verified-by: `a banked freeze never covers a day before protection began, and an unknown plan holds none`
+
+### F1269 — The streak and the reminder must count the same freezes
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/reminders/plan.ts:469
+- note: Settle and the planner both pass `bankDays` from the same finishes into `freezeCoverDays`, so the D25 save line moves one day later for a learner holding a bank and settle covers that same day.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `settle spends a banked freeze on the day the reminder planner said it would cover`
+- verified-by: `the save line waits one more day when a freeze is banked`
+
+### F1270 — The Streak screen still tells free learners repair is for subscribers
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/game/streakScreenView.ts:289
+- note: A free learner with an open repair sees the repair card and no plan line. With the repair spent and a recent break, the one line and See plans say the true rule. The freeze card upsell stays for free learners, keyed on the cap, and is hidden while a repair is open (founder Q4, 2026-11-18). A banked freeze is named in the card's existing sub line.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `a free learner earning a repair sees the repair card and no plan line`
+- verified-by: `a free learner whose repair is spent sees the one calm line and See plans`
+- verified-by: `the freeze card says when one freeze is banked`
+- verified-by: `a free learner earning a repair sees no plan row on the freeze card`
+
+### F1271 — New streak and plan lines must pass the guilt bans
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/copy/guilt.test.ts:202
+- note: Every string in Q3 is in the copy sweeps, passes `BANNED_IN_COPY` and `BANNED_IN_STREAK_COPY`, has no em dash and no countdown. The ban lists do not change, and no reminder line names a repair or a banked freeze.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `the earn-back and banked-freeze lines pass both guilt ban lists`
+- verified-by: `no reminder line names a repair or a banked freeze`
+
+### F1272 — The decision records still say repair is a paid perk
+- severity: P2
+- status: [x]
+- where: docs/come-alive/README.md:31
+- note: D4, D19, D23, PRODUCT.md, game.md 2.4 and DECISIONS.md record the founder's 2026-11-18 answers. Doc-only, so no failing test first; the pinned copy test is the proof that the words agree.
+- note: Fixed 2026-11-18 on claude/earn-back-bank (/forge round 1, work-judge SHIP; each named test re-run by the judge and passing).
+- verified-by: `the plans page streak line no longer says repair is paid-only`
+
+### F1281 — The bank's reach in the paid fallback pass is not pinned
+- severity: P2
+- status: [ ]
+- where: packages/core/src/streak/freeze.ts:164
+- note: A subscriber whose plan began after a two-day gap has it covered by the free-level freeze plus a bank earned before the gap, back to `protectedSince`. Consistent with the contract (the bank obeys both passes) but no test holds it, so a later change to `freezeCoverDays` could move it silently. Filed by work-judge on the earn-back-bank SHIP, 2026-11-18; optional.
+- verified-by: `a bank from before the gap and the free freeze cover two days for a plan bought after them`
+
+### F1098 — A stop during paid admission crashes the practice worker
+- severity: P2
+- status: [x]
+- where: services/token-server/src/practiceJobs.ts:170
+- note: B2-1. The stopped promise rejects while clientFor is still awaited, before anything listens, so a SIGTERM or a lost lease in that window exits the worker with code 1 and skips its final heartbeat. One handler line; the job still ends superseded.
+- verified-by: `a stop or a lost lease during paid admission ends the practice job without an unhandled rejection`
+
+### F1099 — minutes_refused is never recorded in production
+- severity: P2
+- status: [x]
+- where: services/token-server/src/server.ts:785
+- note: B2-2, part B, built only on the founder's yes. Production refusals come from the database reservation, which returns before the recorder. The notice and PRIVACY_AND_SAFETY.md already name the event. The test also proves a session-active refusal and a learner with analytics off record nothing.
+- verified-by: `a refused reservation records minutes_refused when analytics is allowed`
+
+### F1100 — The header and request deadlines fire up to 30 s late
+- severity: P2
+- status: [x]
+- where: services/token-server/src/server.ts:333
+- note: B2-3. Node checks both deadlines on a 30 s sweep that server.ts never shortens, so a stalled body holds one of the 128 busy slots for up to 60 s. A 5 s sweep makes the stated 10 s and 30 s real. It does not bound the stall attack; that is handed to B1 behind a staging probe.
+- verified-by: `the server sweeps stalled connections every few seconds, so its header and request deadlines hold`
+
+### F1102 — fenceAccount and an unused CI contract variable have no reader
+- severity: P2
+- status: [x]
+- where: services/token-server/src/tutorSessions.ts:26
+- note: The fenceAccount part of B2-5. tutorSessions.ts carried a fenceAccount method nothing called, and ciContract.test.ts built an `accepted` list nothing read. Both are deleted; no test is deleted. The SQL function fence_tutor_account_v1 stays, since the database proofs call it directly.
+- note: 2026-11-19: recordBillingEvent removal deferred to a slice that updates the moneyUntouched.test.ts store.ts hash with revenue review (M1).
+- verified-by: `service reservation decoder rejects malformed allowance and identity bindings`
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
+
+### F1103 — Metrics file /events and every /onboarding request under unknown
+- severity: P2
+- status: [x]
+- where: services/token-server/src/telemetry.ts:3
+- note: B2-7. The label list has product-events, which no route uses, and lacks events and onboarding. The exporter repeats the list and refuses unknown labels, so both change together. The test reads the prefixes from server.ts.
+- verified-by: `every server route prefix has its own metrics label, and the exporter accepts it`
+
+### F1104 — The fix-line judge and the transcribe handler copy helpers their neighbours already have
+- severity: P2
+- status: [x]
+- where: services/token-server/src/fixLineJudge.ts:28
+- note: B2-8, narrowed to the two pairs that already import each other. Removes a second home of the CEFR band list and the line check. The first test is characterization, written and green before the change.
+- verified-by: `a correction retry trims its lines, refuses an over-long one and reads an unknown level as A2`
+- verified-by: `a transcription authenticates and limits before its one ephemeral upload`
+
+### F1306 — recordBillingEvent is dead in the store interface and all four stores, but store.ts is a pinned money file
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/store.ts:41
+- note: Deferred from B2 (B2-6), 2026-11-18. The webhook dedupes through billingEventComplete and applyBilling (server.ts:632), so recordBillingEvent has no caller and its interface comment is untrue. Removing it changes store.ts, which apps/mobile/src/wall/moneyUntouched.test.ts pins by SHA-256, so the removal lands with a dated hash update and a revenue review in M1 (a frontend slice that runs the design reviews anyway). Six store.supabase.test.ts tests die with it; the SQL record_billing_event goes to D1.
+- verified-by: `billing projection uses one RPC carrying vendor state but never a stale usage counter`
+
+### F1055 — ciContract.test.ts times out at 15 s on some runs
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/ciContract.test.ts:62
+- note: NEEDS-PROBE, not reproduced. The file takes 3.0 s; the spawned gate takes 0.75 s in a clean worktree and 3.43 s cold in the main checkout. Hypothesis: the gate's test-file walk reads 61,696 entries there, 53,011 under apps/mobile build output. Probe: one full gate on the main checkout with the device build present. A fix belongs to S1.
+- verified-by: `the CI contract check finishes without waiting on the network or the clock`
 
 ### F1108 — One production preflight message answers for eight different refusals
 - severity: P2

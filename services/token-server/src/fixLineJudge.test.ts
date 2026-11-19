@@ -136,3 +136,19 @@ test('a repeated correction retry is memoised per user, before the observer and 
   await handleFixLineJudge(req({ ...correction, attempt: 'J’ai 20 ans.' }), ok.res, retry.deps);
   assert.equal(retry.seen.calls.length, 1);
 });
+test('a correction retry trims its lines, refuses an over-long one and reads an unknown level as A2', async () => {
+  const sent = async (body: Record<string, unknown>) => {
+    const d = setup(); const r = response(); await handleFixLineJudge(req(body), r.res, d.deps);
+    assert.equal(r.status(), 200);
+    return JSON.parse((d.seen.calls[0] as { request: string }).request) as Record<string, unknown>;
+  };
+  const padded = await sent({ ...correction, original: '  Je suis vingt ans. ', better: '\tJ’ai vingt ans.\n', why: ' Use avoir for age. ', cefr: 'Z9' });
+  assert.deepEqual([padded.original, padded.better, padded.reason, padded.learner_level], ['Je suis vingt ans.', 'J’ai vingt ans.', 'Use avoir for age.', 'A2']);
+  assert.equal((await sent({ ...correction, cefr: 'B1' })).learner_level, 'B1');
+  assert.equal((await sent({ ...correction })).learner_level, 'A2');
+  assert.equal((await sent({ ...correction, why: 'a'.repeat(401) })).reason, null);
+  assert.equal((await sent({ ...correction, why: '   ' })).reason, null);
+  const d = setup(); const r = response();
+  await handleFixLineJudge(req({ ...correction, original: 'a'.repeat(401) }), r.res, d.deps);
+  assert.equal(r.status(), 400); assert.equal(d.seen.calls.length, 0);
+});

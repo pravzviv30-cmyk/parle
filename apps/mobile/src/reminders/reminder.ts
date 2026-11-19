@@ -41,6 +41,9 @@
  * the tutor the learner chose (`tutorNameOf`, or the first run's choice).
  */
 
+import { DAILY_PHRASES, DAILY_SCENARIOS, type DailyScenario } from '@luvani/core';
+
+import { streakGuiltIn } from '../copy/guilt.ts';
 import { TUTOR_NAME } from '../tutor/tutorName.ts';
 
 /**
@@ -140,7 +143,7 @@ export interface ReminderContent {
 }
 
 /** Where a tap on a reminder lands (`openTarget.ts`). */
-export type ReminderOpen = 'home' | 'daily-phrase' | 'settings';
+export type ReminderOpen = 'home' | 'daily-phrase' | 'settings' | 'speak' | 'streak';
 
 // ───────────────────────────────────────────────────────────── the words
 
@@ -161,6 +164,10 @@ export interface LineFacts {
   n: number;
   lifetime: number;
   tutor: string;
+  /** The English of the slot's planned phrase, for the named phrase line (T1.3). Never the French. */
+  english?: string;
+  /** The weekly line's counts: local practice days and finished sittings in the 7 days ending its Sunday. */
+  week?: { days: number; practices: number };
 }
 
 export interface ReminderLine {
@@ -169,6 +176,61 @@ export interface ReminderLine {
   title: (facts: LineFacts) => string;
   body: (facts: LineFacts) => string;
 }
+
+/** "1 practice", "2 practices". */
+function practices(n: number): string {
+  return `${n} ${n === 1 ? 'practice' : 'practices'}`;
+}
+
+/**
+ * Today's phrase named (T1.3, founder copy 2026-11-19, second round): a fixed
+ * title, and the English only in the body, a trailing full stop dropped and
+ * any other final mark kept. It sits in the streak and routine rotations; a
+ * slot with no phrase to name, or one `namedPhraseFits` refuses, says the
+ * generic phrase line in its place (`plan.ts`).
+ */
+export const NAMED_PHRASE_LINE: ReminderLine = {
+  id: 'phrase-named',
+  open: 'daily-phrase',
+  title: () => 'How do you say this?',
+  body: ({ english, tutor }) => `“${(english ?? '').trim().replace(/\.+$/, '')}” Today's phrase, with ${tutor}.`,
+};
+
+/**
+ * The situations a phrase may be named from (founder, 2026-11-19): café and
+ * food, shops and markets, and transport; friends and small talk is left
+ * out because it holds personal lines. Keys are the
+ * scenario themes (`DailyScenario['theme']`); every other phrase says the
+ * generic phrase line.
+ */
+export const NAMEABLE_SITUATIONS: readonly DailyScenario['theme'][] = ['cafe-and-food', 'shops-and-markets', 'transport'];
+
+const THEME_OF = new Map(DAILY_SCENARIOS.map((scene) => [scene.id, scene.theme]));
+
+/** True when the phrase (id `phrase:<scenario id>:<n>`) is from an everyday situation and its named line passes every scan. */
+export function namedPhraseFits(phrase: { id: string; en: string }, tutor: string): boolean {
+  const theme = THEME_OF.get(/^phrase:(.+):[^:]+$/.exec(phrase.id)?.[1] ?? '');
+  if (theme === undefined || !NAMEABLE_SITUATIONS.includes(theme)) return false;
+  const message = reminderMessage(NAMED_PHRASE_LINE, { n: 0, lifetime: 0, tutor, english: phrase.en });
+  const words = `${message.title} ${message.body}`;
+  return phrase.en.trim().length > 0 && streakGuiltIn(words) === undefined && !/[\u2014\u2013\u00b7!\d]|in a row|yesterday/i.test(words);
+}
+
+/** The free conversation is back (T1.3): the first slot at or after the free plan's known refill. Opens Speak. */
+export const FREE_TALK_LINE: ReminderLine = {
+  id: 'free-talk',
+  open: 'speak',
+  title: ({ tutor }) => `${tutor} is free to talk again`,
+  body: () => 'A conversation is ready when you are.',
+};
+
+/** The week, on a Sunday slot, only with the streak mentioned (T1.3). Never compared with another week. Opens the Streak screen. */
+export const WEEKLY_LINE: ReminderLine = {
+  id: 'weekly',
+  open: 'streak',
+  title: ({ tutor }) => `This week with ${tutor}`,
+  body: ({ week }) => `${days(week?.days ?? 0)} of French, ${practices(week?.practices ?? 0)}.`,
+};
 
 /**
  * The streak set, for a day whose run is alive (n of at least 1). Rotated so
@@ -218,6 +280,7 @@ export const STREAK_LINES: readonly ReminderLine[] = [
     title: () => 'Your French habit',
     body: ({ n, tutor }) => `${days(n)} so far. ${tutor} is here, and a short review counts too.`,
   },
+  NAMED_PHRASE_LINE,
 ];
 
 /** The eve of a milestone (7, 30, 100, 365 and every year after): it takes the place of the set above. */
@@ -263,7 +326,7 @@ export const STREAK_SAVE_LINES: readonly ReminderLine[] = [
 export const ROUTINE_LINES: readonly ReminderLine[] = [
   {
     id: 'routine-moment',
-    open: 'home',
+    open: 'speak',
     title: () => 'A moment of French',
     body: ({ tutor }) => `${tutor} is here whenever you want to talk.`,
   },
@@ -279,6 +342,7 @@ export const ROUTINE_LINES: readonly ReminderLine[] = [
     title: () => 'Your French so far',
     body: ({ lifetime, tutor }) => `You have practised on ${days(lifetime)}. ${tutor} is ready when you are.`,
   },
+  NAMED_PHRASE_LINE,
 ];
 
 /** The kind note in the fifth unanswered slot, and then nothing. Opens Settings, where it can be turned back on. */
@@ -301,7 +365,7 @@ export const GUEST_PAUSE_LINE: ReminderLine = {
 };
 
 /** Every line a reminder can be, for the scans. */
-export const REMINDER_LINES: readonly ReminderLine[] = [...STREAK_LINES, MILESTONE_EVE_LINE, ...STREAK_SAVE_LINES, ...ROUTINE_LINES, PAUSE_LINE, GUEST_PAUSE_LINE];
+export const REMINDER_LINES: readonly ReminderLine[] = [...STREAK_LINES, MILESTONE_EVE_LINE, ...STREAK_SAVE_LINES, ...ROUTINE_LINES, FREE_TALK_LINE, WEEKLY_LINE, PAUSE_LINE, GUEST_PAUSE_LINE];
 
 /** A line with its facts filled in. */
 export function reminderMessage(line: ReminderLine, facts: LineFacts): ReminderContent {
@@ -397,12 +461,17 @@ export const REMINDER_COPY: readonly string[] = [
   REMINDER_SMART_LEARNING,
   smartGloss({ hour: 18, minute: 30 }),
   ...REMINDER_TIMES.flatMap((time) => [time.label, time.gloss]),
-  ...REMINDER_LINES.flatMap((line) =>
+  ...REMINDER_LINES.filter((line) => line !== NAMED_PHRASE_LINE).flatMap((line) =>
     [1, 2, 6, 29, 99, 364].flatMap((n) => {
-      const message = reminderMessage(line, { n, lifetime: n, tutor: TUTOR_NAME });
+      const message = reminderMessage(line, { n, lifetime: n, tutor: TUTOR_NAME, week: { days: Math.min(n, 7), practices: n } });
       return [message.title, message.body];
     }),
   ),
+  // The named line for every phrase that can be picked and passes the scans; any other is never named.
+  ...DAILY_PHRASES.filter((phrase) => namedPhraseFits(phrase, TUTOR_NAME)).flatMap((phrase) => {
+    const message = reminderMessage(NAMED_PHRASE_LINE, { n: 0, lifetime: 0, tutor: TUTOR_NAME, english: phrase.en });
+    return [message.title, message.body];
+  }),
 ];
 
 /**

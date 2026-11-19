@@ -31,7 +31,8 @@ import { randomInt } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import * as https from 'node:https';
 import { SENTENCES, percentile } from './measureTtsFirstAudio.mjs';
-import { buildDesign, buildHtml, wavFromPcm, scoreResults } from './ttsBlindCheck.mjs';
+import { buildDesign, buildHtml, scoreResults } from './ttsBlindCheck.mjs';
+import { wavFromPcm } from './quietSpeechHelpers.mjs';
 import {
   ELEVEN_VOICES, MODEL, VOICE_SETTINGS, BEGINNER_SPEED, OUTPUT_ENCODING, STREAMING_LATENCY, LANGUAGE_CODE,
 } from '../services/tutor-agent/src/voiceConfiguration.ts';

@@ -170,7 +170,8 @@ const FILES: Record<string, string> = {
   // founder decisions 2026-10-20. Independent review: the Opus orchestrator read
   // the meter, capabilities, billing status and store diffs before this pin.
   // 2026-10-29, founder approved per diff (Stream B batch 3): F913 streak line reads 'Paid plans add a second streak freeze and a one-tap repair.'
-  'apps/mobile/src/purchases/capabilities.ts': '284047502bd72de85c3a720a45e1259c0e1b4ee56602edf38a609ba00c8a5dff',
+  // 2026-11-18, F1266 (founder F4, earn-back-bank contract, Q3 (a) approved): StreakProtection gains repairEveryDays; the free and lapsed plan hold a repair once every 30 days, paid every 7, unknown none; the streak line reads 'Paid plans add a second streak freeze and a streak repair every week.' Streak protection and copy only: liveMinutes, unlocks, customRehearsal, continueArc, prices, allowances and every purchase, grant or meter function are unchanged. Review: revenue-engineer built; the Opus orchestrator read the capabilities diff before this pin; work-judge confirms.
+  'apps/mobile/src/purchases/capabilities.ts': 'b781c15a234e58793b163e46c3b6f633f68e1665798ea984445c4d14aad1102e',
   // 2026-10-23, VOICE-008: DEFAULT_COST_MODEL corrected to measured vendor
   // rates (sttPerMin 0.0043->0.009, llmPerMin 0.025->0.006, ttsPerMin
   // 0.045->0.109, tutorSpeakingShare 0.5->0.25; evidence docs/cogs-evidence/

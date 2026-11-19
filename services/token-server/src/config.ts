@@ -24,6 +24,7 @@ export interface ServerEnvironment {
   REVENUECAT_ENTITLEMENT_ID?: string;
   REVENUECAT_STARTER_PRODUCT_ID?: string;
   REVENUECAT_REGULAR_PRODUCT_ID?: string;
+  REVENUECAT_STARTER_WEEKLY_PRODUCT_ID?: string;
   REVENUECAT_STARTER_YEARLY_PRODUCT_ID?: string;
   REVENUECAT_REGULAR_YEARLY_PRODUCT_ID?: string;
 }
@@ -86,10 +87,10 @@ export function productionConfigurationProblems(env: ServerEnvironment): string[
     env.REVENUECAT_REGULAR_PRODUCT_ID,
   ];
   const billingValues = billing.filter(Boolean).length;
-  // The two yearly ids are optional on their own (D16), but either one without
+  // The optional product ids are optional on their own (D16), but any one without
   // the five above is a partial configuration like any other.
-  const yearlyValues = [env.REVENUECAT_STARTER_YEARLY_PRODUCT_ID, env.REVENUECAT_REGULAR_YEARLY_PRODUCT_ID].filter(Boolean).length;
-  if ((billingValues > 0 || yearlyValues > 0) && billingValues !== billing.length) {
+  const optionalValues = [env.REVENUECAT_STARTER_WEEKLY_PRODUCT_ID, env.REVENUECAT_STARTER_YEARLY_PRODUCT_ID, env.REVENUECAT_REGULAR_YEARLY_PRODUCT_ID].filter(Boolean).length;
+  if ((billingValues > 0 || optionalValues > 0) && billingValues !== billing.length) {
     problems.push('complete RevenueCat billing configuration');
   }
   return problems;

@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
-import { CONVO_SCORING_COMPONENT, LESSON_SCORING_COMPONENT, LESSON_SCORING_MAX_CALL_MILLIS } from './lessonScoringQuote.ts';
+import { CONVO_SCORING_COMPONENT, LESSON_SCORING_COMPONENT } from './lessonScoringQuote.ts';
 import { paidAdmission, type PaidComponent, type PaidKind, type PaidRpc } from './paidAdmission.ts';
 import { describePaidHttp, paidProviderFetch, reservationGate, SCORING_MAX_WAV_BYTES } from './paidExecution.ts';
 import { SCORING_MAX_SAMPLES, toSpeechaceWav } from './liveScoringAudio.ts';
@@ -60,7 +60,7 @@ test('the reviewed scoring configuration is what describePaidHttp produces for a
 
 test('the reviewed envelope rests on a 30 s per-call ceiling shared by the gate and the live converter', () => {
   // Changing the per-call WAV cap changes how many scores fit in 900 s, so the reviewed envelope must be re-reviewed.
-  assert.equal(LESSON_SCORING_MAX_CALL_MILLIS, 30000);
+  assert.equal((SCORING_MAX_WAV_BYTES - 44) / 32, 30000);
   assert.equal(44 + SCORING_MAX_SAMPLES * 2, SCORING_MAX_WAV_BYTES);
   assert.equal(full.length, SCORING_MAX_WAV_BYTES);
 });

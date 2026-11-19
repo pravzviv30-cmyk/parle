@@ -23,5 +23,4 @@ export class TutorSessionRepository {
   }
   abandon(userId: string, sessionId: string) { return this.rpc('abandon_tutor_session_v1', { p_user_id: userId, p_session_id: sessionId }); }
   receipt(userId: string, sessionId: string) { return this.rpc('receipt_tutor_session_v1', { p_user_id: userId, p_session_id: sessionId }); }
-  fenceAccount(userId: string) { return this.rpc('fence_tutor_account_v1', { p_user_id: userId }); }
 }

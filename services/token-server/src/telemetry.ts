@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-const routes = new Set(['health', 'ready', 'session', 'account', 'billing', 'drill', 'phrase-audio', 'conversation-packs', 'conversation-text', 'product-events', 'agent', 'internal']);
+const routes = new Set(['health', 'ready', 'session', 'account', 'billing', 'drill', 'phrase-audio', 'conversation-packs', 'conversation-text', 'events', 'onboarding', 'agent', 'internal']);
 const buckets = [50, 100, 250, 500, 1000, 2500, 5000, 15000, Infinity];
 const processIdentity={bootId:randomUUID(),startedAt:new Date().toISOString()};
 const counts = new Map<string, { requests: number; errors: number; durationBuckets: number[] }>();

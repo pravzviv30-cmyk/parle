@@ -19,6 +19,7 @@
  * Only counters and markers are kept, under hashed keys. No address,
  * installation value or learner content is stored here.
  */
+import { upstashCommand } from './upstash.ts';
 import { createHash } from 'node:crypto';
 
 export const GUEST_SCENE_DEFAULT_DAILY = 24;
@@ -171,16 +172,7 @@ export class RedisGuestSceneLedger implements GuestSceneLedger {
     this.request = request;
   }
   private async command(command: readonly string[]): Promise<unknown> {
-    const response = await this.request(this.url, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.token}`, 'content-type': 'application/json' },
-      body: JSON.stringify(command),
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!response.ok) throw new Error('guest scene ledger unavailable');
-    const body = (await response.json()) as { result?: unknown; error?: unknown };
-    if (body.error) throw new Error('guest scene ledger unavailable');
-    return body.result;
+    return upstashCommand(this.request, this.url, this.token, command, () => new Error('guest scene ledger unavailable'));
   }
   async installationUsed(installationKey: string): Promise<boolean> {
     const raw = await this.command(['GET', installationKey]);

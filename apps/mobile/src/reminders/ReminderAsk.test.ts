@@ -242,7 +242,7 @@ describe('the ask keeps its promise — F774', () => {
     assert.match(app, /<GuestReminderPlanner draft=\{preAccountDraft\} \/>/);
     assert.match(app, /onDraftChange=\{keepPreAccountDraft\}/);
     // An account's practice re-plans after every settled sitting.
-    assert.match(planner, /const offSettled = onSettled\(\(\) => \{/);
+    assert.match(planner, /const offSettled = onSettled\(replanThenHear\);/);
     assert.match(app, /<ReminderPlanner \/>/);
     // And the scheduler can skip a day, because nothing it schedules repeats.
     const native = code('./schedule.native.ts');

@@ -10,6 +10,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
 import { summarise } from './liveTurnMilestones.mjs';
+import { parseWav } from './quietSpeechHelpers.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CLIPS_DIR = join(ROOT, 'artifacts/multi-stt-2026-11-06');
@@ -63,16 +64,7 @@ export function beatFor(text) {
 }
 
 export function readWav(path) {
-  const buf = readFileSync(path);
-  let off = 12, rate = 0, data = null;
-  while (off < buf.length) {
-    const id = buf.toString('ascii', off, off + 4);
-    const size = buf.readUInt32LE(off + 4);
-    if (id === 'fmt ') rate = buf.readUInt32LE(off + 12);
-    if (id === 'data') data = new Int16Array(buf.buffer.slice(buf.byteOffset + off + 8, buf.byteOffset + off + 8 + size));
-    off += 8 + size + (size % 2);
-  }
-  return { rate, pcm: data };
+  return parseWav(readFileSync(path));
 }
 
 function parseArgs(argv) {

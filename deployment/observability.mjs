@@ -3,7 +3,7 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-const ROUTES=Object.freeze(['health','ready','session','account','billing','drill','phrase-audio','conversation-packs','conversation-text','product-events','agent','internal','unknown']);
+const ROUTES=Object.freeze(['health','ready','session','account','billing','drill','phrase-audio','conversation-packs','conversation-text','events','onboarding','agent','internal','unknown']);
 const BOUNDS=Object.freeze([50,100,250,500,1000,2500,5000,15000,null]);
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const object=v=>v && typeof v==='object' && !Array.isArray(v);
