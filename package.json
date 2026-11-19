@@ -13,6 +13,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "dev": "node --experimental-strip-types scripts/dev.mjs",
     "dev:durable": "LUVANI_DURABLE_PRACTICE=1 node --experimental-strip-types scripts/dev.mjs",
+    "dev:canvas-free": "node --experimental-strip-types scripts/dev/canvasFree.mjs",
     "voice:lab": "LUVANI_NATIVE_EVAL=1 node --experimental-strip-types scripts/nativeVoiceLab.mjs",
     "web": "npm run web --workspace=@luvani/mobile",
     "build:web": "npm run export:web --workspace=@luvani/mobile",
