@@ -16,7 +16,8 @@ import { isLearnerGoal, isMastered, normalise, type LearnerGoal, type Rung } fro
 
 import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.ts';
 import { CEFR_BANDS, type CefrBand, type Pace, type RegisterId, type Strictness } from '../types.ts';
-import { coachedForms, namedInCoaching, type ConversationState, type LearnerSnapshot } from '../engine/conversation.ts';
+import type { ConversationState, LearnerSnapshot } from '../engine/conversation.ts';
+import { coachedForms, namedInCoaching } from '../engine/coaching.ts';
 import { sanitizeLearnerText } from '../copy.ts';
 import { normalizeErrorTag } from './errorTag.ts';
 import { sensitiveMemoryCategory } from './memoryScreen.ts';

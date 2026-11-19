@@ -1,5 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   EVIDENCE_WINDOW,
@@ -715,5 +718,38 @@ describe('repairProfile: wire-only learner goals (LEARN-009)', () => {
       assert.equal('learnerGoals' in repairProfile(withGoals(junk)).memory, false, JSON.stringify(junk));
     }
     assert.equal('learnerGoals' in repairProfile(createProfile()).memory, false);
+  });
+});
+
+/**
+ * Every brain module `profile.ts` loads at run time, following relative
+ * imports and re-exports. `import type` and `export type` are erased and load
+ * nothing; anything else, even `import { type X }`, loads its module.
+ */
+function runtimeModulesFrom(entry: string): Set<string> {
+  const seen = new Set<string>();
+  const stack = [entry];
+  while (stack.length > 0) {
+    const file = stack.pop()!;
+    if (seen.has(file) || !existsSync(file)) continue;
+    seen.add(file);
+    const source = readFileSync(file, 'utf8');
+    const statements = /^(?:import|export)\s+(type\s+)?[^;'"]*?from\s+['"](\.[^'"]+)['"]|^import\s+['"](\.[^'"]+)['"]/gm;
+    for (const match of source.matchAll(statements)) {
+      if (match[1]) continue;
+      stack.push(resolve(dirname(file), (match[2] ?? match[3])!));
+    }
+  }
+  return seen;
+}
+
+describe('what the profile export ships to the app', () => {
+  test('the profile module loads no conversation engine code', () => {
+    const src = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const loaded = runtimeModulesFrom(resolve(src, 'profile/profile.ts'));
+    assert.ok(loaded.has(resolve(src, 'profile/errorTag.ts')), 'the walk follows real imports');
+    for (const heavy of ['engine/conversation.ts', 'prompt/system.ts', 'prompt/safetyConduct.ts', 'authenticity/fr.ts']) {
+      assert.equal(loaded.has(resolve(src, heavy)), false, `profile.ts reaches ${heavy}`);
+    }
   });
 });
