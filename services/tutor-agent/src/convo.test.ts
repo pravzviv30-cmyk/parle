@@ -1743,6 +1743,23 @@ describe('typing is presence, not silence', () => {
 
     assert.equal(convo.conversationState.ladder.rescues, 0, 'nothing was counting, so nothing fired');
   });
+
+  test('in text mode a keystroke after the timed reveal starts no new rescue clock', async (t) => {
+    // F1110: a fired timer left its handle set, so the typing handler read a
+    // dead clock as a running one and restarted it, and a second reveal
+    // dropped the rung while the learner was writing.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session } = await inScene(t, { voiceless: true });
+
+    t.mock.timers.tick(TEXT_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'the timed reveal');
+
+    await convo.handleClientMessage(session, tapped({ t: 'typing' }));
+    t.mock.timers.tick(TEXT_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'a keystroke after it starts nothing');
+  });
 });
 
 describe('a brain turn that fails mid-scene', () => {

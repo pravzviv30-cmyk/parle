@@ -13941,9 +13941,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1110 — In text mode a keystroke after the timed reveal starts a second rescue clock
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/convo.ts:2398
 - note: B3b-1. The rescue callback leaves silenceTimer set after it fires, so the typing handler's "only ever a restart" check passes on a dead handle and a second reveal drops the rung while the learner is writing. Clear the handle first, as tutor.ts:624 does.
+- note: Fixed 2026-11-19 on claude/review-b3b: the rescue callback clears the handle before runRescue; the named test fails with 2 rescues before and passes with 1 after.
 - verified-by: `in text mode a keystroke after the timed reveal starts no new rescue clock`
 
 ### F1111 — Under the fish voice vendor a vendor error never reaches the session

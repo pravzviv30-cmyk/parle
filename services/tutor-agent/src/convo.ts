@@ -2395,7 +2395,12 @@ export class LuvaniConversation extends voice.Agent {
     // Paused after two unanswered rescues: the tutor waits, without a remark,
     // until a reply or a help tap resets the run.
     if (this.unansweredRescues >= RESCUE_PAUSE_AFTER) return generation;
-    this.silenceTimer = setTimeout(() => { void this.runRescue(generation).catch(() => {}); }, window);
+    this.silenceTimer = setTimeout(() => {
+      // A fired timer is not a running clock (F1110): the typing handler and
+      // `setVoiceless` would restart it from a dead handle.
+      this.silenceTimer = undefined;
+      void this.runRescue(generation).catch(() => {});
+    }, window);
     return generation;
   }
 
