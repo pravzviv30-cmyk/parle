@@ -804,6 +804,8 @@ export function namedInCoaching(coached: readonly string[], ...forms: readonly (
  */
 function coachLineFits(line: string, lead: CoachItem): boolean {
   if (copyViolations(line).length > 0) return false;
+  // F1053: the voice says numbers in words, so a digit even inside quotes does not fit.
+  if (/\d/.test(line)) return false;
   if (NOTHING_WAS_WRONG.has(lead.kind) && landsAsCorrection(line)) return false;
   const offered = [lead.better, lead.betterWritten].filter((form) => normalise(form ?? '').length > 0);
   if (offered.length === 0) return true;

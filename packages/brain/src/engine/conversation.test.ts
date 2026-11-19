@@ -1073,6 +1073,22 @@ describe('the tutor says one thing about a turn', () => {
     assert.equal(view.coachLine, 'Careful, that one did not land.');
   });
 
+  test('a coach line with a number in it is written in words', () => {
+    // F1053. The voice says numbers in words, and copyViolations lets digits
+    // through inside quotes, so a line quoting the written form "2 euros"
+    // used to ship. Any digit, quoted or not, hands the slot to the fallback.
+    const price = sampleCoachItem({ kind: 'english-to-french', quote: 'how much is it', better: 'Ça fait deux euros', betterWritten: 'Ça fait 2 euros' });
+    for (const line of ['Got it. In French: "Ça fait 2 euros".', 'Got it, that is 2 euros: "Ça fait deux euros".']) {
+      const { view } = integrateTurn(
+        fresh(),
+        spoke('how much is it'),
+        sampleTurn({ coach: [price], coachLine: line, assessment: { ...sampleTurn().assessment, language: 'english' } }),
+      );
+      assert.doesNotMatch(view.coachLine!, /\d/, `a digit reached the spoken line: "${view.coachLine}"`);
+      assert.match(view.coachLine!, /deux euros/, 'the fallback still hands over the spoken form');
+    }
+  });
+
   test('correct-but-textbook phrasing is never told not quite', () => {
     // The learner said something CORRECT. The model names the right phrase and
     // breaks no copy rule; it simply calls a correct sentence a miss.

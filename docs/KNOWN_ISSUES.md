@@ -14080,7 +14080,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1053 — A spoken coach line can quote the written form's digits
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/engine/conversation.ts:802
 - note: sharpened from the plan's entry. `copyViolations` exempts digits inside quotes, which is right for card text, so `coachLineFits` keeps a line quoting `betterWritten`. The voice is told to say numbers in words (`prompt/system.ts:120`). One fix unit, in `coachLineFits`; `copy.ts` is unchanged.
 - verified-by: `a coach line with a number in it is written in words`
