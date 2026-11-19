@@ -158,7 +158,7 @@ describe('the voice configuration', () => {
       seen.set(cacheKey, key);
     }
 
-    assert.equal(seen.size, keys.length, 'eight voices must produce eight distinct caches');
+    assert.equal(seen.size, keys.length, 'six voices must produce six distinct caches');
   });
 
   test('buildTTS speaks the default voice when nothing is chosen', () => {

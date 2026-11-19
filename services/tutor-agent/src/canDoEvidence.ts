@@ -1,6 +1,6 @@
 import { selectedChoiceProbability } from './choiceProbability.ts';
 import { getMission, type CanDoEvidence, type CanDoEvidenceLedger } from '@luvani/core';
-import { DEFAULT_JEV_MODEL, typeSafeFromEnv, type JevChoice, type JevResult, type LlmUsage, type TypeSafeClient } from '@luvani/brain/llm';
+import { DEFAULT_JEV_MODEL, typeSafeFromEnv, type JevChoice, type LlmUsage, type TypeSafeClient } from '@luvani/brain/llm';
 import { approvedCanDoCalibration, type CanDoCalibration } from './canDoCalibration.ts';
 
 export const CAN_DO_EVIDENCE_THRESHOLD = 0.8;

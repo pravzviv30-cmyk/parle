@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseSpeechace, scoreWithSpeechace } from './speechace.ts';
+import { parseSpeechace, scoreWithSpeechace } from '../../shared/speechace.ts';
 import { scoreUtterance, type ScoreFetch } from '../../shared/pronunciation.ts';
 import { toInventoryIpa } from '../../shared/phoneMap.ts';
 import { buildReport } from '@luvani/core';

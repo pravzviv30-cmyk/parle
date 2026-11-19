@@ -61,7 +61,7 @@ function scriptedLines(): string[] {
  * Warm one voice, and report what it cost.
  *
  * A fresh CachedTTS per voice, because the voice is baked into the cache key at
- * construction; reusing one across the loop would warm the first voice eight
+ * construction; reusing one across the loop would warm the first voice six
  * times. Its own counters, so the per-voice report is that voice's bill rather
  * than a running total, and `chars` counts only misses because a hit costs
  * nothing.
@@ -87,7 +87,7 @@ async function warmVoice(voice: TutorVoiceKey, lines: readonly string[], speed: 
   }
 
   // Closing matters even on the HTTP path: the fish vendor holds a client the
-  // process would otherwise idle on, and eight open ones is eight reasons this
+  // process would otherwise idle on, and six open ones is six reasons this
   // script does not exit.
   await cached.close();
 
@@ -122,7 +122,7 @@ async function main(): Promise<void> {
   const cost = warmCost(plan, lines, speeds.length);
 
   // What it is about to cost, before it costs it. Printed even for the
-  // one-voice default: the habit of reading this line is what makes the eight
+  // one-voice default: the habit of reading this line is what makes the six
   // voice number land when someone does type `all`.
   console.log(`[warm-cache] ${lines.length} scripted lines: ${plan.join(', ')} at ${speeds.map((speed) => speed ?? 'normal').join(' and ')} speed`);
   console.log(`[warm-cache] ${warmPlanLine(cost)}`);
