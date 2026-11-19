@@ -13938,3 +13938,40 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: packages/core/src/streak/freeze.ts:164
 - note: A subscriber whose plan began after a two-day gap has it covered by the free-level freeze plus a bank earned before the gap, back to `protectedSince`. Consistent with the contract (the bank obeys both passes) but no test holds it, so a later change to `freezeCoverDays` could move it silently. Filed by work-judge on the earn-back-bank SHIP, 2026-11-18; optional.
 - verified-by: `a bank from before the gap and the free freeze cover two days for a plan bought after them`
+
+### F1110 — In text mode a keystroke after the timed reveal starts a second rescue clock
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:2398
+- note: B3b-1. The rescue callback leaves silenceTimer set after it fires, so the typing handler's "only ever a restart" check passes on a dead handle and a second reveal drops the rung while the learner is writing. Clear the handle first, as tutor.ts:624 does.
+- verified-by: `in text mode a keystroke after the timed reveal starts no new rescue clock`
+
+### F1111 — Under the fish voice vendor a vendor error never reaches the session
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/voiceFish.ts:239
+- note: B3b-2. CachedTTS listens on the FinalMarkingTTS wrapper, but the plugin emits on the inner TTS, which has no listener and throws ERR_UNHANDLED_ERROR. Non-production only, because preflight refuses fish in production. Forward error from inner; the test asserts exactly one event.
+- verified-by: `a fish vendor error reaches the session through the final-marking wrapper`
+
+### F1112 — Nothing keeps the tutor agent's seed topic caps equal to the token server's
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:525
+- note: B3b-3. The caps and the guard are written out in the token server, the tutor agent, core and the app, and only the app is pinned. A raised cap would be signed and then dropped by the agent without a word. This entry pins the agent to tokens.ts; moving the guard to core is routed to its own PR after tutor recall phase 2.
+- verified-by: `the tutor agent keeps exactly the seed topics the token server signs`
+
+### F1113 — chooseFrame reads the oldest recent scene as the newest
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/convo.ts:409
+- note: Cross-slice note from B4. finishSession writes newest first and chooseFrame reads the last item, so the rotation sticks on the apéro after two sessions. The frame is only the constructor placeholder, so no learner plays it. Two test fixtures pin the wrong order and are flipped.
+- verified-by: `the scene rotation reads the newest scene where finishSession writes it`
+
+### F1310 — Stale comments, a dead re-export shim and five unused names in the tutor agent
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/speechace.ts:10
+- note: B3b-4 comment only, plus B3b-5 to B3b-9. No behaviour changes and no test dies. The voice-samples advice is operator copy, not learner copy.
+- verified-by: `flattens words and phones into observations`
+- verified-by: `first synthesis goes to the vendor, second replays from disk`
+- verified-by: `the model is pinned, not left to the plugin default`
