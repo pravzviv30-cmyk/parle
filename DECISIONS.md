@@ -2626,3 +2626,21 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - Tests: core `repair.test.ts`, `freeze.test.ts`; mobile `settle.test.ts`,
     `streakScreenView.test.ts`, `guilt.test.ts`, `reminders/plan.test.ts`,
     `capabilities.test.ts` (F1265 to F1272).
+
+## UI-025 — Board A, streak moments: four quiet moments, one freeze mark, the Streak screen and reminders kept
+
+- Date: 2026-11-19
+- Status: accepted (founder, in chat, on Board A https://claude.ai/artifact/CLX8S923UgzquSoDE58ctd and the plan-time
+  design review that followed)
+- Decision:
+  - The Streak screen stays as it is, apart from one shared freeze mark: its outlined snowflake becomes `FreezeMark`
+    (T3.1).
+  - The reminder lines stay as built; the queued reminder proposals are not taken.
+  - Four moments from the A row: a run a freeze carried gets a quiet paper takeover titled "{n} days of French." with the
+    lifetime line (no "Saved.", which would be loss wording); "A freeze covered yesterday." in Today's nudge slot, once
+    per covered day; "Your {n}-day streak is back." when a repair is kept, with the number the Streak screen promised and
+    the lifetime line; "One freeze banked" as a row on the ending of the practice that earned it.
+  - A repair and a milestone in one practice make one takeover: the milestone, carrying "Your streak is back." as a row.
+  - Talk days (T1.4) get their own small board before any code.
+- Consequence: built on `claude/board-a`; no stored-shape change beyond a day-scoped seen kind.
+
