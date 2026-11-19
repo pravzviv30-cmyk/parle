@@ -14151,7 +14151,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1318 — The memory pause merge is pinned only through a function sync never calls
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/profile/merge.ts:635
 - note: run2-5, the live half. Replacing `mergeMemoryControl(...)` with `heavy.brain.memory` in `mergeStoredProfiles` fails no test today. Deleting `mergeLearnerProfiles` and its test goes to M5b with the mobile re-point.
 - verified-by: `the newest pause choice survives a busier stale device through the stored-profile merge`

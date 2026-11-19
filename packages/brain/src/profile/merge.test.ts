@@ -710,6 +710,29 @@ describe('merging two copies of one learner', () => {
     assert.equal(right?.brain.stats.sessions, 9);
   });
 
+  test('the newest pause choice survives a busier stale device through the stored-profile merge', () => {
+    const opener = { fr: 'Et Lyon ?', en: 'How was Lyon?' };
+    // The stale device has more evidence, so its brain wins every other field.
+    const stale = stored({
+      brain: brain({
+        memory: { facts: [], opener, name: null, control: { paused: false, changedAt: 1000 } },
+        stats: { sessions: 9, totalTurns: 90, rescues: 0, lastRung: null },
+      }),
+    });
+    const fresh = stored({
+      brain: brain({
+        memory: { facts: [], opener: null, name: null, control: { paused: true, changedAt: 2000 } },
+        stats: { sessions: 1, totalTurns: 3, rescues: 0, lastRung: null },
+      }),
+    });
+
+    for (const m of [merge(stale, fresh), merge(fresh, stale, 2, 1)]) {
+      assert.equal(m?.brain.stats.sessions, 9, 'the busier device should still win the evidence');
+      assert.deepEqual(m?.brain.memory.control, { paused: true, changedAt: 2000 }, 'a stale device undid the newest pause');
+      assert.equal(m?.brain.memory.opener, null, 'a paused merge kept a remembered opener');
+    }
+  });
+
   test('mergeLearnerProfiles works on two brains with no envelope around them', () => {
     const a = brain({
       phrases: { merci: phrase('merci', 3, true) },
