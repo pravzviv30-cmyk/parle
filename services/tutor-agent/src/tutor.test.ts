@@ -434,10 +434,9 @@ describe('what a session is allowed to bill', () => {
 });
 
 /**
- * F77. The join credential is a five minute bearer token, and LiveKit re-creates
- * a closed room for whoever presents one: measured live, with 279s of ttl still
- * on a room whose session had already been reported. The empty room costs
- * nothing. The tutor dispatched into it is what would cost a free session.
+ * F77, F79, F1311. These tests now only check that a fresh session id is served
+ * normally. Refusing a replayed credential lives in the durable
+ * `claim_tutor_session_v1` claim, tested in sessionLifecycle.test.ts.
  */
 describe('a credential that has already been spent', () => {
   test('an unreported session id is served normally, so the guard cannot lock a learner out', () => {

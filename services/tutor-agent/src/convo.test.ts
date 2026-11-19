@@ -645,8 +645,7 @@ function buildConvo(
   const { session, said } = stubSession();
   Object.defineProperty(convo, 'session', { value: session, configurable: true });
   // agent.ts writes the signed session id before it wires the channel back to
-  // the app, and the spent-credential refusal depends on that order: it is
-  // decided at the setter and spoken at `attach`.
+  // the app, so the fixture keeps that order.
   if (opts.sessionId !== undefined) convo.sessionId = opts.sessionId;
   const published: ServerMessage[] = [];
   convo.attach((message) => {
@@ -2297,8 +2296,7 @@ describe('what a session cost, and what it gave up on', () => {
       const client = new HeldAnalystBrain({ turns: [spendingTurn()] });
       const { convo, session } = await inScene(t, {
         client,
-        // Its own id, and never one another test's ledger assertion depends on:
-        // `finish()` spends the credential, and a spent id is not fresh again.
+        // Its own id, so its debit is never confused with another test's.
         sessionId: 'a8a8a8a8-8a8a-4a8a-8a8a-a8a8a8a8a8a8',
       });
       await convo.handleClientMessage(session, tapped({ t: 'say', text: 'Bonjour, un café' }));
@@ -3448,9 +3446,10 @@ describe('what a conversation is allowed to bill', () => {
 });
 
 /**
- * F77, on the conversation side. A spent credential re-opens the room; what it
- * must not re-open is the session, because a conversation is the expensive one:
- * a scene build and a model call per turn.
+ * F77, F79, F1311, on the conversation side. These tests now only check that a
+ * fresh session id opens the conversation normally. Refusing a replayed
+ * credential lives in the durable `claim_tutor_session_v1` claim, tested in
+ * sessionLifecycle.test.ts.
  */
 describe('a conversation credential that has already been spent', () => {
   test('an unreported session id opens the conversation normally', async (t) => {
