@@ -1851,7 +1851,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   second claim for any worker and across restarts, and production requires lifecycle version 1,
   so no shared store is needed. `claim()` throws `SessionLifecycleError` on the refusal, and
   agent.ts awaits the claim before it builds any paid runtime, proxy or provider.
-  `scripts/verifyTutorSessions.mjs:108` proves in every gate run that the database refuses a
+  `scripts/verifyTutorSessions.mjs:105-106` proves in every gate run that the database refuses a
   second claim with a different nonce.
 - verified-by: `a claim the database refuses throws before any provider is built`
 
