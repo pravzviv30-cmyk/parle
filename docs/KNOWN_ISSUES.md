@@ -13944,6 +13944,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a correction retry trims its lines, refuses an over-long one and reads an unknown level as A2`
 - verified-by: `a transcription authenticates and limits before its one ephemeral upload`
 
+### F1306 — recordBillingEvent is dead in the store interface and all four stores, but store.ts is a pinned money file
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/store.ts:41
+- note: Deferred from B2 (B2-6), 2026-11-18. The webhook dedupes through billingEventComplete and applyBilling (server.ts:632), so recordBillingEvent has no caller and its interface comment is untrue. Removing it changes store.ts, which apps/mobile/src/wall/moneyUntouched.test.ts pins by SHA-256, so the removal lands with a dated hash update and a revenue review in M1 (a frontend slice that runs the design reviews anyway). Six store.supabase.test.ts tests die with it; the SQL record_billing_event goes to D1.
+- verified-by: `billing projection uses one RPC carrying vendor state but never a stale usage counter`
+
 ### F1055 — ciContract.test.ts times out at 15 s on some runs
 - severity: P2
 - status: [ ]
