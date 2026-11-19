@@ -115,13 +115,6 @@ import {
   type TutorPersona,
   type DrillExercise,
 } from '@luvani/core';
-/**
- * The authored mission scenes, reached by file rather than through brain's
- * barrel because `@luvani/brain` does not re-export `missions/` yet and its
- * package `exports` map admits only `.`, `./llm` and `./profile`. One line in
- * that barrel turns this back into an ordinary named import from '@luvani/brain';
- * the file lives in brain's territory, so it is filed rather than edited here.
- */
 
 import { reportUsage } from './usage.ts';
 import type { RuntimeLifecycle } from './sessionLifecycle.ts';
@@ -328,7 +321,6 @@ function safeLearnerGoals(goals: readonly string[] | undefined): { learnerGoals?
   return kept.length > 0 ? { learnerGoals: kept } : {};
 }
 
-/** Existing saved notes, bounded and labelled without inventing a session source. */
 /**
  * The signed free-tier memory lock, read strictly: only boolean `true` locks.
  * A string, number or object is not a lock, so a malformed value falls back to
@@ -441,6 +433,11 @@ export function strictnessOf(profile: LearnerProfile): Strictness {
   return STRICTNESSES.find((known) => known === stored) ?? 'balanced';
 }
 
+/** Forced advances and turn ceilings are not evidence that the learner met the objective. */
+export function firstPracticeObjectiveComplete(state: ConversationState): boolean {
+  return state.frame.beats.length > 0 && state.frame.beats.every(beat => state.evidencedBeatIds.includes(beat.id));
+}
+
 /**
  * The pace a scene opens at, read the way strictness is: guarded, not trusted.
  * A learner who asked in Profile for a slower tutor gets shorter sentences from
@@ -449,11 +446,6 @@ export function strictnessOf(profile: LearnerProfile): Strictness {
  * word this app writes reads as 'normal', which is where every learner who has
  * never asked already is.
  */
-/** Forced advances and turn ceilings are not evidence that the learner met the objective. */
-export function firstPracticeObjectiveComplete(state: ConversationState): boolean {
-  return state.frame.beats.length > 0 && state.frame.beats.every(beat => state.evidencedBeatIds.includes(beat.id));
-}
-
 export function paceOf(profile: LearnerProfile): Pace {
   return profile.preferences?.pace === 'slow' ? 'slow' : 'normal';
 }
@@ -1715,13 +1707,6 @@ export class LuvaniConversation extends voice.Agent {
     console.info(formatSessionCost(this.spend, this.sessionId));
   }
 
-  /**
-   * Every spoken line funnels through here so text mode can stay silent.
-   *
-   * The handle comes back so one caller can wait on the words: a stop closes
-   * the room, and it must not close it over the top of the only sentence that
-   * mattered. Text mode returns nothing, which is the honest answer there.
-   */
   private replayLine(text: string): Promise<void> {
     if (this.replayQueue.full) { this.rejectInput(INPUT_BUSY_MESSAGE); return Promise.resolve(); }
     void this.replayQueue.run(async signal => { if (!this.ended) await replayPlayout(this.say(text, { allowInterruptions: false })?.waitForPlayout(), signal); })
@@ -1729,6 +1714,13 @@ export class LuvaniConversation extends voice.Agent {
     return Promise.resolve();
   }
 
+  /**
+   * Every spoken line funnels through here so text mode can stay silent.
+   *
+   * The handle comes back so one caller can wait on the words: a stop closes
+   * the room, and it must not close it over the top of the only sentence that
+   * mattered. Text mode returns nothing, which is the honest answer there.
+   */
   private say(text: string, options: { allowInterruptions?: boolean } = {}): SpokenLine {
     this.linesSaid += 1;
     if (this.voiceless) return undefined;
@@ -3419,14 +3411,6 @@ export class LuvaniConversation extends voice.Agent {
     return view;
   }
 
-  /**
-   * End the session: assemble the recap in code, fold the session into the
-   * profile, hand both to the app, then debit the metered seconds.
-   *
-   * Idempotent, because both an earned recap and a learner closing the app can
-   * arrive here — and billing someone twice for one session is the kind of bug
-   * that costs a refund and a review.
-   */
   private cancelCorrectionReason(): void {
     this.correctionReasonGeneration += 1;
     this.correctionReasonWork?.abort();
@@ -3473,6 +3457,14 @@ export class LuvaniConversation extends voice.Agent {
     } catch { /* A room that already disconnected has no speech to cancel. */ }
   }
 
+  /**
+   * End the session: assemble the recap in code, fold the session into the
+   * profile, hand both to the app, then debit the metered seconds.
+   *
+   * Idempotent, because both an earned recap and a learner closing the app can
+   * arrive here — and billing someone twice for one session is the kind of bug
+   * that costs a refund and a review.
+   */
   finish(): Promise<void> {
     if (this.finishing) return this.finishing;
     if (this.ended) return Promise.resolve();
@@ -3617,13 +3609,6 @@ export class LuvaniConversation extends voice.Agent {
     this.logSpendSummary();
   }
 
-  /**
-   * The practice editor, then the drill author, in that order. Exactly one
-   * `practice` message ships per session whatever happens: the model's
-   * grouping when it answers in time, the deterministic code fallback when it
-   * does not. Drills are then authored from the same keep-list, so the two
-   * artefacts describe the same practice instead of two different sessions.
-   */
   private async publishCanDoEvidence(): Promise<void> {
     if (!this.canDoReader || !this.missionId || this.serviceFailure || this.safetyStopped
       || this.canDoWork.signal.aborted || !this.canDoLedger.independentFinish || this.canDoLedger.sources.length === 0) return;
@@ -3635,6 +3620,13 @@ export class LuvaniConversation extends voice.Agent {
     }
   }
 
+  /**
+   * The practice editor, then the drill author, in that order. Exactly one
+   * `practice` message ships per session whatever happens: the model's
+   * grouping when it answers in time, the deterministic code fallback when it
+   * does not. Drills are then authored from the same keep-list, so the two
+   * artefacts describe the same practice instead of two different sessions.
+   */
   private async curateAndDrill(state: ConversationState, recap: SessionRecap): Promise<void> {
     const curated = await this.curatePractice(state);
     this.publish({
