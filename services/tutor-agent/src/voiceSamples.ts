@@ -13,8 +13,9 @@
  * miss the pinned model, the pinned language code and the voice settings, all
  * of which change what a voice sounds like, and a learner would choose a voice
  * from a sample and then meet a different one. Going through `buildTTS` also
- * means the clips land in the ordinary TTS cache, so a rerun is free, and the
- * French sentence is a real tutor opening that a live session may later hit.
+ * means the French sentence is a real tutor opening that a live session may
+ * later hit. A rerun is not free: sample sentences are not on the authored
+ * allow-list, so the cache does not keep them and every rerun bills again.
  *
  * SENTENCE BY SENTENCE, which is how the runtime does it. Our TTS declares
  * `streaming: false`, so the framework hands it one sentence at a time, and the
@@ -212,8 +213,8 @@ export function readManifest(path: string = MANIFEST_PATH): SampleManifest {
 /**
  * Whether the previous listen still describes this audio.
  *
- * Synthesis is cached, so a rerun that changes nothing rewrites identical bytes,
- * and forcing a fresh listen for that would train whoever runs this to type
+ * A rerun synthesizes again, and when nothing changed the vendor can return the
+ * same bytes, and forcing a fresh listen for that would train whoever runs this to type
  * something in to get the gate green. So the attestation carries forward only
  * when the words, the configuration and the bytes are all unchanged. New words,
  * a retuned setting or different audio blank it, and the suite then demands an
@@ -483,7 +484,7 @@ async function main(): Promise<void> {
   if (tooBig.length > 0) {
     console.error(
       `[voice-samples] over the ${MAX_SAMPLE_BYTES} byte bundle ceiling: ${tooBig.join(', ')}. ` +
-        `Shorten the sample line or lower BITRATE_BPS, then rerun (synthesis is cached, so the rerun is free).`,
+        `Shorten the sample line or lower BITRATE_BPS, then rerun. The rerun bills every clip again.`,
     );
     // The record is NOT written. A half-run must not leave a half-true manifest:
     // the suite would then vouch for seven clips and a stale eighth.

@@ -89,8 +89,8 @@ export const ELEVEN_VOICES: Readonly<Record<TutorVoiceKey, string>> = Object.fre
  * where every voice in ELEVEN_VOICES has verified French AND English. On the
  * plugin's own default, eleven_turbo_v2_5, the voice this file originally
  * shipped with was verified for English only, and the French it produced there
- * was out of distribution. One model across all eight is also what keeps the
- * cache a single fingerprint rather than eight.
+ * was out of distribution. One model across all six is also what keeps the
+ * cache a single fingerprint rather than six.
  *
  * It costs first-byte time against turbo, and the number is measured rather
  * than feared: three streaming synthesis runs of the same French line, from

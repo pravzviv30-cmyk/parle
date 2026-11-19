@@ -26,12 +26,12 @@
  * native French voice the vendor offers is a library or cloned voice, and a
  * free account cannot use either over the API ("Free users cannot use library
  * voices via the API"), while the free tier's own premade voices are all
- * English. That plan is now bought, and there are eight of them.
+ * English. That plan is now bought, and there are six of them.
  *
- * WHICH OF THE EIGHT is no longer a config decision at all — the learner makes
+ * WHICH OF THE SIX is no longer a config decision at all — the learner makes
  * it. `ELEVEN_VOICES` below maps their choice to a vendor id, and the model
- * stays pinned across all eight, because every one of them is verified for
- * French AND English on it. Before adding a ninth, read verified_languages from
+ * stays pinned across all six, because every one of them is verified for
+ * French AND English on it. Before adding a seventh, read verified_languages from
  * /v2/voices and check the pair. A voice's name tells you nothing.
  */
 
@@ -44,7 +44,7 @@ import { CachedTTS, type CachedTTSOptions } from './ttsCache.ts';
 import { fishVoice } from './voiceFish.ts';
 // The most previous-sentence context the paid proxy and admission accept, in UTF-8 bytes.
 import { ELEVEN_PREVIOUS_TEXT_MAX_BYTES as PREVIOUS_TEXT_MAX_BYTES } from '../../shared/paidExecution.ts';
-import { type VoiceVendor, conversationTtsModel, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
+import { conversationTtsModel, selectedVoiceVendor, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
 export { BEGINNER_SPEED, tutorSpeedFor, conversationTtsModel, CONVERSATION_TTS_MODEL_ENV, selectedVoiceVendor, VOICE_KEY, ELEVEN_VOICES, MODEL, STREAMING_LATENCY, LANGUAGE_CODE, OUTPUT_ENCODING, VOICE_SETTINGS } from './voiceConfiguration.ts';
 export type { VoiceVendor } from './voiceConfiguration.ts';
 
@@ -64,7 +64,7 @@ export const DEFAULT_CACHE_DIR = fileURLToPath(new URL('../.tts-cache', import.m
  * It never throws, and that is a product decision rather than defensive habit.
  * The room is already open and the learner is already in it: a voice key we
  * retired last month, or a profile written by a newer build, has to become a
- * lesson in Luc's voice, not an exception in a room that has just gone quiet.
+ * lesson in Alexandre's voice, the default, not an exception in a room that has just gone quiet.
  */
 export function resolveTutorVoice(raw: unknown): TutorVoiceKey {
   return isTutorVoiceKey(raw) ? raw : DEFAULT_TUTOR_VOICE;
@@ -204,9 +204,9 @@ export function elevenStitchedRequest(
  */
 export interface BuildTTSOptions extends Pick<CachedTTSOptions, 'onFirstAudio' | 'missTransport'> {
   /**
-   * Which of the eight the learner chose. Defaults to the catalogue default, so
+   * Which of the six the learner chose. Defaults to the catalogue default, so
    * a caller that predates the chooser — the warm-cache script, a test — gets
-   * Luc rather than the vendor's own default voice, which is the failure this
+   * Alexandre rather than the vendor's own default voice, which is the failure this
    * whole file was written to end.
    */
   voice?: TutorVoiceKey;
