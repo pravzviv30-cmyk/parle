@@ -117,7 +117,7 @@ Owners are the territory engineers from `docs/TEAM.md`, at the low effort set in
 | T0.2 | Watch 3-5 beginners; check the free practices teach | founder; learning-science-engineer (read-only) | none | none | todo |
 | T1.1 | One fix a day, free | frontend-engineer | F1 | normal | done: PR #30 |
 | T1.2 | Save-your-streak line | progress-retention-engineer | F2 | normal | done: PR #32 |
-| T1.3 | Reminder content: phrase named, taps into practice, free talk back, goal and next lines, the fix line, the week line | progress-retention-engineer | T1.2 | normal | slice A built 2026-11-19 (D28), not landed; slice B waits on a decision |
+| T1.3 | Reminder content: phrase named, taps into practice, free talk back, goal and next lines, the fix line, the week line | progress-retention-engineer | T1.2 | normal | slice A done: PR #36; slice B waits on the read rule |
 | T1.4 | Your talk days | progress-retention-engineer | T1.3 | normal | todo |
 | T2.1 | Free review of conversation phrases | practice-ux-engineer | F3, F7 | normal per F7 | done: PR #33 |
 | T2.2 | Homework the next conversation checks | practice-ux-engineer, frontend-engineer | T1.1 | normal | todo |
@@ -389,6 +389,7 @@ Show a fix only when its line was heard clearly, using per-turn STT confidence i
 | 2026-11-18 | T2.3, T2.4 | Fable route: contract (founder answers Q1-Q4), three Opus builds, Fable SHIP round 1. Push-check: browser pass reached the banked state for real; Impeccable fix then ship; unslop pass; security none. Landed as PR #35 (9386bf02). | none |
 | 2026-11-18 | Proposals | The founder sent all 16 push-check proposals from PRs #30, #32, #33 and #35 to a board. | Boards A-E |
 | 2026-11-19 | T1.3 slice A | Founder approved the plan and copy in chat (D28). Built test first in `Luvani-worktrees/reminder-content`; mobile suite and typecheck green. | Review, gate, `/push-check`, `/land`; slice B decision |
+| 2026-11-19 | T1.3 | Slice A planned (explorer map, founder answers in two rounds), built by progress-retention-engineer test first, push-checked (two reviewer rounds; Impeccable fix then ship; unslop pass; security none) and landed as PR #36 (29253670). Founder sent 3 more proposals to a board and kept friends and small talk out of the named phrases. | T1.4 talk days; slice B needs the read rule opened |
 
 ## Landing
 
