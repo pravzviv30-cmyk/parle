@@ -18,6 +18,7 @@ import {
   type LearnerSnapshot,
 } from './conversation.ts';
 import { INLINE_COACH_COOLDOWN_TURNS } from './grading.ts';
+import { applyExtractionToProfile, createProfile } from '../profile/profile.ts';
 import { assembleRecap } from './recap.ts';
 import { CAFE_FRAME } from '../fixtures.ts';
 import { coachFallbackLine, copyViolations, fallbackVariants, landsAsCorrection } from '../copy.ts';
@@ -803,6 +804,29 @@ describe('the scene the learner is handed — G2', () => {
     // frame is called "At the corner café", and café is an English word.
     const repaired = opened('Bonjour.');
     assert.equal(carriesFrench(repaired.en), false, `the recovery narration carries French: "${repaired.en}"`);
+  });
+
+  test('a generated scene opening and a remembered opener reach the learner without an em dash', () => {
+    // F1117. The scenario builder and the memory extractor are model calls too,
+    // and their text is spoken and shown without passing through a turn.
+    const dashed = {
+      ...CAFE_FRAME,
+      openingNarration: { ...CAFE_FRAME.openingNarration, en: 'Imagine the scene \u2014 a small cafe on a quiet street, the door open.', fr: 'Imaginez \u2014 un petit café.' },
+      openingLine: { ...CAFE_FRAME.openingLine, fr: 'Bonjour \u2014 vous désirez ?', en: 'Hello \u2014 what will it be?' },
+    };
+    const { frame } = createConversation(dashed, learner(), { strictness: 'flow', maxTurns: 12 }, 1_000);
+    for (const text of [frame.openingNarration.en, frame.openingNarration.fr, frame.openingLine.fr, frame.openingLine.en]) {
+      assert.doesNotMatch(text, /\u2014/, `an em dash reached the learner: "${text}"`);
+    }
+    assert.equal(frame.openingLine.fr, 'Bonjour, vous désirez ?');
+
+    const remembered = applyExtractionToProfile(
+      createProfile(),
+      { facts: [], openerFr: 'Alors \u2014 le métro ?', openerEn: 'So \u2014 the metro?' },
+      '2026-11-19T10:00:00Z',
+    ).memory.opener;
+    assert.equal(remembered?.fr, 'Alors, le métro ?');
+    assert.equal(remembered?.en, 'So, the metro?');
   });
 });
 

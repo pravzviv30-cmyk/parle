@@ -398,6 +398,23 @@ describe('memory — what the tutor knows about the person', () => {
     assert.notEqual(profile.memory.opener, null, 'a clean opener survives dropped facts');
   });
 
+  test('an extracted fact is stored without an em dash', () => {
+    // F1117. Facts already stored are not rewritten; new ones are cleaned on the way in.
+    const profile = applyExtractionToProfile(
+      createProfile(),
+      {
+        facts: [{ ...fact('Loves cooking \u2014 mostly pasta'), fr: 'Adore cuisiner \u2014 surtout des pâtes', happensAround: 'this weekend \u2014 Saturday' }],
+        openerFr: null,
+        openerEn: null,
+      },
+      '2026-11-19T10:00:00Z',
+    );
+    const [stored] = profile.memory.facts;
+    assert.equal(stored?.en, 'Loves cooking, mostly pasta');
+    assert.equal(stored?.fr, 'Adore cuisiner, surtout des pâtes');
+    assert.equal(stored?.happensAround, 'this weekend, Saturday');
+  });
+
   test('a sensitive opener becomes null', () => {
     const fr = applyExtractionToProfile(createProfile(), { facts: [], openerFr: 'Et ton salaire ?', openerEn: 'And the pay?' }, '2026-10-28T10:00:00Z');
     assert.equal(fr.memory.opener, null);

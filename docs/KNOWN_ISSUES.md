@@ -14111,7 +14111,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1117 — Model text outside a turn never passes the dash sanitizer
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/engine/conversation.ts:419
 - note: run2-2. The generated opening, the remembered opener and extracted facts are stored and shown or spoken unchanged. Facts already stored are not rewritten.
 - verified-by: `a generated scene opening and a remembered opener reach the learner without an em dash`

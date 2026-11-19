@@ -17,6 +17,7 @@ import { isLearnerGoal, isMastered, normalise, type LearnerGoal, type Rung } fro
 import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.ts';
 import { CEFR_BANDS, type CefrBand, type Pace, type RegisterId, type Strictness } from '../types.ts';
 import type { ConversationState, LearnerSnapshot } from '../engine/conversation.ts';
+import { sanitizeLearnerText } from '../copy.ts';
 import { normalizeErrorTag } from './errorTag.ts';
 import { sensitiveMemoryCategory } from './memoryScreen.ts';
 
@@ -452,11 +453,12 @@ export function applyExtractionToProfile(
     if (isSensitiveMemory(fact.en, fact.fr, fact.happensAround)) continue;
     seen.add(key);
     // Built field by field: a model object carrying `source` cannot smuggle it in.
+    // F1117: model text, so it passes the dash sanitizer before it is kept.
     next.memory.facts.push({
       kind: fact.kind,
-      fr: fact.fr,
-      en: fact.en,
-      happensAround: fact.happensAround,
+      fr: fact.fr === null ? null : sanitizeLearnerText(fact.fr),
+      en: sanitizeLearnerText(fact.en),
+      happensAround: fact.happensAround === null ? null : sanitizeLearnerText(fact.happensAround),
       notedAt: now,
       source: 'conversation',
       updatedAt: now,
@@ -468,7 +470,7 @@ export function applyExtractionToProfile(
   }
 
   if (extraction.openerFr !== null && extraction.openerEn !== null && !isSensitiveMemory(extraction.openerFr, extraction.openerEn)) {
-    next.memory.opener = { fr: extraction.openerFr, en: extraction.openerEn, policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
+    next.memory.opener = { fr: sanitizeLearnerText(extraction.openerFr), en: sanitizeLearnerText(extraction.openerEn), policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
   } else {
     // A session that surfaced nothing real clears the opener rather than
     // letting a stale one greet the learner twice.
