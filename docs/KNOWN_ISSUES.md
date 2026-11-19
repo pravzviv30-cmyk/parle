@@ -3909,8 +3909,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - where: services/token-server/src/store.ts:16
 - note: recordBillingEvent on the EntitlementStore interface and all four implementations; Supabase
   through the RPC, fixtures through a set, matching the consume idempotency shape.
-- note: 2026-11-18 (B2 review): `recordBillingEvent` was removed under F1102, with its six tests. Nothing called it: the webhook dedupes through `billingEventComplete` and `applyBilling`, so the replay guarantee is now verified at the webhook itself.
-- verified-by: `a replayed webhook is acknowledged without a second vendor fetch`
+- verified-by: `recording a billing event asks the database once and reports a replay as already seen`
 
 ### F247 — Subscriber state projects to entitlement in one place
 - severity: P1
@@ -13910,25 +13909,25 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1099 — minutes_refused is never recorded in production
 - severity: P2
 - status: [x]
-- where: services/token-server/src/server.ts:781
+- where: services/token-server/src/server.ts:785
 - note: B2-2, part B, built only on the founder's yes. Production refusals come from the database reservation, which returns before the recorder. The notice and PRIVACY_AND_SAFETY.md already name the event. The test also proves a session-active refusal and a learner with analytics off record nothing.
 - verified-by: `a refused reservation records minutes_refused when analytics is allowed`
 
 ### F1100 — The header and request deadlines fire up to 30 s late
 - severity: P2
 - status: [x]
-- where: services/token-server/src/server.ts:1243
+- where: services/token-server/src/server.ts:333
 - note: B2-3. Node checks both deadlines on a 30 s sweep that server.ts never shortens, so a stalled body holds one of the 128 busy slots for up to 60 s. A 5 s sweep makes the stated 10 s and 30 s real. It does not bound the stall attack; that is handed to B1 behind a staging probe.
 - verified-by: `the server sweeps stalled connections every few seconds, so its header and request deadlines hold`
 
-### F1102 — recordBillingEvent and fenceAccount have no caller
+### F1102 — fenceAccount and an unused CI contract variable have no reader
 - severity: P2
 - status: [x]
-- where: services/token-server/src/store.ts:41
-- note: B2-6 and the fenceAccount part of B2-5. The webhook dedupes through billingEventComplete and applyBilling, so the interface comment is untrue. Deletes 6 tests, the two fixture sets and one unused test variable. The SQL functions stay for D1.
-- verified-by: `billing projection uses one RPC carrying vendor state but never a stale usage counter`
-- verified-by: `a replayed webhook is acknowledged without a second vendor fetch`
+- where: services/token-server/src/tutorSessions.ts:26
+- note: The fenceAccount part of B2-5. tutorSessions.ts carried a fenceAccount method nothing called, and ciContract.test.ts built an `accepted` list nothing read. Both are deleted; no test is deleted. The SQL function fence_tutor_account_v1 stays, since the database proofs call it directly.
+- note: 2026-11-19: recordBillingEvent removal deferred to a slice that updates the moneyUntouched.test.ts store.ts hash with revenue review (M1).
 - verified-by: `service reservation decoder rejects malformed allowance and identity bindings`
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
 
 ### F1103 — Metrics file /events and every /onboarding request under unknown
 - severity: P2
@@ -13940,7 +13939,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1104 — The fix-line judge and the transcribe handler copy helpers their neighbours already have
 - severity: P2
 - status: [x]
-- where: services/token-server/src/fixLineJudge.ts:10
+- where: services/token-server/src/fixLineJudge.ts:28
 - note: B2-8, narrowed to the two pairs that already import each other. Removes a second home of the CEFR band list and the line check. The first test is characterization, written and green before the change.
 - verified-by: `a correction retry trims its lines, refuses an over-long one and reads an unknown level as A2`
 - verified-by: `a transcription authenticates and limits before its one ephemeral upload`

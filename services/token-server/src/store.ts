@@ -29,6 +29,16 @@ export interface EntitlementStore {
   consume(userId: string, seconds: number, sessionId?: string): Promise<Entitlement>;
   recordSessionGrant(userId: string, sessionId: string, expected: Entitlement): Promise<boolean>;
   refundSession(userId: string, sessionId: string, failure: ServiceFailure): Promise<SessionSettlement>;
+  /**
+   * Claim a billing event id, answering whether this is the **first** sighting.
+   *
+   * The webhook is a doorbell rather than a source of state: it asks this before
+   * it fetches anything from the vendor, so a redelivery costs one question to
+   * our own database and no outbound request at all. Reading an ambiguous answer
+   * as `true` is the client half of F73 and F74 — it would send a fresh
+   * subscriber fetch on every retry of an event we have already acted on.
+   */
+  recordBillingEvent(userId: string, eventId: string): Promise<boolean>;
   billingEventComplete(eventId: string): Promise<boolean>;
   beginBillingRefresh(userId: string): Promise<number>;
   applyBilling(userId: string, ticket: number, snapshot: BillingSnapshot, eventId?: string): Promise<BillingProjection>;
@@ -166,6 +176,11 @@ export class DevelopmentEntitlementStore extends LocalBillingSupport implements 
     return { plan: 'regular', secondsUsed: 0 };
   }
 
+  /** Every delivery is a first sighting, so a replayed fixture still exercises the path. */
+  async recordBillingEvent(_userId: string, _eventId: string): Promise<boolean> {
+    return true;
+  }
+
   async save(_userId: string, _entitlement: Entitlement): Promise<void> {}
 
   async consume(_userId: string, seconds: number, _sessionId?: string): Promise<Entitlement> {
@@ -198,6 +213,7 @@ export class EntitlementNotProvisionedError extends Error {
 
 export class InMemoryEntitlementStore extends LocalBillingSupport implements EntitlementStore {
   private readonly rows = new Map<string, Entitlement>();
+  private readonly billingEvents = new Set<string>();
   // Written out longhand rather than as a constructor parameter property: Node runs
   // this file by stripping types, and parameter properties emit runtime code, so
   // they are rejected outright. Same reason in services/tutor-agent/src/agent.ts.
@@ -239,6 +255,15 @@ export class InMemoryEntitlementStore extends LocalBillingSupport implements Ent
   async consume(userId: string, seconds: number, sessionId?: string): Promise<Entitlement> {
     return this.consumeLocal(userId, seconds, sessionId);
   }
+
+  /** Keyed on the event id alone, exactly as billing_events' primary key is. */
+  async recordBillingEvent(userId: string, eventId: string): Promise<boolean> {
+    if (!eventId) throw new Error('a billing event id is required');
+    if (!userId) throw new Error('a billing event needs an account');
+    if (this.billingEvents.has(eventId)) return false;
+    this.billingEvents.add(eventId);
+    return true;
+  }
 }
 
 /**
@@ -258,6 +283,7 @@ export class FileEntitlementStore extends LocalBillingSupport implements Entitle
   private readonly path: string;
   private readonly defaultPlan: Plan;
   private readonly rows: Map<string, Entitlement>;
+  private readonly billingEvents = new Set<string>();
 
   constructor(path: string, defaultPlan: Plan = 'trial') {
     super();
@@ -369,6 +395,15 @@ export class FileEntitlementStore extends LocalBillingSupport implements Entitle
       console.error('[luvani] ENTITLEMENT_NOT_PERSISTED', safeError(err));
       if (strict) throw err;
     }
+  }
+
+  /** Keyed on the event id alone, exactly as billing_events' primary key is. */
+  async recordBillingEvent(userId: string, eventId: string): Promise<boolean> {
+    if (!eventId) throw new Error('a billing event id is required');
+    if (!userId) throw new Error('a billing event needs an account');
+    if (this.billingEvents.has(eventId)) return false;
+    this.billingEvents.add(eventId);
+    return true;
   }
 }
 
@@ -559,5 +594,27 @@ export class SupabaseEntitlementStore implements EntitlementStore {
       return { kind: 'unchanged', reason: body.reason as 'unknown-product' | 'not-paid' | 'superseded', entitlement };
     }
     return { kind: body.kind as 'active' | 'lapsed', entitlement };
+  }
+
+  async recordBillingEvent(userId: string, eventId: string): Promise<boolean> {
+    if (!eventId) throw new Error('a billing event id is required');
+    if (!userId) throw new Error('a billing event needs an account');
+    const response = await this.request(`${this.baseUrl}/rest/v1/rpc/record_billing_event`, {
+      method: 'POST',
+      headers: this.#headers(),
+      signal: AbortSignal.timeout(5_000),
+      // The argument names are the migration's, not ours. PostgREST matches an
+      // overload by argument name, so a typo here is a 404 in production.
+      body: JSON.stringify({ p_event_id: eventId, p_user_id: userId }),
+    });
+    // A raise means neither replay nor first sighting — another transaction holds
+    // this id uncommitted. Throwing sends the vendor away to redeliver, and costs
+    // nothing outbound because the dedupe runs before the subscriber fetch.
+    if (!response.ok) throw new Error(`billing event record failed (${response.status})`);
+    const body: unknown = await response.json();
+    // Only a literal true is a first sighting. null, {}, [], "true" and 1 are all
+    // ambiguous, and reading any of them as true would re-fetch the subscriber on
+    // every redelivery of an event we have already acted on.
+    return body === true;
   }
 }
