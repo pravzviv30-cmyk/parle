@@ -257,7 +257,7 @@ describe('fish’s missing final marker, repaired at the seam', () => {
     // the plugin emits on itself. Unforwarded, the error stops at the plugin.
     const seen: unknown[] = [];
     cached.on('error', (ev: unknown) => seen.push(ev));
-    const ev = { type: 'tts_error', timestamp: 0, label: 'fake', error: new Error('boom'), recoverable: false };
+    const ev = { type: 'tts_error' as const, timestamp: 0, label: 'fake', error: new Error('boom'), recoverable: false };
     fake.emit('error', ev);
     assert.equal(seen.length, 1, 'exactly one error event reaches the session');
     assert.equal(seen[0], ev, 'the vendor event itself, unchanged');
