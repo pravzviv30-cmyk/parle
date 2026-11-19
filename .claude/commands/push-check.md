@@ -203,12 +203,15 @@ refuses `n/a` for a frontend commit.
 
 **Proposals log.** Before the section 9 stamp, so the rows are part of the checked commit,
 add each proposal as a row in the "Proposals from push-check" table in
-`docs/DESIGN_PARTNERSHIP.md` with State `asked, no answer yet`, and commit by path. That
+`docs/DESIGN_PARTNERSHIP.md` with State `queued for a board` (founder rule, 2026-11-19), and commit by path. That
 commit only adds rows to a doc, so it does not reopen sections 3 to 6; the gate still runs
 on it, and the stamp goes on it.
 
-**Asking the founder.** After the push (section 10), see there. The push never waits for
-the answer.
+**Proposals are not asked one by one (founder rule, 2026-11-19).** They are logged as
+`queued for a board` and nothing is put to the founder after the push. When this feature
+branch would conflict with other open PRs on that table, leave the rows out of the branch,
+put them in the PR body instead, and land them in one docs-only commit on `main` after the
+merge.
 
 ### unslop design review
 
@@ -232,8 +235,8 @@ contradicts them is not a finding.
 
 **Findings and result.** Sorted exactly like Impeccable's: slop is fixed in the push through
 section 7; redesign proposals are never applied, are logged in the same table in
-`docs/DESIGN_PARTNERSHIP.md` with the reviewer named (`unslop`), and are put to the founder
-after the push in the same `AskUserQuestion`. `pass`, `fail` and `n/a` mean what they mean
+`docs/DESIGN_PARTNERSHIP.md` with the reviewer named (`unslop`), and are `queued for a board`
+like Impeccable's. `pass`, `fail` and `n/a` mean what they mean
 for Impeccable, and the guard refuses `--unslop n/a` on a frontend commit.
 
 ## 7. Fix loop
@@ -279,17 +282,13 @@ before the earlier command makes a new one.
 Six lines: the gate count, what the browser pass covered (screens, sizes, modes) and
 found, what the reviewers and `/code-review` found and what was fixed, the Impeccable
 disposition word and the unslop verdict, each with the slop found and fixed and the number of
-proposals asked (frontend only), the security result when `--main`, and the stamp result. Then push (with the
+proposals queued (frontend only), the security result when `--main`, and the stamp result. Then push (with the
 keepalive `GIT_SSH_COMMAND="ssh -o ServerAliveInterval=20 -o ServerAliveCountMax=30"`) and
 confirm with `git ls-remote`.
 
-Then, if the Impeccable or unslop reviewer made proposals, ask the founder in **one
-`AskUserQuestion`**: one question per proposal (at most four), each with the options
-"Queue for a board", "Fold into the screen's redesign" and "Not now". Do not wait on the
-answer before pushing. When it comes, update each row's State in
-`docs/DESIGN_PARTNERSHIP.md` to `queued for a board`, `folded into <screen> redesign`, or
-`not now: <reason, from the founder's note, or "no reason given">`, and commit by path.
-That commit goes out with the next push, checked like any other. After a landing the
-branch is gone, so make that commit on `main` in the main checkout and push it with
-`/push-check --main`; it only touches a doc, so Impeccable and unslop are `n/a` there. If the founder
-is not there, the rows already say `asked, no answer yet`.
+If the Impeccable or unslop reviewer made proposals, they are not asked one by one (founder
+rule, 2026-11-19). Each row is logged as `queued for a board` in
+`docs/DESIGN_PARTNERSHIP.md` before the stamp, as section 6 says. When the branch would
+conflict with other open PRs, the rows go in the PR body instead and land in one docs-only
+commit on `main` after the merge, made in the main checkout and pushed with
+`/push-check --main`; it only touches a doc, so Impeccable and unslop are `n/a` there.

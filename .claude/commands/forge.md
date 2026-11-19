@@ -42,7 +42,9 @@ Do not start editing. Step 2 is where the design comes from, and it is not you.
 
 3. **Get approval before any edit.** Show the contract. In plan mode that means
    `ExitPlanMode`; otherwise ask plainly and wait. Nothing is written to the repo until the
-   contract is approved.
+   contract is approved. A stage with learner-facing copy or new states gets Impeccable and
+   unslop on its plan before the build, folded into the one founder question round (founder
+   rule, 2026-11-19).
 
 4. **File the ledger entries** from the contract into `docs/KNOWN_ISSUES.md`, verbatim.
    Continue the `F` numbering from the highest already there. This happens *before* the work,

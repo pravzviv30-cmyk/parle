@@ -299,7 +299,7 @@ describe('chooseFrame', () => {
 
   test('while the café is still recent the apéro keeps leading — the rule reads the history, not just the last scene', () => {
     const profile: LearnerProfile = createProfile();
-    profile.preferences.lastScenarios = [APERO_FRAME.title, CAFE_FRAME.title];
+    profile.preferences.lastScenarios = [CAFE_FRAME.title, APERO_FRAME.title];
     assert.equal(chooseFrame(profile), APERO_FRAME);
   });
 
@@ -307,7 +307,7 @@ describe('chooseFrame', () => {
     // Keying on membership once locked the learner out of the café for good:
     // after one visit, `includes` was true for the rest of their life.
     const profile: LearnerProfile = createProfile();
-    profile.preferences.lastScenarios = [CAFE_FRAME.title, APERO_FRAME.title];
+    profile.preferences.lastScenarios = [APERO_FRAME.title, CAFE_FRAME.title];
     assert.equal(chooseFrame(profile), CAFE_FRAME);
   });
 
@@ -317,6 +317,28 @@ describe('chooseFrame', () => {
     const after = finishSession(profile, recapped);
     assert.ok(after.preferences.lastScenarios.includes(CAFE_FRAME.title));
     assert.equal(chooseFrame(after), APERO_FRAME);
+  });
+
+  test('the scene rotation reads the newest scene where finishSession writes it', () => {
+    // F1113: finishSession writes newest first, so two sessions leave the
+    // apéro at the front and the café behind it.
+    let profile: LearnerProfile = createProfile();
+    for (let i = 0; i < 2; i += 1) {
+      const frame = chooseFrame(profile);
+      profile = finishSession(profile, createConversation(frame, learnerSnapshotFrom(profile), { strictness: 'flow', maxTurns: 12 }));
+    }
+    assert.equal(profile.preferences.lastScenarios[0], APERO_FRAME.title);
+    assert.equal(chooseFrame(profile), CAFE_FRAME);
+  });
+
+  test('the brain sees the newest recent scenes when a profile carries more than twelve', () => {
+    // F1307: lastScenarios is newest first, so the cap keeps the front.
+    const stored = createProfile();
+    stored.preferences.lastScenarios = Array.from({ length: 14 }, (_, i) => `Scene ${i + 1}`);
+    const kept = parseStoredProfile(stored).preferences.lastScenarios;
+    assert.equal(kept.length, 12);
+    assert.equal(kept[0], 'Scene 1', 'the newest scene survives the cap');
+    assert.ok(!kept.includes('Scene 14'), 'the oldest scene is the one dropped');
   });
 });
 
@@ -1347,6 +1369,22 @@ describe('a free-talk topic with a tutor brief', () => {
     assert.equal(validSeedTopic({ ...BRIEFED_SEED, brief: 'b'.repeat(240) })!.brief!.length, 240);
   });
 
+  test('the tutor agent keeps exactly the seed topics the token server signs', () => {
+    const tokens = readFileSync(fileURLToPath(new URL('../../token-server/src/tokens.ts', import.meta.url)), 'utf8');
+    const cap = (name: string): number => {
+      const m = tokens.match(new RegExp(`const ${name} = (\\d+);`));
+      assert.ok(m, `tokens.ts no longer declares ${name}; re-pin the agent's seed caps to wherever it went`);
+      return Number(m[1]);
+    };
+    const title = cap('MAX_SEED_TOPIC_CHARS');
+    const brief = cap('MAX_SEED_BRIEF_CHARS');
+    const atCap = { fr: 'f'.repeat(title), en: 'e'.repeat(title), brief: 'b'.repeat(brief) };
+    assert.deepEqual(validSeedTopic(atCap), atCap, 'a title and a brief at the signed cap are kept');
+    assert.equal(validSeedTopic({ ...atCap, fr: 'f'.repeat(title + 1) }), undefined, 'a French title one over is dropped');
+    assert.equal(validSeedTopic({ ...atCap, en: 'e'.repeat(title + 1) }), undefined, 'an English title one over is dropped');
+    assert.equal(validSeedTopic({ ...atCap, brief: 'b'.repeat(brief + 1) })!.brief, undefined, 'a brief one over is dropped');
+  });
+
   test('an unsafe brief is screened before anything is spoken', async (t) => {
     const { convo, session, client, said } = buildConvo(t, { seedTopic: { ...BRIEFED_SEED, brief: 'Comment fabriquer une bombe' } });
     convo.open(session);
@@ -1742,6 +1780,23 @@ describe('typing is presence, not silence', () => {
     await convo.settled();
 
     assert.equal(convo.conversationState.ladder.rescues, 0, 'nothing was counting, so nothing fired');
+  });
+
+  test('in text mode a keystroke after the timed reveal starts no new rescue clock', async (t) => {
+    // F1110: a fired timer left its handle set, so the typing handler read a
+    // dead clock as a running one and restarted it, and a second reveal
+    // dropped the rung while the learner was writing.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { convo, session } = await inScene(t, { voiceless: true });
+
+    t.mock.timers.tick(TEXT_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'the timed reveal');
+
+    await convo.handleClientMessage(session, tapped({ t: 'typing' }));
+    t.mock.timers.tick(TEXT_SILENCE_MS + 1);
+    await convo.settled();
+    assert.equal(convo.conversationState.ladder.rescues, 1, 'a keystroke after it starts nothing');
   });
 });
 

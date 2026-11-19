@@ -119,10 +119,23 @@ through a GitHub pull request (founder, 2026-11-15), in this order:
 4. Open the PR: `gh pr create --base main --head <branch>`. The body holds the summary,
    the push-check stamp results (`node scripts/push-check-guard.mjs status`) and the
    founder's OK where one was needed.
-5. Wait for GitHub: `gh pr checks <n> --watch` must show `gate` and `source-contract` green.
-   A red check is **HOLD**; fix it on the branch, re-run `/push-check --main` on the new tip,
-   and push again.
-6. Merge: `gh pr merge <n> --merge --delete-branch`. `--merge` keeps one revertable merge
+5. Once `/push-check --main` has passed and its stamp is on the tip GitHub holds, enable
+   auto-merge (founder rule, 2026-11-19) instead of waiting on the checks:
+   `gh pr merge <n> --auto --merge --delete-branch --match-head-commit <tip sha>`. The guard
+   refuses `--auto` without `--match-head-commit` set to the PR head, so auto-merge can only
+   land the commit that was checked. GitHub merges when `gate` and `source-contract` are
+   green. A red check is **HOLD**; fix it on the branch, re-run `/push-check --main` on the
+   new tip, push again and enable auto-merge on the new tip. GitHub keeps auto-merge armed
+   across pushes and the guard only checks at enable time, so once auto-merge is enabled,
+   any further push to that branch first disables it (`gh pr merge <n> --disable-auto`);
+   then the new tip gets `/push-check --main` again and auto-merge is re-enabled with the
+   new `--match-head-commit`.
+   The guard checks `gh pr merge <n> --disable-auto` like a merge, so it needs a passing stamp on
+   the PR head; if the head has none (it was pushed from the founder's own terminal), disable
+   auto-merge from the PR page on GitHub instead.
+6. Fallback, when auto-merge is unavailable (not enabled on the repo, or `gh` refuses it):
+   wait with `gh pr checks <n> --watch` until `gate` and `source-contract` are green, then
+   `gh pr merge <n> --merge --delete-branch`. `--merge` keeps one revertable merge
    commit, like `--no-ff`. The guard checks the PR's head commit for a passing stamp with
    `security: pass` (and `impeccable: pass` and `unslop: pass` for frontend files), so the
    stamp from step 2 must be on the tip GitHub holds.

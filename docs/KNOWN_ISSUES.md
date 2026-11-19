@@ -1835,8 +1835,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F79 — The replayed-credential refusal is worker-local
 - severity: P2
-- status: [ ]
-- where: services/token-server/src/server.ts:192
+- status: [x]
+- where: services/tutor-agent/src/sessionLifecycle.ts:193
 - note: F77 closed the money half of a replayed join credential by having the tutor refuse a
   session id it has already reported, but that ledger lives in the worker's memory. It closes
   the replay against the worker that served the original session, which is the whole fleet
@@ -1845,8 +1845,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reported session id, so the join path can consult it. That is a token-server change and was
   outside the voice engineer's territory, so it is filed rather than reached for. Related:
   agent.ts keeps a refused replay's job alive on its hardStop timer, costing no vendor spend
-  but holding a worker slot.
-- verified-by: `a reported session id is refused on the join path, not only by the worker that served it`
+  but holding a worker slot. (2026-11-18: no longer true for lifecycle sessions. `hardStop`
+  exists only without a lifecycle, agent.ts:399, and a refused claim throws at agent.ts:194.)
+- note: Closed 2026-11-18 (B3a part A). The durable `claim_tutor_session_v1` fence refuses a
+  second claim for any worker and across restarts, and production requires lifecycle version 1,
+  so no shared store is needed. `claim()` throws `SessionLifecycleError` on the refusal, and
+  agent.ts awaits the claim before it builds any paid runtime, proxy or provider.
+  `scripts/verifyTutorSessions.mjs:105-106` proves in every gate run that the database refuses a
+  second claim with a different nonce.
+- verified-by: `a claim the database refuses throws before any provider is built`
 
 ### F80 — Four live vendor credentials sit in git history on two local branches
 - severity: P2
@@ -2194,6 +2201,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   was forbidden to spend. So the budget is bounded at twice the measured p95 as a runaway guard
   with the saving honestly stated as zero, effort stays high, and the real cut is filed as F103
   where the measurement actually pointed.
+- note: `verify/brainSpend.ts` was removed 2026-11-18 (F1109, B3a-8); see git history.
 - verified-by: `the drills budget keeps at least twice the measured p95 of its output`
 - verified-by: `the drills route keeps the effort its quality was measured at`
 
@@ -14077,6 +14085,75 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: services/token-server/src/ciContract.test.ts:62
 - note: NEEDS-PROBE, not reproduced. The file takes 3.0 s; the spawned gate takes 0.75 s in a clean worktree and 3.43 s cold in the main checkout. Hypothesis: the gate's test-file walk reads 61,696 entries there, 53,011 under apps/mobile build output. Probe: one full gate on the main checkout with the device build present. A fix belongs to S1.
 - verified-by: `the CI contract check finishes without waiting on the network or the clock`
+
+### F1108 — One production preflight message answers for eight different refusals
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/preflight.ts:705
+- note: B3a-6, part A. The message names three causes and is printed for eight. It names the failed settings, never their values. No input is newly accepted or refused.
+- note: Fixed 2026-11-18 on claude/review-b3a. The `||` chain is a list of eight named checks (the two TUTOR_LLM conditions share one name, and the scoring condition is split into LUVANI_SCORING_VENDOR and SPEECHACE_API_KEY), and the refusal prints only the failed names.
+- note: 2026-11-18, after push-check: each failed check now prints a fixed sentence saying what its setting must be (for example `TUTOR_LLM must be openai.`), never a value. The test refuses every override value and every secret-like base value on console.error, warn and info.
+- verified-by: `a production refusal names the setting that caused it`
+
+### F1109 — The voice proxy carries a cap that cannot bind, a comment describes a shared process, and the verify harness imports an undeclared package
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/paidVoiceProxy.ts:162
+- note: B3a-4, B3a-5 and B3a-9, part A, plus the B3a-8 deletion if the founder chooses it. No test dies and the floor is unchanged.
+- note: Fixed 2026-11-18 on claude/review-b3a. `activeTransports` and its two `>=64` checks are gone; the per-proxy caps of 4 HTTP and 2 streams stay. The agent.ts comment on the client-message `.catch` now describes one job process per session and the SDK's debug-only unhandledRejection handler. `livekit-server-sdk` ^2.17.0 is a tutor-agent devDependency, one lockfile line. The founder chose to delete `verify/brainSpend.ts` (2026-11-18), and it is deleted.
+- verified-by: `four HTTP transports maximum; session cancellation releases them without a fifth effect`
+- verified-by: `two streams maximum and global/per-connection PCM duration cannot be exceeded`
+- verified-by: `every bare package a tutor-agent source imports is declared in its package.json`
+
+### F1110 — In text mode a keystroke after the timed reveal starts a second rescue clock
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:2391
+- note: B3b-1. The rescue callback leaves silenceTimer set after it fires, so the typing handler's "only ever a restart" check passes on a dead handle and a second reveal drops the rung while the learner is writing. Clear the handle first, as tutor.ts:624 does.
+- note: Fixed 2026-11-19 on claude/review-b3b: the rescue callback clears the handle before runRescue; the named test fails with 2 rescues before and passes with 1 after.
+- verified-by: `in text mode a keystroke after the timed reveal starts no new rescue clock`
+
+### F1111 — Under the fish voice vendor a vendor error never reaches the session
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/voiceFish.ts:239
+- note: B3b-2. CachedTTS listens on the FinalMarkingTTS wrapper, but the plugin emits on the inner TTS, which has no listener and throws ERR_UNHANDLED_ERROR. Non-production only, because preflight refuses fish in production. Forward error from inner; the test asserts exactly one event.
+- note: Fixed 2026-11-19 on claude/review-b3b: the FinalMarkingTTS constructor forwards error from inner; the named test fails with 0 events before and passes with 1 after. A real mid-line stream failure also delivers exactly one event, now pinned in `a stream that errors mid-line never reaches disk, even through the adapter`. metrics_collected is not forwarded; nothing listens on it.
+- verified-by: `a fish vendor error reaches the session through the final-marking wrapper`
+
+### F1112 — Nothing keeps the tutor agent's seed topic caps equal to the token server's
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:525
+- note: B3b-3. The caps and the guard are written out in the token server, the tutor agent, core and the app, and only the app is pinned. A raised cap would be signed and then dropped by the agent without a word. This entry pins the agent to tokens.ts; moving the guard to core is routed to its own PR after tutor recall phase 2.
+- note: Fixed 2026-11-19 on claude/review-b3b: the named test reads both caps from the tokens.ts source and fails loudly if either declaration goes. It passed at once, as a pin should; raising the agent's title cap to 121 made it fail on 'a French title one over is dropped', and the cap was reverted.
+- verified-by: `the tutor agent keeps exactly the seed topics the token server signs`
+
+### F1113 — chooseFrame reads the oldest recent scene as the newest
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:409
+- note: Cross-slice note from B4. finishSession writes newest first and chooseFrame reads the last item, so the rotation sticks on the apéro after two sessions. The frame is only the constructor placeholder, so no learner plays it. Two test fixtures pin the wrong order and are flipped.
+- note: Fixed 2026-11-19 on claude/review-b3b: chooseFrame reads lastScenarios[0]; the named test failed with the apéro before and passes with the café after, and the two old-order fixtures are flipped with their titles kept.
+- verified-by: `the scene rotation reads the newest scene where finishSession writes it`
+
+### F1307 — safeModelProfile keeps the oldest twelve recent scenes, not the newest
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:308
+- note: Found by the B3b /code-review, 2026-11-19. finishSession writes lastScenarios newest first, so slice(-12) handed the brain the oldest twelve and dropped the newest. Reachable only for a profile carrying more than twelve, since finishSession caps at five. Same misreading F1113 fixed in chooseFrame.
+- note: Fixed 2026-11-19 on claude/review-b3b: the cap is slice(0, 12). The named test failed with 'Scene 3' at the front before and passes with 'Scene 1' after.
+- verified-by: `the brain sees the newest recent scenes when a profile carries more than twelve`
+
+### F1310 — Stale comments, a dead re-export shim and five unused names in the tutor agent
+- severity: P2
+- status: [x]
+- where: services/shared/speechace.ts
+- note: B3b-4 comment only, plus B3b-5 to B3b-9. No behaviour changes and no test dies. The voice-samples advice is operator copy, not learner copy.
+- note: Fixed 2026-11-19 on claude/review-b3b: the voice, voiceConfiguration, voiceSamples, ttsCache and canDoEvidence parts landed first. This pass corrects the reportedSessions comment in tutor.ts (per job process, so it catches no replay; the durable claim_tutor_session_v1 claim is the guard), deletes the speechace.ts shim and points its test at services/shared, drops the unused session parameter on the private routeClientMessage (the public handleClientMessage keeps it as `_session`, because the worker calls both tutors with one signature), and corrects two voice-samples comments to the six-voice, bills-on-rerun truth. tsc with --noUnusedLocals --noUnusedParameters reports only test-file names. The tutor-agent suite is 1046.
+- verified-by: `flattens words and phones into observations`
+- verified-by: `first synthesis goes to the vendor, second replays from disk`
+- verified-by: `the model is pinned, not left to the plugin default`
 
 ### F1053 — A spoken coach line can quote the written form's digits
 - severity: P2

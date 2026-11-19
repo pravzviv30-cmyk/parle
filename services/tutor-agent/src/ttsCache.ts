@@ -372,7 +372,6 @@ class CachedChunkedStream extends tts.ChunkedStream {
   protected async run(): Promise<void> {
     const text = this.inputText;
     const cacheable = this.#cache.cacheable(text);
-    const path = this.#cache.cachePath(text);
     // Non-authored lines up to the same length limit may be replayed from this
     // session's memo; longer ones bypass every cache. The key is
     // the same fingerprint the disk uses, so another voice, model, setting or
@@ -418,8 +417,8 @@ class CachedChunkedStream extends tts.ChunkedStream {
     let frames: MemoFrame[] | null;
     try {
       frames = this.#cache.opts.missTransport === 'ws'
-        ? await this.#missViaStream(path, cacheable, memoKey !== null)
-        : await this.#passthrough(path, cacheable, memoKey !== null);
+        ? await this.#missViaStream(cacheable, memoKey !== null)
+        : await this.#passthrough(cacheable, memoKey !== null);
     } finally {
       // Runs when the stream throws too, so a broken line is never context for the next.
       if (!(this.#finished && this.#firstAudioReported) && this.#cache.previousLine() === normaliseLine(text)) this.#cache.rememberLine(null);
@@ -467,7 +466,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
   }
 
   /** Live synthesis over per-sentence HTTP, teeing to disk when the line succeeds. */
-  async #passthrough(path: string, cacheable: boolean, remember: boolean): Promise<MemoFrame[] | null> {
+  async #passthrough(cacheable: boolean, remember: boolean): Promise<MemoFrame[] | null> {
     const innerStream = this.#audio();
     const collected: AudioFrame[] = [];
     let collectedBytes = 116;
@@ -488,7 +487,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
     // nothing above and nothing is written.
     if (this.abortSignal.aborted || this.closed || this.#cutShort) return null;
     this.#finished = true;
-    if (cacheable && collected.length > 0) this.#writeWav(path, collected);
+    if (cacheable && collected.length > 0) this.#writeWav(collected);
     return memo?.frames() ?? null;
   }
 
@@ -531,7 +530,7 @@ class CachedChunkedStream extends tts.ChunkedStream {
    * synthesizing into the next turn, and nothing reaches disk unless the
    * vendor's own final marker arrived, so a truncated line is never replayed.
    */
-  async #missViaStream(path: string, cacheable: boolean, remember: boolean): Promise<MemoFrame[] | null> {
+  async #missViaStream(cacheable: boolean, remember: boolean): Promise<MemoFrame[] | null> {
     const innerStream = this.#route!.inner.stream(this.#connOptions ? { connOptions: this.#connOptions } : undefined);
     innerStream.pushText(this.inputText);
     innerStream.endInput();
@@ -564,12 +563,12 @@ class CachedChunkedStream extends tts.ChunkedStream {
 
     if (this.abortSignal.aborted || this.closed || !sawFinal) return null;
     this.#finished = true;
-    if (cacheable && collected.length > 0) this.#writeWav(path, collected);
+    if (cacheable && collected.length > 0) this.#writeWav(collected);
     return memo?.frames() ?? null;
   }
 
   /** One WAV per completed line, written atomically so readers never see halves. */
-  #writeWav(path: string, collected: AudioFrame[]): void {
+  #writeWav(collected: AudioFrame[]): void {
     const first = collected[0]!;
     const total = collected.reduce((n, f) => n + f.data.length, 0);
     const samples = new Int16Array(total);

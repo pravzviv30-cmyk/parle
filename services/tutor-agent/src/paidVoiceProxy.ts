@@ -45,7 +45,6 @@ const BODY_LIMIT=2*1024*1024, WS_REPLY_LIMIT=128*1024, BUFFER_LIMIT=256*1024;
 const KEYTERM_COUNT=16, KEYTERM_CHARS=100, KEYTERM_BYTES=400;
 /** The pre-keyterm 2048 plus 16 `&keyterm=` and every keyterm byte percent-encoded (3 chars each). */
 const ROUTE_LIMIT=2048+KEYTERM_COUNT*'&keyterm='.length+KEYTERM_BYTES*3;
-let activeTransports=0;
 const object=(value:unknown):value is Record<string,unknown>=>!!value && typeof value==='object' && !Array.isArray(value);
 function target(raw:string|undefined):URL {
   if(!raw || raw.length>ROUTE_LIMIT || !raw.startsWith('/') || raw.startsWith('//') || /[\\\x00-\x20\x7f]/.test(raw))throw new Error('invalid-route');
@@ -160,11 +159,11 @@ export async function createPaidVoiceProxy(options:PaidVoiceProxyOptions):Promis
     let url:URL;try{url=target(req.url);}catch{refused(res,404);return;}
     const match=url.pathname.match(new RegExp(`^${prefix}/(anthropic/v1/messages|openai/v1/chat/completions|elevenlabs/v1/text-to-speech/[A-Za-z0-9_-]{1,128}/stream)$`));
     if(!match || req.method!=='POST' || signal.aborted){refused(res,404);return;}
-    if(activeHttp>=4 || activeTransports>=64){refused(res,429);return;}
+    if(activeHttp>=4){refused(res,429);return;}
     if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(req.headers['content-type']??'') || req.headers['content-encoding'] && req.headers['content-encoding']!=='identity'){refused(res,400);return;}
     const declared=req.headers['content-length'];
     if(declared!==undefined && (!/^\d+$/.test(declared) || Number(declared)>BODY_LIMIT)){refused(res,413);return;}
-    activeHttp++;activeTransports++;
+    activeHttp++;
     const job=new AbortController(),joined=AbortSignal.any([signal,job.signal]);controllers.add(job);
     const timer=setTimeout(()=>job.abort(),35000);
     const disconnected=()=>{if(!res.writableEnded)job.abort();};
@@ -192,23 +191,23 @@ export async function createPaidVoiceProxy(options:PaidVoiceProxyOptions):Promis
       res.end();
     }catch{refused(res);}finally{
       job.abort();clearTimeout(timer);controllers.delete(job);req.removeListener('aborted',disconnected);res.removeListener('close',disconnected);
-      void reader?.cancel().catch(()=>{});activeHttp--;activeTransports--;
+      void reader?.cancel().catch(()=>{});activeHttp--;
     }
   }
   server.on('upgrade',(req,socket,head)=>{void upgrade(req,socket,head).catch(()=>socket.destroy());});
   async function upgrade(req:IncomingMessage,socket:Duplex,head:Buffer):Promise<void> {
     let url:URL;try{url=target(req.url);}catch{socket.destroy();return;}
     const version=['v1','v2'].find(v=>url.pathname===`${prefix}/deepgram/${v}/listen`);
-    if(req.method!=='GET' || !version || signal.aborted || activeStreams>=2 || activeTransports>=64 || head.length>BUFFER_LIMIT){socket.destroy();return;}
+    if(req.method!=='GET' || !version || signal.aborted || activeStreams>=2 || head.length>BUFFER_LIMIT){socket.destroy();return;}
     let descriptor:PaidDescriptor,plain:PaidDescriptor|undefined;
     try{descriptor=describeStreamingDeepgram(url,options.maximumSessionMillis);if(url.searchParams.has('keyterm'))plain=describeStreamingDeepgram(withoutKeyterms(url),options.maximumSessionMillis);}catch{socket.destroy();return;}
     const credential=options.credentials.deepgram;if(!credential || /[\r\n]/.test(credential)){socket.destroy();return;}
-    activeStreams++;activeTransports++;socket.pause();
+    activeStreams++;socket.pause();
     const job=new AbortController();controllers.add(job);const joined=AbortSignal.any([signal,job.signal]);
     const timer=setTimeout(()=>job.abort(),8000);
     let upstream:VendorSocket|undefined,client:VendorSocket|undefined,allowedSignal:AbortSignal|undefined,finished=false;
     const finish=()=>{
-      if(finished)return;finished=true;joined.removeEventListener('abort',finish);allowedSignal?.removeEventListener('abort',finish);socket.removeListener('close',finish);job.abort();clearTimeout(timer);controllers.delete(job);activeStreams--;activeTransports--;
+      if(finished)return;finished=true;joined.removeEventListener('abort',finish);allowedSignal?.removeEventListener('abort',finish);socket.removeListener('close',finish);job.abort();clearTimeout(timer);controllers.delete(job);activeStreams--;
       for(const stream of [upstream,client])if(stream){sockets.delete(stream);stream.terminate();}
       socket.destroy();
     };
