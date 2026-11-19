@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { mock, test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { buildConversationPack } from '@luvani/core';
 import { tutorDigest, TutorRpcError } from '../../shared/tutorLifecycle.ts';
@@ -294,6 +294,15 @@ test('a retry wait never runs past the lease time left', async () => {
   assert.equal(f.calls.filter(c => c.operation === 'checkpoint').length, 1);
   await life.complete({ learnerTurns: 0 });
 });
+// F1319: after a stop, settlement tries go back to back, as before F1106.
+test('a settlement refused instantly retries without waiting once the lifecycle has stopped', async () => {
+  const f = fixture({ call: async (op, payload, signal) => op === 'complete' || op === 'receipt' ? Promise.reject(new TutorRpcError(503)) : f.normal(op, payload, signal) });
+  const life = await f.claim();
+  await life.complete({ learnerTurns: 0 });
+  assert.deepEqual(f.waits, []);
+  assert.equal(f.calls.filter(c => c.operation === 'complete').length, 3);
+  assert.equal(f.calls.filter(c => c.operation === 'receipt').length, 2);
+});
 test('the default retry wait ends as soon as the lifecycle stops', async () => {
   const f = fixture({ call: async (op, payload, signal) => op === 'checkpoint' ? Promise.reject(new TutorRpcError(503)) : f.normal(op, payload, signal) });
   const { wait: _recording, ...real } = f.options; // the production timer, not the fixture's
@@ -326,6 +335,33 @@ test('a heartbeat that fails mid-session is not the deadline', async () => {
   assert.equal(life.signal.aborted, true);
   assert.equal(life.stoppedAtDeadline, false);
   await life.complete({ learnerTurns: 0 });
+});
+// F1309: Node rounds timer delays down, so the stop timer can fire a fraction of a millisecond early.
+test('a stop timer that fires a moment early at the cap still reads as the deadline', async () => {
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try {
+    const f = fixture(); const life = await claimSessionLifecycle(identity, { ...f.options, automaticTimers: true });
+    for (let i = 0; i < 4; i++) { f.advance(25_000); await life.checkpoint({ learnerTurns: 1 }); }
+    let seen: boolean | undefined;
+    life.onStop(() => { seen = life.stoppedAtDeadline; });
+    f.advance(18_999.5); // the hard stop is 119 000 ms after the claim
+    mock.timers.tick(19_000);
+    assert.equal(seen, true);
+    assert.equal(life.signal.aborted, true);
+    await life.complete({ learnerTurns: 1 });
+  } finally { mock.timers.reset(); }
+});
+test('a stop timer that fires a moment early on the lease is not the deadline', async () => {
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try {
+    const f = fixture(); const life = await claimSessionLifecycle(identity, { ...f.options, automaticTimers: true });
+    let seen: boolean | undefined;
+    life.onStop(() => { seen = life.stoppedAtDeadline; });
+    f.advance(28_999.5); // the lease stop is 29 000 ms after the claim
+    mock.timers.tick(29_000);
+    assert.equal(seen, false);
+    await life.complete({ learnerTurns: 0 });
+  } finally { mock.timers.reset(); }
 });
 
 test('a claim the database refuses throws before any provider is built', async () => {

@@ -810,12 +810,13 @@ about a minute before and closes warmly after one more exchange
   its copy still end the session at the cap. Since F1107 (2026-11-19) the
   lifecycle stop at the cap keeps the legacy order: paid work stops, the
   time-limit line goes out, the session settles and sends its summary or
-  recap, and then the room closes. Once that close has begun, pipeline
+  recap, and then the room closes. The line is skipped when the warm close
+  has already begun (F1320). Once that close has begun, pipeline
   errors are logged and not sent to the app (F1308). The room closes within 5 s
   (`CAP_CLOSE_MS`) even if settlement never answers, so the app shows the
   recap and not the drop screen. A lost lease still disconnects at once,
-  with no line. A guest scene keeps its own stop, 2 s earlier. The signed
-  cap is never extended.
+  with no line. A guest scene keeps its own stop, 2 s earlier, and the
+  lifecycle stop can still beat it (F1321). The signed cap is never extended.
 - **Cost.** Metering is unchanged; an early close bills fewer seconds. Both lines
   are in `AUTHORED_SPEECH_LINES`, so `warm-cache` covers them once it is run.
 - **Kill switch.** `LUVANI_SESSION_HEADS_UP=0` on the tutor role.
@@ -965,9 +966,8 @@ second try before the learner hears "cannot carry on":
   waits 1 s before the next one, cut to the lease time left, so a token server that
   refuses at once no longer spends all three tries in the same millisecond. The same
   wait sits between the two tries of a claim and of a turn save; their attempt counts
-  are unchanged. A failing completion also waits 1 s between its tries: it runs after
-  the lifecycle has stopped, and the wait only ends early on a stop that comes while
-  it is already running. A staging restart probe decides whether 1 s is enough.
+  are unchanged. Once the lifecycle has stopped, retries do not wait: settlement
+  tries go back to back, as before F1106 (F1319). A staging restart probe decides whether 1 s is enough.
 
 None of this charges the learner twice: the learner is settled on session seconds,
 and a retry spends vendor effects inside the existing quotes.

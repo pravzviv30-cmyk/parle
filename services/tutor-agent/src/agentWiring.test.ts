@@ -280,7 +280,7 @@ describe('one hiccup is survivable and the exit is named', () => {
     assert.ok(branch > 0, 'the cap stop has its own branch, and a scene keeps its own stop');
     const cap = body.slice(branch);
     assert.match(cap, /armSceneHardStop\(\{ remainingMillis: CAP_CLOSE_MS, graceMillis: CAP_CLOSE_MS,/);
-    assert.match(cap, /notify: \(\) => notifyTimeLimit\(\)/);
+    assert.match(cap, /notify: \(\) => \{ if \(!warmClose\) notifyTimeLimit\(\); \}/);
     assert.match(cap, /settle: \(\) => finish\(\)/);
     assert.match(cap, /disconnect: \(\) => ctx\.room\.disconnect\(\)/);
     assert.match(CODE, /const CAP_CLOSE_MS = 5_000;/);
@@ -318,6 +318,20 @@ describe('one hiccup is survivable and the exit is named', () => {
     assert.ok(log > 0 && guard > log, 'the vendor error is still logged');
     assert.ok(guard < handler.indexOf('tutor.terminalFailureFor('), 'no service failure is recorded for our own stop');
     assert.ok(guard < handler.indexOf('publish({'), 'no error frame reaches the app');
+  });
+  // F1320: "Your session has reached its time limit" must not follow "à bientôt".
+  test('a stop at the cap during the warm close sends no time-limit line', () => {
+    assert.match(CODE, /let warmClose = false;/);
+    const build = CODE.slice(CODE.indexOf('new SessionEndClock('));
+    const onClose = build.slice(0, build.indexOf('});'));
+    const flag = onClose.indexOf('warmClose = true;');
+    assert.ok(flag > 0 && flag < onClose.indexOf('if (!hardStop) return;'), 'the lifecycle path sets the flag too');
+    const body = onStopBody();
+    const branch = body.indexOf('if (lifecycle.stoppedAtDeadline && !scene)');
+    assert.ok(branch > 0);
+    const cap = body.slice(branch, body.indexOf('return; }', branch));
+    assert.ok(cap.includes('notify: () => { if (!warmClose) notifyTimeLimit(); }'));
+    assert.doesNotMatch(body.slice(body.indexOf('return; }', branch)), /warmClose/, 'a lost lease is unchanged');
   });
   test('the learner leaving is marked before paid work stops', () => {
     const start = CODE.indexOf("ctx.room.on('participantDisconnected'");

@@ -14158,18 +14158,18 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1106 — Three instant refusals end a live session with most of its lease left
 - severity: P2
 - status: [x]
-- where: services/tutor-agent/src/sessionLifecycle.ts:155
+- where: services/tutor-agent/src/sessionLifecycle.ts:180
 - note: B3a-1, part B, built after the founder's answer to question 1. Retries run back to back, so a token server that refuses at once spends all three heartbeat tries in one millisecond. Attempt counts stay; a bounded wait goes between them.
-- note: Fixed 2026-11-19 on claude/review-b3a-b (founder: "1 s apart, then probe"). `invoke` waits `min(RETRY_WAIT_MS, lease left)` after a failed try that is not the last, with `RETRY_WAIT_MS = 1_000`, through one injectable `wait` in `LifecycleOptions`. The default is a timer that ends early when the lifecycle signal aborts, pinned by `the default retry wait ends as soon as the lifecycle stops`; a failing completion also waits 1 s between its tries, because `complete()` aborts the signal before it calls `invoke` and the wait only listens for a later abort; a wait already running ends when the lifecycle stops. Attempt counts are unchanged. The staging restart probe stays on the founder's list.
+- note: Fixed 2026-11-19 on claude/review-b3a-b (founder: "1 s apart, then probe"). `invoke` waits `min(RETRY_WAIT_MS, lease left)` after a failed try that is not the last, with `RETRY_WAIT_MS = 1_000`, through one injectable `wait` in `LifecycleOptions`. The default is a timer that ends early when the lifecycle signal aborts, pinned by `the default retry wait ends as soon as the lifecycle stops`; once the lifecycle has stopped, retries do not wait, so settlement tries go back to back, as before F1106 (F1319); a wait already running ends when the lifecycle stops. Attempt counts are unchanged. The staging restart probe stays on the founder's list.
 - verified-by: `a heartbeat refused instantly waits between its three tries instead of spending them at once`
 - verified-by: `a retry wait never runs past the lease time left`
 
 ### F1107 — A session stopped at its cap disconnects before the time-limit line and the recap
 - severity: P2
 - status: [x]
-- where: services/tutor-agent/src/agent.ts:204
+- where: services/tutor-agent/src/agent.ts:215
 - note: B3a-2, part B, built after the founder's answer to question 2. The room closes first, so the app shows "The connection dropped and this session could not be saved". The cap path takes the scene stop's order; a lost lease is unchanged.
-- note: Fixed 2026-11-19 on claude/review-b3a-b (founder: "Line, recap, close"). On a lifecycle stop at the cap, `onStop` stops paid work, sends the existing time-limit line, settles (summary or recap) and disconnects, within `CAP_CLOSE_MS` (5 s) whatever settlement does, through `armSceneHardStop`. Two departures from the contract's order: paid work stops first, as the founder's "mic and voice already off" asks; and scenes are excluded with `!scene`, so a scene, which has its own stop, never gets a second line. A lost lease still disconnects at once with no line. A vendor error inside the 5 s window is F1308.
+- note: Fixed 2026-11-19 on claude/review-b3a-b (founder: "Line, recap, close"). On a lifecycle stop at the cap, `onStop` stops paid work, sends the existing time-limit line, settles (summary or recap) and disconnects, within `CAP_CLOSE_MS` (5 s) whatever settlement does, through `armSceneHardStop`. Two departures from the contract's order: paid work stops first, as the founder's "mic and voice already off" asks; and scenes are excluded with `!scene`, so a scene, which has its own stop, never gets a second line. A lost lease still disconnects at once with no line. The line is skipped when the warm close has already begun (F1320), and the cap branch relies on the stop timer reading the deadline correctly (F1309). A vendor error inside the 5 s window is F1308.
 - verified-by: `a stop at the cap publishes the time-limit line and settles before the room disconnects`
 - verified-by: `a stop at the cap disconnects at the ceiling when settlement never answers`
 - verified-by: `a lost lease disconnects at once and publishes no time-limit line`
@@ -14178,6 +14178,49 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1308 — A vendor error in the cap close window can replace the recap with a failure screen
 - severity: P2
 - status: [x]
-- where: services/tutor-agent/src/agent.ts:538
+- where: services/tutor-agent/src/agent.ts:540
 - note: Found building F1107. At the cap, stopPaidWork closes the proxy while the room stays open up to 5 s. Paid TTS runs with maxRetry 0, so one failed in-flight call emits recoverable false at once. The Error handler publishes that frame even after ended, and the app's fail() sets phase error over the recap. STT was measured silent in 8 of 8 socket cuts; TTS and LLM were not measured. Once the cap close has begun, the handler logs the vendor error and sends nothing.
 - verified-by: `a pipeline error after the cap close has begun sends no error frame to the app`
+
+### F1309 — A stop timer that fires a moment early at the cap is read as a lost lease
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/sessionLifecycle.ts:154
+- note: Found by the push-check verifier on F1107. fail() decides stoppedAtDeadline by re-reading the clock, and Node rounds timer delays down, so the stop timer often fires a fraction of a millisecond before hardStop. The stop then takes the lost-lease branch: no line, no recap, the drop screen, and the exit is logged as lease. Measured with real timers: 31 of 200 stops at 50 ms checkpoint latency and 100 of 200 at 2 ms. The stop timer now decides from what it aimed at; a heartbeat failure still reads the clock.
+- verified-by: `a stop timer that fires a moment early at the cap still reads as the deadline`
+- verified-by: `a stop timer that fires a moment early on the lease is not the deadline`
+
+### F1319 — Settlement retries wait a full second each after the lifecycle has stopped
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/sessionLifecycle.ts:180
+- note: Found by the push-check on F1106. complete() aborts the signal before invoke, and the retry wait only ends on a later abort, so a refused settlement waits about 3 s across its five tries. A guest scene has 2 s between settle and its forced disconnect, so the disconnect beats the summary and the app shows the drop screen. A retry now waits only while the lifecycle signal is live; after a stop, tries go back to back as before F1106.
+- verified-by: `a settlement refused instantly retries without waiting once the lifecycle has stopped`
+
+### F1320 — The time-limit line can land straight after the warm goodbye
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/agent.ts:215
+- note: Found by the push-check on F1107. The cap branch always sends the time-limit line. On the lifecycle path the end clock's onClose does nothing, so a warm close that runs up to the cap is followed by "Your session has reached its time limit" right after "à bientôt". The cap branch now skips the line once the warm close has begun; the recap and the close are unchanged.
+- verified-by: `a stop at the cap during the warm close sends no time-limit line`
+
+### F1321 — A guest scene stopped by the lifecycle timer disconnects with no recap
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/agent.ts:215
+- note: Predates F1107; filed for a scene slice. The scene's own stop starts at cap minus 2 s plus up to 1 s, because elapsedSeconds floors. The lifecycle stop fires at cap minus 1 s minus the claim round trip. In roughly 5 to 20 percent of scenes the lifecycle stop wins or lands mid-settle, takes the immediate-disconnect branch, and the recap is lost.
+- verified-by: `a guest scene stopped by the lifecycle timer still sends its recap before the room closes`
+
+### F1322 — A vendor error in a guest scene's close window can replace its recap
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/agent.ts:540
+- note: Predates F1308; filed for a scene slice. Plausible, not proven. Scenes run TTS with maxRetry 0 through the proxy, and the capClosing guard is set only on the non-scene cap path, so the scene's 2 s close window has the same error-frame exposure F1308 closed.
+- verified-by: `a pipeline error after a guest scene's stop has begun sends no error frame to the app`
+
+### F1323 — A heartbeat keeps retrying after the lifecycle has stopped
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/sessionLifecycle.ts:162
+- note: Predates F1106. When the learner ends the session during a hung heartbeat, the loop still sends its remaining tries, and settlement queues behind them for up to about 11 s. Only a heartbeat may end early: a turn save's retry must still be sent, because complete() settles from the last acknowledged checkpoint and that retry carries the last turn.
+- verified-by: `a heartbeat stops retrying once the lifecycle has stopped, and a turn save does not`

@@ -203,6 +203,7 @@ export default defineAgent({
     let finish = async (): Promise<void> => { if (lifecycle) await lifecycle.complete({ learnerTurns: 0 }); };
     let notifyTimeLimit = (): void => {};
     let capClosing = false;
+    let warmClose = false;
     completions.set(ctx, () => finish());
     ctx.addShutdownCallback(async () => { stopPaidWork(); await closeProxy(); await finish(); });
     lifecycle?.onStop(() => {
@@ -210,9 +211,9 @@ export default defineAgent({
       stopPaidWork();
       // At the cap the app needs the line and the recap before the room closes, or it shows the
       // drop screen. Paid work is already off; the room closes within 5 s whatever settlement does.
-      // A scene has its own stop, 2 s earlier, and its own line.
+      // A scene keeps its own stop and its own line (F1321).
       if (lifecycle.stoppedAtDeadline && !scene) { capClosing = true; armSceneHardStop({ remainingMillis: CAP_CLOSE_MS, graceMillis: CAP_CLOSE_MS,
-        stopPaidWork: () => stopPaidWork(), notify: () => notifyTimeLimit(), settle: () => finish(), disconnect: () => ctx.room.disconnect() }); return; }
+        stopPaidWork: () => stopPaidWork(), notify: () => { if (!warmClose) notifyTimeLimit(); }, settle: () => finish(), disconnect: () => ctx.room.disconnect() }); return; }
       // A lost lease disconnects now: settlement retries must not keep STT/TTS spending.
       void ctx.room.disconnect().catch(() => {});
       void finish().catch(() => {});
@@ -461,6 +462,7 @@ export default defineAgent({
       ? (lifecycle.maxSeconds - lifecycle.elapsedSeconds()) * 1_000
       : maximumSessionSec * 1_000 - (Date.now() - sessionStartedAt);
     const endClock = scene || !headsUpEnabled() ? undefined : new SessionEndClock(tutor, remainingMs, undefined, () => {
+      warmClose = true;
       if (!hardStop) return;
       clearTimeout(hardStop);
       silentStop = setTimeout(() => { void ctx.room.disconnect(); }, Math.max(0, remainingMs()));
