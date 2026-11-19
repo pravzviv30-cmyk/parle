@@ -299,7 +299,7 @@ describe('chooseFrame', () => {
 
   test('while the café is still recent the apéro keeps leading — the rule reads the history, not just the last scene', () => {
     const profile: LearnerProfile = createProfile();
-    profile.preferences.lastScenarios = [APERO_FRAME.title, CAFE_FRAME.title];
+    profile.preferences.lastScenarios = [CAFE_FRAME.title, APERO_FRAME.title];
     assert.equal(chooseFrame(profile), APERO_FRAME);
   });
 
@@ -307,7 +307,7 @@ describe('chooseFrame', () => {
     // Keying on membership once locked the learner out of the café for good:
     // after one visit, `includes` was true for the rest of their life.
     const profile: LearnerProfile = createProfile();
-    profile.preferences.lastScenarios = [CAFE_FRAME.title, APERO_FRAME.title];
+    profile.preferences.lastScenarios = [APERO_FRAME.title, CAFE_FRAME.title];
     assert.equal(chooseFrame(profile), CAFE_FRAME);
   });
 
@@ -317,6 +317,18 @@ describe('chooseFrame', () => {
     const after = finishSession(profile, recapped);
     assert.ok(after.preferences.lastScenarios.includes(CAFE_FRAME.title));
     assert.equal(chooseFrame(after), APERO_FRAME);
+  });
+
+  test('the scene rotation reads the newest scene where finishSession writes it', () => {
+    // F1113: finishSession writes newest first, so two sessions leave the
+    // apéro at the front and the café behind it.
+    let profile: LearnerProfile = createProfile();
+    for (let i = 0; i < 2; i += 1) {
+      const frame = chooseFrame(profile);
+      profile = finishSession(profile, createConversation(frame, learnerSnapshotFrom(profile), { strictness: 'flow', maxTurns: 12 }));
+    }
+    assert.equal(profile.preferences.lastScenarios[0], APERO_FRAME.title);
+    assert.equal(chooseFrame(profile), CAFE_FRAME);
   });
 });
 

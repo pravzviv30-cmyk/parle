@@ -406,7 +406,7 @@ export function chooseFrame(profile: LearnerProfile): ScenarioFrame {
   // Alternate on the MOST RECENT scene only. Keying on membership would lock
   // the learner out of the café forever after their first visit — the list
   // remembers everything, so `includes` is a one-way door.
-  const last = profile.preferences.lastScenarios[profile.preferences.lastScenarios.length - 1];
+  const last = profile.preferences.lastScenarios[0];
   return last === CAFE_FRAME.title ? APERO_FRAME : CAFE_FRAME;
 }
 

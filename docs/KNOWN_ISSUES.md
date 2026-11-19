@@ -13963,9 +13963,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1113 — chooseFrame reads the oldest recent scene as the newest
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/convo.ts:409
 - note: Cross-slice note from B4. finishSession writes newest first and chooseFrame reads the last item, so the rotation sticks on the apéro after two sessions. The frame is only the constructor placeholder, so no learner plays it. Two test fixtures pin the wrong order and are flipped.
+- note: Fixed 2026-11-19 on claude/review-b3b: chooseFrame reads lastScenarios[0]; the named test failed with the apéro before and passes with the café after, and the two old-order fixtures are flipped with their titles kept.
 - verified-by: `the scene rotation reads the newest scene where finishSession writes it`
 
 ### F1310 — Stale comments, a dead re-export shim and five unused names in the tutor agent
