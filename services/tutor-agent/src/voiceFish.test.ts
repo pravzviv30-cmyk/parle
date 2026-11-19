@@ -190,7 +190,10 @@ describe('fish’s missing final marker, repaired at the seam', () => {
     // throw and closes the queue — except that no END_OF_STREAM arrives. That
     // sentinel, not "the iteration ended", is what may mark a line final.
     fake.ending = 'error';
+    const errors: unknown[] = [];
+    cached.on('error', (ev: unknown) => errors.push(ev));
     const pcm = await pcmOf(cached.synthesize('Au revoir', NO_RETRY));
+    assert.equal(errors.length, 1, 'one failure reaches the session once, not twice');
     assert.ok(pcm.length > 0, 'the audio that did arrive still reaches the learner');
     assert.equal(readdirSync(dir).length, 0, 'half a sentence must never be replayed forever');
 
@@ -247,5 +250,16 @@ describe('fish’s missing final marker, repaired at the seam', () => {
     assert.equal(seen.filter((p) => p.final).length, 1, 'exactly one final marker, and it is the one fish sent');
     assert.equal(seen.at(-1)!.final, true);
     assert.equal(sentinels, 1, 'one end-of-stream sentinel, forwarded not doubled');
+  });
+
+  test('a fish vendor error reaches the session through the final-marking wrapper', () => {
+    // The session listens on CachedTTS, CachedTTS listens on the wrapper, and
+    // the plugin emits on itself. Unforwarded, the error stops at the plugin.
+    const seen: unknown[] = [];
+    cached.on('error', (ev: unknown) => seen.push(ev));
+    const ev = { type: 'tts_error' as const, timestamp: 0, label: 'fake', error: new Error('boom'), recoverable: false };
+    fake.emit('error', ev);
+    assert.equal(seen.length, 1, 'exactly one error event reaches the session');
+    assert.equal(seen[0], ev, 'the vendor event itself, unchanged');
   });
 });

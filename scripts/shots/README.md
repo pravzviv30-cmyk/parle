@@ -66,3 +66,10 @@ Start the app from `apps/mobile` with `EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT=1 np
   `capture.mjs` run is always signed out. Use an `lv.mjs` profile: create an account
   (Get Started, I already have an account, Create an account), finish the six onboarding
   steps (not scripted yet), then reuse the profile and `page.goto` the screen you want.
+- **A signed-in learner on the free plan, one command.** From the checkout you are working in,
+  run `npm run dev:canvas-free` (add `-- --port <n>` to move the web build off 8094). It starts
+  the token server on 8787 and the Expo web build with Supabase, Upstash, OpenAI, ToneperFect
+  and TypeSafe all unset, so nothing paid or remote is reached, and a file ledger in the OS temp
+  folder makes the mock learner read as the free plan. LiveKit values come from this checkout's
+  `services/token-server/.env`, or from the main checkout's when a worktree has none. Create an
+  account with any test email on the web build; the canvas learner seeds itself. Ctrl-C stops both.

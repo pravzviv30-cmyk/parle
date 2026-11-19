@@ -270,8 +270,8 @@ row. A screen's redesign session reads its rows here before its brief.
 - **Impeccable**: a reviewer for critique and polish. Its detector reads web markup, so
   every suggestion is checked for React Native fit before use. Its
   `impeccable-finish-reviewer` reviews every frontend push in `/push-check`: slop is fixed
-  in the push, redesign ideas are asked of the founder and logged under "Proposals from
-  push-check".
+  in the push, redesign ideas are queued for a board (founder rule, 2026-11-19) and logged
+  under "Proposals from push-check".
 - **Design canvas** (Artifact): direction boards with interactive prototypes.
 - **iOS simulator**: a dev client built with `npx expo run:ios` (needs a UTF-8 locale:
   `LANG=en_US.UTF-8`, or CocoaPods fails). The `luvani-metro-design` launch entry serves

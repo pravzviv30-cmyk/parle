@@ -14105,6 +14105,56 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `two streams maximum and global/per-connection PCM duration cannot be exceeded`
 - verified-by: `every bare package a tutor-agent source imports is declared in its package.json`
 
+### F1110 — In text mode a keystroke after the timed reveal starts a second rescue clock
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:2391
+- note: B3b-1. The rescue callback leaves silenceTimer set after it fires, so the typing handler's "only ever a restart" check passes on a dead handle and a second reveal drops the rung while the learner is writing. Clear the handle first, as tutor.ts:624 does.
+- note: Fixed 2026-11-19 on claude/review-b3b: the rescue callback clears the handle before runRescue; the named test fails with 2 rescues before and passes with 1 after.
+- verified-by: `in text mode a keystroke after the timed reveal starts no new rescue clock`
+
+### F1111 — Under the fish voice vendor a vendor error never reaches the session
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/voiceFish.ts:239
+- note: B3b-2. CachedTTS listens on the FinalMarkingTTS wrapper, but the plugin emits on the inner TTS, which has no listener and throws ERR_UNHANDLED_ERROR. Non-production only, because preflight refuses fish in production. Forward error from inner; the test asserts exactly one event.
+- note: Fixed 2026-11-19 on claude/review-b3b: the FinalMarkingTTS constructor forwards error from inner; the named test fails with 0 events before and passes with 1 after. A real mid-line stream failure also delivers exactly one event, now pinned in `a stream that errors mid-line never reaches disk, even through the adapter`. metrics_collected is not forwarded; nothing listens on it.
+- verified-by: `a fish vendor error reaches the session through the final-marking wrapper`
+
+### F1112 — Nothing keeps the tutor agent's seed topic caps equal to the token server's
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:525
+- note: B3b-3. The caps and the guard are written out in the token server, the tutor agent, core and the app, and only the app is pinned. A raised cap would be signed and then dropped by the agent without a word. This entry pins the agent to tokens.ts; moving the guard to core is routed to its own PR after tutor recall phase 2.
+- note: Fixed 2026-11-19 on claude/review-b3b: the named test reads both caps from the tokens.ts source and fails loudly if either declaration goes. It passed at once, as a pin should; raising the agent's title cap to 121 made it fail on 'a French title one over is dropped', and the cap was reverted.
+- verified-by: `the tutor agent keeps exactly the seed topics the token server signs`
+
+### F1113 — chooseFrame reads the oldest recent scene as the newest
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:409
+- note: Cross-slice note from B4. finishSession writes newest first and chooseFrame reads the last item, so the rotation sticks on the apéro after two sessions. The frame is only the constructor placeholder, so no learner plays it. Two test fixtures pin the wrong order and are flipped.
+- note: Fixed 2026-11-19 on claude/review-b3b: chooseFrame reads lastScenarios[0]; the named test failed with the apéro before and passes with the café after, and the two old-order fixtures are flipped with their titles kept.
+- verified-by: `the scene rotation reads the newest scene where finishSession writes it`
+
+### F1307 — safeModelProfile keeps the oldest twelve recent scenes, not the newest
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/convo.ts:308
+- note: Found by the B3b /code-review, 2026-11-19. finishSession writes lastScenarios newest first, so slice(-12) handed the brain the oldest twelve and dropped the newest. Reachable only for a profile carrying more than twelve, since finishSession caps at five. Same misreading F1113 fixed in chooseFrame.
+- note: Fixed 2026-11-19 on claude/review-b3b: the cap is slice(0, 12). The named test failed with 'Scene 3' at the front before and passes with 'Scene 1' after.
+- verified-by: `the brain sees the newest recent scenes when a profile carries more than twelve`
+
+### F1310 — Stale comments, a dead re-export shim and five unused names in the tutor agent
+- severity: P2
+- status: [x]
+- where: services/shared/speechace.ts
+- note: B3b-4 comment only, plus B3b-5 to B3b-9. No behaviour changes and no test dies. The voice-samples advice is operator copy, not learner copy.
+- note: Fixed 2026-11-19 on claude/review-b3b: the voice, voiceConfiguration, voiceSamples, ttsCache and canDoEvidence parts landed first. This pass corrects the reportedSessions comment in tutor.ts (per job process, so it catches no replay; the durable claim_tutor_session_v1 claim is the guard), deletes the speechace.ts shim and points its test at services/shared, drops the unused session parameter on the private routeClientMessage (the public handleClientMessage keeps it as `_session`, because the worker calls both tutors with one signature), and corrects two voice-samples comments to the six-voice, bills-on-rerun truth. tsc with --noUnusedLocals --noUnusedParameters reports only test-file names. The tutor-agent suite is 1046.
+- verified-by: `flattens words and phones into observations`
+- verified-by: `first synthesis goes to the vendor, second replays from disk`
+- verified-by: `the model is pinned, not left to the plugin default`
+
 ### F1106 — Three instant refusals end a live session with most of its lease left
 - severity: P2
 - status: [x]

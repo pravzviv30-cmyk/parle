@@ -326,8 +326,8 @@ describe('the clips say what the app says, and can be checked — F507', () => {
     }
 
     // The carry rule, unit-tested because it is the part that decides whether a
-    // human is asked again. Synthesis is cached, so a rerun that changes nothing
-    // rewrites identical bytes; forcing a fresh listen for that would teach
+    // human is asked again. A rerun bills every clip again, and when it comes back
+    // with identical bytes, forcing a fresh listen for that would teach
     // whoever runs the script to type anything at all to get the gate green.
     const made: Omit<SampleRecord, 'heard'> = {
       text: 'a line',

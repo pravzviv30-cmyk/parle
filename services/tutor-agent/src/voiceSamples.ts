@@ -10,11 +10,11 @@
  * `buildTTS({ voice, missTransport: 'http' })` — the same function the agent
  * calls to speak in a live session. That is the whole design decision here. A
  * clip made by a hand-rolled vendor request would be an approximation: it would
- * miss the pinned model, the pinned language code and the voice settings, all
- * of which change what a voice sounds like, and a learner would choose a voice
- * from a sample and then meet a different one. Going through `buildTTS` also
- * means the clips land in the ordinary TTS cache, so a rerun is free, and the
- * French sentence is a real tutor opening that a live session may later hit.
+ * miss the pinned model and the voice settings, both of which change what a
+ * voice sounds like, and a learner would choose a voice from a sample and then
+ * meet a different one. The sentence itself is `tutorSampleLine`, which no live
+ * session says. A rerun is not free: sample sentences are not on the authored
+ * allow-list, so the cache does not keep them and every rerun bills again.
  *
  * SENTENCE BY SENTENCE, which is how the runtime does it. Our TTS declares
  * `streaming: false`, so the framework hands it one sentence at a time, and the
@@ -35,12 +35,12 @@
  * on every gate. What the clips SOUND like is still a question only an ear can
  * answer, which is what the `heard` field is for.
  *
- * WHAT IT COSTS. Eight voices at about sixty characters each is under five
- * hundred characters, once. This is the cheap script; warmCache.ts is the
+ * WHAT IT COSTS. Six voices at about sixty characters each is under four
+ * hundred characters a run. This is the cheap script; warmCache.ts is the
  * expensive one.
  *
- * BUNDLE SIZE IS THE CONSTRAINT. These ship inside the app download, so eight
- * clips is eight times whatever one weighs. AAC at 48 kbit/s mono puts a
+ * BUNDLE SIZE IS THE CONSTRAINT. These ship inside the app download, so six
+ * clips is six times whatever one weighs. AAC at 48 kbit/s mono puts a
  * four-second clip near 20KB; the ceiling below is 150KB and a clip that
  * exceeds it never reaches the assets folder at all, because a file that big
  * would be found by a reviewer's download-size complaint rather than by us.
@@ -65,7 +65,7 @@ import { encodeWav, type WavData } from './wav.ts';
  */
 export const SAMPLES_DIR = fileURLToPath(new URL('../../../apps/mobile/assets/voices', import.meta.url));
 
-/** The bundle budget for one clip. Eight of these ship in every download. */
+/** The bundle budget for one clip. Six of these ship in every download. */
 export const MAX_SAMPLE_BYTES = 150 * 1024;
 
 /**
@@ -212,12 +212,11 @@ export function readManifest(path: string = MANIFEST_PATH): SampleManifest {
 /**
  * Whether the previous listen still describes this audio.
  *
- * Synthesis is cached, so a rerun that changes nothing rewrites identical bytes,
- * and forcing a fresh listen for that would train whoever runs this to type
- * something in to get the gate green. So the attestation carries forward only
- * when the words, the configuration and the bytes are all unchanged. New words,
- * a retuned setting or different audio blank it, and the suite then demands an
- * ear before the clips can be pushed.
+ * The attestation carries forward only when the words, the configuration and
+ * the bytes are all unchanged. New words, a retuned setting or different audio
+ * blank it, and the suite then demands an ear before the clips can be pushed.
+ * Every rerun synthesizes again, so the bytes and their sha256 almost always
+ * differ: in practice a rerun blanks `heard`, and whoever ran it listens again.
  */
 export function carryAttestation(previous: SampleRecord | undefined, next: Omit<SampleRecord, 'heard'>): string {
   if (previous === undefined) return '';
@@ -355,8 +354,8 @@ export function joinClip(frames: readonly AudioFrame[], gapMs: number = GAP_MS):
  * Synthesize one voice's clip and return it as a 16-bit PCM WAV.
  *
  * A fresh CachedTTS per voice, because the voice is part of the cache key and
- * is fixed at construction. `chars` counts only the sentences that actually
- * reached the vendor, so a rerun reports the nothing it cost.
+ * is fixed at construction. `chars` counts the sentences that reached the
+ * vendor, which on a rerun is every one of them.
  */
 async function synthesizeClip(
   voice: TutorVoiceKey,
@@ -368,7 +367,8 @@ async function synthesizeClip(
     // Two iterations, one per sentence. Do NOT collapse this into a single
     // synthesize() of the whole text: the loop is what makes each request
     // identical to the one a live session would send, and therefore what makes
-    // the cache key real. H4 pins per-sentence synthesis.
+    // the sample sound like the voice a learner will hear. H4 pins per-sentence
+    // synthesis.
     for (const sentence of sampleSentences(voice)) {
       const before = cached.charsBilled;
       frames.push(await cached.synthesize(sentence).collect());
@@ -379,7 +379,7 @@ async function synthesizeClip(
     return { wav: encodeWav(levelClip(joinClip(frames))), chars, voiceKey: cached.opts.voiceKey, sampleRate: cached.sampleRate };
   } finally {
     // The HTTP path holds no socket, but the fish vendor holds a client and
-    // eight of those is eight reasons this script would not exit.
+    // six of those is six reasons this script would not exit.
     await cached.close();
   }
 }
@@ -396,7 +396,7 @@ async function main(): Promise<void> {
   const encoder = ENCODERS.find(present);
   if (!encoder) {
     // Checked before the first synthesis. Discovering there is no encoder after
-    // eight paid requests would mean paying again on the next attempt, which is
+    // six paid requests would mean paying again on the next attempt, which is
     // the one avoidable cost in this script.
     console.error(
       `[voice-samples] no audio encoder found. Install one of: ${ENCODERS.join(', ')} ` +
@@ -430,7 +430,7 @@ async function main(): Promise<void> {
   let billed = 0;
   const previous = readManifest();
   // One timestamp for the run, so every row says when this set was read rather
-  // than eight times that differ by milliseconds.
+  // than six times that differ by milliseconds.
   const readAt = new Date().toISOString();
   const clips: Partial<Record<TutorVoiceKey, SampleRecord>> = {};
 
@@ -483,10 +483,10 @@ async function main(): Promise<void> {
   if (tooBig.length > 0) {
     console.error(
       `[voice-samples] over the ${MAX_SAMPLE_BYTES} byte bundle ceiling: ${tooBig.join(', ')}. ` +
-        `Shorten the sample line or lower BITRATE_BPS, then rerun (synthesis is cached, so the rerun is free).`,
+        `Shorten the sample line or lower BITRATE_BPS, then rerun. The rerun bills every clip again.`,
     );
     // The record is NOT written. A half-run must not leave a half-true manifest:
-    // the suite would then vouch for seven clips and a stale eighth.
+    // the suite would then vouch for five clips and a stale sixth.
     process.exit(1);
   }
 
