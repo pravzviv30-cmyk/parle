@@ -14119,7 +14119,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [x]
 - where: services/tutor-agent/src/agent.ts:204
 - note: B3a-2, part B, built after the founder's answer to question 2. The room closes first, so the app shows "The connection dropped and this session could not be saved". The cap path takes the scene stop's order; a lost lease is unchanged.
-- note: Fixed 2026-11-19 on claude/review-b3a-b (founder: "Line, recap, close"). On a lifecycle stop at the cap, `onStop` stops paid work, sends the existing time-limit line, settles (summary or recap) and disconnects, within `CAP_CLOSE_MS` (5 s) whatever settlement does, through `armSceneHardStop`. Two departures from the contract's order: paid work stops first, as the founder's "mic and voice already off" asks, so cut-off replies end before the proxy's sockets close; and scenes are excluded with `!scene`, so a scene, which has its own stop, never gets a second line. A lost lease still disconnects at once with no line. A vendor error inside the 5 s window is F1308.
+- note: Fixed 2026-11-19 on claude/review-b3a-b (founder: "Line, recap, close"). On a lifecycle stop at the cap, `onStop` stops paid work, sends the existing time-limit line, settles (summary or recap) and disconnects, within `CAP_CLOSE_MS` (5 s) whatever settlement does, through `armSceneHardStop`. Two departures from the contract's order: paid work stops first, as the founder's "mic and voice already off" asks; and scenes are excluded with `!scene`, so a scene, which has its own stop, never gets a second line. A lost lease still disconnects at once with no line. A vendor error inside the 5 s window is F1308.
 - verified-by: `a stop at the cap publishes the time-limit line and settles before the room disconnects`
 - verified-by: `a stop at the cap disconnects at the ceiling when settlement never answers`
 - verified-by: `a lost lease disconnects at once and publishes no time-limit line`
@@ -14128,6 +14128,6 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1308 — A vendor error in the cap close window can replace the recap with a failure screen
 - severity: P2
 - status: [x]
-- where: services/tutor-agent/src/agent.ts:574
+- where: services/tutor-agent/src/agent.ts:538
 - note: Found building F1107. At the cap, stopPaidWork closes the proxy while the room stays open up to 5 s. Paid TTS runs with maxRetry 0, so one failed in-flight call emits recoverable false at once. The Error handler publishes that frame even after ended, and the app's fail() sets phase error over the recap. STT was measured silent in 8 of 8 socket cuts; TTS and LLM were not measured. Once the cap close has begun, the handler logs the vendor error and sends nothing.
 - verified-by: `a pipeline error after the cap close has begun sends no error frame to the app`
