@@ -14116,7 +14116,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1107 — A session stopped at its cap disconnects before the time-limit line and the recap
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/agent.ts:204
 - note: B3a-2, part B, built after the founder's answer to question 2. The room closes first, so the app shows "The connection dropped and this session could not be saved". The cap path takes the scene stop's order; a lost lease is unchanged.
 - verified-by: `a stop at the cap publishes the time-limit line and settles before the room disconnects`

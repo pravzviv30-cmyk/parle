@@ -83,6 +83,8 @@ import { exitForPipeline, exitForStop, SessionExit } from './sessionExit.ts';
 
 // SDK session-end and shutdown each join the same idempotent completion.
 const completions = new WeakMap<JobContext, () => Promise<void>>();
+// A stop at the cap holds the room this long for the line and the recap (F1107).
+const CAP_CLOSE_MS = 5_000;
 
 /**
  * The tutor brain, selected by env so the quality/cost trade is a .env change.
@@ -199,12 +201,18 @@ export default defineAgent({
     const closeProxy = async () => { await proxy?.close(); };
     let stopPaidWork = () => { void closeProxy().catch(() => {}); };
     let finish = async (): Promise<void> => { if (lifecycle) await lifecycle.complete({ learnerTurns: 0 }); };
+    let notifyTimeLimit = (): void => {};
     completions.set(ctx, () => finish());
     ctx.addShutdownCallback(async () => { stopPaidWork(); await closeProxy(); await finish(); });
     lifecycle?.onStop(() => {
       exit.mark(exitForStop(lifecycle));
       stopPaidWork();
-      // Disconnect now: settlement retries must not keep STT/TTS spending.
+      // At the cap the app needs the line and the recap before the room closes, or it shows the
+      // drop screen. Paid work is already off; the room closes within 5 s whatever settlement does.
+      // A scene has its own stop, 2 s earlier, and its own line.
+      if (lifecycle.stoppedAtDeadline && !scene) { armSceneHardStop({ remainingMillis: CAP_CLOSE_MS, graceMillis: CAP_CLOSE_MS,
+        stopPaidWork: () => stopPaidWork(), notify: () => notifyTimeLimit(), settle: () => finish(), disconnect: () => ctx.room.disconnect() }); return; }
+      // A lost lease disconnects now: settlement retries must not keep STT/TTS spending.
       void ctx.room.disconnect().catch(() => {});
       void finish().catch(() => {});
     });
@@ -386,6 +394,7 @@ export default defineAgent({
     tutor.sessionId = meta.sessionId;
     if (lifecycle) tutor.attachLifecycle(lifecycle);
     finish = async () => { stopPaidWork(); await closeProxy(); await tutor.finish(); };
+    notifyTimeLimit = () => tutor.publishError('That is a good place to stop. Your session has reached its time limit.');
     stopPaidWork = () => {
       void closeProxy().catch(() => {});
       tutor.cancelLiveReplies();

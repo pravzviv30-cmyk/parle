@@ -269,6 +269,37 @@ describe('one hiccup is survivable and the exit is named', () => {
     assert.match(CODE, /lifecycle\?\.onStop\(\(\) => \{\s*exit\.mark\(exitForStop\(lifecycle\)\);/);
     assert.match(CODE, /const serviceFailure = tutor\.terminalFailureFor\(kind, recoverable, learnerPresent\);\s*if \(serviceFailure\) \{ const cls = exitForPipeline\(kind\); if \(cls\) exit\.mark\(cls\); \}/);
   });
+  // F1107: the app needs the line and the recap before the room closes, or it paints the drop screen.
+  const onStopBody = (): string => {
+    const start = CODE.indexOf('lifecycle?.onStop(() => {');
+    return CODE.slice(start, CODE.indexOf('\n    });', start));
+  };
+  test('a stop at the cap shows the time-limit line and the recap before the room closes', () => {
+    const body = onStopBody();
+    const branch = body.indexOf('if (lifecycle.stoppedAtDeadline && !scene)');
+    assert.ok(branch > 0, 'the cap stop has its own branch, and a scene keeps its own stop');
+    const cap = body.slice(branch);
+    assert.match(cap, /armSceneHardStop\(\{ remainingMillis: CAP_CLOSE_MS, graceMillis: CAP_CLOSE_MS,/);
+    assert.match(cap, /notify: \(\) => notifyTimeLimit\(\)/);
+    assert.match(cap, /settle: \(\) => finish\(\)/);
+    assert.match(cap, /disconnect: \(\) => ctx\.room\.disconnect\(\)/);
+    assert.match(CODE, /const CAP_CLOSE_MS = 5_000;/);
+    // Late-bound like stopPaidWork: the tutor is built after onStop is registered.
+    assert.match(CODE, /let notifyTimeLimit = \(\): void => \{\};/);
+    const bound = CODE.indexOf("notifyTimeLimit = () => tutor.publishError('That is a good place to stop. Your session has reached its time limit.');");
+    assert.ok(bound > CODE.indexOf('finish = async () => { stopPaidWork(); await closeProxy(); await tutor.finish(); };'), 'bound once the tutor exists');
+  });
+  test('a lost lease disconnects at once and publishes no time-limit line', () => {
+    const body = onStopBody();
+    const branch = body.indexOf('if (lifecycle.stoppedAtDeadline && !scene)');
+    assert.ok(branch > 0);
+    const cap = body.slice(branch, body.indexOf('return; }', branch));
+    const lease = body.slice(body.indexOf('return; }', branch));
+    assert.match(cap, /armSceneHardStop/);
+    assert.match(lease, /void ctx\.room\.disconnect\(\)\.catch\(\(\) => \{\}\);\s*void finish\(\)\.catch\(\(\) => \{\}\);/);
+    assert.doesNotMatch(lease, /notify|publishError|armSceneHardStop/);
+    assert.match(body.slice(0, branch), /exit\.mark\(exitForStop\(lifecycle\)\);\s*stopPaidWork\(\);\s*$/, 'paid work stops before either branch');
+  });
   test('the learner leaving is marked before paid work stops', () => {
     const start = CODE.indexOf("ctx.room.on('participantDisconnected'");
     const left = CODE.slice(start, CODE.indexOf('return tutor.finish()', start));

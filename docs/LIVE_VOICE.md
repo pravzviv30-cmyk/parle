@@ -807,7 +807,14 @@ about a minute before and closes warmly after one more exchange
   On the legacy path the close stands the timer down and arms a silent stop at
   the cap, so nobody hears "time limit" after "à bientôt". If they are
   speaking, the existing hard stop (lifecycle `onStop` or the legacy timer) and
-  its copy still end the session at the cap. The signed cap is never extended.
+  its copy still end the session at the cap. Since F1107 (2026-11-19) the
+  lifecycle stop at the cap keeps the legacy order: paid work stops, the
+  time-limit line goes out, the session settles and sends its summary or
+  recap, and then the room closes. The room closes within 5 s
+  (`CAP_CLOSE_MS`) even if settlement never answers, so the app shows the
+  recap and not the drop screen. A lost lease still disconnects at once,
+  with no line. A guest scene keeps its own stop, 2 s earlier. The signed
+  cap is never extended.
 - **Cost.** Metering is unchanged; an early close bills fewer seconds. Both lines
   are in `AUTHORED_SPEECH_LINES`, so `warm-cache` covers them once it is run.
 - **Kill switch.** `LUVANI_SESSION_HEADS_UP=0` on the tutor role.
