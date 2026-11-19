@@ -13957,9 +13957,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1112 — Nothing keeps the tutor agent's seed topic caps equal to the token server's
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/convo.ts:525
 - note: B3b-3. The caps and the guard are written out in the token server, the tutor agent, core and the app, and only the app is pinned. A raised cap would be signed and then dropped by the agent without a word. This entry pins the agent to tokens.ts; moving the guard to core is routed to its own PR after tutor recall phase 2.
+- note: Fixed 2026-11-19 on claude/review-b3b: the named test reads both caps from the tokens.ts source and fails loudly if either declaration goes. It passed at once, as a pin should; raising the agent's title cap to 121 made it fail on 'a French title one over is dropped', and the cap was reverted.
 - verified-by: `the tutor agent keeps exactly the seed topics the token server signs`
 
 ### F1113 — chooseFrame reads the oldest recent scene as the newest

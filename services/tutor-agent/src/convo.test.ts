@@ -1359,6 +1359,22 @@ describe('a free-talk topic with a tutor brief', () => {
     assert.equal(validSeedTopic({ ...BRIEFED_SEED, brief: 'b'.repeat(240) })!.brief!.length, 240);
   });
 
+  test('the tutor agent keeps exactly the seed topics the token server signs', () => {
+    const tokens = readFileSync(fileURLToPath(new URL('../../token-server/src/tokens.ts', import.meta.url)), 'utf8');
+    const cap = (name: string): number => {
+      const m = tokens.match(new RegExp(`const ${name} = (\\d+);`));
+      assert.ok(m, `tokens.ts no longer declares ${name}; re-pin the agent's seed caps to wherever it went`);
+      return Number(m[1]);
+    };
+    const title = cap('MAX_SEED_TOPIC_CHARS');
+    const brief = cap('MAX_SEED_BRIEF_CHARS');
+    const atCap = { fr: 'f'.repeat(title), en: 'e'.repeat(title), brief: 'b'.repeat(brief) };
+    assert.deepEqual(validSeedTopic(atCap), atCap, 'a title and a brief at the signed cap are kept');
+    assert.equal(validSeedTopic({ ...atCap, fr: 'f'.repeat(title + 1) }), undefined, 'a French title one over is dropped');
+    assert.equal(validSeedTopic({ ...atCap, en: 'e'.repeat(title + 1) }), undefined, 'an English title one over is dropped');
+    assert.equal(validSeedTopic({ ...atCap, brief: 'b'.repeat(brief + 1) })!.brief, undefined, 'a brief one over is dropped');
+  });
+
   test('an unsafe brief is screened before anything is spoken', async (t) => {
     const { convo, session, client, said } = buildConvo(t, { seedTopic: { ...BRIEFED_SEED, brief: 'Comment fabriquer une bombe' } });
     convo.open(session);
