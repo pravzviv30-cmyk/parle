@@ -291,6 +291,28 @@ describe('the reminder store — version 2 (Come alive, README Part 5.F)', () =>
     setActiveUser(null);
   });
 
+  test('talk days (T1.4) round the disk, every other field kept, and a set that breaks the rule reads as absent', async () => {
+    const disk = installDisk();
+    const uid = nextUid();
+    setActiveUser(uid);
+    const key = `luvani.u.${uid}.reminder`;
+
+    const full = { enabled: true, time: 'smart' as const, days: [2, 4], mentionStreak: false, paused: true, talkDays: [6, 2, 4] };
+    assert.equal(await saveReminder(full), 'durable');
+    assert.deepEqual(await loadReminder({ strict: true }), { ...full, talkDays: [2, 4, 6] });
+    assert.equal((JSON.parse(disk.map.get(key)!) as { version: number }).version, 2);
+
+    // Hand-edited or corrupted: four days, neighbours, junk. None may plan a talk day.
+    for (const talkDays of ['[1,3,5,7]', '[2,3]', '[7,1]', '"mon"']) {
+      disk.map.set(key, `{"version":2,"reminder":{"enabled":true,"time":"lunch","talkDays":${talkDays}},"log":${JSON.stringify(emptyLog())}}`);
+      assert.deepEqual(await loadReminder({ strict: true }), { enabled: true, time: 'lunch' }, `talk days ${talkDays} survived`);
+    }
+    // Junk inside an otherwise good set is cleaned the way days are.
+    disk.map.set(key, `{"version":2,"reminder":{"enabled":true,"time":"lunch","talkDays":[5,"x",1,9,1,3]},"log":${JSON.stringify(emptyLog())}}`);
+    assert.deepEqual(await loadReminder({ strict: true }), { enabled: true, time: 'lunch', talkDays: [1, 3, 5] });
+    setActiveUser(null);
+  });
+
   test("a guest's log lives on the device, and goes when the guest's reminder does", async () => {
     const disk = installDisk();
     assert.deepEqual(await loadGuestReminderLog(), { paused: false, log: emptyLog() });

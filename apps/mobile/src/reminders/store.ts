@@ -77,7 +77,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { PersistAck } from '../storage/ack.ts';
 import { userKey, scopeGeneration, setItemInUserScope } from '../storage/scope.ts';
 import { boundLog, emptyLog, type PlannedSlot, type ReminderLog } from './plan.ts';
-import { reminderTime, type ReminderMode, type ReminderTimeId, type StoredReminder } from './reminder.ts';
+import { reminderTime, talkDaysFit, type ReminderMode, type ReminderTimeId, type StoredReminder } from './reminder.ts';
 import { DEFAULT_TRIAL_RECORD, type TrialReminderRecord } from './trialReminder.ts';
 
 /** Resolved per call: the active account can change between calls. */
@@ -164,6 +164,12 @@ function weekdays(value: unknown): number[] | null {
   return [...new Set(value.filter((day): day is number => Number.isInteger(day) && day >= 1 && day <= 7))];
 }
 
+/** Talk days cleaned as `days` are, sorted, and dropped unless they fit `talkDaysFit`. */
+function talkDaysOf(value: unknown): number[] | null {
+  const days = weekdays(value)?.sort((a, b) => a - b) ?? null;
+  return days !== null && days.length > 0 && talkDaysFit(days) ? days : null;
+}
+
 /**
  * A stored choice, or null when it is not one. `enabled` has to be a real
  * boolean or the whole thing is nothing, because it is the decision itself.
@@ -174,24 +180,28 @@ function choiceOf(value: unknown, version: 1 | 2): StoredReminder | null {
   if (!isRecord(value) || typeof value.enabled !== 'boolean') return null;
   const time: ReminderMode = version === 2 && value.time === 'smart' ? 'smart' : presetOf(value.time);
   const days = weekdays(value.days);
+  const talkDays = version === 2 ? talkDaysOf(value.talkDays) : null;
   return {
     enabled: value.enabled,
     time,
     ...(days !== null ? { days } : {}),
     ...(version === 2 && value.mentionStreak === false ? { mentionStreak: false } : {}),
     ...(version === 2 && value.paused === true ? { paused: true } : {}),
+    ...(talkDays !== null ? { talkDays } : {}),
   };
 }
 
 /** Exactly the fields this build writes for a choice, defaults left out. */
 function written(reminder: StoredReminder): StoredReminder {
   const days = weekdays(reminder.days);
+  const talkDays = talkDaysOf(reminder.talkDays);
   return {
     enabled: reminder.enabled === true,
     time: reminder.time === 'smart' ? 'smart' : presetOf(reminder.time),
     ...(days !== null && days.length > 0 ? { days } : {}),
     ...(reminder.mentionStreak === false ? { mentionStreak: false } : {}),
     ...(reminder.paused === true ? { paused: true } : {}),
+    ...(talkDays !== null ? { talkDays } : {}),
   };
 }
 
