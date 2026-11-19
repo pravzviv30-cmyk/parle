@@ -14077,3 +14077,81 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: services/token-server/src/ciContract.test.ts:62
 - note: NEEDS-PROBE, not reproduced. The file takes 3.0 s; the spawned gate takes 0.75 s in a clean worktree and 3.43 s cold in the main checkout. Hypothesis: the gate's test-file walk reads 61,696 entries there, 53,011 under apps/mobile build output. Probe: one full gate on the main checkout with the device build present. A fix belongs to S1.
 - verified-by: `the CI contract check finishes without waiting on the network or the clock`
+
+### F1053 — A spoken coach line can quote the written form's digits
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/engine/conversation.ts:802
+- note: sharpened from the plan's entry. `copyViolations` exempts digits inside quotes, which is right for card text, so `coachLineFits` keeps a line quoting `betterWritten`. The voice is told to say numbers in words (`prompt/system.ts:120`). One fix unit, in `coachLineFits`; `copy.ts` is unchanged.
+- verified-by: `a coach line with a number in it is written in words`
+
+### F1114 — An Anthropic answer that fails to parse is never retried and loses its usage
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/llm/anthropic.ts:256
+- note: run1-1. The SDK throws `AnthropicError` from inside `messages.parse`, so the loop never sees a null answer. F97's two tests pass on a fake shape the real SDK never returns. P2 because production refuses Anthropic. Related: F1262.
+- verified-by: `an anthropic answer the real SDK cannot parse is retried once and fails as a BrainParseError carrying both attempts' usage`
+
+### F1115 — brainClientFromEnv reads effort and model from the process, not the env it is given
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/llm/factory.ts:73
+- note: run1-2. Dev scripts only; production passes `process.env`. The Luna default of `none` must survive when no effort is set.
+- verified-by: `brainClientFromEnv reads BRAIN_EFFORT and GROQ_MODEL from the env it is given, not the process`
+
+### F1116 — Dead exports, a vacuous assertion and stale counts in brain
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/engine/conversation.ts:533
+- note: run1-3, run1-4, run2-4, run2-7, run2-8. Removes `supportViewFor`, `RECOVERY_VARIANTS`, `FIXTURE_FRAMES`, `JevNoulAnswer` and `JevChoiceAnswer`. No test dies. The third test below is the one whose regex is fixed.
+- verified-by: `preserves all four support shapes and each survives the wire`
+- verified-by: `every learner-visible string in the scenario fixtures`
+- verified-by: `a French turn clears the memory and the context line with it`
+- verified-by: `a question left unanswered is an error, never a default`
+
+### F1117 — Model text outside a turn never passes the dash sanitizer
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/engine/conversation.ts:419
+- note: run2-2. The generated opening, the remembered opener and extracted facts are stored and shown or spoken unchanged. Facts already stored are not rewritten.
+- verified-by: `a generated scene opening and a remembered opener reach the learner without an em dash`
+- verified-by: `an extracted fact is stored without an em dash`
+
+### F1118 — The curation rejection log writes phrase text to worker stdout
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/curate/curate.ts:239
+- note: run2-3. The line keeps the rule names and the count and drops the French and the quoted English. The existing count test must stay green.
+- verified-by: `a rejected curation extension is logged without its text`
+- verified-by: `an extension that fails the content check never becomes a card`
+
+### F1119 — The scene-aim line ends in a double period
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/prompt/turnContext.ts:129
+- note: run2-9. Prompt text in the per-turn context, not the cached prefix and not learner copy.
+- verified-by: `the scene aim line reads as clean sentences on the last attempt and on a forced advance`
+
+### F1120 — Three brain rules are restated beside their owner
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/profile/profile.ts:571
+- note: run2-10 and the two caps of run2-11. `profile.ts` imports the coaching pair from the engine; the recap cap reads core; the snapshot example cap reads `MAX_PATTERN_EXAMPLE`. All four tests below exist and must be green before and after.
+- verified-by: `a form corrected earlier earns no profile credit later, matching the end card`
+- verified-by: `the end card never celebrates a phrase the session corrected`
+- verified-by: `every fix the recap holds reaches the conversation pack`
+- verified-by: `clamped when written, by code point, without splitting a surrogate pair`
+
+### F1121 — In free conversation a reply right after help still counts as unassisted
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/engine/conversation.ts:866
+- note: run2-1, the brain half of F1069. The founder answered "Stop after hint or line" on 2026-11-18, so the fix passes `assisted: state.assistanceDepth > 0` to `applyTurn`: a hint or the full line both end unassisted credit for that exchange. Past sessions are not changed.
+- verified-by: `a good reply on an exchange the learner was helped on earns no unassisted credit`
+
+### F1318 — The memory pause merge is pinned only through a function sync never calls
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/profile/merge.ts:635
+- note: run2-5, the live half. Replacing `mergeMemoryControl(...)` with `heavy.brain.memory` in `mergeStoredProfiles` fails no test today. Deleting `mergeLearnerProfiles` and its test goes to M5b with the mobile re-point.
+- verified-by: `the newest pause choice survives a busier stale device through the stored-profile merge`
