@@ -14087,7 +14087,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1114 — An Anthropic answer that fails to parse is never retried and loses its usage
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/llm/anthropic.ts:256
 - note: run1-1. The SDK throws `AnthropicError` from inside `messages.parse`, so the loop never sees a null answer. F97's two tests pass on a fake shape the real SDK never returns. P2 because production refuses Anthropic. Related: F1262.
 - verified-by: `an anthropic answer the real SDK cannot parse is retried once and fails as a BrainParseError carrying both attempts' usage`
