@@ -63,7 +63,8 @@ async function exportRoute(method:string,path:string,request:typeof fetch) {
   }
   return response;
 }
-test('a missing export function answers 503 account export unavailable, not an internal error',async()=>{
+test('a missing export function answers 503 account export unavailable, not an internal error',async(t)=>{
+  const logged=t.mock.method(console,'error',()=>{});
   // PostgREST answers 404 for an RPC that is not in the schema, as on a project missing the migration.
   const missing:typeof fetch=async url=>String(url).includes('/auth/')
     ?Response.json({last_sign_in_at:new Date(Date.now()-1000).toISOString()})
@@ -71,6 +72,8 @@ test('a missing export function answers 503 account export unavailable, not an i
   for(const [method,path] of [['POST','/account/export-v2'],['GET',`/account/export-v2/${id}?part=0`],['DELETE',`/account/export-v2/${id}`]] as const) {
     assert.deepEqual(await exportRoute(method,path,missing),{status:503,body:{error:'account export unavailable'}},`${method} ${path}`);
   }
+  // Staging's only trace of a failed export: a fixed category and the status, never the error or the account.
+  assert.deepEqual(logged.mock.calls.map(call=>call.arguments),Array(3).fill(['[luvani] request failed',{category:'export-unavailable',status:503}]));
   // Any other failure is still an internal error.
   const broken:typeof fetch=async()=>{throw new Error('socket hang up');};
   assert.equal((await exportRoute('GET',`/account/export-v2/${id}?part=0`,broken)).status,500);

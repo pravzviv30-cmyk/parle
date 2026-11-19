@@ -1006,7 +1006,10 @@ const server = createServer({ connectionsCheckingInterval: 5_000 }, protectHttpH
       return json(res,part===null?404:200,part??{error:'export unavailable'});
       } catch(error) {
         // F272: a missing or failing export function is an absent dependency, not a bug.
-        if(error instanceof Error && error.message==='account-export-unavailable')return json(res,503,{error:'account export unavailable'});
+        if(error instanceof Error && error.message==='account-export-unavailable') {
+          console.error('[luvani] request failed',{category:'export-unavailable',status:503});
+          return json(res,503,{error:'account export unavailable'});
+        }
         throw error;
       }
     }
