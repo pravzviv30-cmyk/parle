@@ -14119,7 +14119,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1118 — The curation rejection log writes phrase text to worker stdout
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/curate/curate.ts:239
 - note: run2-3. The line keeps the rule names and the count and drops the French and the quoted English. The existing count test must stay green.
 - verified-by: `a rejected curation extension is logged without its text`

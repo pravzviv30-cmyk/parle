@@ -242,6 +242,34 @@ describe('the content check an extension has to pass', () => {
     );
   });
 
+  test('a rejected curation extension is logged without its text', () => {
+    const warnings: string[] = [];
+    const realWarn = console.warn;
+    console.warn = (...args: unknown[]) => void warnings.push(args.map(String).join(' '));
+
+    const scold = phrase('Tant pis', 'You said it wrong');
+    const frenchGloss = phrase('À plus', 'À plus tard');
+
+    try {
+      applyCuration({ topics: [topic('Leaving', 'Partir', [], [scold, frenchGloss])] }, [], [CAFE]);
+    } finally {
+      console.warn = realWarn;
+    }
+
+    const rejections = warnings.filter((line) => line.includes('curation rejected the extension'));
+    assert.equal(rejections.length, 2, 'both rejections should still be logged');
+    for (const text of [scold.fr, scold.en, frenchGloss.fr, frenchGloss.en]) {
+      assert.ok(
+        !rejections.some((line) => line.includes(text)),
+        `a rejection log line carried phrase text "${text}" to worker stdout`,
+      );
+    }
+    assert.ok(
+      rejections.some((line) => line.includes('looks French, not English')),
+      'the rejection log lost the rule name',
+    );
+  });
+
   test('a rejected extension does not spend the slot a good one needed', () => {
     // The cap counts what shipped, not what was proposed, or one bad line
     // would cost the learner the transfer challenge that followed it.
