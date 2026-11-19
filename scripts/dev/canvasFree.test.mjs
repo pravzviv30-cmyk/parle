@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { UNSET_NAMES, buildTokenEnv, buildWebEnv, mainCheckoutRoot, printable, redact } from './canvasFree.mjs';
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { STOP_SIGNALS, UNSET_NAMES, buildTokenEnv, buildWebEnv, mainCheckoutRoot, printable, redact, removeFile, secretValues } from './canvasFree.mjs';
 
 const ENV_TEXT = [
   '# token server',
@@ -17,6 +21,9 @@ const ENV_TEXT = [
   'OPENAI_API_KEY=sk-openai-secret',
   'TONEPERFECT_API_KEY=tone-secret',
   'TYPESAFE_API_KEY=typesafe-secret',
+  'DEEPGRAM_API_KEY=deepgram-secret-key',
+  'SPEECHACE_API_KEY=speechace-secret-key',
+  'ANTHROPIC_API_KEY=anthropic-secret-key',
 ].join('\n');
 
 const build = (extra = {}) =>
@@ -31,9 +38,19 @@ test('keeps the LiveKit values and the local-development flag', () => {
   assert.equal(env.PATH, '/bin');
 });
 
-test('removes every paid or remote name, from the file and from the shell', () => {
-  const env = build({ OPENAI_API_KEY: 'from-shell', SUPABASE_URL: 'https://shell.example' });
-  for (const name of UNSET_NAMES) assert.equal(name in env, false, name);
+test('the token env is an allow-list: no paid or remote key gets through, from the file or the shell', () => {
+  const shell = { OPENAI_API_KEY: 'from-shell', SUPABASE_URL: 'https://shell.example', DEEPGRAM_API_KEY: 'd', FUTURE_VENDOR_KEY: 'f', HOME: '/home/me', LC_ALL: 'en_US.UTF-8', NODE_OPTIONS: '--no-warnings' };
+  const env = build(shell);
+  for (const name of [...UNSET_NAMES, 'DEEPGRAM_API_KEY', 'SPEECHACE_API_KEY', 'ANTHROPIC_API_KEY', 'FUTURE_VENDOR_KEY']) {
+    assert.equal(name in env, false, name);
+  }
+  assert.equal(env.HOME, '/home/me');
+  assert.equal(env.LC_ALL, 'en_US.UTF-8');
+  assert.equal(env.NODE_OPTIONS, '--no-warnings');
+  assert.deepEqual(Object.keys(env).sort(), [
+    'DOTENV_CONFIG_PATH', 'ENTITLEMENT_STORE_PATH', 'HOME', 'LC_ALL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'LIVEKIT_URL',
+    'LUVANI_AGENT_SECRET', 'LUVANI_ALLOWED_ORIGINS', 'LUVANI_LOCAL_DEVELOPMENT', 'NODE_OPTIONS', 'PATH',
+  ]);
   assert.deepEqual([...UNSET_NAMES].sort(), [
     'EXPO_PUBLIC_SUPABASE_ANON_KEY', 'LUVANI_DEV_UNLIMITED_MINUTES', 'OPENAI_API_KEY', 'SUPABASE_SERVICE_ROLE_KEY',
     'SUPABASE_URL', 'TONEPERFECT_API_KEY', 'TYPESAFE_API_KEY', 'UPSTASH_REDIS_REST_TOKEN', 'UPSTASH_REDIS_REST_URL',
@@ -76,6 +93,26 @@ test('redact hides secret values in forwarded child output', () => {
   assert.equal(redact('boot with livekit-secret-value-123 ok', ['livekit-secret-value-123', '']), 'boot with [hidden] ok');
   assert.equal(redact('nothing here', ['abc']), 'nothing here');
   assert.equal(redact('keep devkey', ['key']), 'keep devkey', 'values shorter than 8 characters are not redacted');
+});
+
+test('every value in the .env, and the agent secret, is redacted from forwarded output', () => {
+  const secrets = secretValues({ envText: ENV_TEXT, agentSecret: 'agent-secret-abc' });
+  const values = ENV_TEXT.split('\n').filter((l) => l.includes('=')).map((l) => l.slice(l.indexOf('=') + 1).replace(/^"|"$/g, ''));
+  for (const value of [...values, 'agent-secret-abc'].filter((v) => v.length >= 8)) {
+    assert.equal(redact(`log ${value} end`, secrets), 'log [hidden] end', value);
+  }
+});
+
+test('stops on hang-up as well as interrupt and terminate', () => {
+  assert.deepEqual([...STOP_SIGNALS].sort(), ['SIGHUP', 'SIGINT', 'SIGTERM']);
+});
+
+test('removeFile deletes the ledger and tolerates a missing one', () => {
+  const file = join(mkdtempSync(join(tmpdir(), 'canvas-free-test-')), 'entitlements.json');
+  writeFileSync(file, '{}');
+  removeFile(file);
+  assert.equal(existsSync(file), false);
+  removeFile(file);
 });
 
 test('mainCheckoutRoot reads the first worktree from git porcelain output', () => {

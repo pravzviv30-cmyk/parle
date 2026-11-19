@@ -174,7 +174,7 @@ The current roster, territories and review triggers are in `docs/TEAM.md`.
 | Something built properly | `/forge <what you want built>` |
 | To know if it is safe to release | `/ship` |
 | A backend architecture review before implementation or promotion | `/backend-review <scope>` |
-| To check the version you are about to push (frontend pushes get the Impeccable and unslop design reviews: slop fixed, redesign ideas asked of you, never applied), fix what it finds, and stamp it | `/push-check` (`--main` before landing) |
+| To check the version you are about to push (frontend pushes get the Impeccable and unslop design reviews: slop fixed, redesign ideas queued for a board, never applied), fix what it finds, and stamp it | `/push-check` (`--main` before landing) |
 | To know if this belongs on main yet | `/land` |
 | One pass at the ledger's top open item | `/bug-sweep` |
 | A specific specialist | ask for it by name |
@@ -305,7 +305,7 @@ Three hard stops, and none of them is negotiable by being asked:
   - the Impeccable reviewer (`impeccable:impeccable-finish-reviewer`);
   - since 2026-11-15, `unslop-reviewer` with `scripts/unslop-scan.mjs`. It follows `.claude/skills/unslop/`, adapted from heydamir/unslop, and DESIGN.md and PRODUCT.md win any clash.
 
-  For both, slop is fixed in the push, and redesign ideas are asked of the founder and never applied. A push to `main` adds the built-in
+  For both, slop is fixed in the push, and redesign ideas are queued for a board (founder rule, 2026-11-19) and never applied. A push to `main` adds the built-in
   `/security-review` (`/push-check --main`, which `/land` runs).
   `scripts/push-check-guard.mjs` is a `PreToolUse` hook that refuses `git push` and
   `gh pr merge` from a Claude session until the commit has a passing stamp. It refuses a

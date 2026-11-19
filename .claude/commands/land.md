@@ -125,7 +125,11 @@ through a GitHub pull request (founder, 2026-11-15), in this order:
    refuses `--auto` without `--match-head-commit` set to the PR head, so auto-merge can only
    land the commit that was checked. GitHub merges when `gate` and `source-contract` are
    green. A red check is **HOLD**; fix it on the branch, re-run `/push-check --main` on the
-   new tip, push again and enable auto-merge on the new tip.
+   new tip, push again and enable auto-merge on the new tip. GitHub keeps auto-merge armed
+   across pushes and the guard only checks at enable time, so once auto-merge is enabled,
+   any further push to that branch first disables it (`gh pr merge <n> --disable-auto`);
+   then the new tip gets `/push-check --main` again and auto-merge is re-enabled with the
+   new `--match-head-commit`.
 6. Fallback, when auto-merge is unavailable (not enabled on the repo, or `gh` refuses it):
    wait with `gh pr checks <n> --watch` until `gate` and `source-contract` are green, then
    `gh pr merge <n> --merge --delete-branch`. `--merge` keeps one revertable merge

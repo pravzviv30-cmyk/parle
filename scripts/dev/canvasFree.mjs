@@ -14,7 +14,7 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { devNull, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -24,7 +24,10 @@ import { parseEnvFile } from '../../services/shared/devPlan.ts';
 export const TOKEN_PORT = 8787;
 export const DEFAULT_WEB_PORT = 8094;
 
-/** Names that would reach something paid or remote. Removed from both children, whatever the file or shell says. */
+/** Signals that stop both children, so a closed terminal does not leave them running. */
+export const STOP_SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+
+/** Names that would reach something paid or remote. Removed from the web build's environment. */
 export const UNSET_NAMES = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
@@ -43,10 +46,24 @@ const withoutUnset = (env) => {
   return out;
 };
 
-/** The token server's environment: the .env text, then the unset list, then this run's own values. */
+/** What the token server may take from the shell: the basics a Node process needs, and nothing else. */
+const BASIC_NAMES = ['PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL', 'TMPDIR', 'TEMP', 'TMP', 'TERM', 'TZ', 'LANG', 'FORCE_COLOR', 'NO_COLOR'];
+const BASIC_PREFIXES = ['LC_', 'NODE_'];
+
+/** The only values the token server takes from the .env. */
+const LIVEKIT_NAMES = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'];
+
+const pick = (source, wanted) => Object.fromEntries(Object.entries(source).filter(([name]) => wanted(name)));
+
+/**
+ * The token server's environment, built from nothing: the shell basics, the LiveKit values
+ * from the .env text, and this run's own values. An allow-list, so a vendor key nobody has
+ * named yet (Deepgram, Speechace, Anthropic, the next one) can never come along.
+ */
 export function buildTokenEnv({ envText, port, agentSecret, storePath, base }) {
   return {
-    ...withoutUnset({ ...base, ...parseEnvFile(envText) }),
+    ...pick(base, (name) => BASIC_NAMES.includes(name) || BASIC_PREFIXES.some((prefix) => name.startsWith(prefix))),
+    ...pick(parseEnvFile(envText), (name) => LIVEKIT_NAMES.includes(name)),
     LUVANI_LOCAL_DEVELOPMENT: '1',
     LUVANI_AGENT_SECRET: agentSecret,
     LUVANI_ALLOWED_ORIGINS: `http://localhost:${port}`,
@@ -78,11 +95,21 @@ export function printable({ port }) {
   ].join('\n');
 }
 
+/** Every value in the .env text, plus the agent secret: what forwarded output must never show. */
+export function secretValues({ envText, agentSecret }) {
+  return [...Object.values(parseEnvFile(envText)), agentSecret];
+}
+
 /** Hides secret values in forwarded child output. Short values are left alone: they would match ordinary words. */
 export function redact(text, secrets) {
   let out = text;
   for (const value of secrets) if (value && value.length >= 8) out = out.split(value).join('[hidden]');
   return out;
+}
+
+/** Deletes a file, quietly when it is already gone. */
+export function removeFile(path) {
+  rmSync(path, { force: true });
 }
 
 /** The main checkout is the first entry of `git worktree list --porcelain`. */
@@ -122,14 +149,11 @@ function main() {
   const envFile = findEnvFile();
   if (!envFile) throw new Error('No services/token-server/.env in this checkout or the main one. Copy .env.example and fill the LiveKit values.');
   const agentSecret = randomBytes(24).toString('hex');
-  const tokenEnv = buildTokenEnv({
-    envText: readFileSync(envFile, 'utf8'),
-    port,
-    agentSecret,
-    storePath: join(tmpdir(), `luvani-canvas-free-${process.pid}-entitlements.json`),
-    base: process.env,
-  });
-  const secrets = [tokenEnv.LIVEKIT_API_SECRET, agentSecret];
+  const envText = readFileSync(envFile, 'utf8');
+  const storePath = join(tmpdir(), `luvani-canvas-free-${process.pid}-entitlements.json`);
+  const tokenEnv = buildTokenEnv({ envText, port, agentSecret, storePath, base: process.env });
+  const secrets = secretValues({ envText, agentSecret });
+  process.on('exit', () => removeFile(storePath));
   const webEnv = buildWebEnv({ base: process.env });
 
   const children = [];
@@ -166,6 +190,10 @@ function main() {
         for (const line of lines) if (line.trim() !== '') say(label, line, out);
       });
     }
+    child.on('error', (error) => {
+      say('dev', `${label} could not start: ${error.message}`, process.stderr);
+      stop(1);
+    });
     child.on('exit', (code, signal) => {
       if (!stopping) say('dev', `${label} exited (${signal ?? `code ${code}`}). Stopping the other.`, process.stderr);
       if (!stopping) stop(code === 0 ? 1 : (code ?? 1));
@@ -179,8 +207,7 @@ function main() {
   launch('token', process.execPath, ['--experimental-strip-types', 'services/token-server/src/server.ts'], tokenEnv);
   launch('web', 'npm', ['run', 'web', '--workspace=@luvani/mobile', '--', '--port', String(port)], webEnv);
 
-  process.on('SIGINT', () => stop(0));
-  process.on('SIGTERM', () => stop(0));
+  for (const signal of STOP_SIGNALS) process.on(signal, () => stop(0));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
