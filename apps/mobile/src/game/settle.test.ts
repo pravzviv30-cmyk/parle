@@ -1009,6 +1009,22 @@ describe('Board A moments from a real settle (founder, 2026-11-19)', () => {
   });
 });
 
+describe('Board A moment 5, a bank already full', () => {
+  test('an earlier day banked and not spent: today\'s second sitting banks nothing new', async () => {
+    pin({ billing: () => ({ plan: 'regular', lapsed: false, secondsRemaining: 1200, canStart: true }) });
+    for (let n = 3; n >= 2; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.equal(await recordActivity('drill', 10, NOW - DAY - HOUR, { finished: true }), 'durable');
+    assert.equal(await recordActivity('drill', 10, NOW - DAY, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    const first = await drill(NOW - HOUR, 10);
+    assert.ok(first);
+    assert.equal(first.banked, false);
+    const second = await drill(NOW, 10);
+    assert.ok(second);
+    assert.equal(second.banked, false, 'a full bank was said as newly banked');
+  });
+});
+
 describe('Board A moment 5 on the free plan, the push-check repro (2026-11-19)', () => {
   test('a review that is the day\'s second practice banks the free learner\'s freeze and says so', async () => {
     const FREE: BillingFacts = { plan: 'trial', lapsed: false, secondsRemaining: 0, canStart: false };

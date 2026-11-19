@@ -25,6 +25,7 @@ import {
   heroCounts,
   mayDraw,
   nextDraw,
+  seenNow,
   questCounts,
   risen,
   type DrawGate,
@@ -224,5 +225,17 @@ describe("Home's numbers on a mounted Home — F767", () => {
     const hero = read('../game/TodayStats.tsx');
     assert.match(hero, /if \(dayTurned\(today, Date\.now\(\)\)\) refresh\(\);/, 'the hero keeps yesterday after midnight');
     assert.match(hero, /\}, DAY_CHECK_MS\);/);
+  });
+
+  test('the freeze line is marked seen only while Home can be seen (Board A)', () => {
+    // The first draw happens behind a closed gate too, so drawn is not seen.
+    assert.equal(seenNow('covered:2026-10-07', false), null);
+    assert.equal(seenNow('covered:2026-10-07', true), 'covered:2026-10-07');
+    assert.equal(seenNow(null, true), null);
+    const hook = read('./useHomeDraw.ts');
+    assert.match(hook, /export function useDrawGate\(\): boolean/);
+    const stats = read('../game/TodayStats.tsx');
+    assert.match(stats, /const shownKey = seenNow\(drawn\?\.model\.nudge\?\.seenKey \?\? null, useDrawGate\(\)\);/, 'the freeze line is marked seen behind a closed gate');
+    assert.equal((stats.match(/markSeen\(/g) ?? []).length, 1);
   });
 });

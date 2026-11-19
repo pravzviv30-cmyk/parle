@@ -41,6 +41,7 @@ import { CLOUD_POSES } from '../art/mascots/mascotPoses.ts';
 import { Toast as ToastMascot } from '../art/mascots/Toast.tsx';
 import { EarGlyph, GhostButton, PillButton } from '../components.tsx';
 import { FreezeMark } from '../game/art/FreezeMark.tsx';
+import { freezeGround } from '../game/freezeGround.ts';
 import type { GameDelta } from '../game/delta.ts';
 import { Tile } from '../game/TodayStatTiles.tsx';
 import { STAT_GAP, statCoins, statRowTileWidth, statTileLayout, type StatTileLayout } from '../game/todayHeroView.ts';
@@ -280,7 +281,7 @@ function Body({
           ...(view.banked !== null
             ? [
                 <View key="banked" style={s.banked}>
-                  <FreezeMark size={22} />
+                  <FreezeMark size={22} ground={freezeGround(t.mode)} />
                   <Text style={[type.bodyStrong, s.grow, { color: t.text }]}>{view.banked}</Text>
                 </View>,
               ]

@@ -127,6 +127,11 @@ export function mayDraw(gate: DrawGate): boolean {
   return gate.focused && gate.active && !gate.held && !gate.takeover;
 }
 
+/** The key to mark seen now: a drawn line is seen only while Home's gate is open, since the first draw also happens behind it. */
+export function seenNow(key: string | null, open: boolean): string | null {
+  return open ? key : null;
+}
+
 /**
  * How long the gate stays open before Home draws a new value: the queue's
  * pause between one takeover and the next, and its window for gathering a

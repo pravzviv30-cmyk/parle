@@ -128,9 +128,6 @@ describe('celebration timelines — F743', () => {
       ...[...body.matchAll(/beatAt\((?:TIMELINE|timeline|TIMELINES\['[a-z-]+'\]), '([a-z-]+)'\)/g)].map((m) => m[1]!),
     ];
     const templates: [TimelineId, string][] = [
-      ['streak-extended', './templates/StreakExtended.tsx'],
-      ['streak-carried', './templates/StreakExtended.tsx'],
-      ['streak-repaired', './templates/StreakExtended.tsx'],
       ['streak-milestone', './templates/StreakMilestone.tsx'],
       ['level-up', './templates/LevelUp.tsx'],
       ['badge-earned', './templates/BadgeEarned.tsx'],
@@ -139,12 +136,27 @@ describe('celebration timelines — F743', () => {
       ['end-card-quests', './EndScene.tsx'],
       ['toast', './Toast.tsx'],
     ];
-    // A template that draws several forms (StreakExtended: plain, carried, repaired) needs each element in one of its timelines.
-    for (const [, path] of templates) {
-      const ids = templates.filter(([, other]) => other === path).map(([id]) => id);
+    for (const [id, path] of templates) {
       const elements = asked(read(path));
       assert.ok(elements.length > 0, `${path} waits for no beat, so this check reads nothing`);
-      for (const element of elements) assert.ok(ids.some((id) => TIMELINES[id].beats.some((beat) => beat.element === element)), `${path} waits for "${element}", which none of ${ids.join(', ')} has a beat for`);
+      for (const element of elements) beatAt(TIMELINES[id], element);
+    }
+    // StreakExtended draws three forms, each on its own timeline: every form's elements need a beat in that form's.
+    const streak = read('./templates/StreakExtended.tsx');
+    const branch = (mark: string): string => {
+      const at = streak.indexOf(`if (view.mark === '${mark}') {`);
+      assert.notEqual(at, -1, `StreakExtended no longer has its ${mark} form`);
+      return streak.slice(at, streak.indexOf('\n  }\n', at));
+    };
+    const forms: [TimelineId, string][] = [
+      ['streak-carried', branch('tick')],
+      ['streak-repaired', branch('repair')],
+      ['streak-extended', streak.replace(branch('tick'), '').replace(branch('repair'), '')],
+    ];
+    for (const [id, body] of forms) {
+      const elements = asked(body);
+      assert.ok(elements.length > 0, `StreakExtended's ${id} form waits for no beat, so this check reads nothing`);
+      for (const element of elements) assert.ok(TIMELINES[id].beats.some((beat) => beat.element === element), `StreakExtended's ${id} form waits for "${element}", which ${id} has no beat for`);
     }
     // The frame's words: every takeover's lines, a streak's number, a level's new title.
     const frame = read('./Takeover.tsx');
@@ -179,11 +191,10 @@ describe('celebration timelines — F743', () => {
     const frame = read('./Takeover.tsx');
     assert.match(frame, /const timeline = TIMELINES\[takeoverTimeline\(view\)\];/, 'the frame plays the card type, not its form');
     const stage = read('./templates/StreakExtended.tsx');
-    // The carried form: a mint disc with the ink check-draw, still once final; the repaired form: RepairMark on a white tile.
+    // The carried form: the ink tick on a mint disc (CheckDisc), rising in on its beat; the repaired form: RepairMark on a white tile.
     assert.match(stage, /view\.mark === 'tick'/);
     assert.match(stage, /view\.mark === 'repair'/);
-    assert.match(stage, /<AnimatedIcon kind="check-draw"[^>]*color=\{textOn\.mint\}[^>]*state=\{final \|\| reached\('mark'\) \? 'on' : 'off'\}/);
-    assert.match(stage, /backgroundColor: colour\.mint/);
+    assert.match(stage, /<CheckDisc size=\{DISC\} fill=\{colour\.mint\} tick=\{textOn\.mint\} \/>/);
     assert.match(stage, /<RepairMark /);
     assert.match(stage, /backgroundColor: paper\.card/);
     // Flame and confetti only on the plain extension, after both forms have returned.

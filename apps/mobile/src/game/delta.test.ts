@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { addDays, streakFrom, type StreakCover } from '@luvani/core';
 
 import { bankedNow, carriedNow, repairedNow } from './delta.ts';
+import { currentMomentKeys, type GameView } from './view.ts';
 
 const TODAY = '2026-10-07';
 const AT = new Date(2026, 9, 7, 12).getTime();
@@ -83,7 +84,7 @@ describe('a freeze this sitting banked (moment 5)', () => {
   });
 
   test('an unsaved write (this sitting not on disk) banks nothing', () => {
-    assert.equal(bankedNow({ ...base, afterSittings: [earlier, { at: AT - HOUR }] }), false);
+    assert.equal(bankedNow({ ...base, beforeSittings: [earlier], afterSittings: [earlier] }), false);
   });
 
   test('a bank another phone made is not this sitting\'s', () => {
@@ -100,5 +101,14 @@ describe('a freeze this sitting banked (moment 5)', () => {
 
   test('a guest never banks', () => {
     assert.equal(bankedNow({ ...base, source: 'guest' }), false);
+  });
+});
+
+describe('the keys the quiet catch-up marks seen', () => {
+  test('a freeze-covered day and a kept repair in the live run add no covered: or repair: key', () => {
+    const streak = streakFrom({ practiceDays: [...days(6, 5, 4, 2), TODAY], covers: [cover(3, 'repair'), cover(1, 'freeze')], today: TODAY });
+    assert.deepEqual(streak.coveredInRun.map((held) => held.kind).sort(), ['freeze', 'repair']);
+    const keys = currentMomentKeys({ today: TODAY, streak, level: { level: 1 }, badges: [] } as unknown as GameView);
+    assert.deepEqual(keys.filter((key) => key.startsWith('covered:') || key.startsWith('repair:')), []);
   });
 });

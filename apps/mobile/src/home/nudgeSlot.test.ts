@@ -30,12 +30,12 @@ describe("Board A: Today's nudge slot, drawn and marked seen", () => {
     assert.deepEqual(nudgeSlot(null, TODAY, new Map()), { nudge: null, ask: null });
   });
 
-  test('Today reads the seen mark, and marks the line seen in the synced game store once it has drawn', () => {
+  test('Today reads the seen mark, and marks the line seen in the synced game store once it has drawn where Home can be seen', () => {
     const stats = flat('../game/TodayStats.tsx');
     assert.match(stats, /const \{ nudge, ask \} = nudgeSlot\(run, today, known\);/);
     assert.match(stats, /hasSeen\(ask\)/);
     // Marked from what was drawn, never from what was only computed.
-    assert.match(stats, /const shownKey = drawn\?\.model\.nudge\?\.seenKey \?\? null;/);
+    assert.match(stats, /const shownKey = seenNow\(drawn\?\.model\.nudge\?\.seenKey \?\? null, useDrawGate\(\)\);/);
     assert.match(stats, /void markSeen\(\[\{ key: shownKey, at: Date\.now\(\) \}\]\)/);
     assert.match(stats, /return children\(\{ tiles, nudge: drawn\.model\.nudge\?\.text \?\? null, freezeMark: drawn\.model\.nudge\?\.freezeMark === true \}\);/);
     assert.match(flat('../tabs/HomeTab.tsx'), /nudge=\{nudge\} freezeMark=\{freezeMark\}/);

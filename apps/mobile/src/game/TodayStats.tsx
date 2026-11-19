@@ -20,12 +20,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 
-import { flamePops, heroCounts } from '../home/homeDraw.ts';
+import { flamePops, heroCounts, seenNow } from '../home/homeDraw.ts';
 import { DAY_CHECK_MS, dayTurned } from '../home/homeRefresh.ts';
 import type { TodayNudge } from '../home/nudge.ts';
 import { nudgeSlot } from '../home/nudgeSlot.ts';
 import type { SkyView } from '../home/skyView.ts';
-import { useHomeDraw } from '../home/useHomeDraw.ts';
+import { useDrawGate, useHomeDraw } from '../home/useHomeDraw.ts';
 import { hasSeen, markSeen } from './store.ts';
 import { useGame, useGoal, useLevel, useStreak, useXp } from './GameProvider.tsx';
 import { TodayStatTiles, TodayStatTilesSkeleton } from './TodayStatTiles.tsx';
@@ -66,7 +66,7 @@ export function TodayStats({ sky, children }: { sky: SkyView; children: (parts: 
   }, [focused, today, refresh]);
 
   const hero = todayHeroView({ streak: run, goal, level, xp });
-  // What the seen reads said of the freeze line's key (Board A): held back until read, marked seen once drawn.
+  // What the seen reads said of the freeze line's key (Board A): held back until read, marked seen once drawn where Home can be seen.
   const [known, setKnown] = useState<ReadonlyMap<string, boolean>>(new Map());
   const { nudge, ask } = nudgeSlot(run, today, known);
   useEffect(() => {
@@ -79,7 +79,7 @@ export function TodayStats({ sky, children }: { sky: SkyView; children: (parts: 
     };
   }, [ask]);
   const drawn = useHomeDraw<HeroModel>(today, hero === null ? null : { hero, nudge }, (model) => heroCounts(model.hero));
-  const shownKey = drawn?.model.nudge?.seenKey ?? null;
+  const shownKey = seenNow(drawn?.model.nudge?.seenKey ?? null, useDrawGate());
   useEffect(() => {
     if (shownKey !== null) void markSeen([{ key: shownKey, at: Date.now() }]);
   }, [shownKey]);

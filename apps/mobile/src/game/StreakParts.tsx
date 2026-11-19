@@ -21,6 +21,7 @@ import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { tapSettled } from '../motion/haptics.ts';
 import { HIT, bType, decorative, paper, type, corner, radius } from '../theme.ts';
 import { FreezeMark } from './art/FreezeMark.tsx';
+import { freezeGround } from './freezeGround.ts';
 import { RepairMark } from './art/RepairMark.tsx';
 import { monthWeeks, type DayCellView, type MonthView } from './streakScreenView.ts';
 
@@ -55,7 +56,7 @@ function DayCircle({ cell }: { cell: DayCellView }) {
   if (cell.state === 'covered') {
     return (
       <View {...decorative} style={[s.circle, { backgroundColor: t.lavender }]}>
-        {cell.cover === 'repair' ? <RepairMark size={22} /> : cell.cover === 'travel' ? <Icon name="trip" variant="bulk" size={18} color={t.link} /> : <FreezeMark size={18} />}
+        {cell.cover === 'repair' ? <RepairMark size={22} /> : cell.cover === 'travel' ? <Icon name="trip" variant="bulk" size={18} color={t.link} /> : <FreezeMark size={18} ground={freezeGround(t.mode)} />}
       </View>
     );
   }
@@ -70,7 +71,7 @@ export function FreezeCard({ title, sub, line, returns, upsell, onUpsell }: { ti
   return (
     <View style={s.freeze}>
       <View style={s.freezeHead}>
-        <View {...decorative} style={s.freezeDisc}><FreezeMark size={28} /></View>
+        <View {...decorative} style={s.freezeDisc}><FreezeMark size={28} ground={freezeGround(t.mode)} /></View>
         <View style={s.grow}>
           <Text accessibilityRole="header" style={[bType.bold18, { color: t.text }]}>{title}</Text>
           <Text style={[bType.meta, { color: t.muted }]}>{sub}</Text>

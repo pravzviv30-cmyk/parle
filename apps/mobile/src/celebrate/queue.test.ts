@@ -714,3 +714,12 @@ describe('the celebration queue — F743', () => {
     release();
   });
 });
+
+describe('a repaired streak card needs its number', () => {
+  test('no whole runBefore is not showable; runBefore 12 is', () => {
+    const repaired = (runBefore?: number): CelebrationEvent => ({ type: 'streak-extended', key: celebrationKey.streak(DAY), origin: 'account', at: AT, data: { day: DAY, current: 13, lifetimeDays: 20, form: 'repaired', ...(runBefore === undefined ? {} : { runBefore }) } } as CelebrationEvent);
+    assert.equal(isShowable(repaired()), false, 'runBefore missing');
+    assert.equal(isShowable(repaired(0)), false, 'runBefore 0');
+    assert.equal(isShowable(repaired(12)), true);
+  });
+});
