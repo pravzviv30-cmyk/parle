@@ -10,9 +10,10 @@
  * one nice sentence through fails several suites at once.
  *
  * There is no store, no state, and no learner data here. It is a list and a
- * matcher, and it is imported by tests rather than by screens: nothing at
- * runtime filters copy through it. Copy is written by people who read the list,
- * and the list is enforced at the gate.
+ * matcher, imported by tests and, at runtime, in one place only:
+ * `reminders/reminder.ts` asks it at plan time whether a phrase's English can
+ * be named on the lock screen. Every other line is written by people who read
+ * the list, and the list is enforced at the gate.
  *
  * The review screen's own scan is not part of this. cardView.test.ts reads
  * ReviewScreen.tsx for `ProgressBar` and `percent`, which is a check on what

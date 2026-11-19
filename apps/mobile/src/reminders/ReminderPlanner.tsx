@@ -47,8 +47,10 @@ import { loadProfile } from '../profile/store.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { tutorNameOf } from '../tutor/tutorName.ts';
 import { acceptReminderOffer } from '../live/keepsake.ts';
-import { reminderOpenOf, routeForReminder, type ReminderRoute } from './openTarget.ts';
-import { todayPhraseId } from './todayPhrase.ts';
+import { onBillingChange } from '../purchases/billingChanges.ts';
+import { fetchBillingStatus } from '../purchases/client.ts';
+import { reminderOpenOf, reminderPhraseOf, routeForReminder, type ReminderRoute } from './openTarget.ts';
+import { phraseLevel, phraseOn, todayPhraseId } from './todayPhrase.ts';
 import {
   LOCAL_CALENDAR,
   closeLog,
@@ -56,11 +58,13 @@ import {
   noteAnswered,
   noteOpened,
   freezeProtectionOf,
+  heardRefill,
   planReminders,
   plannedLog,
   replanStep,
   slotDay,
   smartTime,
+  type HeldRefill,
   type ReminderLog,
   type ReminderSlot,
 } from './plan.ts';
@@ -107,6 +111,13 @@ interface PracticeFacts {
 }
 
 let chain: Promise<unknown> = Promise.resolve();
+
+/**
+ * The free plan's refill as billing last answered it, for the account it was
+ * read for (T1.3). In memory only, never stored; heard the way the trial
+ * reminder hears billing (`useTrialReminderSync`).
+ */
+let freeRefill: HeldRefill | null = null;
 
 /** Run planner work alone, in the order it was asked for. */
 function alone<T>(work: () => Promise<T>): Promise<T> {
@@ -199,6 +210,9 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
   // The two freeze dates this phone saw, and nothing else from gameLocal.
   const freezes = freezeProtectionOf(await loadGameLocal().catch(() => null));
   const tutor = options.tutor ?? tutorNameOf(await loadProfile().catch(() => null));
+  // The pool is chosen once; each slot's phrase is picked for its own day (T1.3).
+  const level = await phraseLevel();
+  const refill = freeRefill !== null && freeRefill.owner === owner ? freeRefill.at : undefined;
   let log: ReminderLog = step.log;
   if (visiting()) log = noteOpened(log, now, LOCAL_CALENDAR);
   const slots = planReminders({
@@ -212,6 +226,8 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
     tutor,
     log,
     todayUnknown: facts === null,
+    phraseFor: (at) => phraseOn(level, at),
+    ...(refill !== undefined ? { freeRefill: refill } : {}),
   });
   if (!live()) return 'failed';
   return handOver(slots, log, now, (next) => (live() ? saveReminderLog(next) : Promise.resolve('failed' as const)));
@@ -319,6 +335,7 @@ export function noteReminderTap(id: string): Promise<void> {
  */
 export function stopReminders(): Promise<ScheduleOutcome> {
   if (!REMINDERS_AVAILABLE) return Promise.resolve('unavailable');
+  freeRefill = null;
   return alone(async () => {
     await saveHeldPlan(null);
     return cancelReminder();
@@ -341,15 +358,40 @@ export function ReminderPlanner(): null {
     void replanReminders({ tutor });
   }, [tutor]);
   useEffect(() => {
-    const offSettled = onSettled(() => {
+    // The free plan's refill, heard from billing (one fetch per event) and then
+    // planned for (T1.3): on mount, on a billing change, on the foreground and
+    // after a settled sitting, since a free conversation fires no billing change.
+    const userId = activeUserId();
+    const owner = scopeGeneration();
+    const hear = (): void => {
+      if (userId === null) {
+        void replanReminders({ tutor: tutorRef.current });
+        return;
+      }
+      void fetchBillingStatus(userId).then((status) => {
+        if (owner !== scopeGeneration()) return;
+        freeRefill = heardRefill(freeRefill, owner, status);
+        void replanReminders({ tutor: tutorRef.current });
+      });
+    };
+    // Planned at once, so a short visit is noted before the app leaves, then again once billing answers.
+    const replanThenHear = (): void => {
       void replanReminders({ tutor: tutorRef.current });
-    });
+      hear();
+    };
+    const offSettled = onSettled(replanThenHear);
     const appState = AppState.addEventListener('change', (state) => {
-      if (replansOn(state)) void replanReminders({ tutor: tutorRef.current });
+      if (state === 'active') replanThenHear();
+      else if (replansOn(state)) void replanReminders({ tutor: tutorRef.current });
+    });
+    hear();
+    const offBilling = onBillingChange((change) => {
+      if (change.userId === userId) hear();
     });
     return () => {
       offSettled();
       appState.remove();
+      offBilling();
     };
   }, []);
   return null;
@@ -406,11 +448,13 @@ export function useReminderTaps(navigation: TapNavigator): void {
   useEffect(() => navigation.addListener('ready', follow), [navigation, follow]);
   useEffect(
     () =>
-      onReminderTapped((open, id) => {
+      onReminderTapped((open, id, phrase) => {
         void noteReminderTap(id);
         const target = reminderOpenOf(open);
-        // Today's phrase as Home shows it, worked out at the tap, so it is today's whenever the tap comes.
-        const today = target === 'daily-phrase' ? todayPhraseId(Date.now()).catch(() => null) : Promise.resolve(null);
+        // The phrase the line named, even after midnight; a notification
+        // carrying none (planned before T1.3) opens today's phrase as Home shows it.
+        const named = reminderPhraseOf(phrase);
+        const today = target === 'daily-phrase' ? (named !== null ? Promise.resolve(named) : todayPhraseId(Date.now()).catch(() => null)) : Promise.resolve(null);
         void today.then((phraseId) => {
           pending.current = routeForReminder(target, phraseId);
           follow();

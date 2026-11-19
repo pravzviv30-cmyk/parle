@@ -63,8 +63,8 @@ export const REMINDERS_AVAILABLE: boolean = false;
  */
 export type ScheduleOutcome = 'done' | 'unavailable' | 'failed';
 
-/** A tap on one of this app's reminders: where its slot says it opens, and its identifier. */
-export type ReminderTapHandler = (open: string, id: string) => void;
+/** A tap on one of this app's reminders: where its slot says it opens, its identifier, and the phrase it named, unread. */
+export type ReminderTapHandler = (open: string, id: string, phraseId: unknown) => void;
 
 /** What the OS would allow, if there were an OS notification channel to allow. */
 export function reminderPermission(): Promise<ReminderPermission> {
