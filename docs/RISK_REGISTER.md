@@ -181,7 +181,7 @@ risk, and the adversarial and ordinary-French corpora above are what hold that a
 all followed a safety stop, which told a learner the session had gone well. After a stop
 there is now no congratulation, no XP and nothing banked on the device.
 
-Six risks stay open by choice, all P2, none of them load-bearing for the Phase 5 exit
+Five risks stay open by choice, all P2, none of them load-bearing for the Phase 5 exit
 criterion. They are named here because a register that records only the good news is the
 same kind of document this repo keeps having to correct.
 
