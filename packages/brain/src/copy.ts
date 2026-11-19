@@ -210,9 +210,6 @@ export function landsAsCorrection(text: string): boolean {
   return LANDS_AS_CORRECTION_RE.test(text);
 }
 
-/** Said when the tutor steps in after silence. Same line the scripted product uses. */
-export const RESCUE_LINE = "Let's take that one together.";
-
 /**
  * Said when a model turn fails entirely. The learner must never see a stack
  * trace, and they must never be given to understand it was their fault.

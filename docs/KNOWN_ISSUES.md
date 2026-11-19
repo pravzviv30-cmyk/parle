@@ -3406,7 +3406,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F206 — A rescue line is either dead or lost, and nothing says which
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/copy.ts:174
 - note: `RESCUE_LINE` duplicates core's `FEEDBACK.rescued[0]`, and its only reference anywhere in
   the repo is its own test at `copy.test.ts:137`. Either the live path lost its rescue line or
