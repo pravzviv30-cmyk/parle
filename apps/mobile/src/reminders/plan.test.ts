@@ -690,6 +690,14 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
     assert.deepEqual(heardRefill(known, 4, out), { owner: 4, at: Date.UTC(2026, 9, 8, 12), talk: { free: true, open: false } });
   });
 
+  test('chooseTalkDays plans only what was written, and never rejects', () => {
+    const planner = code('./ReminderPlanner.tsx');
+    const choose = planner.slice(planner.indexOf('export async function chooseTalkDays('), planner.indexOf('export async function smartReminderTime('));
+    assert.ok(choose.length > 0, 'chooseTalkDays moved; this reads nothing');
+    assert.match(choose, /if \(\(await saveReminder\(next\)\) !== 'durable'\) return 'failed';\s*return await replanReminders\(/, 'days that were not saved are planned for');
+    assert.match(choose, /\} catch \{\s*return 'failed';\s*\}\s*\}\s*$/, 'a throwing write or replan rejects instead of answering failed');
+  });
+
   test('the planner hears billing on mount, on a billing change, on the foreground and after a settle, one fetch each', () => {
     const planner = code('./ReminderPlanner.tsx');
     // Only the account it was read for plans with it, and a sign-out forgets it.

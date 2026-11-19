@@ -320,19 +320,19 @@ export function talkDaysOffered(): boolean {
 /**
  * The learner picked their talk days (the ask's step 2, or Settings): written
  * over the stored choice, then planned for. `failed` when the choice could not
- * be read or there is none to add them to.
+ * be read, there is none to add them to, or the write or the plan did not
+ * land; it never rejects.
  */
 export async function chooseTalkDays(talkDays: readonly number[], tutor: string): Promise<ScheduleOutcome> {
-  let stored: StoredReminder | null;
   try {
-    stored = await loadReminder({ strict: true });
+    const stored = await loadReminder({ strict: true });
+    if (stored === null) return 'failed';
+    const next: StoredReminder = { ...stored, talkDays: [...talkDays] };
+    if ((await saveReminder(next)) !== 'durable') return 'failed';
+    return await replanReminders({ tutor, choice: next });
   } catch {
     return 'failed';
   }
-  if (stored === null) return 'failed';
-  const next: StoredReminder = { ...stored, talkDays: [...talkDays] };
-  await saveReminder(next);
-  return replanReminders({ tutor, choice: next });
 }
 
 /** The learner's own time as the smart mode reads it now, or null until their rhythm shows. */

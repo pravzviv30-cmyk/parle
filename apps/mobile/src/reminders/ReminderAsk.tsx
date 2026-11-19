@@ -46,12 +46,11 @@
 
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
-import { Choice, GhostButton, IconAction, PillButton, Press, ROW_WORDS } from '../components.tsx';
-import { Icon } from '../icons/Icon.tsx';
+import { Choice, GhostButton, IconAction, PillButton, ROW_WORDS } from '../components.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
 import { arrived } from '../motion/haptics.ts';
 import { play as playSfx } from '../sound/sfx.ts';
-import { HIT, bType, radius, space, type } from '../theme.ts';
+import { radius, space, type } from '../theme.ts';
 import {
   DEFAULT_TALK_DAYS,
   REMINDER_REFUSED,
@@ -60,21 +59,19 @@ import {
   SMART_FALLBACK,
   TALK_DAYS_COPY,
   TALK_DAY_MAX,
-  TALK_DAY_ORDER,
   clockGloss,
   reminderTime,
   smartGloss,
   talkDayBlocked,
   talkDayLabel,
-  talkDayReason,
   talkDaysLine,
   talkDaysPicked,
-  talkDaysValue,
   type ClockTime,
   type ReminderMode,
   type ReminderTimeId,
 } from './reminder.ts';
 import { chooseTalkDays, smartReminderTime, talkDaysOffered, turnOnReminder } from './ReminderPlanner.tsx';
+import { TalkDayChips } from './TalkDayChips.tsx';
 import { loadReminder } from './store.ts';
 import { REMINDERS_AVAILABLE, askReminderPermission, reminderPermission } from './schedule.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
@@ -258,11 +255,11 @@ export function ReminderAsk<T extends ReminderMode>({
   }
   return (
     <View style={st.card}>
-      {twoSteps && !settled ? <Text style={[type.eyebrow, st.soft]}>{TALK_DAYS_COPY.step1}</Text> : null}
       <View style={st.head}>
         <IconTile name="bell" ground="sun" size={40} />
         <Text style={[type.heading, st.words]}>{said(REMINDER_ASK_COPY.title, { tutor })}</Text>
       </View>
+      {twoSteps && !settled ? <Text style={[type.small, st.soft]}>{TALK_DAYS_COPY.step1}</Text> : null}
       {settled ? (
         <Text accessibilityLiveRegion="polite" style={[type.body, st.ink]}>
           {step === 'refused' ? REMINDER_REFUSED : REMINDER_ASK_COPY.failed}
@@ -342,42 +339,13 @@ function TalkDaysCard({
   onUse: () => void;
   onKeep: () => void;
 }): ReactElement {
-  const t = useB();
   const st = useThemedStyles(makeSt);
-  const chip = (day: number) => {
-    const chosen = picked.includes(day);
-    const blocked = talkDayBlocked(picked, day);
-    const reason = talkDayReason(picked, day);
-    return (
-      <Press
-        key={day}
-        haptic="selection"
-        frame={st.cell}
-        style={[st.chip, { backgroundColor: chosen ? t.brandMark : blocked ? t.skeleton : t.quiet }]}
-        accessibilityLabel={talkDayLabel(picked, day)}
-        accessibilityState={{ selected: chosen, disabled: blocked }}
-        onPress={() => onPressDay(day)}
-      >
-        <View style={st.chipHead}>
-          {chosen ? <Icon name="check" size={16} color={t.onBrand} /> : null}
-          <Text style={[type.button, { color: chosen ? t.onBrand : blocked ? t.muted : t.text }]}>{talkDaysValue([day])}</Text>
-        </View>
-        {reason !== null ? <Text style={[bType.bold12, st.soft]}>{reason}</Text> : null}
-      </Press>
-    );
-  };
   return (
     <View style={st.card}>
-      <Text style={[type.eyebrow, st.soft]}>{TALK_DAYS_COPY.step2}</Text>
       <Text accessibilityRole="header" style={[type.heading, st.ink]}>{said(TALK_DAYS_COPY.title, { tutor })}</Text>
+      <Text style={[type.small, st.soft]}>{TALK_DAYS_COPY.step2}</Text>
       <Text style={[type.body, st.ink]}>{TALK_DAYS_COPY.body}</Text>
-      <View accessibilityLabel={TALK_DAYS_COPY.row} style={st.days}>
-        <View style={st.row}>{TALK_DAY_ORDER.slice(0, 4).map(chip)}</View>
-        <View style={st.row}>
-          {TALK_DAY_ORDER.slice(4).map(chip)}
-          <View style={st.cell} />
-        </View>
-      </View>
+      <TalkDayChips picked={picked} onPressDay={onPressDay} />
       <Text accessibilityLiveRegion="polite" style={[type.small, st.soft]}>{talkDaysLine(picked, limitTapped)}</Text>
       <View style={st.actions}>
         <PillButton label={TALK_DAYS_COPY.use} disabled={picked.length === 0 || saving} onPress={onUse} />
@@ -396,11 +364,5 @@ function makeSt(t: B) {
   soft: { color: t.muted },
   times: { gap: space(2) },
   actions: { gap: space(1), paddingTop: space(1) },
-  days: { gap: space(2) },
-  row: { flexDirection: 'row', gap: space(2) },
-  cell: { flex: 1 },
-  // Grows with the words, so nothing clips at 320 or the largest text size.
-  chip: { minHeight: HIT, borderRadius: radius.field, paddingVertical: space(2), paddingHorizontal: space(1), alignItems: 'center', justifyContent: 'center', gap: space(0.5) },
-  chipHead: { flexDirection: 'row', alignItems: 'center', gap: space(1) },
 });
 }

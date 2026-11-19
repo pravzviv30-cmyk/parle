@@ -10,7 +10,8 @@ const key = (file: string, label: string) => `${file}:${label}`;
 // 60 to 93 in the systemic pass (F993, UI-023): OutlineButton folded into GhostButton, the founder's Q4 pick, so its word-only quiet actions are listed in ghostLinks.json.
 // 93 to 94 (UI-023 Q4, push-check 2026-11-17): the plans hero's "Try the offline café line" is Today's one quiet action, the underlined word.
 // 94 to 95 (T1.4, founder 2026-11-19): the talk-day step's quiet "Not now", a decline.
-const GHOST_CEILING = 95;
+// 95 to 96 (T1.4, founder 2026-11-19): the Settings sheet's quiet "Turn off talk days", a decline.
+const GHOST_CEILING = 96;
 function files(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(path.join(dir, entry.name)) : entry.name.endsWith('.tsx') ? [path.join(dir, entry.name)] : []);
 }

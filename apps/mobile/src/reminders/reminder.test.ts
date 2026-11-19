@@ -370,7 +370,7 @@ describe('what a reminder is not allowed to know', () => {
       'the planner writes a choice other than a yes, a pause, a put-back or talk days',
     );
     // Talk days (T1.4) are written over the stored choice as it was, never turning it off.
-    assert.match(planner, /if \(stored === null\) return 'failed';\s*const next: StoredReminder = \{ \.\.\.stored, talkDays: \[\.\.\.talkDays\] \};\s*await saveReminder\(next\);/, 'the talk-day write changes more than the talk days');
+    assert.match(planner, /if \(stored === null\) return 'failed';\s*const next: StoredReminder = \{ \.\.\.stored, talkDays: \[\.\.\.talkDays\] \};\s*if \(\(await saveReminder\(next\)\) !== 'durable'\) return 'failed';/, 'the talk-day write changes more than the talk days');
     assert.match(planner, /const yes = \(mode: ReminderMode\): StoredReminder => \(\{ \.\.\.\(stored \?\? \{\}\), enabled: true, time: mode, paused: false \}\);/, 'the ask writes a yes that is not on');
     assert.match(planner, /save: \(reminder\) => \(reminder\.enabled \? saveReminder\(yes\(reminder\.time\)\) : saveReminder\(stored \?\? reminder\)\),/, 'the put-back after a refused yes writes off over what was there');
     assert.match(planner, /if \(step\.pause && choice !== null\) await saveReminder\(\{ \.\.\.choice, paused: true \}\);/, 'the pause is written for something other than the note having gone out');

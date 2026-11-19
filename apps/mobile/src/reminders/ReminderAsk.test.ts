@@ -326,6 +326,9 @@ describe('the ask, step 2: your talk days (T1.4, Direction A, founder 2026-11-19
     assert.ok(use.length > 0, 'the Use these days handler moved; this reads nothing');
     assert.doesNotMatch(use, /playSfx|arrived|askReminderPermission|turnOnReminder/, 'Use these days plays again or asks again');
     assert.match(use, /await chooseTalkDays\(picked, tutor\);\s*keep\(\);/, 'the chosen days are not saved before the answer');
+    // keep() runs after the await, so chooseTalkDays must never reject (pinned in plan.test.ts) or the card holds.
+    const planner = readFileSync(new URL('./ReminderPlanner.tsx', import.meta.url), 'utf8');
+    assert.match(planner, /export async function chooseTalkDays\([^)]*\): Promise<ScheduleOutcome> \{\s*try \{/, 'a rejection leaves the card saving forever');
   });
 
   test('the saved days preselect, else Mon, Wed and Fri, read without a dialog', () => {
@@ -338,7 +341,9 @@ describe('the ask, step 2: your talk days (T1.4, Direction A, founder 2026-11-19
   });
 
   test('blocked chips stay focusable, ignore the press, and speak their reason', () => {
-    const source = ask();
+    // The chips are drawn by TalkDayChips, shared with the Settings sheet.
+    const chips = code('./TalkDayChips.tsx');
+    const source = ask() + chips;
     const press = source.slice(source.indexOf('const pressDay = (day: number) => {'), source.indexOf('const gloss ='));
     assert.match(press, /if \(talkDayBlocked\(picked, day\)\) \{/, 'a blocked chip takes the press');
     assert.match(press, /AccessibilityInfo\.announceForAccessibility\(/, 'a blocked press says nothing');
@@ -350,6 +355,8 @@ describe('the ask, step 2: your talk days (T1.4, Direction A, founder 2026-11-19
     assert.ok(card.length > 0, 'step 2 moved; this reads nothing');
     const chip = card.slice(0, card.indexOf('<View style={st.actions}>'));
     assert.doesNotMatch(chip, /\bdisabled=\{/, 'a chip is disabled and leaves the focus order');
+    assert.match(chip, /<TalkDayChips picked=\{picked\} onPressDay=\{onPressDay\} \/>/, 'step 2 draws its own chips');
+    assert.doesNotMatch(chips, /\bdisabled=\{/, 'a chip is disabled and leaves the focus order');
     assert.match(source, /talkDayReason\(picked, day\)/, 'the reason is not under the day');
     assert.match(source, /<Icon name="check"/, 'a chosen chip says so by colour alone');
     // The one line under the chips is live.
@@ -357,10 +364,14 @@ describe('the ask, step 2: your talk days (T1.4, Direction A, founder 2026-11-19
   });
 
   test('Use these days is off with none picked; the step labels and the words are the spec\'s', () => {
-    const source = ask();
+    const source = ask() + code('./TalkDayChips.tsx');
     assert.match(source, /<PillButton label=\{TALK_DAYS_COPY\.use\} disabled=\{picked\.length === 0 \|\| saving\} onPress=\{onUse\} \/>/);
-    assert.match(source, /twoSteps && !settled \? <Text style=\{\[type\.eyebrow, st\.soft\]\}>\{TALK_DAYS_COPY\.step1\}<\/Text> : null/, 'Step 1 of 2 shows when no step 2 follows');
+    assert.match(source, /twoSteps && !settled \? <Text style=\{\[type\.small, st\.soft\]\}>\{TALK_DAYS_COPY\.step1\}<\/Text> : null/, 'Step 1 of 2 shows only when step 2 follows');
     assert.match(source, /\{TALK_DAYS_COPY\.step2\}/);
+    // DESIGN.md's eyebrow rule (2026-11-19): the step joins the meta line under the heading, never an eyebrow over it.
+    assert.doesNotMatch(source, /type\.eyebrow/);
+    assert.ok(source.indexOf('{TALK_DAYS_COPY.step1}') > source.indexOf('REMINDER_ASK_COPY.title'), 'Step 1 of 2 sits under the heading');
+    assert.ok(source.indexOf('{TALK_DAYS_COPY.step2}') > source.indexOf('TALK_DAYS_COPY.title'), 'Step 2 of 2 sits under the heading');
     assert.match(source, /onUse=\{\(\) => void useDays\(\)\} onKeep=\{keep\}/, 'step 2 is not wired to its handlers');
     assert.match(source, /said\(TALK_DAYS_COPY\.title, \{ tutor \}\)/);
     assert.doesNotMatch(source, /#[0-9a-fA-F]{3,8}\b/, 'a raw hex colour');

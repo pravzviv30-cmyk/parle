@@ -378,5 +378,9 @@
   {
     "file": "tutor/RealMomentScreen.tsx",
     "label": "{checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}"
+  },
+  {
+    "file": "settings/SettingsScreen.tsx",
+    "label": "{TALK_DAYS_COPY.turnOff}"
   }
 ]
