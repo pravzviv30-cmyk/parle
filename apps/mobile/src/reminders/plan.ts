@@ -31,7 +31,9 @@
  *    On top of that (T1.3, D28): after the save line, the free-talk line on
  *    the first slot at or after a known free refill, then the week on a
  *    Sunday; the named phrase sits in the rotations, picked for the slot's
- *    own day, and its id rides on the slot so a tap opens it.
+ *    own day, and its id rides on the slot so a tap opens it. Before the
+ *    free-talk line comes the talk day (T1.4): on a chosen talk day when a
+ *    conversation can start then, "A conversation with {tutor} today".
  *
  * 5. **Only what the phone held counts.** A slot counts as arrived only while
  *    the OS still held its plan when its time came. Every plan is named by the
@@ -71,8 +73,11 @@ import {
   SMART_FALLBACK,
   STREAK_LINES,
   STREAK_SAVE_LINES,
+  TALK_DAY_FREE_LINE,
+  TALK_DAY_LINE,
   WEEKLY_LINE,
   namedPhraseFits,
+  talkDaysFit,
   reminderMessage,
   reminderTime,
   type ClockTime,
@@ -207,6 +212,19 @@ export interface PlanInput {
   phraseFor?: (at: number) => { id: string; en: string };
   /** On the free plan, when the free conversation comes back (`freeRefillOf`); absent when unknown (T1.3). */
   freeRefill?: number;
+  /** Whether a conversation can start, from the held billing answer (`talkOf`); absent for an unknown plan, so no talk day (T1.4). */
+  talk?: TalkFacts;
+}
+
+/** What billing last said about starting a conversation (T1.4): the free plan or a paid one, and whether one can start now. */
+export interface TalkFacts {
+  free: boolean;
+  open: boolean;
+}
+
+/** The talk facts from what billing answered, or undefined when it has not (an unknown plan). */
+export function talkOf(status: Parameters<typeof freeRefillOf>[0]): TalkFacts | undefined {
+  return status === null ? undefined : { free: status.plan === 'trial', open: status.canStart && status.secondsRemaining > 0 };
 }
 
 /**
@@ -225,11 +243,13 @@ export function freeRefillOf(status: { plan: string; periodEnd: string | null; c
 export interface HeldRefill {
   owner: number;
   at: number | undefined;
+  /** Whether a conversation can start, for talk days (T1.4). */
+  talk: TalkFacts | undefined;
 }
 
 /** The refill the planner holds after billing answered for `owner`: a null answer (a failure or a timeout) keeps what was known. */
 export function heardRefill(held: HeldRefill | null, owner: number, status: Parameters<typeof freeRefillOf>[0]): HeldRefill | null {
-  return status === null ? held : { owner, at: freeRefillOf(status) };
+  return status === null ? held : { owner, at: freeRefillOf(status), talk: talkOf(status) };
 }
 
 /**
@@ -508,6 +528,9 @@ export function planReminders(input: PlanInput): ReminderSlot[] {
   // The line the day before said: the last one that arrived, then each slot's own.
   let previous: { day: DayKey; line: string } | null = input.log.last ?? null;
   const freeRefill = input.guest === true || input.freeRefill === undefined || input.freeRefill <= now ? undefined : input.freeRefill;
+  // Talk days (T1.4): only for an account with a known plan, and only a set that keeps the rule.
+  const talk = input.guest === true ? undefined : input.talk;
+  const talkDays = talk !== undefined && Array.isArray(choice.talkDays) && talkDaysFit(choice.talkDays) ? new Set(choice.talkDays) : null;
   return days.map(({ day, at }, index) => {
     const pause = days.length === budget && index === budget - 1;
     // The run as it will stand on `day` if nothing else is practised first:
@@ -530,7 +553,10 @@ export function planReminders(input: PlanInput): ReminderSlot[] {
     const from = addDays(day, -6);
     const week = { days: practiceDays.filter((d) => d >= from && d <= day).length, practices: input.finishes.filter((f) => calendar.dayOf(f) >= from && calendar.dayOf(f) <= day).length };
     const weekly = mentionStreak && weekdayIndex(day) === 6 && week.days >= 1;
-    const special = freeTalk ? FREE_TALK_LINE : weekly ? WEEKLY_LINE : null;
+    // A talk day, when a conversation can start then: open now, or the free one back before the slot.
+    const back = talk?.free === true && !talk.open && input.freeRefill !== undefined && input.freeRefill <= at;
+    const talkDay = talkDays !== null && talkDays.has(expoWeekday(day)) && (talk!.open || back);
+    const special = talkDay ? (back ? TALK_DAY_FREE_LINE : TALK_DAY_LINE) : freeTalk ? FREE_TALK_LINE : weekly ? WEEKLY_LINE : null;
     const line = pause ? pauseLine : lineFor(day, n, lifetime, mentionStreak, avoid, cliff, special, phrase !== undefined && namedPhraseFits(phrase, input.tutor));
     previous = { day, line: line.id };
     const message = reminderMessage(line, { n, lifetime, tutor: input.tutor, ...(phrase !== undefined ? { english: phrase.en } : {}), week });

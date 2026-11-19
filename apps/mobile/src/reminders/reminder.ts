@@ -134,6 +134,8 @@ export interface StoredReminder {
   mentionStreak?: boolean;
   /** True once the pause note has gone out; cleared by turning the reminder on again. */
   paused?: boolean;
+  /** Your talk days (T1.4): Expo weekday numbers, as `days`; up to three, never two next to each other (`talkDaysFit`). */
+  talkDays?: number[];
 }
 
 /** The notification itself, in the shape the platform scheduler wants. */
@@ -230,6 +232,22 @@ export const WEEKLY_LINE: ReminderLine = {
   open: 'streak',
   title: ({ tutor }) => `This week with ${tutor}`,
   body: ({ week }) => `${days(week?.days ?? 0)} of French, ${practices(week?.practices ?? 0)}.`,
+};
+
+/** A talk day (T1.4) when a conversation can start then. Opens Speak. */
+export const TALK_DAY_LINE: ReminderLine = {
+  id: 'talk-day',
+  open: 'speak',
+  title: ({ tutor }) => `A conversation with ${tutor} today`,
+  body: ({ tutor }) => `${tutor} is ready to talk when you are.`,
+};
+
+/** A talk day on the free plan whose free conversation came back before the slot. */
+export const TALK_DAY_FREE_LINE: ReminderLine = {
+  id: 'talk-day-free',
+  open: 'speak',
+  title: TALK_DAY_LINE.title,
+  body: ({ tutor }) => `${tutor} is free to talk again.`,
 };
 
 /**
@@ -365,7 +383,7 @@ export const GUEST_PAUSE_LINE: ReminderLine = {
 };
 
 /** Every line a reminder can be, for the scans. */
-export const REMINDER_LINES: readonly ReminderLine[] = [...STREAK_LINES, MILESTONE_EVE_LINE, ...STREAK_SAVE_LINES, ...ROUTINE_LINES, FREE_TALK_LINE, WEEKLY_LINE, PAUSE_LINE, GUEST_PAUSE_LINE];
+export const REMINDER_LINES: readonly ReminderLine[] = [...STREAK_LINES, MILESTONE_EVE_LINE, ...STREAK_SAVE_LINES, ...ROUTINE_LINES, TALK_DAY_LINE, TALK_DAY_FREE_LINE, FREE_TALK_LINE, WEEKLY_LINE, PAUSE_LINE, GUEST_PAUSE_LINE];
 
 /** A line with its facts filled in. */
 export function reminderMessage(line: ReminderLine, facts: LineFacts): ReminderContent {
@@ -438,6 +456,98 @@ export function smartGloss(time: ClockTime | null): string {
   return time === null ? REMINDER_SMART_LEARNING : `About ${clockGloss(time)}`;
 }
 
+// ───────────────────────────────────────────────────────────── your talk days (T1.4)
+
+/** At most this many talk days. */
+export const TALK_DAY_MAX = 3;
+
+/** Preselected when nothing valid is saved: Mon, Wed and Fri (Expo weekdays). */
+export const DEFAULT_TALK_DAYS: readonly number[] = [2, 4, 6];
+
+/** The chips' order, Monday first, in Expo weekdays (1 Sunday to 7 Saturday). */
+export const TALK_DAY_ORDER: readonly number[] = [2, 3, 4, 5, 6, 7, 1];
+
+const SHORT_DAY = ['', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const FULL_DAY = ['', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** The words of the talk-day ask and the Settings sheet (founder, 2026-11-19). */
+export const TALK_DAYS_COPY = {
+  step1: 'Step 1 of 2',
+  step2: 'Step 2 of 2',
+  title: 'Which days will you talk to {tutor}?',
+  body: 'Pick up to three days, with a day off between them.',
+  use: 'Use these days',
+  limit: 'Three days is the most. Tap a chosen day to free it.',
+  noneAsk: 'Pick at least one day, or choose Not now.',
+  noneSettings: 'Pick at least one day, or turn off talk days.',
+  row: 'Talk days',
+  save: 'Save',
+  turnOff: 'Turn off talk days',
+} as const;
+
+/** True for two weekdays next to each other, the week wrapping (Saturday-Sunday, Sunday-Monday). */
+function nextTo(a: number, b: number): boolean {
+  const gap = (((a - b) % 7) + 7) % 7;
+  return gap === 1 || gap === 6;
+}
+
+/** The spacing rule: up to three distinct weekdays, never two next to each other. */
+export function talkDaysFit(days: readonly number[]): boolean {
+  if (days.length > TALK_DAY_MAX || new Set(days).size !== days.length) return false;
+  if (days.some((day) => !Number.isInteger(day) || day < 1 || day > 7)) return false;
+  return days.every((day) => days.every((other) => !nextTo(day, other)));
+}
+
+/** The chosen day an unchosen `day` sits next to (the one before it first), or null. */
+export function talkDayBlock(chosen: readonly number[], day: number): number | null {
+  if (chosen.includes(day)) return null;
+  return chosen.find((other) => (other % 7) + 1 === day) ?? chosen.find((other) => nextTo(other, day)) ?? null;
+}
+
+/** A day that cannot be picked: next to a chosen day, or any unchosen day once three are chosen. */
+export function talkDayBlocked(chosen: readonly number[], day: number): boolean {
+  return !chosen.includes(day) && (talkDayBlock(chosen, day) !== null || chosen.length >= TALK_DAY_MAX);
+}
+
+/** The reason under a blocked day, "next to Mon", or null. */
+export function talkDayReason(chosen: readonly number[], day: number): string | null {
+  const block = talkDayBlock(chosen, day);
+  return block === null ? null : `next to ${SHORT_DAY[block]}`;
+}
+
+/** The chip's spoken label: "Monday, chosen", "Tuesday, next to Monday, not available", or the day. */
+export function talkDayLabel(chosen: readonly number[], day: number): string {
+  if (chosen.includes(day)) return `${FULL_DAY[day]}, chosen`;
+  if (!talkDayBlocked(chosen, day)) return FULL_DAY[day]!;
+  const block = talkDayBlock(chosen, day);
+  return block === null ? `${FULL_DAY[day]}, not available` : `${FULL_DAY[day]}, next to ${FULL_DAY[block]}, not available`;
+}
+
+/** "Tue", "Tue and Sun", "Tue, Wed and Sun". */
+function joined(words: readonly string[]): string {
+  return words.length <= 1 ? (words[0] ?? '') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
+}
+
+/** The one line under the chips: none picked, the limit after a blocked press with three chosen, or the blocked days. */
+export function talkDaysLine(chosen: readonly number[], limitTapped: boolean, none: string = TALK_DAYS_COPY.noneAsk): string {
+  if (chosen.length === 0) return none;
+  if (limitTapped && chosen.length >= TALK_DAY_MAX) return TALK_DAYS_COPY.limit;
+  const blocked = TALK_DAY_ORDER.filter((day) => talkDayBlock(chosen, day) !== null).map((day) => SHORT_DAY[day]!);
+  if (blocked.length === 0) return '';
+  return `${joined(blocked)} ${blocked.length === 1 ? 'sits' : 'sit'} next to a chosen day.`;
+}
+
+/** The days to preselect: the saved ones when they keep the rule, else Mon, Wed and Fri. */
+export function talkDaysPicked(saved: readonly number[] | undefined): number[] {
+  return saved !== undefined && saved.length > 0 && talkDaysFit(saved) ? [...saved] : [...DEFAULT_TALK_DAYS];
+}
+
+/** The Settings row's value: "Mon, Wed, Fri", or Off. */
+export function talkDaysValue(days: readonly number[] | undefined): string {
+  const set = TALK_DAY_ORDER.filter((day) => days?.includes(day));
+  return set.length === 0 ? REMINDER_OFF : set.map((day) => SHORT_DAY[day]).join(', ');
+}
+
 /**
  * Every learner-facing string here, flattened, the way `FIRST_RUN_COPY` is.
  *
@@ -461,6 +571,8 @@ export const REMINDER_COPY: readonly string[] = [
   REMINDER_SMART_LEARNING,
   smartGloss({ hour: 18, minute: 30 }),
   ...REMINDER_TIMES.flatMap((time) => [time.label, time.gloss]),
+  ...Object.values(TALK_DAYS_COPY).map((line) => line.replace('{tutor}', TUTOR_NAME)),
+  ...[[2, 5], [1], [2, 4, 6], []].flatMap((days) => [talkDaysLine(days, false), talkDaysValue(days), ...TALK_DAY_ORDER.map((day) => talkDayLabel(days, day))]),
   ...REMINDER_LINES.filter((line) => line !== NAMED_PHRASE_LINE).flatMap((line) =>
     [1, 2, 6, 29, 99, 364].flatMap((n) => {
       const message = reminderMessage(line, { n, lifetime: n, tutor: TUTOR_NAME, week: { days: Math.min(n, 7), practices: n } });

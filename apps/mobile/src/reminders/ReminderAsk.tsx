@@ -24,6 +24,13 @@
  * The recap passes what it has already read (`asks`); a caller that has not
  * read it leaves it out and the card reads it itself, which raises nothing.
  *
+ * Step 2 (T1.4, Direction A, founder 2026-11-19): once Remind me has set the
+ * reminder, an account whose plan billing has answered for picks its talk
+ * days on the same card, two rows of named chips. A day next to a chosen one
+ * cannot be picked and says why in words. "Use these days" saves them; "Not
+ * now" keeps the reminder as it is. Either way the answer is the reminder,
+ * on. Refused, failed, a guest or an unknown plan: no step 2.
+ *
  * `onDone` is called exactly once, with `enabled: true` only after the OS took
  * the schedule, so a caller that records the answer never records a reminder
  * that does not exist. On the web there is no reminder to give, so there is no
@@ -39,13 +46,36 @@
 
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
-import { Choice, GhostButton, IconAction, PillButton, ROW_WORDS } from '../components.tsx';
+import { Choice, GhostButton, IconAction, PillButton, Press, ROW_WORDS } from '../components.tsx';
+import { Icon } from '../icons/Icon.tsx';
 import { IconTile } from '../icons/IconTile.tsx';
 import { arrived } from '../motion/haptics.ts';
 import { play as playSfx } from '../sound/sfx.ts';
-import { radius, space, type } from '../theme.ts';
-import { REMINDER_REFUSED, REMINDER_SMART_LABEL, REMINDER_TIMES, SMART_FALLBACK, clockGloss, reminderTime, smartGloss, type ClockTime, type ReminderMode, type ReminderTimeId } from './reminder.ts';
-import { smartReminderTime, turnOnReminder } from './ReminderPlanner.tsx';
+import { HIT, bType, radius, space, type } from '../theme.ts';
+import {
+  DEFAULT_TALK_DAYS,
+  REMINDER_REFUSED,
+  REMINDER_SMART_LABEL,
+  REMINDER_TIMES,
+  SMART_FALLBACK,
+  TALK_DAYS_COPY,
+  TALK_DAY_MAX,
+  TALK_DAY_ORDER,
+  clockGloss,
+  reminderTime,
+  smartGloss,
+  talkDayBlocked,
+  talkDayLabel,
+  talkDayReason,
+  talkDaysLine,
+  talkDaysPicked,
+  talkDaysValue,
+  type ClockTime,
+  type ReminderMode,
+  type ReminderTimeId,
+} from './reminder.ts';
+import { chooseTalkDays, smartReminderTime, talkDaysOffered, turnOnReminder } from './ReminderPlanner.tsx';
+import { loadReminder } from './store.ts';
 import { REMINDERS_AVAILABLE, askReminderPermission, reminderPermission } from './schedule.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
@@ -71,7 +101,7 @@ function said(line: string, values: Readonly<Record<string, string>>): string {
   return line.replace(/\{(\w+)\}/g, (_match, key: string) => values[key] ?? '');
 }
 
-type Step = 'ask' | 'busy' | 'refused' | 'failed';
+type Step = 'ask' | 'busy' | 'refused' | 'failed' | 'days';
 
 export function ReminderAsk<T extends ReminderMode>({
   time,
@@ -95,6 +125,13 @@ export function ReminderAsk<T extends ReminderMode>({
   const [smart, setSmart] = useState<ClockTime | null>(null);
   const [changing, setChanging] = useState(false);
   const [step, setStep] = useState<Step>('ask');
+  // Step 2 follows only for an account with a known plan (T1.4).
+  const [twoSteps] = useState(talkDaysOffered);
+  const [picked, setPicked] = useState<number[]>(() => [...DEFAULT_TALK_DAYS]);
+  const [limitTapped, setLimitTapped] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // The time the reminder was turned on at, which step 2's answer carries.
+  const kept = useRef<T | ReminderTimeId | null>(null);
   const answered = useRef(false);
   const asking = useRef(false);
   const alive = useRef(true);
@@ -131,6 +168,19 @@ export function ReminderAsk<T extends ReminderMode>({
       live = false;
     };
   }, [asks]);
+  // A read, never a dialog: the saved talk days to preselect, else Mon, Wed and Fri.
+  useEffect(() => {
+    if (!twoSteps) return;
+    let live = true;
+    void loadReminder()
+      .then((saved) => {
+        if (live) setPicked(talkDaysPicked(saved?.talkDays));
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [twoSteps]);
   // VoiceOver has no live region, so the one line that says what happened is announced.
   useEffect(() => {
     if (step === 'refused') AccessibilityInfo.announceForAccessibility(REMINDER_REFUSED);
@@ -167,15 +217,48 @@ export function ReminderAsk<T extends ReminderMode>({
     }
     playSfx('save');
     arrived();
+    if (twoSteps && alive.current) {
+      kept.current = at;
+      setStep('days');
+      return;
+    }
     answer({ enabled: true, time: at });
+  };
+
+  /** Step 2's Not now, and the end of Use these days: the reminder stays on. */
+  const keep = () => answer({ enabled: true, time: kept.current as T | ReminderTimeId });
+
+  const useDays = async () => {
+    if (picked.length === 0 || saving) return;
+    setSaving(true);
+    await chooseTalkDays(picked, tutor);
+    keep();
+  };
+
+  const pressDay = (day: number) => {
+    if (talkDayBlocked(picked, day)) {
+      // Ignored, and said: the limit once three are chosen, else the day's reason.
+      const limit = picked.length >= TALK_DAY_MAX;
+      setLimitTapped(limit);
+      AccessibilityInfo.announceForAccessibility(limit ? TALK_DAYS_COPY.limit : talkDayLabel(picked, day));
+      return;
+    }
+    const next = picked.includes(day) ? picked.filter((other) => other !== day) : [...picked, day];
+    setPicked(next);
+    setLimitTapped(false);
+    AccessibilityInfo.announceForAccessibility(talkDaysLine(next, false));
   };
 
   const gloss = chosen === 'smart' ? clockGloss(smart ?? SMART_FALLBACK) : reminderTime(chosen).gloss;
   const settled = step === 'refused' || step === 'failed';
   const dialogComing = asks ?? undecided;
   const busy = step === 'busy';
+  if (step === 'days') {
+    return <TalkDaysCard tutor={tutor} picked={picked} limitTapped={limitTapped} saving={saving} onPressDay={pressDay} onUse={() => void useDays()} onKeep={keep} />;
+  }
   return (
     <View style={st.card}>
+      {twoSteps && !settled ? <Text style={[type.eyebrow, st.soft]}>{TALK_DAYS_COPY.step1}</Text> : null}
       <View style={st.head}>
         <IconTile name="bell" ground="sun" size={40} />
         <Text style={[type.heading, st.words]}>{said(REMINDER_ASK_COPY.title, { tutor })}</Text>
@@ -241,6 +324,69 @@ export function ReminderAsk<T extends ReminderMode>({
   );
 }
 
+/** Step 2 (T1.4, Direction A): seven named chips in two rows, the one line under them, and the two answers. */
+function TalkDaysCard({
+  tutor,
+  picked,
+  limitTapped,
+  saving,
+  onPressDay,
+  onUse,
+  onKeep,
+}: {
+  tutor: string;
+  picked: readonly number[];
+  limitTapped: boolean;
+  saving: boolean;
+  onPressDay: (day: number) => void;
+  onUse: () => void;
+  onKeep: () => void;
+}): ReactElement {
+  const t = useB();
+  const st = useThemedStyles(makeSt);
+  const chip = (day: number) => {
+    const chosen = picked.includes(day);
+    const blocked = talkDayBlocked(picked, day);
+    const reason = talkDayReason(picked, day);
+    return (
+      <Press
+        key={day}
+        haptic="selection"
+        frame={st.cell}
+        style={[st.chip, { backgroundColor: chosen ? t.brandMark : blocked ? t.skeleton : t.quiet }]}
+        accessibilityLabel={talkDayLabel(picked, day)}
+        accessibilityState={{ selected: chosen, disabled: blocked }}
+        onPress={() => onPressDay(day)}
+      >
+        <View style={st.chipHead}>
+          {chosen ? <Icon name="check" size={16} color={t.onBrand} /> : null}
+          <Text style={[type.button, { color: chosen ? t.onBrand : blocked ? t.muted : t.text }]}>{talkDaysValue([day])}</Text>
+        </View>
+        {reason !== null ? <Text style={[bType.bold12, st.soft]}>{reason}</Text> : null}
+      </Press>
+    );
+  };
+  return (
+    <View style={st.card}>
+      <Text style={[type.eyebrow, st.soft]}>{TALK_DAYS_COPY.step2}</Text>
+      <Text accessibilityRole="header" style={[type.heading, st.ink]}>{said(TALK_DAYS_COPY.title, { tutor })}</Text>
+      <Text style={[type.body, st.ink]}>{TALK_DAYS_COPY.body}</Text>
+      <View accessibilityLabel={TALK_DAYS_COPY.row} style={st.days}>
+        <View style={st.row}>{TALK_DAY_ORDER.slice(0, 4).map(chip)}</View>
+        <View style={st.row}>
+          {TALK_DAY_ORDER.slice(4).map(chip)}
+          <View style={st.cell} />
+        </View>
+      </View>
+      <Text accessibilityLiveRegion="polite" style={[type.small, st.soft]}>{talkDaysLine(picked, limitTapped)}</Text>
+      <View style={st.actions}>
+        <PillButton label={TALK_DAYS_COPY.use} disabled={picked.length === 0 || saving} onPress={onUse} />
+        <GhostButton label={REMINDER_ASK_COPY.notNow} disabled={saving} onPress={onKeep} />
+      </View>
+    </View>
+  );
+}
+
 function makeSt(t: B) {
   return StyleSheet.create({
   card: { backgroundColor: t.card, borderRadius: radius.card, padding: space(5), gap: space(3) },
@@ -250,5 +396,11 @@ function makeSt(t: B) {
   soft: { color: t.muted },
   times: { gap: space(2) },
   actions: { gap: space(1), paddingTop: space(1) },
+  days: { gap: space(2) },
+  row: { flexDirection: 'row', gap: space(2) },
+  cell: { flex: 1 },
+  // Grows with the words, so nothing clips at 320 or the largest text size.
+  chip: { minHeight: HIT, borderRadius: radius.field, paddingVertical: space(2), paddingHorizontal: space(1), alignItems: 'center', justifyContent: 'center', gap: space(0.5) },
+  chipHead: { flexDirection: 'row', alignItems: 'center', gap: space(1) },
 });
 }

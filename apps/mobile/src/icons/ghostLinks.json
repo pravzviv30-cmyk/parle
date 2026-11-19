@@ -164,6 +164,10 @@
     "label": "{REMINDER_ASK_COPY.notNow}"
   },
   {
+    "file": "reminders/ReminderAsk.tsx",
+    "label": "{REMINDER_ASK_COPY.notNow}"
+  },
+  {
     "file": "settings/SettingsScreen.tsx",
     "label": "{deleting ? 'Verifying…' : 'Verify and delete permanently'}"
   },
