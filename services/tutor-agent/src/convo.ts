@@ -1382,11 +1382,12 @@ export class LuvaniConversation extends voice.Agent {
   }
 
   /**
-   * Where the replay check lands, for the same reason and by the same rule as
-   * `LuvaniTutor`: agent.ts writes the signed session id here before the tutor
-   * opens its mouth, and a credential whose session was already reported is
-   * spent. Refusing here is what stops a re-created room from buying a whole
-   * free conversation — scene build, brain turns, speech and all.
+   * agent.ts writes the signed session id here before the tutor opens its mouth.
+   *
+   * As in `LuvaniTutor`, the reported-session check below never fires: it reads
+   * a per-process set that is always empty at this point. The durable
+   * `claim_tutor_session_v1` claim is what refuses a replay. Part B (F1311)
+   * removes the check.
    */
   set sessionId(value: string) {
     this.sessionIdValue = value;

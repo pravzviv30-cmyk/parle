@@ -248,7 +248,7 @@ export function buildTTS({ voice = DEFAULT_TUTOR_VOICE, baseURL, conversationTie
     // fish has one configured voice and no catalogue, so a chosen key has
     // nowhere to go here. That is a real limitation and it is stated rather
     // than hidden: this vendor exists as a free-tier escape hatch, and a
-    // learner who picks Céline under it hears whatever FISH_VOICE_ID names.
+    // learner who picks Marie under it hears whatever FISH_VOICE_ID names.
     // The persona still follows the choice, which is the mismatch to watch for
     // if fish is ever more than a fallback.
     const { inner, voiceKey } = fishVoice();

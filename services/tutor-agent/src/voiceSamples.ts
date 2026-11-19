@@ -10,11 +10,10 @@
  * `buildTTS({ voice, missTransport: 'http' })` — the same function the agent
  * calls to speak in a live session. That is the whole design decision here. A
  * clip made by a hand-rolled vendor request would be an approximation: it would
- * miss the pinned model, the pinned language code and the voice settings, all
- * of which change what a voice sounds like, and a learner would choose a voice
- * from a sample and then meet a different one. Going through `buildTTS` also
- * means the French sentence is a real tutor opening that a live session may
- * later hit. A rerun is not free: sample sentences are not on the authored
+ * miss the pinned model and the voice settings, both of which change what a
+ * voice sounds like, and a learner would choose a voice from a sample and then
+ * meet a different one. The sentence itself is `tutorSampleLine`, which no live
+ * session says. A rerun is not free: sample sentences are not on the authored
  * allow-list, so the cache does not keep them and every rerun bills again.
  *
  * SENTENCE BY SENTENCE, which is how the runtime does it. Our TTS declares
@@ -213,12 +212,11 @@ export function readManifest(path: string = MANIFEST_PATH): SampleManifest {
 /**
  * Whether the previous listen still describes this audio.
  *
- * A rerun synthesizes again, and when nothing changed the vendor can return the
- * same bytes, and forcing a fresh listen for that would train whoever runs this to type
- * something in to get the gate green. So the attestation carries forward only
- * when the words, the configuration and the bytes are all unchanged. New words,
- * a retuned setting or different audio blank it, and the suite then demands an
- * ear before the clips can be pushed.
+ * The attestation carries forward only when the words, the configuration and
+ * the bytes are all unchanged. New words, a retuned setting or different audio
+ * blank it, and the suite then demands an ear before the clips can be pushed.
+ * Every rerun synthesizes again, so the bytes and their sha256 almost always
+ * differ: in practice a rerun blanks `heard`, and whoever ran it listens again.
  */
 export function carryAttestation(previous: SampleRecord | undefined, next: Omit<SampleRecord, 'heard'>): string {
   if (previous === undefined) return '';
@@ -356,8 +354,8 @@ export function joinClip(frames: readonly AudioFrame[], gapMs: number = GAP_MS):
  * Synthesize one voice's clip and return it as a 16-bit PCM WAV.
  *
  * A fresh CachedTTS per voice, because the voice is part of the cache key and
- * is fixed at construction. `chars` counts only the sentences that actually
- * reached the vendor, so a rerun reports the nothing it cost.
+ * is fixed at construction. `chars` counts the sentences that reached the
+ * vendor, which on a rerun is every one of them.
  */
 async function synthesizeClip(
   voice: TutorVoiceKey,
@@ -369,7 +367,8 @@ async function synthesizeClip(
     // Two iterations, one per sentence. Do NOT collapse this into a single
     // synthesize() of the whole text: the loop is what makes each request
     // identical to the one a live session would send, and therefore what makes
-    // the cache key real. H4 pins per-sentence synthesis.
+    // the sample sound like the voice a learner will hear. H4 pins per-sentence
+    // synthesis.
     for (const sentence of sampleSentences(voice)) {
       const before = cached.charsBilled;
       frames.push(await cached.synthesize(sentence).collect());

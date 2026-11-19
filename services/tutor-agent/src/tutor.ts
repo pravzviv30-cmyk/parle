@@ -146,22 +146,14 @@ export const REPLAYED_SESSION_MESSAGE = 'That session has already finished. Star
 const REPORTED_SESSIONS_KEPT = 10_000;
 
 /**
- * Sessions this worker has already reported to the token server.
+ * Session ids this job process has reported, and a check that never fires.
  *
- * A join credential is a bearer token with minutes of life still on it once the
- * session it opened has ended, and LiveKit re-creates a closed room for whoever
- * presents one — measured live, 279s of ttl left on a room whose session was
- * already reported (F77). The empty room by itself costs nothing. What costs
- * money is the tutor dispatched into it, so the tutor is what refuses.
- *
- * A session id is signed into the credential and reported exactly once, which
- * makes "already reported" the honest test for a replay, and it reuses the
- * ledger seam rather than inventing a second idea of when a session is over.
- *
- * Per job process, and said plainly: each job runs in its own process, so this
- * set is empty when a session id lands and catches no replay, across rooms or
- * otherwise. The guard is the durable `claim_tutor_session_v1` claim, which the
- * database refuses for a session it has already seen.
+ * A join credential outlives its session, and LiveKit re-creates a closed room
+ * for whoever presents one (F77). This set was meant to refuse that replay, but
+ * each job runs in its own process, so the set is always empty when a session
+ * id lands. What refuses a replay is the durable `claim_tutor_session_v1`
+ * claim, which the database turns down for a session it has already seen.
+ * Part B (F1311) removes this set and its functions.
  */
 const reportedSessions = new Set<string>();
 
@@ -1088,13 +1080,12 @@ export class LuvaniTutor extends voice.Agent {
   }
 
   /**
-   * Where the replay check lands, because this is where the signed session id
-   * arrives: agent.ts reads it out of the join credential's metadata and writes
-   * it here before the tutor has said a word or armed a clock.
+   * agent.ts writes the signed session id here from the join credential's
+   * metadata, before the tutor has said a word or armed a clock.
    *
-   * A credential whose session has already been reported is spent, and the room
-   * it just re-opened is not a session — so the tutor takes itself off the air
-   * instead of teaching a lesson that can never be charged for.
+   * The reported-session check below never fires: it reads a per-process set
+   * that is always empty at this point. The durable `claim_tutor_session_v1`
+   * claim is what refuses a replay. Part B (F1311) removes the check.
    */
   set sessionId(value: string) {
     this.sessionIdValue = value;

@@ -14081,7 +14081,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1110 — In text mode a keystroke after the timed reveal starts a second rescue clock
 - severity: P2
 - status: [x]
-- where: services/tutor-agent/src/convo.ts:2398
+- where: services/tutor-agent/src/convo.ts:2391
 - note: B3b-1. The rescue callback leaves silenceTimer set after it fires, so the typing handler's "only ever a restart" check passes on a dead handle and a second reveal drops the rung while the learner is writing. Clear the handle first, as tutor.ts:624 does.
 - note: Fixed 2026-11-19 on claude/review-b3b: the rescue callback clears the handle before runRescue; the named test fails with 2 rescues before and passes with 1 after.
 - verified-by: `in text mode a keystroke after the timed reveal starts no new rescue clock`
@@ -14121,7 +14121,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1310 — Stale comments, a dead re-export shim and five unused names in the tutor agent
 - severity: P2
 - status: [x]
-- where: services/tutor-agent/src/speechace.ts:10
+- where: services/shared/speechace.ts
 - note: B3b-4 comment only, plus B3b-5 to B3b-9. No behaviour changes and no test dies. The voice-samples advice is operator copy, not learner copy.
 - note: Fixed 2026-11-19 on claude/review-b3b: the voice, voiceConfiguration, voiceSamples, ttsCache and canDoEvidence parts landed first. This pass corrects the reportedSessions comment in tutor.ts (per job process, so it catches no replay; the durable claim_tutor_session_v1 claim is the guard), deletes the speechace.ts shim and points its test at services/shared, drops the unused session parameter on the private routeClientMessage (the public handleClientMessage keeps it as `_session`, because the worker calls both tutors with one signature), and corrects two voice-samples comments to the six-voice, bills-on-rerun truth. tsc with --noUnusedLocals --noUnusedParameters reports only test-file names. The tutor-agent suite is 1046.
 - verified-by: `flattens words and phones into observations`
