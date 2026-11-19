@@ -14160,8 +14160,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1311 — The in-memory replay ledger can never fire and is removed
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/tutor.ts:166
 - note: B3b-4, part B. Each job is its own process, so reportedSessions is always empty when a session id lands. The durable claim refuses a replay. Filed on the -b branch only after F79 is ticked on main; F77 is re-pointed to F79's test in the same commit. Two tests die; 1044 remain against a floor of 908.
+- note: Fixed 2026-11-19 on claude/review-b3b-b: the set, its three functions, REPORTED_SESSIONS_KEPT, REPLAYED_SESSION_MESSAGE, the refused field and every read in both tutors are gone, with the two tests and their cleanup calls. The tutor-agent suite went from 1050 to 1048 (main had grown since the contract's 1044). F77 points at the durable claim's test, and voice-repro.mjs and voice-result.json no longer measure the set.
 - verified-by: `claim validates the owner fence and rejects a reused or oversized reservation`
 - verified-by: `a claim the database refuses throws before any provider is built`
