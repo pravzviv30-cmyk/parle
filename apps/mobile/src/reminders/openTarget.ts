@@ -3,7 +3,9 @@
  *
  * Every line opens the place it promises: "Today's phrase is ready" opens
  * today's phrase, the pause note opens Settings where the reminder can be
- * turned back on, and every other line opens Home. Pure, so the promise is held
+ * turned back on, the free-talk line and "A moment of French" open Speak, the
+ * week opens the Streak screen, and every other line opens
+ * Home, which a slot with a planned phrase turns into that phrase (T1.3). Pure, so the promise is held
  * by a test; `App.tsx` queues the route and follows it once the navigator is
  * ready, which is how a tap that launched the app from cold still lands.
  */
@@ -13,10 +15,12 @@ import type { ReminderOpen } from './reminder.ts';
 /** A route the root navigator can follow. */
 export type ReminderRoute =
   | { name: 'Tabs'; params: { screen: 'Home' } }
+  | { name: 'Tabs'; params: { screen: 'Tutor' } }
   | { name: 'DailyPractice'; params: { id: string } }
-  | { name: 'Settings' };
+  | { name: 'Settings' }
+  | { name: 'Streak' };
 
-const OPENS: readonly ReminderOpen[] = ['home', 'daily-phrase', 'settings'];
+const OPENS: readonly ReminderOpen[] = ['home', 'daily-phrase', 'settings', 'speak', 'streak'];
 
 /** What a notification's data says it opens, or Home for anything this build did not write. */
 export function reminderOpenOf(value: unknown): ReminderOpen {
@@ -24,12 +28,24 @@ export function reminderOpenOf(value: unknown): ReminderOpen {
 }
 
 /**
- * The route for a tap. `phraseId` is today's phrase, the one Home shows, or
- * null when it could not be worked out, when the phrase line opens Home rather
+ * The route for a tap. `phraseId` is the phrase the slot planned (or, for an
+ * older notification, today's phrase, the one Home shows), or null when it
+ * could not be worked out, when the phrase line opens Home rather
  * than a phrase that is not today's.
  */
 export function routeForReminder(open: ReminderOpen, phraseId: string | null): ReminderRoute {
   if (open === 'settings') return { name: 'Settings' };
+  // Speak, where the free conversation starts (the Tutor tab).
+  if (open === 'speak') return { name: 'Tabs', params: { screen: 'Tutor' } };
+  if (open === 'streak') return { name: 'Streak' };
   if (open === 'daily-phrase' && phraseId !== null && phraseId.length > 0) return { name: 'DailyPractice', params: { id: phraseId } };
   return { name: 'Tabs', params: { screen: 'Home' } };
+}
+
+/**
+ * The phrase a notification's data says its line named (T1.3), or null for a
+ * notification that carries none (one planned before this build).
+ */
+export function reminderPhraseOf(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
 }

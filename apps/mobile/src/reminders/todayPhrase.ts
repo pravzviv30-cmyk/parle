@@ -15,15 +15,25 @@
 
 import { levelFor, totalXp } from '@luvani/core';
 
-import { todayItems } from '../daily/catalogue.ts';
+import { todayItems, type DailyItem } from '../daily/catalogue.ts';
 import { readGameFacts } from '../game/settle.ts';
 import { NO_OUTSIDE_FACTS } from '../game/view.ts';
 
-export async function todayPhraseId(now: number): Promise<string> {
+/** The standing's index that picks the pool, read once per plan (T1.3); the beginner pool when unreadable. */
+export async function phraseLevel(): Promise<number> {
   try {
     const facts = await readGameFacts(NO_OUTSIDE_FACTS, null);
-    return todayItems(levelFor(totalXp(facts.activity)).index, now).phrase.id;
+    return levelFor(totalXp(facts.activity)).index;
   } catch {
-    return todayItems(0, now).phrase.id;
+    return 0;
   }
+}
+
+/** The phrase Home would show at `at`, for a pool already chosen. */
+export function phraseOn(level: number, at: number): DailyItem {
+  return todayItems(level, at).phrase;
+}
+
+export async function todayPhraseId(now: number): Promise<string> {
+  return phraseOn(await phraseLevel(), now).id;
 }
