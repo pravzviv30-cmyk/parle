@@ -239,6 +239,9 @@ slice B, which waits on a later decision about that rule. Slice A:
   weekly line opens the Streak screen; "A moment of French" opens Speak. Free to talk goes only to a learner who ran out
   (`canStart` false or no seconds left); billing is refetched on the foreground and after a settled sitting (one fetch
   per event, then the re-plan), and a failed fetch keeps the last known refill.
+- Known limits left from the push-check (low): when the save line takes the refill's slot, the free-to-talk line is
+  dropped rather than moved to the next slot; the weekly body counts days from the practice days and practices from
+  finished sittings, so a crash between the two writes can read more days than practices.
 
 ### T1.4: Your talk days
 
