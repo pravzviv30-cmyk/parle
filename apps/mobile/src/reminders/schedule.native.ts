@@ -97,8 +97,8 @@ export const REMINDERS_AVAILABLE: boolean = true;
  */
 export type ScheduleOutcome = 'done' | 'unavailable' | 'failed';
 
-/** A tap on one of this app's reminders: where its slot says it opens, and its identifier. */
-export type ReminderTapHandler = (open: string, id: string) => void;
+/** A tap on one of this app's reminders: where its slot says it opens, its identifier, and the phrase it named, unread. */
+export type ReminderTapHandler = (open: string, id: string, phraseId: unknown) => void;
 
 /**
  * Three OS states, in the three words reminder.ts already uses.
@@ -177,7 +177,8 @@ async function hand(slots: readonly (ReminderSlot | TrialReminderSlot)[]): Promi
   for (const slot of slots) {
     await Notifications.scheduleNotificationAsync({
       identifier: slot.id,
-      content: { title: slot.title, body: slot.body, data: { open: slot.open } },
+      // The phrase the line named rides along, so a late tap opens that phrase (T1.3).
+      content: { title: slot.title, body: slot.body, data: { open: slot.open, ...('phraseId' in slot && slot.phraseId !== undefined ? { phraseId: slot.phraseId } : {}) } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: slot.at, channelId: REMINDER_CHANNEL_ID },
     });
   }
@@ -268,7 +269,7 @@ export function onReminderTapped(handler: ReminderTapHandler): () => void {
     if (handled.has(key)) return;
     handled.add(key);
     const open: unknown = request.content.data?.open;
-    handler(typeof open === 'string' ? open : 'home', request.identifier);
+    handler(typeof open === 'string' ? open : 'home', request.identifier, request.content.data?.phraseId);
   };
   const subscription = Notifications.addNotificationResponseReceivedListener(take);
   try {

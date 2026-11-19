@@ -31,6 +31,9 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { DAILY_PHRASES } from '@luvani/core';
+import { TUTOR_NAME } from '../tutor/tutorName.ts';
+
 import { STREAK_BAN_EXEMPTIONS, guiltIn as guiltOf, streakGuiltIn as streakGuiltOf } from '../copy/guilt.ts';
 
 import {
@@ -40,6 +43,8 @@ import {
   REMINDER_EXPLAIN,
   REMINDER_LINES,
   STREAK_SAVE_LINES,
+  NAMED_PHRASE_LINE,
+  namedPhraseFits,
   REMINDER_OFF,
   REMINDER_PAUSED,
   REMINDER_PAUSED_VALUE,
@@ -460,5 +465,30 @@ describe('the save lines (T1.2, D25)', () => {
     for (const copy of REMINDER_COPY) {
       if (/save your/i.test(copy)) assert.match(copy, /^Save your \d+-day streak$/);
     }
+  });
+});
+
+describe('the named phrase line (T1.3, D28)', () => {
+  test('the scans read the named line for every phrase that can be picked, and a phrase that fails them is never named', () => {
+    assert.ok(DAILY_PHRASES.length > 20, 'the phrase pool is too short to be the pool');
+    let fits = 0;
+    for (const phrase of DAILY_PHRASES) {
+      const facts = { n: 1, lifetime: 1, tutor: TUTOR_NAME, english: phrase.en };
+      const title = NAMED_PHRASE_LINE.title(facts);
+      const body = NAMED_PHRASE_LINE.body(facts);
+      if (namedPhraseFits(phrase.en, TUTOR_NAME)) {
+        fits += 1;
+        assert.ok(REMINDER_COPY.includes(title), `the scans never read "${title}"`);
+        assert.ok(REMINDER_COPY.includes(body));
+        assert.doesNotMatch(title, /\.”|\?”\?/, `"${title}" keeps a full stop or doubles the question mark`);
+        assert.ok(!title.includes(phrase.fr) || phrase.fr === phrase.en, `"${title}" shows the French`);
+      } else {
+        assert.ok(guiltOf(`${title} ${body}`) !== undefined || streakGuiltOf(`${title} ${body}`) !== undefined || /[—–·!]|in a row|yesterday/i.test(`${title} ${body}`), `"${phrase.en}" was refused for no reason`);
+      }
+    }
+    assert.ok(fits > 0, 'no phrase can be named');
+    assert.equal(namedPhraseFits('Hurry up!', 'Léa'), false);
+    assert.equal(namedPhraseFits('I missed the train', 'Léa'), false);
+    assert.equal(namedPhraseFits("I'd like a coffee.", 'Léa'), true);
   });
 });

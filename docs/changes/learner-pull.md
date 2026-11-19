@@ -117,7 +117,7 @@ Owners are the territory engineers from `docs/TEAM.md`, at the low effort set in
 | T0.2 | Watch 3-5 beginners; check the free practices teach | founder; learning-science-engineer (read-only) | none | none | todo |
 | T1.1 | One fix a day, free | frontend-engineer | F1 | normal | done: PR #30 |
 | T1.2 | Save-your-streak line | progress-retention-engineer | F2 | normal | done: PR #32 |
-| T1.3 | Reminder content: phrase named, taps into practice, free talk back, goal and next lines, the fix line, the week line | progress-retention-engineer | T1.2 | normal | todo |
+| T1.3 | Reminder content: phrase named, taps into practice, free talk back, goal and next lines, the fix line, the week line | progress-retention-engineer | T1.2 | normal | slice A built 2026-11-19 (D28), not landed; slice B waits on a decision |
 | T1.4 | Your talk days | progress-retention-engineer | T1.3 | normal | todo |
 | T2.1 | Free review of conversation phrases | practice-ux-engineer | F3, F7 | normal per F7 | done: PR #33 |
 | T2.2 | Homework the next conversation checks | practice-ux-engineer, frontend-engineer | T1.1 | normal | todo |
@@ -212,6 +212,25 @@ then routine.
 Acceptance:
 - `plan.test.ts` per line kind;
 - `openTarget` tests ("the tap opens the phrase the line named, even after midnight").
+
+**Slice A, as built (founder, 2026-11-19, in chat; D28).** The read rule stays: `reminder.test.ts` still bans
+`progress/`, `missions/`, `review/` and `practice/` reads, so the fix line, the goal line and the Review-if-due door are
+slice B, which waits on a later decision about that rule. Slice A:
+- **Named phrase**, in the streak and routine rotations: "How do you say “{english}”?" / "Today's phrase, with
+  {tutor}." The English only, a trailing full stop dropped, no second "?" after a question. The phrase is picked at plan
+  time for the slot's own day (`todayPhrase.ts` `phraseLevel` once, then `phraseOn`), its id rides on the slot and in
+  the notification data, and a tap opens it, falling back to today's pick only for older notifications. A phrase whose
+  line would fail the scans is never named; the generic phrase line says it instead. `REMINDER_COPY` renders the named
+  line for every phrase in the pool.
+- **Free to talk**: "{tutor} is free to talk again" / "A conversation is ready when you are." On the free plan with a
+  known refill (`periodEnd`) still to come, on the first slot at or after it, opening Speak. Billing is heard as
+  `useTrialReminderSync` hears it (fetch plus `onBillingChange`), in memory only, and a change re-plans. A refill used on
+  another device may leave the line stale: accepted.
+- **Weekly**: "This week with {tutor}" / "{d} days of French, {p} practices." On a Sunday slot only, only with
+  `mentionStreak` on and at least one practice day, counting the 7 local days ending that Sunday, never compared.
+- **Taps open a practice**: a slot with a planned phrase that would have opened Home opens that phrase. The pause note
+  keeps Settings; guest slots are unchanged (they carry no phrase).
+- **Precedence**: pause, milestone eve, save, free talk, weekly, then the rotation. The one-day avoid rule stays.
 
 ### T1.4: Your talk days
 
@@ -358,6 +377,7 @@ Show a fix only when its line was heard clearly, using per-turn STT confidence i
 | 2026-11-18 | T0.1 | Fable route: contract, Opus build, Fable SHIP round 1. Push-check fixed two SQL bugs and two test gaps test first; landed as PR #34 (17dbc7e9). | Read renewals in RevenueCat once the store is live (F1280) |
 | 2026-11-18 | T2.3, T2.4 | Fable route: contract (founder answers Q1-Q4), three Opus builds, Fable SHIP round 1. Push-check: browser pass reached the banked state for real; Impeccable fix then ship; unslop pass; security none. Landed as PR #35 (9386bf02). | none |
 | 2026-11-18 | Proposals | The founder sent all 16 push-check proposals from PRs #30, #32, #33 and #35 to a board. | Boards A-E |
+| 2026-11-19 | T1.3 slice A | Founder approved the plan and copy in chat (D28). Built test first in `Luvani-worktrees/reminder-content`; mobile suite and typecheck green. | Review, gate, `/push-check`, `/land`; slice B decision |
 
 ## Landing
 

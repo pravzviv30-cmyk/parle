@@ -255,7 +255,7 @@ describe('the reminder pair that talks to the OS', () => {
     // Each slot is named for its day, so a second plan replaces the first; the
     // words are the plan's, built in reminder.ts where the scans read them.
     assert.match(NATIVE, /identifier: slot\.id/);
-    assert.match(NATIVE, /content: \{ title: slot\.title, body: slot\.body, data: \{ open: slot\.open \} \}/);
+    assert.match(NATIVE, /content: \{ title: slot\.title, body: slot\.body, data: \{ open: slot\.open, \.\.\.\('phraseId' in slot && slot\.phraseId !== undefined \? \{ phraseId: slot\.phraseId \} : \{\}\) \} \}/);
 
     // Cancelled by name, and only this app's own: never everything.
     assert.doesNotMatch(NATIVE, /cancelAllScheduledNotificationsAsync/, 'a re-plan sweeps away notifications that are not its own');

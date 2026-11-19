@@ -28,6 +28,11 @@
  *    freezes the streak would spend on the way, which is truthful because
  *    every practice re-plans.
  *
+ *    On top of that (T1.3, D28): after the save line, the free-talk line on
+ *    the first slot at or after a known free refill, then the week on a
+ *    Sunday; the named phrase sits in the rotations, picked for the slot's
+ *    own day, and its id rides on the slot so a tap opens it.
+ *
  * 5. **Only what the phone held counts.** A slot counts as arrived only while
  *    the OS still held its plan when its time came. Every plan is named by the
  *    instant it was handed over (`plannedAt`), and the device remembers which
@@ -57,13 +62,17 @@ import {
 } from '@luvani/core';
 
 import {
+  FREE_TALK_LINE,
   GUEST_PAUSE_LINE,
   MILESTONE_EVE_LINE,
+  NAMED_PHRASE_LINE,
   PAUSE_LINE,
   ROUTINE_LINES,
   SMART_FALLBACK,
   STREAK_LINES,
   STREAK_SAVE_LINES,
+  WEEKLY_LINE,
+  namedPhraseFits,
   reminderMessage,
   reminderTime,
   type ClockTime,
@@ -170,6 +179,8 @@ export interface ReminderSlot {
   line: string;
   /** True for the pause note. */
   pause: boolean;
+  /** The phrase planned for the slot's day, which a tap opens (T1.3); absent for a guest. */
+  phraseId?: string;
 }
 
 export interface PlanInput {
@@ -192,6 +203,21 @@ export interface PlanInput {
   guest?: boolean;
   /** Plan nothing for today: the practice facts could not be read, so today might be practised. */
   todayUnknown?: boolean;
+  /** The day's phrase for a slot's instant, as Home would pick it then; absent for a guest (T1.3). */
+  phraseFor?: (at: number) => { id: string; en: string };
+  /** On the free plan, when the free conversation comes back (`freeRefillOf`); absent when unknown (T1.3). */
+  freeRefill?: number;
+}
+
+/**
+ * The free plan's refill instant from what billing answered, or undefined for
+ * a paid plan, an unknown plan, or a refill not yet known. Held in memory by
+ * the planner only; a refill used on another device may leave it stale (D28).
+ */
+export function freeRefillOf(status: { plan: string; periodEnd: string | null } | null): number | undefined {
+  if (status === null || status.plan !== 'trial' || status.periodEnd === null) return undefined;
+  const at = new Date(status.periodEnd).getTime();
+  return Number.isFinite(at) ? at : undefined;
 }
 
 /**
@@ -418,12 +444,19 @@ function dayNumber(day: DayKey): number {
  * learner who asked for lines without their streak gets the two routine lines
  * that carry no count at all.
  */
-function lineFor(day: DayKey, n: number, lifetime: number, mentionStreak: boolean, avoid: string | null, cliff: boolean): ReminderLine {
+function lineFor(day: DayKey, n: number, lifetime: number, mentionStreak: boolean, avoid: string | null, cliff: boolean, special: ReminderLine | null, named: boolean): ReminderLine {
   if (mentionStreak && n >= 1 && isStreakMilestone(n + 1) && avoid !== MILESTONE_EVE_LINE.id) return MILESTONE_EVE_LINE;
-  const set = mentionStreak && cliff && n >= SAVE_MIN_RUN ? STREAK_SAVE_LINES : mentionStreak && n >= 1 ? STREAK_LINES : mentionStreak && lifetime >= 1 ? ROUTINE_LINES : ROUTINE_LINES.slice(0, 2);
+  const save = mentionStreak && cliff && n >= SAVE_MIN_RUN;
+  // Free talk, then the week (T1.3), after the save line and before the rotation.
+  if (!save && special !== null) return special;
+  const base = save ? STREAK_SAVE_LINES : mentionStreak && n >= 1 ? STREAK_LINES : mentionStreak && lifetime >= 1 ? ROUTINE_LINES : ROUTINE_LINES.filter((line) => line.id !== 'routine-so-far');
+  // No phrase to name, or one that would fail the scans: the generic phrase line in its place.
+  const generic = base === STREAK_LINES ? STREAK_LINES.find((line) => line.id === 'streak-phrase')! : ROUTINE_LINES.find((line) => line.id === 'routine-phrase')!;
+  const set = named ? base : base.map((line) => (line === NAMED_PHRASE_LINE ? generic : line));
   const index = dayNumber(day) % set.length;
   const line = set[index]!;
-  return line.id === avoid ? set[(index + 1) % set.length]! : line;
+  // The next line that differs, since the generic stand-in may sit beside the generic line itself.
+  return line.id === avoid ? [...set.slice(index + 1), ...set.slice(0, index)].find((next) => next.id !== avoid) ?? line : line;
 }
 
 /**
@@ -462,6 +495,7 @@ export function planReminders(input: PlanInput): ReminderSlot[] {
   let projectedTo: DayKey | null = protection === undefined ? null : today;
   // The line the day before said: the last one that arrived, then each slot's own.
   let previous: { day: DayKey; line: string } | null = input.log.last ?? null;
+  const freeRefill = input.guest === true || input.freeRefill === undefined || input.freeRefill <= now ? undefined : input.freeRefill;
   return days.map(({ day, at }, index) => {
     const pause = days.length === budget && index === budget - 1;
     // The run as it will stand on `day` if nothing else is practised first:
@@ -476,10 +510,21 @@ export function planReminders(input: PlanInput): ReminderSlot[] {
     // A cliff: no freeze would cover `day` once it is over.
     const cliff = protection !== undefined && freezeCoverDays(protection, { practiceDays, covers, today: addDays(day, 1), bankDays }).length === 0;
     const avoid = previous !== null && previous.day === addDays(day, -1) ? previous.line : null;
-    const line = pause ? pauseLine : lineFor(day, n, lifetime, mentionStreak, avoid, cliff);
+    // The phrase planned for this day, named in the line and opened by a tap (T1.3).
+    const phrase = input.guest === true ? undefined : input.phraseFor?.(at);
+    // The free conversation back: the first slot at or after a refill still to come.
+    const freeTalk = freeRefill !== undefined && at >= freeRefill && (index === 0 || days[index - 1]!.at < freeRefill);
+    // The week ending this Sunday: its practice days and finished sittings, only with the streak mentioned.
+    const from = addDays(day, -6);
+    const week = { days: practiceDays.filter((d) => d >= from && d <= day).length, practices: input.finishes.filter((f) => calendar.dayOf(f) >= from && calendar.dayOf(f) <= day).length };
+    const weekly = mentionStreak && weekdayIndex(day) === 6 && week.days >= 1;
+    const special = freeTalk ? FREE_TALK_LINE : weekly ? WEEKLY_LINE : null;
+    const line = pause ? pauseLine : lineFor(day, n, lifetime, mentionStreak, avoid, cliff, special, phrase !== undefined && namedPhraseFits(phrase.en, input.tutor));
     previous = { day, line: line.id };
-    const message = reminderMessage(line, { n, lifetime, tutor: input.tutor });
-    return { id: `${SLOT_PREFIX}${day}` as const, day, at, title: message.title, body: message.body, open: line.open, line: line.id, pause };
+    const message = reminderMessage(line, { n, lifetime, tutor: input.tutor, ...(phrase !== undefined ? { english: phrase.en } : {}), week });
+    // A slot with a planned phrase opens a practice, never Home.
+    const open = phrase !== undefined && line.open === 'home' ? 'daily-phrase' : line.open;
+    return { id: `${SLOT_PREFIX}${day}` as const, day, at, title: message.title, body: message.body, open, line: line.id, pause, ...(phrase !== undefined ? { phraseId: phrase.id } : {}) };
   });
 }
 
