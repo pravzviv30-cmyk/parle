@@ -487,7 +487,7 @@ async function main(): Promise<void> {
         `Shorten the sample line or lower BITRATE_BPS, then rerun. The rerun bills every clip again.`,
     );
     // The record is NOT written. A half-run must not leave a half-true manifest:
-    // the suite would then vouch for seven clips and a stale eighth.
+    // the suite would then vouch for five clips and a stale sixth.
     process.exit(1);
   }
 

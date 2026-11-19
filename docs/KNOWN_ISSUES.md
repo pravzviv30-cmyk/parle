@@ -13973,9 +13973,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1310 — Stale comments, a dead re-export shim and five unused names in the tutor agent
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/speechace.ts:10
 - note: B3b-4 comment only, plus B3b-5 to B3b-9. No behaviour changes and no test dies. The voice-samples advice is operator copy, not learner copy.
+- note: Fixed 2026-11-19 on claude/review-b3b: the voice, voiceConfiguration, voiceSamples, ttsCache and canDoEvidence parts landed first. This pass corrects the reportedSessions comment in tutor.ts (per job process, so it catches no replay; the durable claim_tutor_session_v1 claim is the guard), deletes the speechace.ts shim and points its test at services/shared, drops the unused session parameter on the private routeClientMessage (the public handleClientMessage keeps it as `_session`, because the worker calls both tutors with one signature), and corrects two voice-samples comments to the six-voice, bills-on-rerun truth. tsc with --noUnusedLocals --noUnusedParameters reports only test-file names. The tutor-agent suite is 1046.
 - verified-by: `flattens words and phones into observations`
 - verified-by: `first synthesis goes to the vendor, second replays from disk`
 - verified-by: `the model is pinned, not left to the plugin default`

@@ -2597,17 +2597,19 @@ export class LuvaniConversation extends voice.Agent {
    * rejection on a process that is serving every learner on it — one learner's
    * mistimed tap taking down everybody else's session. Containment is not
    * politeness here, it is the blast radius.
+   *
+   * `_session` is unused: the worker calls both tutors with one signature.
    */
-  async handleClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
+  async handleClientMessage(_session: voice.AgentSession, payload: Uint8Array): Promise<void> {
     try {
-      await this.routeClientMessage(session, payload);
+      await this.routeClientMessage(payload);
     } catch (error) {
       console.error('[luvani] a client message could not be handled; the session carries on:', safeError(error));
     }
   }
 
   /** What a client message actually does. Wrapped by handleClientMessage. */
-  private async routeClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
+  private async routeClientMessage(payload: Uint8Array): Promise<void> {
     if (this.refused) return; // a spent credential gets no conversation, whatever it taps
     const received = readClientInput(payload);
     if (!received.message) { if (received.reason === 'oversized') this.rejectInput(INPUT_LIMIT_MESSAGE); return; }

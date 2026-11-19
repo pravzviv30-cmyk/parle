@@ -158,10 +158,10 @@ const REPORTED_SESSIONS_KEPT = 10_000;
  * makes "already reported" the honest test for a replay, and it reuses the
  * ledger seam rather than inventing a second idea of when a session is over.
  *
- * Worker-local, and said plainly rather than dressed up: this closes the replay
- * against the worker that served the session, which is the whole fleet today.
- * Several workers need the token server's own `session_usage` ledger consulted
- * on the join path, which is a change to `server.ts` and is filed, not assumed.
+ * Per job process, and said plainly: each job runs in its own process, so this
+ * set is empty when a session id lands and catches no replay, across rooms or
+ * otherwise. The guard is the durable `claim_tutor_session_v1` claim, which the
+ * database refuses for a session it has already seen.
  */
 const reportedSessions = new Set<string>();
 
