@@ -400,6 +400,18 @@ describe('the per-turn context', () => {
     assert.match(forced, /resolves it naturally now/i);
   });
 
+  test('the scene aim line reads as clean sentences on the last attempt and on a forced advance', () => {
+    // F1119: each addition carried its own leading ". " after a line that already ended in one.
+    for (const beat of [
+      { id: 'b', goal: 'g', attempt: 2, maxAttempts: 2, forceAdvance: false },
+      { id: 'b', goal: 'g', attempt: 3, maxAttempts: 2, forceAdvance: true },
+    ]) {
+      const aim = buildTurnContext(contextInput({ beat })).split('\n').find((line) => line.startsWith('SCENE AIM:'))!;
+      assert.doesNotMatch(aim, /\.\s*\./, `the aim line has a double period: "${aim}"`);
+      assert.match(aim, /script\. (This beat|Last attempt)/);
+    }
+  });
+
   test('is framed as app context, not learner speech', () => {
     assert.match(buildTurnContext(contextInput()), /^\[CONTEXT FROM THE APP, NOT FROM THE LEARNER\]/);
   });

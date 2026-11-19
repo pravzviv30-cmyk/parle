@@ -129,9 +129,9 @@ export function buildTurnContext(input: TurnContextInput): string {
   let beatLine = `SCENE AIM: ${beat.id} (${beat.goal}). This is a flexible anchor, not a required script.`;
   if (beat.forceAdvance) {
     beatLine +=
-      '. This beat has taken long enough: your character resolves it naturally now and the scene moves on. Do not re-ask.';
+      ' This beat has taken long enough: your character resolves it naturally now and the scene moves on. Do not re-ask.';
   } else if (beat.attempt >= beat.maxAttempts) {
-    beatLine += `. Last attempt on this beat: after this reply, carry the scene forward regardless.`;
+    beatLine += ` Last attempt on this beat: after this reply, carry the scene forward regardless.`;
   }
   lines.push(beatLine);
 

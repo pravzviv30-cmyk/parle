@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { MAX_PACK_CORRECTIONS, STUCK_SILENCE_MS, buildConversationPack, directiveFor, replayRung, type Rung } from '@luvani/core';
+import { MAX_PACK_CORRECTIONS, STUCK_SILENCE_MS, buildConversationPack, directiveFor, replayRung, tutorVoice, type Rung } from '@luvani/core';
 
 import {
   MAX_ATTEMPTS_PER_BEAT,
@@ -18,7 +18,9 @@ import {
   type LearnerSnapshot,
 } from './conversation.ts';
 import { INLINE_COACH_COOLDOWN_TURNS } from './grading.ts';
+import { applyExtractionToProfile, createProfile } from '../profile/profile.ts';
 import { assembleRecap } from './recap.ts';
+import { buildSystemBlocks } from '../prompt/system.ts';
 import { CAFE_FRAME } from '../fixtures.ts';
 import { coachFallbackLine, copyViolations, fallbackVariants, landsAsCorrection } from '../copy.ts';
 import { carriesFrench } from '../frenchLeak.ts';
@@ -189,6 +191,15 @@ describe('a requested opening rung', () => {
 });
 
 describe('prepareTurn', () => {
+  test('prepareTurn takes the persona and the live path stops overriding its system block', () => {
+    // F298. The spoken reply is the line the learner hears, so it speaks as
+    // the person they chose; with nobody chosen it is the catalogue default.
+    const marie = tutorVoice('marie').persona;
+    assert.deepEqual(prepareTurn(fresh(), spoke(), marie).system, buildSystemBlocks(marie));
+    assert.match(prepareTurn(fresh(), spoke(), marie).system.persona, /You are Marie\b/);
+    assert.deepEqual(prepareTurn(fresh(), spoke()).system, buildSystemBlocks());
+  });
+
   test('is byte-stable for identical state — cache safety', () => {
     const state = fresh();
     assert.deepEqual(prepareTurn(state, spoke()), prepareTurn(state, spoke()));
@@ -294,6 +305,22 @@ describe('the ladder in free conversation', () => {
     state = integrateTurn(state, spoke(), coached).state;
     state = integrateTurn(state, spoke(), coached).state;
     assert.equal(state.ladder.rung, 4);
+  });
+
+  test('a good reply on an exchange the learner was helped on earns no unassisted credit', () => {
+    const atFree = (s: ConversationState): ConversationState => ({ ...s, ladder: { ...s.ladder, rung: 4 } });
+    // Control: the same good reply with no help is credited, so the zeros below mean something.
+    const plain = integrateTurn(atFree(fresh()), spoke(), sampleTurn()).state;
+    assert.equal(plain.ladder.unassistedTurns, 1);
+
+    const hinted = applyNonSpokenInput(atFree(fresh()), { type: 'help' }).state;
+    assert.equal(hinted.assistanceDepth, 1);
+    assert.ok(hinted.ladder.rung >= 3, 'still on a rung where credit is minted');
+    assert.equal(integrateTurn(hinted, spoke(), sampleTurn()).state.ladder.unassistedTurns, 0);
+
+    const twice = applyNonSpokenInput(applyNonSpokenInput(fresh(), { type: 'help' }).state, { type: 'help' }).state;
+    assert.equal(twice.assistanceDepth, 2);
+    assert.equal(integrateTurn(atFree(twice), spoke(), sampleTurn()).state.ladder.unassistedTurns, 0);
   });
 });
 
@@ -483,7 +510,7 @@ describe('reaching for English — the hand-back loop', () => {
     state = integrateTurn(state, spoke('Un café, s’il vous plaît'), sampleTurn()).state;
     assert.equal(state.lastLanguage, null);
     const context = prepareTurn(state, spoke()).messages.at(-1)!.text;
-    assert.doesNotMatch(context, /reached for English/);
+    assert.doesNotMatch(context, /previous turn used English/);
   });
 
   test('earned help survives a question asked in English', () => {
@@ -804,6 +831,42 @@ describe('the scene the learner is handed — G2', () => {
     const repaired = opened('Bonjour.');
     assert.equal(carriesFrench(repaired.en), false, `the recovery narration carries French: "${repaired.en}"`);
   });
+
+  test('a generated scene opening and a remembered opener reach the learner without an em dash', () => {
+    // F1117. The scenario builder and the memory extractor are model calls too,
+    // and their text is spoken and shown without passing through a turn.
+    const dashed = {
+      ...CAFE_FRAME,
+      openingNarration: { ...CAFE_FRAME.openingNarration, en: 'Imagine the scene \u2014 a small cafe on a quiet street, the door open.', fr: 'Imaginez \u2014 un petit café.' },
+      openingLine: { ...CAFE_FRAME.openingLine, fr: 'Bonjour \u2014 vous désirez ?', en: 'Hello \u2014 what will it be?' },
+    };
+    const { frame } = createConversation(dashed, learner(), { strictness: 'flow', maxTurns: 12 }, 1_000);
+    for (const text of [frame.openingNarration.en, frame.openingNarration.fr, frame.openingLine.fr, frame.openingLine.en]) {
+      assert.doesNotMatch(text, /\u2014/, `an em dash reached the learner: "${text}"`);
+    }
+    assert.equal(frame.openingLine.fr, 'Bonjour, vous désirez ?');
+
+    const remembered = applyExtractionToProfile(
+      createProfile(),
+      { facts: [], openerFr: 'Alors \u2014 le métro ?', openerEn: 'So \u2014 the metro?' },
+      '2026-11-19T10:00:00Z',
+    ).memory.opener;
+    assert.equal(remembered?.fr, 'Alors, le métro ?');
+    assert.equal(remembered?.en, 'So, the metro?');
+  });
+
+  test('a generated scene title and beat goals reach the learner without an em dash', () => {
+    // F1117. The opening publishes the beat goal and the recap shows it.
+    const dashed = {
+      ...CAFE_FRAME,
+      titleEn: 'At the corner caf\u00e9 \u2014 a quiet morning',
+      beats: CAFE_FRAME.beats.map((b) => ({ ...b, goalEn: `${b.goalEn} \u2014 politely` })),
+    };
+    const { frame } = createConversation(dashed, learner(), { strictness: 'flow', maxTurns: 12 }, 1_000);
+    assert.equal(frame.titleEn, 'At the corner caf\u00e9, a quiet morning');
+    for (const beat of frame.beats) assert.doesNotMatch(beat.goalEn, /\u2014/, `an em dash reached the learner: "${beat.goalEn}"`);
+    assert.equal(frame.beats[0]!.goalEn, `${CAFE_FRAME.beats[0]!.goalEn}, politely`);
+  });
 });
 
 describe('the tutor does not correct on every single turn', () => {
@@ -1047,6 +1110,22 @@ describe('the tutor says one thing about a turn', () => {
       sampleTurn({ coach: [bare], coachLine: 'Careful, that one did not land.' }),
     );
     assert.equal(view.coachLine, 'Careful, that one did not land.');
+  });
+
+  test('a coach line with a number in it is written in words', () => {
+    // F1053. The voice says numbers in words, and copyViolations lets digits
+    // through inside quotes, so a line quoting the written form "2 euros"
+    // used to ship. Any digit, quoted or not, hands the slot to the fallback.
+    const price = sampleCoachItem({ kind: 'english-to-french', quote: 'how much is it', better: 'Ça fait deux euros', betterWritten: 'Ça fait 2 euros' });
+    for (const line of ['Got it. In French: "Ça fait 2 euros".', 'Got it, that is 2 euros: "Ça fait deux euros".']) {
+      const { view } = integrateTurn(
+        fresh(),
+        spoke('how much is it'),
+        sampleTurn({ coach: [price], coachLine: line, assessment: { ...sampleTurn().assessment, language: 'english' } }),
+      );
+      assert.doesNotMatch(view.coachLine!, /\d/, `a digit reached the spoken line: "${view.coachLine}"`);
+      assert.match(view.coachLine!, /deux euros/, 'the fallback still hands over the spoken form');
+    }
   });
 
   test('correct-but-textbook phrasing is never told not quite', () => {

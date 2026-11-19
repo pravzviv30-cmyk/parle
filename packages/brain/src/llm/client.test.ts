@@ -239,6 +239,66 @@ describe('AnthropicBrainClient — failure honesty', () => {
     });
   });
 
+  // The fakes above hand the loop a null parsed_output, a shape the real SDK
+  // never returns: it throws from inside messages.parse instead. These drive
+  // the real SDK through a fake fetch, so the vendor's own parse step runs.
+  type Answer = { text: string; stop: string };
+  function realSdkClient(answers: Answer[]): { client: AnthropicBrainClient; calls: () => number } {
+    let calls = 0;
+    const fetch = (async () => {
+      const answer = answers[Math.min(calls, answers.length - 1)]!;
+      calls += 1;
+      return new Response(JSON.stringify({
+        id: `msg_${calls}`, type: 'message', role: 'assistant', model: DEFAULT_ROUTING.turn.model,
+        content: [{ type: 'text', text: answer.text }], stop_reason: answer.stop, stop_sequence: null,
+        usage: { input_tokens: 4000, output_tokens: 900, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+      }), { status: 200, headers: { 'content-type': 'application/json', 'request-id': 'req_test' } });
+    }) as unknown as typeof globalThis.fetch;
+    return { client: new AnthropicBrainClient({ apiKey: 'test-key', fetch }), calls: () => calls };
+  }
+
+  test("an anthropic answer the real SDK cannot parse is retried once and fails as a BrainParseError carrying both attempts' usage", async () => {
+    const system = buildSystemBlocks();
+    const cut = JSON.stringify(sampleTurn()).slice(0, 40);
+    const cases = [
+      { name: 'turn', call: (c: AnthropicBrainClient) => c.turn(turnRequest()) },
+      { name: 'frame', call: (c: AnthropicBrainClient) => c.frame({ kind: 'frame', system, request: 'un café' }) },
+    ];
+    for (const { name, call } of cases) {
+      const pairs: [Answer, Answer][] = [
+        [{ text: 'not json', stop: 'end_turn' }, { text: 'still not json', stop: 'end_turn' }],
+        [{ text: cut, stop: 'max_tokens' }, { text: cut, stop: 'max_tokens' }],
+      ];
+      for (const [first, second] of pairs) {
+        const { client, calls } = realSdkClient([first, second]);
+        await assert.rejects(call(client), (error: unknown) => {
+          assert.ok(error instanceof BrainParseError, `${name}: ${String(error)}`);
+          assert.equal(error.raw, second.text);
+          assert.equal(error.usage?.inputTokens, 8000);
+          assert.equal(error.usage?.outputTokens, 1800);
+          return true;
+        });
+        assert.equal(calls(), 2, name);
+      }
+    }
+    // And the retry is a real one: a good second answer is the answer.
+    const { client, calls } = realSdkClient([{ text: 'not json', stop: 'end_turn' }, { text: JSON.stringify(sampleTurn()), stop: 'end_turn' }]);
+    const { turn, usage } = await client.turn(turnRequest());
+    assert.equal(turn.sceneReply.speaker, 'Karim');
+    assert.equal(usage.inputTokens, 8000);
+    assert.equal(calls(), 2);
+  });
+
+  test('a refusal whose text is not JSON surfaces through the real SDK as a BrainRefusalError carrying its usage', async () => {
+    const { client, calls } = realSdkClient([{ text: 'I would rather not.', stop: 'refusal' }]);
+    await assert.rejects(client.turn(turnRequest()), (error: unknown) => {
+      assert.ok(error instanceof BrainRefusalError, String(error));
+      assert.equal(error.usage?.inputTokens, 4000);
+      return true;
+    });
+    assert.equal(calls(), 1);
+  });
+
   test('usage maps through, cache columns included, stamped with the model that answered', async () => {
     const { sdk } = fakeSdk([okResponse()]);
     const { usage } = await new AnthropicBrainClient({}, sdk).turn(turnRequest());
