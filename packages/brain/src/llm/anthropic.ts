@@ -290,7 +290,7 @@ function outputConfig(
   // The SDK throws a usage-less AnthropicError when parse throws. Null instead
   // (no schema accepts a top-level null) hands parseWithRetry the response.
   const strictParse = format.parse;
-  format.parse = content => { try { return strictParse(content); } catch { return null; } };
+  (format as { parse: (content: string) => unknown }).parse = content => { try { return strictParse(content); } catch { return null; } };
   const config: Record<string, unknown> = { format };
   if (effort !== undefined) config.effort = effort;
   return config;

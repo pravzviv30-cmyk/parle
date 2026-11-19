@@ -242,10 +242,11 @@ describe('AnthropicBrainClient — failure honesty', () => {
   // The fakes above hand the loop a null parsed_output, a shape the real SDK
   // never returns: it throws from inside messages.parse instead. These drive
   // the real SDK through a fake fetch, so the vendor's own parse step runs.
-  function realSdkClient(answers: { text: string; stop: string }[]): { client: AnthropicBrainClient; calls: () => number } {
+  type Answer = { text: string; stop: string };
+  function realSdkClient(answers: Answer[]): { client: AnthropicBrainClient; calls: () => number } {
     let calls = 0;
     const fetch = (async () => {
-      const answer = answers[Math.min(calls, answers.length - 1)];
+      const answer = answers[Math.min(calls, answers.length - 1)]!;
       calls += 1;
       return new Response(JSON.stringify({
         id: `msg_${calls}`, type: 'message', role: 'assistant', model: DEFAULT_ROUTING.turn.model,
@@ -264,7 +265,11 @@ describe('AnthropicBrainClient — failure honesty', () => {
       { name: 'frame', call: (c: AnthropicBrainClient) => c.frame({ kind: 'frame', system, request: 'un café' }) },
     ];
     for (const { name, call } of cases) {
-      for (const [first, second] of [[{ text: 'not json', stop: 'end_turn' }, { text: 'still not json', stop: 'end_turn' }], [{ text: cut, stop: 'max_tokens' }, { text: cut, stop: 'max_tokens' }]]) {
+      const pairs: [Answer, Answer][] = [
+        [{ text: 'not json', stop: 'end_turn' }, { text: 'still not json', stop: 'end_turn' }],
+        [{ text: cut, stop: 'max_tokens' }, { text: cut, stop: 'max_tokens' }],
+      ];
+      for (const [first, second] of pairs) {
         const { client, calls } = realSdkClient([first, second]);
         await assert.rejects(call(client), (error: unknown) => {
           assert.ok(error instanceof BrainParseError, `${name}: ${String(error)}`);
