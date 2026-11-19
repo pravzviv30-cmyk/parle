@@ -253,12 +253,12 @@ export const ScenarioFrameSchema = z.object({
   /** One short paragraph: how people actually talk in this scene. */
   registerGuidance: z.string(),
   /**
-   * 3–6 ordered goals; the conversation's spine and the unit of "stuck".
+   * 2 to 5 ordered goals; the conversation's spine and the unit of "stuck".
    *
    * `.min(1)` is the one refinement in this file, and it earns the exception on
    * both counts the header cares about. It is not client-side-only: the SDK's
    * schema transform passes `minItems` through to the API when the value is 0
-   * or 1, so the model is actually held to it (`.min(3)`, matching the 3–6
+   * or 1, so the model is actually held to it (`.min(2)`, matching the 2 to 5
    * above, would be demoted to a prose hint — which is exactly the trap the
    * header warns about, so it stays a comment).
    *

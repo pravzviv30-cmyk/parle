@@ -484,7 +484,7 @@ describe('reaching for English — the hand-back loop', () => {
     state = integrateTurn(state, spoke('Un café, s’il vous plaît'), sampleTurn()).state;
     assert.equal(state.lastLanguage, null);
     const context = prepareTurn(state, spoke()).messages.at(-1)!.text;
-    assert.doesNotMatch(context, /reached for English/);
+    assert.doesNotMatch(context, /previous turn used English/);
   });
 
   test('earned help survives a question asked in English', () => {

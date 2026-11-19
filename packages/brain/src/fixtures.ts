@@ -126,8 +126,6 @@ export const APERO_FRAME: ScenarioFrame = {
   ],
 };
 
-export const FIXTURE_FRAMES: readonly ScenarioFrame[] = [CAFE_FRAME, APERO_FRAME];
-
 /**
  * Keep a failed scenario build on the learner's subject.
  *

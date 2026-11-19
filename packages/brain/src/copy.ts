@@ -229,9 +229,6 @@ const RECOVERY: readonly string[] = [
   'Run that past me again.',
 ];
 
-/** How many recovery lines exist, so a session can rotate without repeating. */
-export const RECOVERY_VARIANTS = RECOVERY.length;
-
 /**
  * The recovery line for this moment. `variant` is the turn count, never random,
  * for the same byte-stability reason as the coach fallbacks.
