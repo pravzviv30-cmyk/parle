@@ -1835,8 +1835,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F79 — The replayed-credential refusal is worker-local
 - severity: P2
-- status: [ ]
-- where: services/token-server/src/server.ts:192
+- status: [x]
+- where: services/tutor-agent/src/sessionLifecycle.ts:193
 - note: F77 closed the money half of a replayed join credential by having the tutor refuse a
   session id it has already reported, but that ledger lives in the worker's memory. It closes
   the replay against the worker that served the original session, which is the whole fleet
@@ -1845,8 +1845,15 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   reported session id, so the join path can consult it. That is a token-server change and was
   outside the voice engineer's territory, so it is filed rather than reached for. Related:
   agent.ts keeps a refused replay's job alive on its hardStop timer, costing no vendor spend
-  but holding a worker slot.
-- verified-by: `a reported session id is refused on the join path, not only by the worker that served it`
+  but holding a worker slot. (2026-11-18: no longer true for lifecycle sessions. `hardStop`
+  exists only without a lifecycle, agent.ts:399, and a refused claim throws at agent.ts:194.)
+- note: Closed 2026-11-18 (B3a part A). The durable `claim_tutor_session_v1` fence refuses a
+  second claim for any worker and across restarts, and production requires lifecycle version 1,
+  so no shared store is needed. `claim()` throws `SessionLifecycleError` on the refusal, and
+  agent.ts awaits the claim before it builds any paid runtime, proxy or provider.
+  `scripts/verifyTutorSessions.mjs:105-106` proves in every gate run that the database refuses a
+  second claim with a different nonce.
+- verified-by: `a claim the database refuses throws before any provider is built`
 
 ### F80 — Four live vendor credentials sit in git history on two local branches
 - severity: P2
@@ -2194,6 +2201,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   was forbidden to spend. So the budget is bounded at twice the measured p95 as a runaway guard
   with the saving honestly stated as zero, effort stays high, and the real cut is filed as F103
   where the measurement actually pointed.
+- note: `verify/brainSpend.ts` was removed 2026-11-18 (F1109, B3a-8); see git history.
 - verified-by: `the drills budget keeps at least twice the measured p95 of its output`
 - verified-by: `the drills route keeps the effort its quality was measured at`
 
@@ -14077,3 +14085,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: services/token-server/src/ciContract.test.ts:62
 - note: NEEDS-PROBE, not reproduced. The file takes 3.0 s; the spawned gate takes 0.75 s in a clean worktree and 3.43 s cold in the main checkout. Hypothesis: the gate's test-file walk reads 61,696 entries there, 53,011 under apps/mobile build output. Probe: one full gate on the main checkout with the device build present. A fix belongs to S1.
 - verified-by: `the CI contract check finishes without waiting on the network or the clock`
+
+### F1108 — One production preflight message answers for eight different refusals
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/preflight.ts:705
+- note: B3a-6, part A. The message names three causes and is printed for eight. It names the failed settings, never their values. No input is newly accepted or refused.
+- note: Fixed 2026-11-18 on claude/review-b3a. The `||` chain is a list of eight named checks (the two TUTOR_LLM conditions share one name, and the scoring condition is split into LUVANI_SCORING_VENDOR and SPEECHACE_API_KEY), and the refusal prints only the failed names.
+- note: 2026-11-18, after push-check: each failed check now prints a fixed sentence saying what its setting must be (for example `TUTOR_LLM must be openai.`), never a value. The test refuses every override value and every secret-like base value on console.error, warn and info.
+- verified-by: `a production refusal names the setting that caused it`
+
+### F1109 — The voice proxy carries a cap that cannot bind, a comment describes a shared process, and the verify harness imports an undeclared package
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/paidVoiceProxy.ts:162
+- note: B3a-4, B3a-5 and B3a-9, part A, plus the B3a-8 deletion if the founder chooses it. No test dies and the floor is unchanged.
+- note: Fixed 2026-11-18 on claude/review-b3a. `activeTransports` and its two `>=64` checks are gone; the per-proxy caps of 4 HTTP and 2 streams stay. The agent.ts comment on the client-message `.catch` now describes one job process per session and the SDK's debug-only unhandledRejection handler. `livekit-server-sdk` ^2.17.0 is a tutor-agent devDependency, one lockfile line. The founder chose to delete `verify/brainSpend.ts` (2026-11-18), and it is deleted.
+- verified-by: `four HTTP transports maximum; session cancellation releases them without a fifth effect`
+- verified-by: `two streams maximum and global/per-connection PCM duration cannot be exceeded`
+- verified-by: `every bare package a tutor-agent source imports is declared in its package.json`

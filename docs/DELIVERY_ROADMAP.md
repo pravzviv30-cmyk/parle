@@ -11,8 +11,8 @@ deferred.
 | 2. Data/infrastructure | data-sync, observability, security | Versioned sync, conflicts, offline retry, privacy-safe analytics, cost alerts | Implemented and tested locally; revision migration measured on a disposable project; live two-device/release verification pending |
 | 3. Onboarding | onboarding UX, design system, privacy-safety | One welcome, useful choices, readiness, contextual mic, returning-user migration | Built on `phase-3-onboarding` and merged into `main` as `2a86092`; local web route proof complete, native/five-viewport QA and migration deployment remain external |
 | 4. Practice | practice UX, learning science, data-sync | Retrieval before reveal, one mastery source, durable batches, transfer | Built on `phase-4-practice` and merged into `main` as `f943bbe`; that branch is deleted now, so the hash is what finds it. Device, screen-reader and Supabase verification pending |
-| 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | Built on `phase-5-tutor` and merged into `main` as `1b37b81`. All five properties held locally and tested; every P0 and P1 closed. Six P2s stay open by choice, and the six external checks are unclaimed by anyone, so this is not a release |
-| 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Slice 6a is built on `phase-6-retention` and merged into `main` as `eee755c`: the passport, the delayed test and the less-help replay each have code and a named test, and F216 to F225 are closed. Slice 6b, the honest reminders and the weekly story, is built on the same branch and landed in the same merge, and F226 to F240 are closed with one P2 left open on purpose. Nothing in this phase has been seen on a device or a deployed database, no reminder has been seen firing on a phone, and the six external checks stay unclaimed |
+| 5. Tutor | tutor behaviour, voice, learning science, privacy-safety | Mode parity across the four session modes (`convo`, `convo-text`, `lesson`, `lesson-text`), correction policy, recovery, safety, durable curation | Built on `phase-5-tutor` and merged into `main` as `1b37b81`. All five properties held locally and tested; every P0 and P1 closed. Six P2s stay open by choice, and five of the six external checks are unclaimed by anyone (the sixth, F79, was closed 2026-11-18 by the durable claim), so this is not a release |
+| 6. Retention | progress-retention, learning science, design system | Passport, delayed test, less-help replay, honest reminders/story | Slice 6a is built on `phase-6-retention` and merged into `main` as `eee755c`: the passport, the delayed test and the less-help replay each have code and a named test, and F216 to F225 are closed. Slice 6b, the honest reminders and the weekly story, is built on the same branch and landed in the same merge, and F226 to F240 are closed with one P2 left open on purpose. Nothing in this phase has been seen on a device or a deployed database, no reminder has been seen firing on a phone, and five of the six external checks stay unclaimed (F79 was closed 2026-11-18 by the durable claim) |
 | 7. Revenue | revenue, security, privacy-safety | One paid tier, verified receipts/webhooks, restore/lifecycle, fair-use economics | Built and tested locally, and dark unless every RevenueCat setting exists. Subscriber projection, authenticated replay-safe webhooks, bounded refresh, native purchase/restore, honest lapse copy and store-fee margin floors are held; store credentials and iOS/Android sandbox lifecycle evidence remain external |
 | 8. Privacy/release | privacy-safety, qa-release, deploy | Reviewed policies, export/deletion, full device/live/build gate and rollback | Account deletion and a complete server-plus-device JSON export are built and tested locally. Release remains blocked on professional policy/terms review, vendor-retention verification, store/device lifecycle runs, deployed-schema and rollback evidence, production domains and CI evidence |
 | Review fixes (2026-10-28 product review) | orchestrator with territory specialists | Every LR finding fixed or deferred in writing; five workstream branches (A session loop, B paywall and billing, C first run, D progress and practice, E visual and accessibility) each verified by tests, fix-verifier rounds and a live replay | Stream A (F903 to F906, F923, F928) landed on main (`2baf8fcf`, 2026-10-29). Stream B (F907 to F914, F931 wall parts, F932) landed on main (`706232bf`, 2026-10-29); F933 (a spent trial row that never refills) filed open for its own change. Stream C (F915, F916, F917, F925, F926, F930) landed on main (`005ae4d2`, 2026-10-29). Stream D (F918, F919, F922, F924, F934 to F937, with F858 and F651) landed on main (`c1840f26`, 2026-10-29). Stream E (F920, F921, F927, F929, F938, F940 to F945, with F856 and F857; F939 deferred) built and verified on `claude/review-e-visual` |
@@ -116,9 +116,9 @@ until somebody runs them and writes down what happened.
 - **The vendor credentials are not rotated.** Treat the Groq, Deepgram, ElevenLabs and
   LiveKit keys as live until their vendor consoles say otherwise. Blocked on
   `vendor-key-rotation`.
-- **The replayed-credential refusal is still worker-local.** F79 stays open until the join
-  path consults the `session_usage` ledger, so the refusal holds for the worker that
-  served the original session and no further.
+- **The replayed-credential refusal is closed by the durable claim (F79, 2026-11-18).**
+  `claim_tutor_session_v1` refuses a second claim for any worker and across restarts, and
+  production requires lifecycle version 1, so no shared store is needed.
 
 Phase 4's review screen deserves the same honesty on its own terms. Its accessibility
 evidence is source-level. The tests prove that the labels, the roles and the reveal
@@ -174,10 +174,11 @@ cannot hold them:
   told. That is a fact about the phase and not about one slice: nothing in Phase 5 built
   one, and `docs/IMPLEMENTATION_EVIDENCE.md` still lists the in-app escalation UI among the
   things the tutor-safety row has not proven.
-- **The six external checks are unchanged and unclaimed.** Migration 7 deployment and its
-  live verification, a Supabase-authenticated first run, the device and five-viewport
-  accessibility matrix with VoiceOver and TalkBack, the F57 stopwatch, vendor credential
-  rotation, and F79 all stand where the section above leaves them.
+- **Five of the six external checks are unchanged and unclaimed.** Migration 7 deployment
+  and its live verification, a Supabase-authenticated first run, the device and five-viewport
+  accessibility matrix with VoiceOver and TalkBack, the F57 stopwatch, and vendor credential
+  rotation all stand where the section above leaves them. The sixth, F79, was closed
+  2026-11-18 by the durable claim.
 
 ## Phase 6: what the exit criterion means, and where it stands
 
@@ -295,7 +296,8 @@ seen on a phone, no delayed test has been sat by a person, no replay has been sp
 reminder has been seen firing, and no launcher icon has been confirmed free of a badge. There
 is no development build, so there is not yet a way to look.
 
-The six external checks the Phase 4 and Phase 5 sections leave standing are unchanged and
-still unclaimed: migration 7's deployment and its live verification, a Supabase-authenticated
-first run, the device and five-viewport accessibility matrix with VoiceOver and TalkBack, the
-F57 stopwatch, vendor credential rotation, and F79.
+Of the six external checks the Phase 4 and Phase 5 sections leave standing, five are
+unchanged and still unclaimed: migration 7's deployment and its live verification, a
+Supabase-authenticated first run, the device and five-viewport accessibility matrix with
+VoiceOver and TalkBack, the F57 stopwatch, and vendor credential rotation. The sixth, F79, was
+closed 2026-11-18 by the durable claim.

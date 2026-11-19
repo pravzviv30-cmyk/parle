@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import { buildConversationPack } from '@luvani/core';
 import { tutorDigest, TutorRpcError } from '../../shared/tutorLifecycle.ts';
 import { claimSessionLifecycle, legacyRuntimeFixture, SessionLifecycleError, tutorSupervisorHeartbeat, type LifecycleOptions } from './sessionLifecycle.ts';
@@ -284,4 +285,19 @@ test('a heartbeat that fails mid-session is not the deadline', async () => {
   assert.equal(life.signal.aborted, true);
   assert.equal(life.stoppedAtDeadline, false);
   await life.complete({ learnerTurns: 0 });
+});
+
+test('a claim the database refuses throws before any provider is built', async () => {
+  // claim_tutor_session_v1 answers a second claim, from any worker or after a restart, with a refusal.
+  const f = fixture({ call: async () => ({ kind: 'refused', reason: 'already-claimed-or-expired' }) });
+  await assert.rejects(f.claim(), SessionLifecycleError);
+  assert.deepEqual(f.calls.map(c => c.operation), ['claim'], 'a refusal is final, not retried');
+  // agent.ts awaits that claim before it builds any paid runtime, proxy, scene gate, STT, TTS, LLM or session.
+  const agent = readFileSync(new URL('./agent.ts', import.meta.url), 'utf8');
+  const entry = agent.slice(agent.indexOf('entry: async'));
+  const claimed = entry.indexOf('await claimSessionLifecycle(');
+  assert.ok(claimed > 0);
+  for (const build of ['resumePaidRuntime(', 'createPaidVoiceProxy(', 'createGuestSceneGate(', 'sessionAudio(', 'new deepgram.STT', 'buildTTS(', 'tutorLLM(', 'new voice.AgentSession(']) {
+    assert.ok(entry.indexOf(build) > claimed, `${build} comes after the claim`);
+  }
 });
