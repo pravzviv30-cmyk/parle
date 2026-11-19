@@ -13,6 +13,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { getLesson } from '@luvani/core';
 import { HttpInputError } from './requestBoundary.ts';
 import { sessionSnapshot, SESSION_START_BODY_LIMIT } from './sessionSnapshot.ts';
+import { recordMinutesRefusal } from './sessionEvents.ts';
 
 const source = readFileSync(new URL('./server.ts', import.meta.url), 'utf8');
 const start = source.indexOf("    if (req.method === 'POST' && url.pathname === '/session/start') {");
@@ -21,8 +22,9 @@ assert.ok(start > 0 && end > start);
 const js = stripTypeScriptTypes(`async function branch() {${source.slice(start, end)}\n}`);
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 
-async function startSession(body: Record<string, unknown>) {
-  const calls = { reserve: [] as Record<string, unknown>[], trial: 0 };
+async function startSession(body: Record<string, unknown>, refusal = 'session-active') {
+  const calls = { reserve: [] as Record<string, unknown>[], trial: 0, events: [] as unknown[], recording: [] as Promise<void>[] };
+  const sink: typeof fetch = async (_url, init) => { calls.events.push(JSON.parse(String(init?.body))); return new Response(null, { status: 201 }); };
   const response = { status: 0, body: {} as Record<string, unknown> };
   const json = (_res: unknown, status: number, value: Record<string, unknown>) => { response.status = status; response.body = value; };
   const world = {
@@ -34,8 +36,11 @@ async function startSession(body: Record<string, unknown>) {
     installationSignal: () => 'installation-0000001', privateSignal: () => 'signal', rateLimitSalt: 'salt',
     supportsSessionMode: () => true, supportedSessionModes: () => ['lesson', 'convo', 'lesson-text', 'convo-text'],
     claimTrialWithEvidence: async () => { calls.trial += 1; return true; },
-    store: { get: async () => ({ plan: 'starter', secondsUsed: 0 }) }, SupabaseEntitlementStore: class {}, eventSink: null,
-    tutorSessions: { reserve: async (input: Record<string, unknown>) => { calls.reserve.push(input); return { kind: 'refused', reason: 'session-active' }; } },
+    store: { get: async () => ({ plan: 'starter', secondsUsed: 0 }) }, SupabaseEntitlementStore: class {}, eventSink: { baseUrl: 'https://db.test', serviceRoleKey: 'private' },
+    tutorSessions: { reserve: async (input: Record<string, unknown>) => { calls.reserve.push(input); return { kind: 'refused', reason: refusal }; } },
+    recordMinutesRefusal: (...[eventSink, userId, allowed, entitlement, reason]: Parameters<typeof recordMinutesRefusal>) => {
+      const recording = recordMinutesRefusal(eventSink, userId, allowed, entitlement, reason, sink); calls.recording.push(recording); return recording;
+    },
     randomUUID, PLANS: [], refusalRefillsAt: () => undefined, refusalMessage: () => 'busy',
     HttpInputError, getLesson,
   };
@@ -69,4 +74,21 @@ test('the token server refuses an unknown lesson id in a lesson mode before rese
     assert.equal(calls.reserve.length, 1);
     assert.equal((calls.reserve[0]!.request as { lessonId: string }).lessonId, 'convo-01');
   }
+});
+
+test('a refused reservation records minutes_refused when analytics is allowed', async () => {
+  const run = async (refusal: string, analyticsAllowed: unknown) => {
+    const { response, calls } = await startSession({ mode: 'convo', analyticsAllowed }, refusal);
+    await Promise.all(calls.recording);
+    return { status: response.status, events: calls.events };
+  };
+  assert.deepEqual(await run('exhausted', true), { status: 402, events: [
+    { user_id: 'learner-a', name: 'minutes_refused', properties: { plan: 'starter', reason: 'exhausted' } },
+  ] });
+  assert.deepEqual(await run('insufficient-for-session', true), { status: 402, events: [
+    { user_id: 'learner-a', name: 'minutes_refused', properties: { plan: 'starter', reason: 'insufficient-for-session' } },
+  ] });
+  assert.deepEqual(await run('subscription-lapsed', true), { status: 402, events: [] }, 'the event allowlist drops a lapsed subscription');
+  assert.deepEqual(await run('session-active', true), { status: 409, events: [] }, 'a busy learner is not out of minutes');
+  assert.deepEqual(await run('exhausted', false), { status: 402, events: [] }, 'analytics off records nothing');
 });
