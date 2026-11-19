@@ -194,10 +194,9 @@ same kind of document this repo keeps having to correct.
 - **F193, durable curation has no eval.** Phase 4 proved a batch survives the disk. Nothing
   yet scores whether the batch was worth surviving, so half of durable curation is held by
   persistence rather than by quality. Accepted until an eval exists to regress against.
-- **F206, a rescue line is either dead or lost.** `RESCUE_LINE` in brain's copy module is
-  reachable only from its own test. Either the live path lost its rescue line or the constant
-  is dead weight a copy test keeps looking alive. Accepted because nobody has yet established
-  which, and guessing would either delete working copy or hide a missing line.
+- **F206, a rescue line is either dead or lost.** Closed in the Phase 4 review (B4): the
+  constant was dead weight, since core's session feedback owns the rescue line, so
+  `RESCUE_LINE` was deleted and a copy test pins that brain ships none.
 - **F209, the pipeline log prefixes have two homes.** Nothing fails if they drift, so a grep
   that finds the app's alarms can silently miss the worker's. Accepted because the cheap fix,
   importing a browser SDK into the worker, is the worse trade.
