@@ -485,9 +485,9 @@ export default defineAgent({
         catch (err) { console.error('[luvani] tap-to-send could not follow the mode switch', safeError(err)); }
       }
       // The belt to handleClientMessage's braces. It contains its own failures,
-      // so this should never fire — but this worker serves every learner on the
-      // process, and an unhandled rejection here ends all of their sessions at
-      // once. A `void` with no catch is that bet, taken on every frame.
+      // so this should never fire. Each session is its own job process, and the
+      // SDK's unhandledRejection handler there only logs at debug level, so a
+      // `void` with no catch would bury the failure. This keeps it in our own log.
       void tutor.handleClientMessage(session, payload).catch((err: unknown) => {
         console.error('[luvani] a client message failed on its way in', safeError(err));
       });

@@ -702,11 +702,20 @@ export function preflight(env: Env = process.env, exit: (code: number) => never 
     const brain = selectedBrain(env);
     let safeServer = false;
     try { const url = new URL(env.TOKEN_SERVER_URL ?? ''); safeServer = url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash; } catch { /* invalid */ }
-    if (!safeServer || (env.LUVANI_AGENT_SECRET ?? '').length < 32 || (env.TUTOR_LLM ?? '').trim().toLowerCase() !== 'openai' || brain !== 'openai'
-      || selectedVoiceVendor(env) !== 'elevenlabs'
-      || env.LUVANI_TTS_MISS_TRANSPORT === 'ws' || env.TYPESAFE_API_KEY?.trim()
-      || env.LUVANI_AUDIO_SCORING === '1' && (env.LUVANI_SCORING_VENDOR !== 'speechace' || !env.SPEECHACE_API_KEY?.trim())) {
-      console.error('[luvani:agent] Production requires an HTTPS token API, a strong agent secret and TUTOR_LLM=openai.');
+    // F1108: each refusal prints what its setting must be. Fixed text only, never a value.
+    const checks: Array<[string, boolean]> = [
+      ['TOKEN_SERVER_URL must be an https URL with no credentials, query or fragment.', !safeServer],
+      ['LUVANI_AGENT_SECRET must be at least 32 characters.', (env.LUVANI_AGENT_SECRET ?? '').length < 32],
+      ['TUTOR_LLM must be openai.', (env.TUTOR_LLM ?? '').trim().toLowerCase() !== 'openai' || brain !== 'openai'],
+      ['LUVANI_TTS_VENDOR must be elevenlabs.', selectedVoiceVendor(env) !== 'elevenlabs'],
+      ['LUVANI_TTS_MISS_TRANSPORT must be http or unset.', env.LUVANI_TTS_MISS_TRANSPORT === 'ws'],
+      ['TYPESAFE_API_KEY must be unset in production.', !!env.TYPESAFE_API_KEY?.trim()],
+      ['LUVANI_SCORING_VENDOR must be speechace when LUVANI_AUDIO_SCORING is on.', env.LUVANI_AUDIO_SCORING === '1' && env.LUVANI_SCORING_VENDOR !== 'speechace'],
+      ['SPEECHACE_API_KEY is required when LUVANI_AUDIO_SCORING is on.', env.LUVANI_AUDIO_SCORING === '1' && !env.SPEECHACE_API_KEY?.trim()],
+    ];
+    const failed = checks.filter(([, refused]) => refused).map(([requirement]) => requirement);
+    if (failed.length) {
+      console.error(`[luvani:agent] Cannot start in production. ${failed.join(' ')} See services/tutor-agent/.env.`);
       exit(1); return;
     }
     if (env.LUVANI_AUDIO_SCORING === '1') {
