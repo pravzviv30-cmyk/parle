@@ -706,7 +706,7 @@ export function safetyDecision(input: string): SafetyDecision | null {
       category: 'minor-sexual',
       action: 'stop',
       // Spelled out for the reason at the under-thirteen message above: the number IS the
-      // content of this refusal, and it is spoken through a French text normalizer.
+      // content of this refusal, and the vendor's normalizer may read a digit as French.
       message: 'I cannot help with sexual content involving anyone under eighteen.',
       rule: matchedRules.join('+'),
     };
