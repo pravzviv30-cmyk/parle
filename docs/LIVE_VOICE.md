@@ -815,7 +815,7 @@ about a minute before and closes warmly after one more exchange
   errors are logged and not sent to the app (F1308). The room closes within 5 s
   (`CAP_CLOSE_MS`) even if settlement never answers, so the app shows the
   recap and not the drop screen. A lost lease still disconnects at once,
-  with no line. A guest scene keeps its own stop, 2 s earlier, and the
+  with no line. A guest scene keeps its own stop, and the
   lifecycle stop can still beat it (F1321). The signed cap is never extended.
 - **Cost.** Metering is unchanged; an early close bills fewer seconds. Both lines
   are in `AUTHORED_SPEECH_LINES`, so `warm-cache` covers them once it is run.
