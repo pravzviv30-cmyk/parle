@@ -14104,3 +14104,21 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `four HTTP transports maximum; session cancellation releases them without a fifth effect`
 - verified-by: `two streams maximum and global/per-connection PCM duration cannot be exceeded`
 - verified-by: `every bare package a tutor-agent source imports is declared in its package.json`
+
+### F1106 — Three instant refusals end a live session with most of its lease left
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/sessionLifecycle.ts:155
+- note: B3a-1, part B, built after the founder's answer to question 1. Retries run back to back, so a token server that refuses at once spends all three heartbeat tries in one millisecond. Attempt counts stay; a bounded wait goes between them.
+- note: Fixed 2026-11-19 on claude/review-b3a-b (founder: "1 s apart, then probe"). `invoke` waits `min(RETRY_WAIT_MS, lease left)` after a failed try that is not the last, with `RETRY_WAIT_MS = 1_000`, through one injectable `wait` in `LifecycleOptions`. The default is a timer that ends early when the lifecycle signal aborts, pinned by `the default retry wait ends as soon as the lifecycle stops`; so a completion, which runs after the stop, still retries at once. Attempt counts are unchanged. The staging restart probe stays on the founder's list.
+- verified-by: `a heartbeat refused instantly waits between its three tries instead of spending them at once`
+- verified-by: `a retry wait never runs past the lease time left`
+
+### F1107 — A session stopped at its cap disconnects before the time-limit line and the recap
+- severity: P2
+- status: [ ]
+- where: services/tutor-agent/src/agent.ts:204
+- note: B3a-2, part B, built after the founder's answer to question 2. The room closes first, so the app shows "The connection dropped and this session could not be saved". The cap path takes the scene stop's order; a lost lease is unchanged.
+- verified-by: `a stop at the cap publishes the time-limit line and settles before the room disconnects`
+- verified-by: `a stop at the cap disconnects at the ceiling when settlement never answers`
+- verified-by: `a lost lease disconnects at once and publishes no time-limit line`

@@ -953,7 +953,12 @@ second try before the learner hears "cannot carry on":
   so the paid lesson quote books two STT streams (`scripts/paidQuotes.mjs`). The
   conversation already booked two of each language.
 - **Heartbeats** (`sessionLifecycle.ts`). Three tries at 5 s each, every try bounded
-  by the lease time left. Claim, checkpoint and complete are unchanged.
+  by the lease time left. Since F1106 (2026-11-19), a failed try that is not the last
+  waits 1 s before the next one, cut to the lease time left, so a token server that
+  refuses at once no longer spends all three tries in the same millisecond. The same
+  wait sits between the two tries of a claim and of a turn save; their attempt counts
+  are unchanged. A completion runs after the lifecycle has stopped, so its wait ends at
+  once. A staging restart probe decides whether 1 s is enough.
 
 None of this charges the learner twice: the learner is settled on session seconds,
 and a retry spends vendor effects inside the existing quotes.

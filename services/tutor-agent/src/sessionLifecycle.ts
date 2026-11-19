@@ -34,10 +34,17 @@ export interface LifecycleOptions {
   /** Disposable test clocks only. Production always schedules both timers. */
   automaticTimers?: boolean;
   timeoutMs?: number;
+  /** The pause between failed attempts (F1106). Production uses a timer that ends early when the lifecycle signal aborts. */
+  wait?: (ms: number, signal: AbortSignal) => Promise<void>;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STOP_MARGIN_MS = 1_000;
+const RETRY_WAIT_MS = 1_000;
+const timerWait = (ms: number, signal: AbortSignal): Promise<void> => new Promise((resolve) => {
+  const done = () => { clearTimeout(timer); signal.removeEventListener('abort', done); resolve(); };
+  const timer = setTimeout(done, ms); timer.unref(); signal.addEventListener('abort', done, { once: true });
+});
 const date = (value: unknown): number => typeof value === 'string' ? Date.parse(value) : NaN;
 const integer = (value: unknown, lower: number, upper: number): value is number => Number.isSafeInteger(value) && Number(value) >= lower && Number(value) <= upper;
 export class SessionLifecycleError extends Error {
@@ -168,6 +175,9 @@ export class SessionLifecycle implements RuntimeLifecycle {
         if (error instanceof TutorRpcError && error.status < 500 && error.status !== 429) throw error;
         if (attempt + 1 === attempts) throw new SessionLifecycleError();
       } finally { clearTimeout(timer); }
+      // F1106: an instant refusal must not spend every try at once. Never wait past the lease left.
+      const left = operation === 'checkpoint' ? Math.min(this.#leaseStop, this.#hardStop) - this.#now() : Infinity;
+      if (left > 0) await (this.#options.wait ?? timerWait)(Math.min(RETRY_WAIT_MS, left), this.signal);
     }
     throw new SessionLifecycleError();
   }

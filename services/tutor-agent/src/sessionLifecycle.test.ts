@@ -11,9 +11,12 @@ const nonce = '33333333-3333-4333-8333-333333333333';
 const epoch = Date.parse('2026-10-04T12:00:00Z');
 type Row = Record<string, unknown>;
 const clone = <T>(value: T): T => structuredClone(value);
-function fixture(overrides: { call?: LifecycleOptions['call']; mode?: 'convo-text'; delay?: number } = {}) {
+function fixture(overrides: { call?: LifecycleOptions['call']; mode?: 'convo-text'; delay?: number; waitsAdvance?: boolean } = {}) {
   let time = 0, revision = 0; let committed: Row | undefined;
   const calls: { operation: string; payload: Row }[] = [];
+  // Records retry waits instead of sleeping; only tests that ask for it let a wait move the clock.
+  const waits: number[] = [];
+  const wait: NonNullable<LifecycleOptions['wait']> = async (ms) => { waits.push(ms); if (overrides.waitsAdvance) time += ms; };
   const dates = () => ({ serverNow: new Date(epoch + time).toISOString(), leaseUntil: new Date(epoch + Math.min(120_000, time + 30_000)).toISOString(),
     hardDeadline: new Date(epoch + 120_000).toISOString() });
   const receipt = (payload: Row = committed ?? { seconds: 0, learnerTurns: 0, serviceFailure: null }) => ({ kind: 'completed', sessionId: identity.sessionId,
@@ -42,8 +45,8 @@ function fixture(overrides: { call?: LifecycleOptions['call']; mode?: 'convo-tex
     calls.push({ operation, payload: clone(payload) });
     return overrides.call ? overrides.call(operation, payload, signal) : normal(operation, payload, signal);
   };
-  return { calls, normal, receipt, advance: (ms: number) => { time += ms; }, options: { call, now: () => time, nonce, automaticTimers: false },
-    claim: () => claimSessionLifecycle({ ...identity, ...(overrides.mode ? { mode: overrides.mode } : {}) }, { call, now: () => time, nonce, automaticTimers: false }) };
+  return { calls, waits, normal, receipt, advance: (ms: number) => { time += ms; }, options: { call, now: () => time, nonce, automaticTimers: false, wait },
+    claim: () => claimSessionLifecycle({ ...identity, ...(overrides.mode ? { mode: overrides.mode } : {}) }, { call, now: () => time, nonce, automaticTimers: false, wait }) };
 }
 
 test('claim validates the owner fence and rejects a reused or oversized reservation', async () => {
@@ -264,6 +267,44 @@ test('a hung heartbeat attempt never waits past the lease time left', async () =
   await assert.rejects(life.heartbeat());
   assert.ok(Date.now() - started < 1_000, 'three attempts of at most 40 ms each, not 5 s each');
   assert.equal(f.calls.filter(c => c.operation === 'checkpoint').length, 3);
+  await life.complete({ learnerTurns: 0 });
+});
+test('a heartbeat refused instantly waits between its three tries instead of spending them at once', async () => {
+  const sent: number[] = [];
+  let now = () => 0;
+  const f = fixture({ waitsAdvance: true, call: async (op, payload, signal) => {
+    if (op === 'checkpoint') { sent.push(now()); throw new TutorRpcError(503); }
+    return f.normal(op, payload, signal);
+  } });
+  const life = await f.claim();
+  now = f.options.now;
+  f.advance(5_000);
+  await assert.rejects(life.heartbeat());
+  assert.deepEqual(f.waits, [1_000, 1_000], 'one second between tries, none after the last');
+  assert.deepEqual(sent, [5_000, 6_000, 7_000]);
+  assert.equal(life.signal.aborted, true);
+  await life.complete({ learnerTurns: 0 });
+});
+test('a retry wait never runs past the lease time left', async () => {
+  const f = fixture({ waitsAdvance: true, call: async (op, payload, signal) => op === 'checkpoint' ? Promise.reject(new TutorRpcError(503)) : f.normal(op, payload, signal) });
+  const life = await f.claim();
+  f.advance(29_000 - 400); // lease stop is 29 000 ms after the claim; 400 ms remain
+  await assert.rejects(life.heartbeat());
+  assert.deepEqual(f.waits, [400], 'the wait is cut to the lease left, and no try is sent after it');
+  assert.equal(f.calls.filter(c => c.operation === 'checkpoint').length, 1);
+  await life.complete({ learnerTurns: 0 });
+});
+test('the default retry wait ends as soon as the lifecycle stops', async () => {
+  const f = fixture({ call: async (op, payload, signal) => op === 'checkpoint' ? Promise.reject(new TutorRpcError(503)) : f.normal(op, payload, signal) });
+  const { wait: _recording, ...real } = f.options; // the production timer, not the fixture's
+  const life = await claimSessionLifecycle(identity, real);
+  f.advance(5_000);
+  const started = Date.now();
+  const beat = life.heartbeat();
+  setTimeout(() => { f.advance(30_000); assert.throws(() => life.assertActive()); }, 20);
+  await assert.rejects(beat);
+  assert.ok(Date.now() - started < 500, 'the stop cut the one-second wait short');
+  assert.equal(f.calls.filter(c => c.operation === 'checkpoint').length, 1);
   await life.complete({ learnerTurns: 0 });
 });
 test('a stop at the hard deadline says so even when billing froze early', async () => {
