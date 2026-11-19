@@ -33,7 +33,6 @@ import {
   sampleCoachItem,
   sampleSupport,
   sampleTurn,
-  supportViewFor,
   withLearnerName,
   ZERO_USAGE,
   type BrainCurateRequest,
@@ -179,10 +178,15 @@ describe('toConvoView', () => {
 
   test('preserves all four support shapes and each survives the wire', () => {
     const material = sampleSupport();
-    for (const level of ['full-line', 'options', 'hint', 'none'] as const) {
-      const supportView = supportViewFor(level, material);
+    const shapes: SupportView[] = [
+      { kind: 'full-line', line: material.fullLine.fr, written: material.fullLine.frWritten, gloss: material.fullLine.en },
+      { kind: 'options', options: material.options.slice(0, 3).map((o) => ({ text: o.fr, en: o.en })) },
+      { kind: 'hint', hint: material.hintEn },
+      { kind: 'none' },
+    ];
+    for (const supportView of shapes) {
       const convo = toConvoView(viewWith(supportView));
-      assert.deepEqual(convo.supportView, supportView, `support kind ${level} changed in mapping`);
+      assert.deepEqual(convo.supportView, supportView, `support kind ${supportView.kind} changed in mapping`);
       overTheWire({ t: 'convo', view: convo });
     }
   });

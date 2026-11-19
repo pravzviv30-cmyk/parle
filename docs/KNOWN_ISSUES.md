@@ -14178,7 +14178,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1116 — Dead exports, a vacuous assertion and stale counts in brain
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/engine/conversation.ts:533
 - note: run1-3, run1-4, run2-4, run2-7, run2-8. Removes `supportViewFor`, `RECOVERY_VARIANTS`, `FIXTURE_FRAMES`, `JevNoulAnswer` and `JevChoiceAnswer`. No test dies. The third test below is the one whose regex is fixed.
 - verified-by: `preserves all four support shapes and each survives the wire`

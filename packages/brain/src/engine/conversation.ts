@@ -27,7 +27,6 @@ import {
   type LadderDirective,
   type LadderState,
   type Rung,
-  type SupportLevel,
 } from '@luvani/core';
 
 import type {
@@ -531,32 +530,6 @@ export function learnerSideSupport(support: SupportMaterial, sceneLine: string):
     ? { fr: reply.fr, frWritten: null, en: reply.en }
     : { fr: '', frWritten: null, en: '' };
   return { ...support, fullLine, options };
-}
-
-export function supportViewFor(level: SupportLevel, material: SupportMaterial): SupportView {
-  switch (level) {
-    case 'full-line':
-      // No line left to hand over means `learnerSideSupport` found nothing in
-      // this turn's material it could vouch for as the learner's own. The hint
-      // is the honest floor: English, always their side of the scene, and it
-      // names the goal instead of handing over somebody else's line with
-      // confidence. Guessing here is how the defect got shipped in the first place.
-      if (material.fullLine.fr.trim().length === 0) return { kind: 'hint', hint: material.hintEn };
-      return {
-        kind: 'full-line',
-        line: material.fullLine.fr,
-        written: material.fullLine.frWritten,
-        gloss: material.fullLine.en,
-      };
-    case 'options':
-      // Never more than three — a learner reading four French sentences under
-      // time pressure is doing homework, not talking. Same cap as core.
-      return { kind: 'options', options: material.options.slice(0, 3).map((o) => ({ text: o.fr, en: o.en })) };
-    case 'hint':
-      return { kind: 'hint', hint: material.hintEn };
-    case 'none':
-      return { kind: 'none' };
-  }
 }
 
 /** The free tutor's disclosure rule. No ladder rung can reveal help early. */
