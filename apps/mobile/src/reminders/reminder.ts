@@ -198,7 +198,8 @@ export const NAMED_PHRASE_LINE: ReminderLine = {
 
 /**
  * The situations a phrase may be named from (founder, 2026-11-19): café and
- * food, shopping, directions and travel, and greetings. Keys are the
+ * food, shops and markets, and transport; friends and small talk is left
+ * out because it holds personal lines. Keys are the
  * scenario themes (`DailyScenario['theme']`); every other phrase says the
  * generic phrase line.
  */

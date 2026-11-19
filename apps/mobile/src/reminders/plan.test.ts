@@ -698,8 +698,12 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
     assert.match(planner, /if \(owner !== scopeGeneration\(\)\) return;\s*freeRefill = heardRefill\(freeRefill, owner, status\);/);
     assert.match(planner, /void replanReminders\(\{ tutor: tutorRef\.current \}\);\s*\}\);\s*\};/, 'the refetch does not re-plan once billing answered');
     // A settle and a return to the foreground refetch, and re-plan through the fetch, not beside it.
-    assert.match(planner, /const offSettled = onSettled\(hear\);/, 'a settled sitting does not refetch billing');
-    assert.match(planner, /if \(state === 'active'\) hear\(\);\s*else if \(replansOn\(state\)\) void replanReminders\(\{ tutor: tutorRef\.current \}\);/, 'the foreground does not refetch billing, or plans twice');
+    // The re-plan comes first, so a short visit is noted before the app leaves; the fetch re-plans again when billing answers.
+    assert.match(planner, /const replanThenHear = \(\): void => \{\s*void replanReminders\(\{ tutor: tutorRef\.current \}\);\s*hear\(\);\s*\};/, 'the foreground or a settle waits for billing before it plans');
+    assert.match(planner, /const offSettled = onSettled\(replanThenHear\);/, 'a settled sitting does not re-plan at once and refetch billing');
+    assert.match(planner, /if \(state === 'active'\) replanThenHear\(\);\s*else if \(replansOn\(state\)\) void replanReminders\(\{ tutor: tutorRef\.current \}\);/, 'the foreground does not re-plan at once and refetch billing');
+    // With nobody to ask billing for, hearing still re-plans.
+    assert.match(planner, /if \(userId === null\) \{\s*void replanReminders\(\{ tutor: tutorRef\.current \}\);\s*return;\s*\}/, 'the planner with no account never plans when it hears');
     assert.equal((planner.match(/fetchBillingStatus\(/g) ?? []).length, 1, 'billing is fetched in more than one place');
     // The billing listener leaves with the planner.
     assert.match(planner, /const offBilling = onBillingChange\(/);

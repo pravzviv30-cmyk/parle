@@ -374,9 +374,14 @@ export function ReminderPlanner(): null {
         void replanReminders({ tutor: tutorRef.current });
       });
     };
-    const offSettled = onSettled(hear);
+    // Planned at once, so a short visit is noted before the app leaves, then again once billing answers.
+    const replanThenHear = (): void => {
+      void replanReminders({ tutor: tutorRef.current });
+      hear();
+    };
+    const offSettled = onSettled(replanThenHear);
     const appState = AppState.addEventListener('change', (state) => {
-      if (state === 'active') hear();
+      if (state === 'active') replanThenHear();
       else if (replansOn(state)) void replanReminders({ tutor: tutorRef.current });
     });
     hear();

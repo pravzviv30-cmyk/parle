@@ -473,8 +473,10 @@ const reminderMessageOf = (english: string) => ({ title: NAMED_PHRASE_LINE.title
 
 describe('the named phrase line (T1.3, D28)', () => {
   test('the scans read the named line for every phrase that can be picked, and a phrase that fails them, or sits outside the everyday situations, is never named', () => {
-    // The allow-list, as the founder chose it on 2026-11-19 (café and food, shopping, directions and travel, greetings).
+    // The allow-list (founder, 2026-11-19): café and food, shops and markets, transport; friends and small talk is left out because it holds personal lines.
     assert.deepEqual([...NAMEABLE_SITUATIONS], ['cafe-and-food', 'shops-and-markets', 'transport']);
+    // The weekly line is scanned with real counts, not zeros.
+    assert.ok(REMINDER_COPY.includes('6 days of French, 6 practices.'), 'the weekly line is scanned without real counts');
     assert.ok(DAILY_PHRASES.length > 20, 'the phrase pool is too short to be the pool');
     const themeOf = new Map(DAILY_SCENARIOS.map((scene) => [scene.id, scene.theme]));
     let fits = 0;

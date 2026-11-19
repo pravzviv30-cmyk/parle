@@ -221,13 +221,13 @@ export function freeRefillOf(status: { plan: string; periodEnd: string | null; c
   return Number.isFinite(at) ? at : undefined;
 }
 
-/** The refill the planner holds after billing answered for `owner`: a null answer (a failure or a timeout) keeps what was known. */
 /** The refill as last heard, for the account (`scopeGeneration`) it was read for. */
 export interface HeldRefill {
   owner: number;
   at: number | undefined;
 }
 
+/** The refill the planner holds after billing answered for `owner`: a null answer (a failure or a timeout) keeps what was known. */
 export function heardRefill(held: HeldRefill | null, owner: number, status: Parameters<typeof freeRefillOf>[0]): HeldRefill | null {
   return status === null ? held : { owner, at: freeRefillOf(status) };
 }
