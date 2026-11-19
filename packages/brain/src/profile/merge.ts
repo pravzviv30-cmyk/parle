@@ -558,13 +558,6 @@ function pickPracticePreferences(a: Side, b: Side, cmp: number): unknown {
   return PRACTICE_PREFERENCE_KEYS.every((key) => merged[key] === null) && placement === null ? null : merged;
 }
 
-/**
- * Merge the brain's two learner models. Exported for the sync policy and for
- * anything that holds two `LearnerProfile`s without an outer envelope.
- *
- * `aSavedAt`/`bSavedAt` are the envelope timestamps and only ever break a tie
- * on sessions and turns.
- */
 function mergeMemoryControl(held: LearnerProfile['memory'], a: LearnerProfile['memory'], b: LearnerProfile['memory']): LearnerProfile['memory'] {
   const ac = validMemoryControl(a.control);
   const bc = validMemoryControl(b.control);
@@ -574,6 +567,13 @@ function mergeMemoryControl(held: LearnerProfile['memory'], a: LearnerProfile['m
   return control ? { ...held, control, ...(control.paused ? { opener: null } : {}) } : held;
 }
 
+/**
+ * Merge the brain's two learner models. Exported for the sync policy and for
+ * anything that holds two `LearnerProfile`s without an outer envelope.
+ *
+ * `aSavedAt`/`bSavedAt` are the envelope timestamps and only ever break a tie
+ * on sessions and turns.
+ */
 export function mergeLearnerProfiles(
   a: unknown,
   b: unknown,

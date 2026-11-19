@@ -17,6 +17,8 @@ import { isLearnerGoal, isMastered, normalise, type LearnerGoal, type Rung } fro
 import type { MemoryExtraction, MemoryFact, TutorTurn } from '../contract/types.ts';
 import { CEFR_BANDS, type CefrBand, type Pace, type RegisterId, type Strictness } from '../types.ts';
 import type { ConversationState, LearnerSnapshot } from '../engine/conversation.ts';
+import { coachedForms, namedInCoaching } from '../engine/coaching.ts';
+import { sanitizeLearnerText } from '../copy.ts';
 import { normalizeErrorTag } from './errorTag.ts';
 import { sensitiveMemoryCategory } from './memoryScreen.ts';
 
@@ -452,11 +454,12 @@ export function applyExtractionToProfile(
     if (isSensitiveMemory(fact.en, fact.fr, fact.happensAround)) continue;
     seen.add(key);
     // Built field by field: a model object carrying `source` cannot smuggle it in.
+    // F1117: model text, so it passes the dash sanitizer before it is kept.
     next.memory.facts.push({
       kind: fact.kind,
-      fr: fact.fr,
-      en: fact.en,
-      happensAround: fact.happensAround,
+      fr: fact.fr === null ? null : sanitizeLearnerText(fact.fr),
+      en: sanitizeLearnerText(fact.en),
+      happensAround: fact.happensAround === null ? null : sanitizeLearnerText(fact.happensAround),
       notedAt: now,
       source: 'conversation',
       updatedAt: now,
@@ -468,7 +471,7 @@ export function applyExtractionToProfile(
   }
 
   if (extraction.openerFr !== null && extraction.openerEn !== null && !isSensitiveMemory(extraction.openerFr, extraction.openerEn)) {
-    next.memory.opener = { fr: extraction.openerFr, en: extraction.openerEn, policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
+    next.memory.opener = { fr: sanitizeLearnerText(extraction.openerFr), en: sanitizeLearnerText(extraction.openerEn), policyVersion: PERSONAL_MEMORY_POLICY_VERSION };
   } else {
     // A session that surfaced nothing real clears the opener rather than
     // letting a stale one greet the learner twice.
@@ -559,57 +562,6 @@ function phraseKey(fr: string, frWritten: string | null): string {
 }
 
 /**
- * What this turn's coaching named, normalised once.
- *
- * `quoted` is what the model says the learner got wrong — the verbatim
- * fragment handed back to them. `named` is that plus the form offered instead,
- * which the *tutor* produced, not the learner.
- *
- * Both matter, for different reasons, and the difference is why this returns
- * two lists rather than one. See `applyTurnToProfile`.
- */
-function coachedThisTurn(turn: TutorTurn): { quoted: string[]; named: string[] } {
-  const quoted: string[] = [];
-  const named: string[] = [];
-  for (const item of turn.coach) {
-    const quote = normalise(item.quote);
-    if (quote.length > 0) {
-      quoted.push(quote);
-      named.push(quote);
-    }
-    for (const offered of [item.better, item.betterWritten]) {
-      if (offered === null) continue;
-      const key = normalise(offered);
-      if (key.length > 0) named.push(key);
-    }
-  }
-  return { quoted, named };
-}
-
-/**
- * Was any of these forms named in that coaching?
- *
- * Matched on whole normalised words rather than equality, because a coach item
- * quotes a *fragment* of what the learner said: an exact comparison would miss
- * the phrase sitting inside a quote of the whole sentence, which is the common
- * case. Padding both sides with a space keeps "on" from matching inside
- * "bonjour" — normalise() has already reduced everything to space-separated
- * words, so a word boundary is a space.
- *
- * Over-matching costs one turn's credit; under-matching mints mastery nobody
- * earned. The doubt goes this way on purpose.
- */
-function namedInCoaching(coached: readonly string[], ...forms: readonly (string | null)[]): boolean {
-  for (const form of forms) {
-    if (form === null) continue;
-    const needle = normalise(form);
-    if (needle.length === 0) continue;
-    if (coached.some((text) => ` ${text} `.includes(` ${needle} `))) return true;
-  }
-  return false;
-}
-
-/**
  * Fold one turn's proposals into the profile. Pure — returns a new profile.
  *
  * `assisted` means the app had revealed a hint or the full line on the
@@ -641,7 +593,7 @@ export function applyTurnToProfile(
   // already picks the verdict the tutor *speaks* (`lead` in conversation.ts);
   // this is that same call made about the record, at the one place credit is
   // minted, so the mouth and the phrase book cannot disagree about a turn.
-  const { quoted, named } = coachedThisTurn(turn);
+  const { quoted, named } = coachedForms(turn);
 
   const reading = turn.assessment.cefrEvidence;
   if (reading !== null) {

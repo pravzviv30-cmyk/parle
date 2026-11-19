@@ -91,6 +91,8 @@ export interface OpenAiResponsesConfig {
   turnReplyFirst?: string;
   /** Per-activity effort and size. Defaults to the shared table, env applied. */
   routing?: BrainRouting;
+  /** Where the env fallbacks above are read. Defaults to `process.env`. */
+  env?: Record<string, string | undefined>;
 }
 
 /** The wiring half of the config: the two names, and where to send them. */
@@ -330,15 +332,16 @@ export class OpenAiResponsesBrainClient implements LlmClient {
   ) {
     this.fetchFn = fetchFn;
     this.sleep = sleep;
+    const env = config.env ?? process.env;
     this.config = {
-      apiKey: config.apiKey ?? process.env.OPENAI_API_KEY ?? '',
+      apiKey: config.apiKey ?? env.OPENAI_API_KEY ?? '',
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
-      ...openAiModels(process.env, config),
+      ...openAiModels(env, config),
     };
-    this.routing = config.routing ?? resolveRouting();
-    this.liveServiceTier = openAiLiveServiceTier(process.env, config);
-    this.turnSchemas = turnSchemasFor(openAiTurnReplyFirst(process.env, config));
-    this.explicitEffort = config.routing !== undefined || ['low', 'medium', 'high'].includes(process.env.BRAIN_EFFORT ?? '');
+    this.routing = config.routing ?? resolveRouting(env);
+    this.liveServiceTier = openAiLiveServiceTier(env, config);
+    this.turnSchemas = turnSchemasFor(openAiTurnReplyFirst(env, config));
+    this.explicitEffort = config.routing !== undefined || ['low', 'medium', 'high'].includes(env.BRAIN_EFFORT ?? '');
   }
 
   async turn(request: BrainTurnRequest): Promise<{ turn: TutorTurn; usage: LlmUsage }> {

@@ -33,7 +33,6 @@ import {
   sampleCoachItem,
   sampleSupport,
   sampleTurn,
-  supportViewFor,
   withLearnerName,
   ZERO_USAGE,
   type BrainCurateRequest,
@@ -179,10 +178,15 @@ describe('toConvoView', () => {
 
   test('preserves all four support shapes and each survives the wire', () => {
     const material = sampleSupport();
-    for (const level of ['full-line', 'options', 'hint', 'none'] as const) {
-      const supportView = supportViewFor(level, material);
+    const shapes: SupportView[] = [
+      { kind: 'full-line', line: material.fullLine.fr, written: material.fullLine.frWritten, gloss: material.fullLine.en },
+      { kind: 'options', options: material.options.slice(0, 3).map((o) => ({ text: o.fr, en: o.en })) },
+      { kind: 'hint', hint: material.hintEn },
+      { kind: 'none' },
+    ];
+    for (const supportView of shapes) {
       const convo = toConvoView(viewWith(supportView));
-      assert.deepEqual(convo.supportView, supportView, `support kind ${level} changed in mapping`);
+      assert.deepEqual(convo.supportView, supportView, `support kind ${supportView.kind} changed in mapping`);
       overTheWire({ t: 'convo', view: convo });
     }
   });
@@ -4359,11 +4363,28 @@ describe('the conversation speaks as the person the learner chose', () => {
       0,
       'a buildSystemBlocks() call in convo.ts names nobody: that path opens as the default tutor while the session is somebody else',
     );
-    const carried = code.match(/buildSystemBlocks\(this\.persona\)/g) ?? [];
+    // Four written out; the fifth, the spoken turn, is prepareTurn's (F298).
+    const carried = code.match(/buildSystemBlocks\(this\.persona\)|prepareTurn\([^)]*this\.persona\)/g) ?? [];
     assert.ok(
       carried.length >= 5,
       `convo.ts builds the system blocks in ${carried.length} places carrying the persona; there are five and this tripwire has gone stale`,
     );
+  });
+
+  test('turnRequest hands the persona to prepareTurn and no longer overrides its system block', async (t) => {
+    // F298. The spoken reply's blocks come from brain's prepareTurn, told who
+    // is speaking, byte for byte what the old override built.
+    const client = new MockLlmClient({ turns: [closingScene()] });
+    const { convo } = await inScene(t, { client, persona: marie });
+    await assert.rejects(() => convo.onUserTurnCompleted({} as never, heard('Bonjour, un café')), voice.StopResponse);
+    await convo.settled();
+    assert.ok(client.turnRequests.length > 0, 'no turn ran, so this proves nothing');
+    for (const request of client.turnRequests) assert.deepEqual(request.system, buildSystemBlocks(marie));
+
+    const source = readFileSync(fileURLToPath(new URL('./convo.ts', import.meta.url)), 'utf8');
+    const body = source.slice(source.indexOf('private turnRequest('), source.indexOf('private readonly brainWarmup'));
+    assert.match(body, /prepareTurn\(this\.state, input, this\.persona\)/, 'turnRequest does not tell prepareTurn who is speaking');
+    assert.doesNotMatch(body, /\bsystem:/, 'turnRequest still overrides the system block prepareTurn built');
   });
 
   test('a conversation nobody chose a voice for still opens as the catalogue default', async (t) => {

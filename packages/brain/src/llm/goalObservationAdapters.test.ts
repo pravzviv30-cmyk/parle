@@ -59,7 +59,8 @@ test('Anthropic SDK format parser normalizes absent goalMet before parsed_output
     assert.ok(format.schema.properties.scene.required.includes('goalMet'));
     const parsed = format.parse(JSON.stringify(old));
     assert.deepEqual(parsed, sampleTurn());
-    assert.throws(() => format.parse(JSON.stringify({ ...sampleTurn(), scene: { ...sampleTurn().scene, goalMet: 'yes' } })));
+    // Rejected as null, not thrown, so the SDK hands the loop a retryable response (F1114).
+    assert.equal(format.parse(JSON.stringify({ ...sampleTurn(), scene: { ...sampleTurn().scene, goalMet: 'yes' } })), null);
     checked = true;
     return { parsed_output: parsed, stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 5 } };
   } } });
