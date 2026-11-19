@@ -4294,7 +4294,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F272 — The account export had never been run, and did not work the first time it was
 - severity: P2
 - status: [ ]
-- where: services/token-server/src/accountExport.ts:60
+- where: services/token-server/src/server.ts:980
 - note: the first real execution of `GET /account/export` against the development project — a
   signed-in learner, a valid bearer, the running stack — answered **500**. The server log says
   `billing_events export failed (404)`: migrations 8, 9 and 10 have never been applied to that
@@ -4311,7 +4311,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   This is also the concrete cost of F271: Phase 8 landed with no ledger entry, `IMPLEMENTATION_EVIDENCE.md`
   called the export "implemented and tested locally", and no test or human had ever executed it.
   Found by running it, not by reading it.
-- verified-by: `a missing billing table is reported as unconfigured rather than as an internal error`
+- note: 2026-11-18 (B2 review): the app has called only the paged export, `POST /account/export-v2`, since 2026-10-04, so this entry now follows that route. Its code half is fixed on claude/review-b2 (built by api-engineer): an `account-export-unavailable` error answers 503 `account export unavailable` instead of 500. The entry stays open until one real export has run on staging.
+- verified-by: `a missing export function answers 503 account export unavailable, not an internal error`
 ### F273 — A least-privilege ElevenLabs key that can speak is reported as revoked
 - severity: P1
 - status: [x]
@@ -11321,6 +11322,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: deployment/deletion-journal/ (new), services/token-server/src/deletionJournal.ts
 - note: Found 2026-10-26 preparing staging. `maintenance` refuses to start without the four `LUVANI_DELETION_JOURNAL_*` variables, and no store implemented the client's contract. Built a Cloudflare Worker with D1 (DEPLOY-002): append-only records with triggers refusing UPDATE and DELETE, sealed 24-hour snapshots for replay, constant-time bearer auth, one project per deployment; 10 tests drive the real client against it. Stays open until a recovery drill has replayed through it. Done 2026-10-27: deployed at `luvani-deletion-journal.pravzviv30.workers.dev` (D1 `luvani-deletion-journal`), the real client sealed and replayed an empty snapshot against it, the four variables are on Railway `maintenance`, and `maintenance` started on staging and runs idle.
+- note: 2026-11-18 (B2 review): the server exists and its test runs in the gate. What remains is a staging recovery drill with real records; only an empty snapshot has been replayed.
 - verified-by: `replay through a sealed snapshot returns exactly the recorded users and excludes later writes`
 
 ### F884 — A refused or failed ElevenLabs request crashed the tutor worker
@@ -13054,6 +13056,84 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: S1a-10. Founder approved 2026-11-17 ("Yes, PRs and main only"). The push trigger narrows to `main`, which `mobile-preview.yml` needs; pull requests still run the gate.
 - verified-by: `the gate workflow runs on pull requests and on pushes to main only`
 
+### F1062 — The paid voice scripts can bill a finished experiment again
+- severity: P2
+- status: [x]
+- where: scripts/ttsBlindCheck.mjs:27
+- note: S1b-1 and S1b-4. The guard looks in a cwd-relative folder the manifests were moved out of, so `--generate` passes it and spends up to the 3600-character cap.
+- verified-by: `a paid generator refuses when its committed manifest exists`
+- verified-by: `paid generator paths do not depend on the working directory or one home folder`
+
+### F1063 — The WAV writer and reader each have three homes
+- severity: P2
+- status: [x]
+- where: scripts/quietSpeechHelpers.mjs:268
+- note: S1b-3. The two `readWav` copies throw a RangeError on an odd-length data chunk where `parseWav` truncates.
+- verified-by: `a WAV with an odd-length data chunk parses without throwing`
+- verified-by: `tts blind check writes a valid wav and reports speaking rate per model`
+
+### F1064 — A finished one-off script is still in scripts
+- severity: P2
+- status: [x]
+- where: scripts/soften-daily-voice-samples.mjs:1
+- note: S1b-5. Run once on 2026-09-19 and referenced by nothing. The proof is that no doc link breaks.
+- verified-by: `every relative markdown link in tracked docs resolves`
+
+### F1065 — The HTTP survival harness is never run
+- severity: P2
+- status: [ ]
+- where: scripts/verifyHttpBoundary.mjs:1
+- note: S1b-6. It is the proof for audit item A01 and no script, gate step or workflow calls it.
+- note: 2026-11-18, founder: taken out of releaseProofTests after five judge rounds; it passes 239 of 240 under 8-way parallel load and the remaining failure's cause is unknown. Runs by hand with `node --experimental-strip-types --no-warnings --test scripts/verifyHttpBoundary.manual.mjs`, renamed from `verifyHttpBoundary.test.mjs` so the gate's hygiene check stays as strict. Back into the gate once a diagnostic run (the harness printing which check failed, never the child's output) finds and fixes it.
+- verified-by: `the API child survives malformed authority, bad JSON, audio overflow and an interrupted upload`
+
+### F1300 — The HTTP survival proof fails at random when the server cuts off an oversized upload
+- severity: P2
+- status: [ ]
+- where: scripts/verifyHttpBoundary.mjs:19
+- note: The server answers 413 and destroys the request while the harness is still writing its 2 MB body, so `exchange` rejects with EPIPE or ECONNRESET and the harness prints FAIL though the child is healthy. Measured 5 of 80 runs at 8 in parallel, and 1 of 7 beside five sibling proof files.
+- note: 2026-11-18, founder: reopened as P2 with F1065, because its test now runs by hand, outside the gate. See F1065's 2026-11-18 note.
+- verified-by: `an upload the server cuts off mid-body counts as refused, not as a harness failure`
+- verified-by: `a reset after the whole body was sent still fails the overflow check`
+
+### F1301 — Resuming the finished voice speed run rewrites its committed evidence
+- severity: P2
+- status: [x]
+- where: scripts/measureVoiceSpeed.mjs:129
+- note: With the local manifest present and complete, `--generate --resume` passes `refuseRerun`, sends no paid request, then overwrites `after` and `measuredCredits` in `docs/cogs-evidence/voice-speed-2026-10-25.json` with today's balance.
+- verified-by: `a finished voice speed measurement refuses a resume too`
+
+### F1302 — Resuming the finished voice comparison rewrites its committed manifest
+- severity: P2
+- status: [x]
+- where: scripts/compare-daily-voices.mjs:34
+- note: Same failure as F1301. The tracked manifest is complete, so a resume skips every clip, sends no paid request, then overwrites after, measuredCredits and accountedCredits with today's balance.
+- verified-by: `a finished voice comparison refuses a resume too`
+
+### F1303 — The harness can be killed before its signal handler exists, and its test fails at random
+- severity: P2
+- status: [ ]
+- where: scripts/verifyHttpBoundary.mjs:10
+- note: The SIGTERM and SIGINT handlers are registered after `spawn`, so a signal sent as soon as the child is visible kills the harness by default action and leaks the child. `a harness stopped by SIGTERM takes its API child down with it` failed 3 of 120 runs at 8 in parallel with `{ code: null, signal: 'SIGTERM' }`.
+- note: 2026-11-18, founder: reopened as P2 with F1065, because its test now runs by hand, outside the gate. See F1065's 2026-11-18 note.
+- verified-by: `a harness stopped by SIGTERM takes its API child down with it`
+
+### F1304 — The voice comparison script does nothing when run through a symlinked path
+- severity: P2
+- status: [x]
+- where: scripts/compare-daily-voices.mjs:126
+- note: The run guard compares the unresolved `process.argv[1]` with the resolved module path, so `node <symlinked absolute path>/scripts/compare-daily-voices.mjs` prints no plan and exits 0. Before the `main()` restructure it ran from any path.
+- verified-by: `the voice comparison dry run prints its plan when started through a symlinked path`
+
+### F1305 — The survival proof still fails at random, because a write the kernel accepted is taken as a body the server read
+- severity: P2
+- status: [ ]
+- where: scripts/httpBoundaryExchange.mjs:22
+- note: `sent` turns true when the kernel accepts the 2 MB body, so a server that cuts the upload mid-body is sometimes rejected as "reset after the whole body". 2 of 120 runs of `scripts/verifyHttpBoundary.test.mjs` failed at 8 in parallel, once with `read ECONNRESET` in the cut-off test and once with the harness printing FAIL.
+- note: 2026-11-18: 239 of 240 at 8 in parallel; one unexplained harness FAIL (run 222) not reproduced in 640 isolated runs.
+- note: 2026-11-18, founder: reopened as P2 with F1065, because its test now runs by hand, outside the gate. See F1065's 2026-11-18 note.
+- verified-by: `only an upload left unfinished can count a reset as refused`
+
 ### F1193 — Nothing pins the push guard's hook wiring or the push-check and land commands
 - severity: P2
 - status: [x]
@@ -13938,6 +14018,65 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: packages/core/src/streak/freeze.ts:164
 - note: A subscriber whose plan began after a two-day gap has it covered by the free-level freeze plus a bank earned before the gap, back to `protectedSince`. Consistent with the contract (the bank obeys both passes) but no test holds it, so a later change to `freezeCoverDays` could move it silently. Filed by work-judge on the earn-back-bank SHIP, 2026-11-18; optional.
 - verified-by: `a bank from before the gap and the free freeze cover two days for a plan bought after them`
+
+### F1098 — A stop during paid admission crashes the practice worker
+- severity: P2
+- status: [x]
+- where: services/token-server/src/practiceJobs.ts:170
+- note: B2-1. The stopped promise rejects while clientFor is still awaited, before anything listens, so a SIGTERM or a lost lease in that window exits the worker with code 1 and skips its final heartbeat. One handler line; the job still ends superseded.
+- verified-by: `a stop or a lost lease during paid admission ends the practice job without an unhandled rejection`
+
+### F1099 — minutes_refused is never recorded in production
+- severity: P2
+- status: [x]
+- where: services/token-server/src/server.ts:785
+- note: B2-2, part B, built only on the founder's yes. Production refusals come from the database reservation, which returns before the recorder. The notice and PRIVACY_AND_SAFETY.md already name the event. The test also proves a session-active refusal and a learner with analytics off record nothing.
+- verified-by: `a refused reservation records minutes_refused when analytics is allowed`
+
+### F1100 — The header and request deadlines fire up to 30 s late
+- severity: P2
+- status: [x]
+- where: services/token-server/src/server.ts:333
+- note: B2-3. Node checks both deadlines on a 30 s sweep that server.ts never shortens, so a stalled body holds one of the 128 busy slots for up to 60 s. A 5 s sweep makes the stated 10 s and 30 s real. It does not bound the stall attack; that is handed to B1 behind a staging probe.
+- verified-by: `the server sweeps stalled connections every few seconds, so its header and request deadlines hold`
+
+### F1102 — fenceAccount and an unused CI contract variable have no reader
+- severity: P2
+- status: [x]
+- where: services/token-server/src/tutorSessions.ts:26
+- note: The fenceAccount part of B2-5. tutorSessions.ts carried a fenceAccount method nothing called, and ciContract.test.ts built an `accepted` list nothing read. Both are deleted; no test is deleted. The SQL function fence_tutor_account_v1 stays, since the database proofs call it directly.
+- note: 2026-11-19: recordBillingEvent removal deferred to a slice that updates the moneyUntouched.test.ts store.ts hash with revenue review (M1).
+- verified-by: `service reservation decoder rejects malformed allowance and identity bindings`
+- verified-by: `the lockfile carries no vulnerable version on a chain that was judged fixable`
+
+### F1103 — Metrics file /events and every /onboarding request under unknown
+- severity: P2
+- status: [x]
+- where: services/token-server/src/telemetry.ts:3
+- note: B2-7. The label list has product-events, which no route uses, and lacks events and onboarding. The exporter repeats the list and refuses unknown labels, so both change together. The test reads the prefixes from server.ts.
+- verified-by: `every server route prefix has its own metrics label, and the exporter accepts it`
+
+### F1104 — The fix-line judge and the transcribe handler copy helpers their neighbours already have
+- severity: P2
+- status: [x]
+- where: services/token-server/src/fixLineJudge.ts:28
+- note: B2-8, narrowed to the two pairs that already import each other. Removes a second home of the CEFR band list and the line check. The first test is characterization, written and green before the change.
+- verified-by: `a correction retry trims its lines, refuses an over-long one and reads an unknown level as A2`
+- verified-by: `a transcription authenticates and limits before its one ephemeral upload`
+
+### F1306 — recordBillingEvent is dead in the store interface and all four stores, but store.ts is a pinned money file
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/store.ts:41
+- note: Deferred from B2 (B2-6), 2026-11-18. The webhook dedupes through billingEventComplete and applyBilling (server.ts:632), so recordBillingEvent has no caller and its interface comment is untrue. Removing it changes store.ts, which apps/mobile/src/wall/moneyUntouched.test.ts pins by SHA-256, so the removal lands with a dated hash update and a revenue review in M1 (a frontend slice that runs the design reviews anyway). Six store.supabase.test.ts tests die with it; the SQL record_billing_event goes to D1.
+- verified-by: `billing projection uses one RPC carrying vendor state but never a stale usage counter`
+
+### F1055 — ciContract.test.ts times out at 15 s on some runs
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/ciContract.test.ts:62
+- note: NEEDS-PROBE, not reproduced. The file takes 3.0 s; the spawned gate takes 0.75 s in a clean worktree and 3.43 s cold in the main checkout. Hypothesis: the gate's test-file walk reads 61,696 entries there, 53,011 under apps/mobile build output. Probe: one full gate on the main checkout with the device build present. A fix belongs to S1.
+- verified-by: `the CI contract check finishes without waiting on the network or the clock`
 
 ### F1110 — In text mode a keystroke after the timed reveal starts a second rescue clock
 - severity: P2

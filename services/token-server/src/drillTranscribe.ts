@@ -1,18 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ResolvedUser } from './auth.ts';
-import { decodedHeader, DRILL_USER_HEADER, readAudio } from './drillScore.ts';
+import { decodedHeader, DRILL_USER_HEADER, json, readAudio } from './drillScore.ts';
 import { HttpInputError, answerRequestError, withRequestSignal } from './requestBoundary.ts';
 
 export interface DrillTranscribeDeps {
   users: { resolve(authorization: string | undefined, asserted: string | null): Promise<ResolvedUser> };
   limits(req: IncomingMessage, res: ServerResponse, userId: string | null): Promise<boolean>;
   transcribe(audio: Uint8Array, signal?: AbortSignal, user?:Extract<ResolvedUser,{ok:true}>): Promise<string | null>;
-}
-function json(res: ServerResponse, status: number, body: unknown): void {
-  if (res.destroyed || res.writableEnded) return;
-  const text = JSON.stringify(body);
-  res.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(text) });
-  res.end(text);
 }
 /** No audio or transcript enters a store, event, URL or log. */
 export async function handleDrillTranscribe(req: IncomingMessage, res: ServerResponse, deps: DrillTranscribeDeps): Promise<void> {

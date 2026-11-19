@@ -105,7 +105,6 @@ interface Lockfile {
 }
 
 const decisions = manifest.luvani?.dependencyAudit?.advisories ?? [];
-const accepted = decisions.filter((d) => d.decision === 'accepted');
 const fixed = decisions.filter((d) => d.decision === 'fixed');
 // Fixed by moving the package itself to a patched release, so nothing left the tree and the
 // walk from it can be short: adm-zip (an override), zod (4.6.7 has no dependencies at all).

@@ -107,7 +107,7 @@ export function judgeUsageLine(usage: LlmUsage): string {
   return `[luvani:judge] answered by ${typeof usage.model==='string' && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(usage.model) ? usage.model : 'an unnamed model'}: ${usage.inputTokens} input, ${usage.outputTokens} output, ${cost}`;
 }
 
-function json(res: ServerResponse, status: number, body: unknown): void {
+export function json(res: ServerResponse, status: number, body: unknown): void {
   if (res.destroyed || res.writableEnded) return;
   const payload = JSON.stringify(body);
   res.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) });
@@ -128,7 +128,7 @@ export async function readJudgeBody(req: IncomingMessage): Promise<Record<string
 }
 
 /** A required string: present, not blank, and bounded. */
-function line(value: unknown, max = MAX_LINE): string | null {
+export function line(value: unknown, max = MAX_LINE): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   if (trimmed === '' || trimmed.length > max) return null;
@@ -152,7 +152,7 @@ function mustKeepOf(value: unknown): string[] {
 }
 
 /** The level, clamped. Same reasoning as `mustKeep`: a hint, never a refusal. */
-function cefrOf(value: unknown): CefrBand {
+export function cefrOf(value: unknown): CefrBand {
   return typeof value === 'string' && (CEFR_BANDS as readonly string[]).includes(value)
     ? (value as CefrBand)
     : DEFAULT_CEFR;

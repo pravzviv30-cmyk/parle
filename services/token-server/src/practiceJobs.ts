@@ -168,6 +168,7 @@ async function runPracticeJob(jobs: PracticeJobs, client: Pick<LlmClient, 'drill
       const controller=new AbortController();const signal=options.signal ? AbortSignal.any([controller.signal,options.signal]) : controller.signal;
       let timer:ReturnType<typeof setTimeout>|undefined;let rejectStop=(_error:unknown)=>{};
       const stopped=new Promise<never>((_resolve,reject)=>{rejectStop=reject;});const stop=()=>rejectStop(new Error('practice-generation-stopped'));
+      stopped.catch(()=>{});
       signal.addEventListener('abort',stop,{once:true});
       let poll:ReturnType<typeof setTimeout>|undefined;let monitoring=true;
       const check=async()=>{

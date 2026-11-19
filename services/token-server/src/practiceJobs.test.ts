@@ -205,3 +205,23 @@ test('a saved session with no reply in the scene gets no drills written for it',
   assert.equal(asked, 0, 'no model call for a conversation nobody replied in');
   assert.deepEqual(finishes, [[]]);
 });
+
+test('a stop or a lost lease during paid admission ends the practice job without an unhandled rejection', async () => {
+  const unhandled: unknown[] = [];
+  const listen = (reason: unknown) => { unhandled.push(reason); };
+  process.on('unhandledRejection', listen);
+  try {
+    const admission = () => new Promise<void>((resolve) => setTimeout(resolve, 50));
+    const stopper = new AbortController();
+    setTimeout(() => stopper.abort(), 5);
+    const stopJobs: PracticeJobs = { receive: async () => {}, claim: async () => job, active: async () => true, finish: async () => true };
+    assert.equal(await processPracticeJob(stopJobs, { drills: async () => { throw new Error('unused'); } },
+      { signal: stopper.signal, clientFor: async () => { await admission(); throw new Error('admission aborted'); } }), 'superseded');
+    let checks = 0;
+    const leaseJobs: PracticeJobs = { receive: async () => {}, claim: async () => job, active: async () => ++checks === 1, finish: async () => true };
+    assert.equal(await processPracticeJob(leaseJobs, { drills: async () => { throw new Error('unused'); } },
+      { leasePollMs: 5, clientFor: async () => { await admission(); return { drills: async () => new Promise(() => {}) }; } }), 'superseded');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(unhandled, []);
+  } finally { process.off('unhandledRejection', listen); }
+});

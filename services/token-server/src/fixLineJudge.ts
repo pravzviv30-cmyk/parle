@@ -2,23 +2,9 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { buildFixLineJudgeRequest, parseFixLineVerdict } from '@luvani/brain/llm';
 import type { FixLineObserver } from './fixLineObserver.ts';
-import type { CefrBand } from '@luvani/brain';
-import { JUDGE_TIMEOUT_MS, readJudgeBody, type DrillJudgeDeps } from './drillJudge.ts';
+import { JUDGE_TIMEOUT_MS, cefrOf, json, line, readJudgeBody, type DrillJudgeDeps } from './drillJudge.ts';
 import { answerRequestError } from './requestBoundary.ts';
 import { normaliseAttempt } from './judgeMemo.ts';
-
-function json(res: ServerResponse, status: number, value: unknown): void {
-  if (res.destroyed || res.writableEnded) return;
-  const body = JSON.stringify(value);
-  res.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) });
-  res.end(body);
-}
-function line(raw: unknown, max: number): string | null {
-  return typeof raw === 'string' && raw.trim().length > 0 && raw.trim().length <= max ? raw.trim() : null;
-}
-function level(raw: unknown): CefrBand {
-  return typeof raw === 'string' && ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'].includes(raw) ? raw as CefrBand : 'A2';
-}
 
 export async function handleFixLineJudge(req: IncomingMessage, res: ServerResponse, deps: DrillJudgeDeps & { fixLineObserver?: FixLineObserver }): Promise<void> {
   if (!(await deps.limits(req, res, null))) return;
@@ -39,7 +25,7 @@ export async function handleFixLineJudge(req: IncomingMessage, res: ServerRespon
     return json(res, 400, { error: 'a distinct correction and one retry are required' });
   }
   if (req.aborted || res.destroyed || res.writableEnded) return;
-  const input = { original, better, attempt, why, cefr: level(body.cefr) };
+  const input = { original, better, attempt, why, cefr: cefrOf(body.cefr) };
   const remembered = deps.memo?.get(resolved.userId, 'fix-line', buildFixLineJudgeRequest(input));
   if (remembered !== undefined) {
     deps.memoHit?.('fix-line');

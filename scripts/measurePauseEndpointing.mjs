@@ -38,6 +38,7 @@ import { createRequire } from 'node:module';
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { parseWav } from './quietSpeechHelpers.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const agentRequire = createRequire(join(root, 'services/tutor-agent/package.json'));
@@ -106,18 +107,7 @@ try {
 
 // ---- audio helpers ----------------------------------------------------------
 function readWav(path) {
-  const buf = readFileSync(path);
-  let off = 12;
-  let rate = 0;
-  let data = null;
-  while (off < buf.length) {
-    const id = buf.toString('ascii', off, off + 4);
-    const size = buf.readUInt32LE(off + 4);
-    if (id === 'fmt ') rate = buf.readUInt32LE(off + 12);
-    if (id === 'data') data = new Int16Array(buf.buffer.slice(buf.byteOffset + off + 8, buf.byteOffset + off + 8 + size));
-    off += 8 + size + (size % 2);
-  }
-  return { rate, pcm: data };
+  return parseWav(readFileSync(path));
 }
 
 /** Cut point: quietest 20 ms window in the middle 35-65 % of the voiced span. */
