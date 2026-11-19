@@ -23,6 +23,7 @@ import { SkyCloud } from '../art/sky/SkyCloud.tsx';
 import { SkyDisc } from '../art/sky/SkyDisc.tsx';
 import { TopInset } from '../layout.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
+import { FreezeMark } from '../game/art/FreezeMark.tsx';
 import { Drift } from '../motion/Drift.tsx';
 import { bType, decorative, space, type } from '../theme.ts';
 import { SKY_DISC, cloudPlaces, discShiftFor, greetingMaxScale, greetingText, cloudsBesideGreeting, skyBarStyle, type SkyView } from './skyView.ts';
@@ -34,7 +35,7 @@ const DISC = SKY_DISC.size;
 const DISC_BLEED = -SKY_DISC.bleed;
 
 
-export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, focused = true, scrolledPast = false, onMeasure }: {
+export function SkyBand({ sky, greeting, profile, stats, nudge = null, freezeMark = false, overlap, focused = true, scrolledPast = false, onMeasure }: {
   sky: SkyView;
   greeting: { word: string; name: string | null; title: string };
   /** The ProfileButton on the sky's chip. */
@@ -43,6 +44,8 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
   stats: ReactNode;
   /** The one nudge line, only while a streak runs and today is open. */
   nudge?: string | null;
+  /** The 20pt freeze mark beside the line, for a day a freeze covered (Board A). */
+  freezeMark?: boolean;
   /** How far the hero card is pulled up over the sky's foot. */
   overlap: number;
   /** Light status bar content only while Today is on top (tabs stay mounted). */
@@ -90,7 +93,13 @@ export function SkyBand({ sky, greeting, profile, stats, nudge = null, overlap, 
       </View>
       <View style={s.stats}>
         {stats}
-        {nudge !== null ? <Text style={[type.body, { color: t.onBrand }]}>{nudge}</Text> : null}
+        {/* Every sky ground takes white onBrand words; on 'blue' the crystal trades to white, so it reads where they do. */}
+        {nudge !== null ? (
+          <View style={s.nudge}>
+            {freezeMark ? <FreezeMark size={20} ground="blue" /> : null}
+            <Text style={[type.body, s.grow, { color: t.onBrand }]}>{nudge}</Text>
+          </View>
+        ) : null}
       </View>
       <View style={{ height: overlap + space(4) }} />
     </View>
@@ -106,4 +115,6 @@ const makeStyles = (_t: B) =>
     greeting: { flexShrink: 1, minWidth: 0 },
     profile: { flexShrink: 0 },
     stats: { marginTop: space(3), gap: space(3) },
+    nudge: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+    grow: { flex: 1, minWidth: 0 },
   });

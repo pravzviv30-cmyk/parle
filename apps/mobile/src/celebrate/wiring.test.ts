@@ -168,4 +168,12 @@ describe('the celebration host in the app — F743', () => {
       assert.match(src(`celebrate/${path}`), /<Confetti\b/, `${path} throws no confetti`);
     }
   });
+
+  test('the practice ending draws the banked row, a 22pt freeze mark and its words, only when settle read the bank back (Board A)', () => {
+    const scene = src('celebrate/EndScene.tsx');
+    // In the rows list, so every ending that shows rows (tiles mode included) shows it, and only with `banked`.
+    const rows = region(scene, 'function Body(');
+    assert.match(rows, /\.\.\.\(view\.banked !== null\s*\?\s*\[\s*<View key="banked" style=\{s\.banked\}>\s*<FreezeMark size=\{22\} \/>\s*<Text style=\{\[type\.bodyStrong, s\.grow, \{ color: t\.text \}\]\}>\{view\.banked\}<\/Text>/);
+    assert.match(scene, /import \{ FreezeMark \} from '\.\.\/game\/art\/FreezeMark\.tsx';/);
+  });
 });

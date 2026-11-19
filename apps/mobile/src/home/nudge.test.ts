@@ -60,9 +60,9 @@ describe("Home's nudge line — F767", () => {
     // UI-015: TodayStats.tsx reads it (as TodayHero.tsx did) and the sky draws
     // it under the tiles, and only when there is one, in onBrand on the sky.
     const hero = readFileSync(new URL('../game/TodayStats.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
-    assert.match(hero, /const nudge = homeNudge\(run\);/);
+    assert.match(hero, /const \{ nudge, ask \} = nudgeSlot\(run, today, known\);/);
     const sky = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
-    assert.match(sky, /\{nudge !== null \? <Text style=\{\[type\.body, \{ color: t\.onBrand \}\]\}>\{nudge\}<\/Text> : null\}/);
+    assert.match(sky, /<Text style=\{\[type\.body, s\.grow, \{ color: t\.onBrand \}\]\}>\{nudge\}<\/Text>/);
   });
 });
 

@@ -59,7 +59,7 @@ import { PurchaseConfirmed } from './templates/PurchaseConfirmed.tsx';
 import type { StageProps } from './templates/stage.tsx';
 import { StreakExtended } from './templates/StreakExtended.tsx';
 import { StreakMilestone } from './templates/StreakMilestone.tsx';
-import { TIMELINES, beatAt, playsStill, type Timeline } from './timelines.ts';
+import { TIMELINES, beatAt, playsStill, takeoverTimeline, type Timeline } from './timelines.ts';
 import { useScreenReader } from './useScreenReader.ts';
 import { useLatch, useTimeline } from './useTimeline.ts';
 
@@ -107,7 +107,7 @@ export function Takeover({
   onContinue: (id: string) => void;
 }) {
   const view = useMemo(() => cardView(card), [card]);
-  const timeline = TIMELINES[view.timeline];
+  const timeline = TIMELINES[takeoverTimeline(view)];
   const answered = useAnswered(useReduceMotion(true));
   const reader = useScreenReader();
   const [landed, setLanded] = useState(false);

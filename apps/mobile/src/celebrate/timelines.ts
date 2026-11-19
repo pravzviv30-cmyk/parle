@@ -49,6 +49,8 @@ export type TimelineId =
   | 'purchase-confirmed'
   | 'streak-milestone'
   | 'streak-extended'
+  | 'streak-carried'
+  | 'streak-repaired'
   | 'level-up'
   | 'badge-earned'
   | 'end-card'
@@ -107,6 +109,28 @@ export const TIMELINES: Readonly<Record<TimelineId, Timeline>> = {
       { t: 420, element: 'number', transform: 'the run rises in, translateY 24 to 0', motion: timing('base'), haptic: 'arrived' },
       { t: 520, element: 'label', transform: 'day streak fades in', motion: timing('base') },
       { t: 900, element: 'lines', transform: 'StaggerIn, translateY 10 to 0', motion: timing('base') },
+    ],
+    end: 1600,
+    still: { sound: 'streak', haptic: 'thump' },
+  },
+  // Board A, on paper: a run a freeze carried. The mint disc and its ink tick draw in; no flame, no sparks, no number.
+  'streak-carried': {
+    id: 'streak-carried',
+    beats: [
+      { t: 120, element: 'mark', transform: 'the mint disc grows in and the tick wipes on (check-draw)', motion: springOf('pop'), sound: 'streak', haptic: 'thump' },
+      { t: 420, element: 'words', transform: 'nothing moves', motion: cue, haptic: 'arrived' },
+      { t: 600, element: 'lines', transform: 'StaggerIn, translateY 10 to 0', motion: timing('base') },
+    ],
+    end: 1600,
+    still: { sound: 'streak', haptic: 'thump' },
+  },
+  // Board A, on paper: a kept repair. The RepairMark's white tile rises in; no flame, no sparks, no number.
+  'streak-repaired': {
+    id: 'streak-repaired',
+    beats: [
+      { t: 120, element: 'mark', transform: 'the white tile with the RepairMark rises in, translateY 24 to 0', motion: springOf('pop'), sound: 'streak', haptic: 'thump' },
+      { t: 420, element: 'words', transform: 'nothing moves', motion: cue, haptic: 'arrived' },
+      { t: 600, element: 'lines', transform: 'StaggerIn, translateY 10 to 0', motion: timing('base') },
     ],
     end: 1600,
     still: { sound: 'streak', haptic: 'thump' },
@@ -230,6 +254,13 @@ export const TIMELINES: Readonly<Record<TimelineId, Timeline>> = {
     still: { sound: 'correct', haptic: 'arrived' },
   },
 };
+
+/** The timeline a takeover plays: a streak card's mark (Board A) picks its quiet form, every other card its type's own. */
+export function takeoverTimeline(view: { readonly timeline: TimelineId; readonly mark: 'tick' | 'repair' | null }): TimelineId {
+  if (view.mark === 'tick') return 'streak-carried';
+  if (view.mark === 'repair') return 'streak-repaired';
+  return view.timeline;
+}
 
 /** When an element's beat starts. Every element a template asks for is in its timeline (`timelines.test.ts`). */
 export function beatAt(timeline: Timeline, element: string): number {
