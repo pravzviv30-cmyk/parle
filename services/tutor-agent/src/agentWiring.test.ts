@@ -269,6 +269,70 @@ describe('one hiccup is survivable and the exit is named', () => {
     assert.match(CODE, /lifecycle\?\.onStop\(\(\) => \{\s*exit\.mark\(exitForStop\(lifecycle\)\);/);
     assert.match(CODE, /const serviceFailure = tutor\.terminalFailureFor\(kind, recoverable, learnerPresent\);\s*if \(serviceFailure\) \{ const cls = exitForPipeline\(kind\); if \(cls\) exit\.mark\(cls\); \}/);
   });
+  // F1107: the app needs the line and the recap before the room closes, or it paints the drop screen.
+  const onStopBody = (): string => {
+    const start = CODE.indexOf('lifecycle?.onStop(() => {');
+    return CODE.slice(start, CODE.indexOf('\n    });', start));
+  };
+  test('a stop at the cap shows the time-limit line and the recap before the room closes', () => {
+    const body = onStopBody();
+    const branch = body.indexOf('if (lifecycle.stoppedAtDeadline && !scene)');
+    assert.ok(branch > 0, 'the cap stop has its own branch, and a scene keeps its own stop');
+    const cap = body.slice(branch);
+    assert.match(cap, /armSceneHardStop\(\{ remainingMillis: CAP_CLOSE_MS, graceMillis: CAP_CLOSE_MS,/);
+    assert.match(cap, /notify: \(\) => \{ if \(!warmClose\) notifyTimeLimit\(\); \}/);
+    assert.match(cap, /settle: \(\) => finish\(\)/);
+    assert.match(cap, /disconnect: \(\) => ctx\.room\.disconnect\(\)/);
+    assert.match(CODE, /const CAP_CLOSE_MS = 5_000;/);
+    // Late-bound like stopPaidWork: the tutor is built after onStop is registered.
+    assert.match(CODE, /let notifyTimeLimit = \(\): void => \{\};/);
+    const bound = CODE.indexOf("notifyTimeLimit = () => tutor.publishError('That is a good place to stop. Your session has reached its time limit.');");
+    assert.ok(bound > CODE.indexOf('finish = async () => { stopPaidWork(); await closeProxy(); await tutor.finish(); };'), 'bound once the tutor exists');
+  });
+  test('a lost lease disconnects at once and publishes no time-limit line', () => {
+    const body = onStopBody();
+    const branch = body.indexOf('if (lifecycle.stoppedAtDeadline && !scene)');
+    assert.ok(branch > 0);
+    const cap = body.slice(branch, body.indexOf('return; }', branch));
+    const lease = body.slice(body.indexOf('return; }', branch));
+    assert.match(cap, /armSceneHardStop/);
+    assert.match(lease, /void ctx\.room\.disconnect\(\)\.catch\(\(\) => \{\}\);\s*void finish\(\)\.catch\(\(\) => \{\}\);/);
+    assert.doesNotMatch(lease, /notify|publishError|armSceneHardStop/);
+    assert.match(body.slice(0, branch), /exit\.mark\(exitForStop\(lifecycle\)\);\s*stopPaidWork\(\);\s*$/, 'paid work stops before either branch');
+  });
+  // F1308: a vendor error caused by our own stop must not replace the recap with a failure screen.
+  test('a pipeline error after the cap close has begun sends no error frame to the app', () => {
+    assert.match(CODE, /let capClosing = false;/);
+    const body = onStopBody();
+    const branch = body.indexOf('if (lifecycle.stoppedAtDeadline && !scene)');
+    assert.ok(branch > 0);
+    const cap = body.slice(branch, body.indexOf('return; }', branch));
+    const flag = cap.indexOf('capClosing = true;');
+    assert.ok(flag > 0 && flag < cap.indexOf('armSceneHardStop('), 'the flag is set before the close is armed');
+    assert.doesNotMatch(body.slice(body.indexOf('return; }', branch)), /capClosing/, 'a lost lease is unchanged');
+    const start = CODE.indexOf('session.on(voice.AgentSessionEventTypes.Error');
+    assert.ok(start > 0);
+    const handler = CODE.slice(start, CODE.indexOf('session.on(voice.AgentSessionEventTypes.AgentStateChanged', start));
+    const log = handler.indexOf("console.error('[luvani] pipeline error:'");
+    const guard = handler.indexOf('if (capClosing) return;');
+    assert.ok(log > 0 && guard > log, 'the vendor error is still logged');
+    assert.ok(guard < handler.indexOf('tutor.terminalFailureFor('), 'no service failure is recorded for our own stop');
+    assert.ok(guard < handler.indexOf('publish({'), 'no error frame reaches the app');
+  });
+  // F1320: "Your session has reached its time limit" must not follow "à bientôt".
+  test('a stop at the cap during the warm close sends no time-limit line', () => {
+    assert.match(CODE, /let warmClose = false;/);
+    const build = CODE.slice(CODE.indexOf('new SessionEndClock('));
+    const onClose = build.slice(0, build.indexOf('});'));
+    const flag = onClose.indexOf('warmClose = true;');
+    assert.ok(flag > 0 && flag < onClose.indexOf('if (!hardStop) return;'), 'the lifecycle path sets the flag too');
+    const body = onStopBody();
+    const branch = body.indexOf('if (lifecycle.stoppedAtDeadline && !scene)');
+    assert.ok(branch > 0);
+    const cap = body.slice(branch, body.indexOf('return; }', branch));
+    assert.ok(cap.includes('notify: () => { if (!warmClose) notifyTimeLimit(); }'));
+    assert.doesNotMatch(body.slice(body.indexOf('return; }', branch)), /warmClose/, 'a lost lease is unchanged');
+  });
   test('the learner leaving is marked before paid work stops', () => {
     const start = CODE.indexOf("ctx.room.on('participantDisconnected'");
     const left = CODE.slice(start, CODE.indexOf('return tutor.finish()', start));
