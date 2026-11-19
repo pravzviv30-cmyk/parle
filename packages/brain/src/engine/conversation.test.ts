@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { MAX_PACK_CORRECTIONS, STUCK_SILENCE_MS, buildConversationPack, directiveFor, replayRung, type Rung } from '@luvani/core';
+import { MAX_PACK_CORRECTIONS, STUCK_SILENCE_MS, buildConversationPack, directiveFor, replayRung, tutorVoice, type Rung } from '@luvani/core';
 
 import {
   MAX_ATTEMPTS_PER_BEAT,
@@ -20,6 +20,7 @@ import {
 import { INLINE_COACH_COOLDOWN_TURNS } from './grading.ts';
 import { applyExtractionToProfile, createProfile } from '../profile/profile.ts';
 import { assembleRecap } from './recap.ts';
+import { buildSystemBlocks } from '../prompt/system.ts';
 import { CAFE_FRAME } from '../fixtures.ts';
 import { coachFallbackLine, copyViolations, fallbackVariants, landsAsCorrection } from '../copy.ts';
 import { carriesFrench } from '../frenchLeak.ts';
@@ -190,6 +191,15 @@ describe('a requested opening rung', () => {
 });
 
 describe('prepareTurn', () => {
+  test('prepareTurn takes the persona and the live path stops overriding its system block', () => {
+    // F298. The spoken reply is the line the learner hears, so it speaks as
+    // the person they chose; with nobody chosen it is the catalogue default.
+    const marie = tutorVoice('marie').persona;
+    assert.deepEqual(prepareTurn(fresh(), spoke(), marie).system, buildSystemBlocks(marie));
+    assert.match(prepareTurn(fresh(), spoke(), marie).system.persona, /You are Marie\b/);
+    assert.deepEqual(prepareTurn(fresh(), spoke()).system, buildSystemBlocks());
+  });
+
   test('is byte-stable for identical state — cache safety', () => {
     const state = fresh();
     assert.deepEqual(prepareTurn(state, spoke()), prepareTurn(state, spoke()));

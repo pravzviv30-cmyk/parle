@@ -3248,19 +3248,9 @@ export class LuvaniConversation extends voice.Agent {
 
   /** The turn request, shared by real turns and the warm-up (F984) so both carry one body shape. */
   private turnRequest(input: LearnerTurnInput) {
-    // The fifth system-block call, and the only one that is not written as one.
-    // brain's `prepareTurn` builds the blocks itself and has no persona to
-    // build them from, so its `buildSystemBlocks()` is the catalogue default.
-    // This is the prompt the learner actually hears, every single turn: leave
-    // it and the scene, the recap and tomorrow's drills all speak as the person
-    // they chose while the spoken reply introduces Luc in her voice. Overridden
-    // with brain's own builder rather than worked around, and the real repair is
-    // a persona argument on `prepareTurn`, which lives in brain's territory and
-    // is filed rather than edited here. This line comes out the day that lands.
-    const prepared = prepareTurn(this.state, input);
+    const prepared = prepareTurn(this.state, input, this.persona);
     return {
       ...prepared,
-      system: buildSystemBlocks(this.persona),
       messages: [...prepared.messages, { role: 'system' as const, text: this.teachingBrief },
         ...(this.firstPractice ? [{ role: 'system' as const, text: firstPracticePrompt(this.firstPractice, this.lifecycle?.elapsedSeconds() ?? 0) }] : []),
         ...(this.memoryBrief ? [{ role: 'system' as const, text: this.memoryBrief }] : [])],

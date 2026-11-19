@@ -13,7 +13,7 @@ describe('safety is a code boundary, not prompt advice', () => {
     assert.match(convo, /if \(this\.handleSafety\(text\)\) \{\s*timing\?\.finish\('cancelled'\);\s*throw new voice\.StopResponse\(\)/);
     const brainTurn = convo.indexOf('private async runBrainTurn');
     const guard = convo.indexOf("input.type === 'spoke' && this.handleSafety", brainTurn);
-    const prepare = convo.indexOf('prepareTurn(this.state, input)', brainTurn);
+    const prepare = convo.indexOf('prepareTurn(this.state, input', brainTurn);
     assert.ok(brainTurn > 0 && guard > brainTurn && prepare > guard);
   });
 

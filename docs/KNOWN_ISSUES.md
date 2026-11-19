@@ -4702,7 +4702,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F298 — prepareTurn builds its own system blocks and cannot be told who is speaking
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/engine/conversation.ts:570
 - note: found while threading the persona through the tutor classes, and it is the call that
   mattered most. `prepareTurn` builds `system: buildSystemBlocks()` itself, with no persona

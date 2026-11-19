@@ -38,7 +38,7 @@ import type {
   SupportView,
   TutorTurn,
 } from '../contract/types.ts';
-import type { LearnerGoal } from '@luvani/core';
+import type { LearnerGoal, TutorPersona } from '@luvani/core';
 import type { CefrBand, Pace, Strictness } from '../types.ts';
 import {
   NOTHING_WAS_WRONG,
@@ -628,7 +628,7 @@ function sadNewsInput(input: LearnerTurnInput): boolean {
  * Build the model request for this input. Pure and byte-stable for identical
  * states — the multi-turn prompt cache depends on it.
  */
-export function prepareTurn(state: ConversationState, input: LearnerTurnInput): BrainTurnRequest {
+export function prepareTurn(state: ConversationState, input: LearnerTurnInput, persona?: TutorPersona): BrainTurnRequest {
   const beat = beatOf(state);
   const context = buildTurnContext({
     directive: state.directive,
@@ -661,7 +661,7 @@ export function prepareTurn(state: ConversationState, input: LearnerTurnInput): 
 
   return {
     kind: 'turn',
-    system: buildSystemBlocks(),
+    system: buildSystemBlocks(persona),
     messages: [
       { role: 'user', text: frameMessage(state.frame) },
       ...state.history,
