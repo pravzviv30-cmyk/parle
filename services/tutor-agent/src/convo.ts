@@ -1504,9 +1504,10 @@ export class LuvaniConversation extends voice.Agent {
    * carries a second opinion about who the tutor is by default and a learner
    * who has never picked gets byte-for-byte the prompt they got before.
    *
-   * Every `buildSystemBlocks` call in this file takes it. There are five, they
-   * are far apart, and four of them are on paths a test rarely walks (the scene
-   * build, curation, memory, drills). Miss one and nothing breaks: that path
+   * Every system-block build in this file takes it: four direct
+   * `buildSystemBlocks` calls and the spoken turn, which hands it to brain's
+   * `prepareTurn` (F298). They are far apart, and the four direct ones are on
+   * paths a test rarely walks (the scene build, curation, memory, drills). Miss one and nothing breaks: that path
    * simply introduces the catalogue default while the rest of the session is
    * someone else, which is the mismatch F292 exists to stop and which only
    * shows up as a learner hearing a woman's voice call herself Luc.

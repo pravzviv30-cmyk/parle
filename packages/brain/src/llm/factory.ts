@@ -56,6 +56,8 @@ export function brainChoice(env: Record<string, string | undefined> = process.en
  *          is the product, and routing.ts already keeps realtime turns on the
  *          fast tier. Needs ANTHROPIC_API_KEY.
  * `groq` — the documented $0 fallback for key-less setups.
+ * `openai`: OpenAI's Responses API with strict schemas, a model per call and
+ *          optional per-call overrides. Needs OPENAI_API_KEY.
  * `claude-cli` — a Claude subscription through the command line, so the
  *          coaching can be judged before an API key is bought. Split, because
  *          a CLI call costs about eight seconds: the post-session calls get
@@ -64,10 +66,10 @@ export function brainChoice(env: Record<string, string | undefined> = process.en
  *          turn included, for development only. It buys coaching quality with
  *          eight to twelve seconds of dead air per turn, which is why it is not
  *          the default and why preflight says so out loud. It exists because
- *          Groq's free tier rate-limits a real session, and a fourth value on
+ *          Groq's free tier rate-limits a real session, and a fifth value on
  *          the one enum beats a second flag that could disagree with it.
  *
- * TYPESAFE_API_KEY is not a fifth brain. It puts Jev in front of whichever
+ * TYPESAFE_API_KEY is not a sixth brain. It puts Jev in front of whichever
  * brain the flag chose, for the own-words judge only; see jevJudge.ts. Unset,
  * the brain comes back exactly as it did before the key existed.
  */

@@ -137,7 +137,7 @@ describe('fixed lines and fallbacks stay clean', () => {
     assert.deepEqual(copyViolations(RECOVERY_LINE), []);
   });
 
-  test('every rescue line the copy module ships is reachable from a live path', () => {
+  test('the brain copy module no longer ships a second rescue line', () => {
     // F206. Core owns the rescue line (FEEDBACK.rescued); a brain copy whose
     // only caller was its own test proved nothing about the product.
     assert.equal('RESCUE_LINE' in copyModule, false);

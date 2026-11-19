@@ -3421,7 +3421,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   the constant is dead weight that a copy test keeps looking alive. A constant whose only caller
   is the test that checks it proves nothing about the product. Found by bug-hunter while closing
   F186; it could not tell which without entering brain's territory.
-- verified-by: `every rescue line the copy module ships is reachable from a live path`
+- verified-by: `the brain copy module no longer ships a second rescue line`
 
 ### F207 — The French hate list has no passive twin, so a call to exterminate matches nothing
 - severity: P1
@@ -14158,14 +14158,14 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1053 — A spoken coach line can quote the written form's digits
 - severity: P2
 - status: [x]
-- where: packages/brain/src/engine/conversation.ts:802
+- where: packages/brain/src/engine/conversation.ts:727
 - note: sharpened from the plan's entry. `copyViolations` exempts digits inside quotes, which is right for card text, so `coachLineFits` keeps a line quoting `betterWritten`. The voice is told to say numbers in words (`prompt/system.ts:120`). One fix unit, in `coachLineFits`; `copy.ts` is unchanged.
 - verified-by: `a coach line with a number in it is written in words`
 
 ### F1114 — An Anthropic answer that fails to parse is never retried and loses its usage
 - severity: P2
 - status: [x]
-- where: packages/brain/src/llm/anthropic.ts:256
+- where: packages/brain/src/llm/anthropic.ts:273
 - note: run1-1. The SDK throws `AnthropicError` from inside `messages.parse`, so the loop never sees a null answer. F97's two tests pass on a fake shape the real SDK never returns. P2 because production refuses Anthropic. Related: F1262.
 - verified-by: `an anthropic answer the real SDK cannot parse is retried once and fails as a BrainParseError carrying both attempts' usage`
 
@@ -14179,7 +14179,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1116 — Dead exports, a vacuous assertion and stale counts in brain
 - severity: P2
 - status: [x]
-- where: packages/brain/src/engine/conversation.ts:533
+- where: packages/brain/src/engine/conversation.ts:543
 - note: run1-3, run1-4, run2-4, run2-7, run2-8. Removes `supportViewFor`, `RECOVERY_VARIANTS`, `FIXTURE_FRAMES`, `JevNoulAnswer` and `JevChoiceAnswer`. No test dies. The third test below is the one whose regex is fixed.
 - verified-by: `preserves all four support shapes and each survives the wire`
 - verified-by: `every learner-visible string in the scenario fixtures`
@@ -14193,6 +14193,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: run2-2. The generated opening, the remembered opener and extracted facts are stored and shown or spoken unchanged. Facts already stored are not rewritten.
 - verified-by: `a generated scene opening and a remembered opener reach the learner without an em dash`
 - verified-by: `an extracted fact is stored without an em dash`
+- verified-by: `a generated scene title and beat goals reach the learner without an em dash`
 
 ### F1118 — The curation rejection log writes phrase text to worker stdout
 - severity: P2
@@ -14224,7 +14225,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1121 — In free conversation a reply right after help still counts as unassisted
 - severity: P2
 - status: [x]
-- where: packages/brain/src/engine/conversation.ts:866
+- where: packages/brain/src/engine/conversation.ts:793
 - note: run2-1, the brain half of F1069. The founder answered "Stop after hint or line" on 2026-11-18, so the fix passes `assisted: state.assistanceDepth > 0` to `applyTurn`: a hint or the full line both end unassisted credit for that exchange. Past sessions are not changed.
 - verified-by: `a good reply on an exchange the learner was helped on earns no unassisted credit`
 
@@ -14234,3 +14235,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: packages/brain/src/profile/merge.ts:635
 - note: run2-5, the live half. Replacing `mergeMemoryControl(...)` with `heavy.brain.memory` in `mergeStoredProfiles` fails no test today. Deleting `mergeLearnerProfiles` and its test goes to M5b with the mobile re-point.
 - verified-by: `the newest pause choice survives a busier stale device through the stored-profile merge`
+
+### F1325 — The written form and the English hint skip the dash sanitizer on every turn
+- severity: P2
+- status: [ ]
+- where: packages/brain/src/engine/conversation.ts:682
+- note: Found by the B4 /code-review, 2026-11-19. sanitizeTurn cleans narration and sceneReply fr and en but not frWritten or support.hintEn, so a model em dash in the written French or the English hint reaches the screen. createConversation shares the same field list for the opening.
+- verified-by: `a turn's written form and hint reach the learner without an em dash`
