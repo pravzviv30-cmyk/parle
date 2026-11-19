@@ -85,6 +85,10 @@ test('a refused reservation records minutes_refused when analytics is allowed', 
   assert.deepEqual(await run('exhausted', true), { status: 402, events: [
     { user_id: 'learner-a', name: 'minutes_refused', properties: { plan: 'starter', reason: 'exhausted' } },
   ] });
+  assert.deepEqual(await run('insufficient-for-session', true), { status: 402, events: [
+    { user_id: 'learner-a', name: 'minutes_refused', properties: { plan: 'starter', reason: 'insufficient-for-session' } },
+  ] });
+  assert.deepEqual(await run('subscription-lapsed', true), { status: 402, events: [] }, 'the event allowlist drops a lapsed subscription');
   assert.deepEqual(await run('session-active', true), { status: 409, events: [] }, 'a busy learner is not out of minutes');
   assert.deepEqual(await run('exhausted', false), { status: 402, events: [] }, 'analytics off records nothing');
 });
