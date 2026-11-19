@@ -419,7 +419,13 @@ export function createConversation(
   const repaired = repairOpeningNarration(rawFrame, config.request ?? '');
   // F1117: the scenario builder is a model call, so its opening passes the same sanitizer as a turn.
   const clean = (line: ScenarioFrame['openingLine']) => ({ ...line, fr: sanitizeLearnerText(line.fr), en: sanitizeLearnerText(line.en) });
-  const frame = { ...repaired, openingNarration: clean(repaired.openingNarration), openingLine: clean(repaired.openingLine) };
+  const frame = {
+    ...repaired,
+    titleEn: sanitizeLearnerText(repaired.titleEn),
+    beats: repaired.beats.map((beat) => ({ ...beat, goalEn: sanitizeLearnerText(beat.goalEn) })),
+    openingNarration: clean(repaired.openingNarration),
+    openingLine: clean(repaired.openingLine),
+  };
   const ladder = initialLadder(sceneOpensAt(learner, config.startRung));
   const beatStatus: Record<string, 'pending' | 'done'> = {};
   for (const beat of frame.beats) beatStatus[beat.id] = 'pending';

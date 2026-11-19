@@ -854,6 +854,19 @@ describe('the scene the learner is handed — G2', () => {
     assert.equal(remembered?.fr, 'Alors, le métro ?');
     assert.equal(remembered?.en, 'So, the metro?');
   });
+
+  test('a generated scene title and beat goals reach the learner without an em dash', () => {
+    // F1117. The opening publishes the beat goal and the recap shows it.
+    const dashed = {
+      ...CAFE_FRAME,
+      titleEn: 'At the corner caf\u00e9 \u2014 a quiet morning',
+      beats: CAFE_FRAME.beats.map((b) => ({ ...b, goalEn: `${b.goalEn} \u2014 politely` })),
+    };
+    const { frame } = createConversation(dashed, learner(), { strictness: 'flow', maxTurns: 12 }, 1_000);
+    assert.equal(frame.titleEn, 'At the corner caf\u00e9, a quiet morning');
+    for (const beat of frame.beats) assert.doesNotMatch(beat.goalEn, /\u2014/, `an em dash reached the learner: "${beat.goalEn}"`);
+    assert.equal(frame.beats[0]!.goalEn, `${CAFE_FRAME.beats[0]!.goalEn}, politely`);
+  });
 });
 
 describe('the tutor does not correct on every single turn', () => {
