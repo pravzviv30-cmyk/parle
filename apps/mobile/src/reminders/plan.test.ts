@@ -28,6 +28,7 @@ import {
   noteOpened,
   freezeProtectionOf,
   freeRefillOf,
+  heardRefill,
   planReminders,
   plannedLog,
   plannedSlots,
@@ -41,7 +42,7 @@ import {
   type ReminderLog,
   type ReminderSlot,
 } from './plan.ts';
-import { MILESTONE_EVE_LINE, PAUSE_LINE, REMINDER_COPY, REMINDER_LINES, ROUTINE_LINES, STREAK_LINES, STREAK_SAVE_LINES, reminderMessage } from './reminder.ts';
+import { FREE_TALK_LINE, MILESTONE_EVE_LINE, PAUSE_LINE, WEEKLY_LINE, REMINDER_COPY, REMINDER_LINES, ROUTINE_LINES, STREAK_LINES, STREAK_SAVE_LINES, reminderMessage } from './reminder.ts';
 
 /** A calendar with no time zone, so every day is 24 hours and the test reads the same anywhere. */
 const UTC: Calendar = {
@@ -228,22 +229,26 @@ describe('the reminder planner — F771', () => {
     }
 
     // Each line opens what it promises: a line about today's phrase opens
-    // today's phrase, the pause note opens Settings, the free-talk line opens
-    // Speak, and the rest open Home, which a slot with a planned phrase turns
-    // into that phrase (T1.3, below).
+    // today's phrase, the pause note opens Settings, a line about talking
+    // opens Speak, the week opens the Streak screen (founder, 2026-11-19), and
+    // the rest open Home, which a slot with a planned phrase turns into that
+    // phrase (T1.3, below).
+    assert.ok(REMINDER_LINES.includes(FREE_TALK_LINE) && REMINDER_LINES.includes(WEEKLY_LINE), 'the free-talk or weekly line is outside the scans');
     for (const line of REMINDER_LINES) {
       const words = `${line.title({ n: 3, lifetime: 3, tutor: 'Marie' })} ${line.body({ n: 3, lifetime: 3, tutor: 'Marie' })}`;
-      const expected = /phrase/i.test(words) ? 'daily-phrase' : line.id === 'pause' ? 'settings' : line.id === 'free-talk' ? 'speak' : 'home';
+      const expected = /phrase/i.test(words) ? 'daily-phrase' : line.id === 'pause' ? 'settings' : /\btalk\b/i.test(words) ? 'speak' : /this week/i.test(words) ? 'streak' : 'home';
       assert.equal(line.open, expected, `"${words}" opens ${line.open}`);
     }
     assert.deepEqual(routeForReminder('daily-phrase', 'phrase-123'), { name: 'DailyPractice', params: { id: 'phrase-123' } });
     assert.deepEqual(routeForReminder('daily-phrase', null), { name: 'Tabs', params: { screen: 'Home' } }, 'a phrase line opened a phrase that is not today\'s');
     assert.deepEqual(routeForReminder('settings', 'phrase-123'), { name: 'Settings' });
     assert.deepEqual(routeForReminder('home', 'phrase-123'), { name: 'Tabs', params: { screen: 'Home' } });
+    assert.deepEqual(routeForReminder('streak', 'phrase-123'), { name: 'Streak' });
+    assert.equal(reminderOpenOf('streak'), 'streak');
     assert.equal(reminderOpenOf('somewhere'), 'home');
     assert.equal(reminderOpenOf(undefined), 'home');
     for (const slot of planReminders(input({ practiceDays: [day(-2), day(-1)] }))) {
-      assert.ok(['home', 'daily-phrase', 'settings', 'speak'].includes(slot.open));
+      assert.ok(['home', 'daily-phrase', 'settings', 'speak', 'streak'].includes(slot.open));
     }
 
     // The slot carries where it opens; a tap hands that on with the slot's
@@ -542,7 +547,8 @@ describe('the freezes this phone saw (T1.2 review)', () => {
 
 describe('a reminder worth reading, slice A (T1.3, D28)', () => {
   /** A phrase per local day, so a phrase picked for the wrong day shows. */
-  const phrases = (english: string) => (at: number) => ({ id: `phrase-${UTC.dayOf(at)}`, en: english, fr: 'Je voudrais un café' });
+  /** Ids in the real shape, from a café scene, so the everyday allow-list lets them through. */
+  const phrases = (english: string, situation = 'situation:cafe-first-coffee') => (at: number) => ({ id: `phrase:${situation}:${UTC.dayOf(at)}`, en: english, fr: 'Je voudrais un café' });
   const named = (slots: readonly ReminderSlot[]) => slots.filter((slot) => slot.line === 'phrase-named');
 
   test('the named phrase line says the English of the day\'s phrase, never the French, and carries its id', () => {
@@ -550,19 +556,20 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
     const said = named(slots);
     assert.ok(said.length > 0, 'the rotation never named the phrase');
     for (const slot of said) {
-      assert.equal(slot.title, "How do you say “I'd like a coffee”?");
-      assert.equal(slot.body, "Today's phrase, with Céline.");
+      assert.equal(slot.title, 'How do you say this?');
+      assert.equal(slot.body, "“I'd like a coffee” Today's phrase, with Céline.");
       assert.equal(slot.open, 'daily-phrase');
-      assert.equal(slot.phraseId, `phrase-${slot.day}`);
+      assert.equal(slot.phraseId, `phrase:situation:cafe-first-coffee:${slot.day}`);
       assert.doesNotMatch(`${slot.title} ${slot.body}`, /café|voudrais/);
     }
     const question = named(planReminders(input({ phraseFor: phrases('Where is the station?') })));
-    assert.equal(question[0]?.title, 'How do you say “Where is the station?”', 'a question was given a second question mark');
+    assert.equal(question[0]?.body, "“Where is the station?” Today's phrase, with Céline.", 'a question lost its question mark');
   });
 
   test('a phrase whose line would fail the scans is never named: the generic phrase line says it instead', () => {
-    for (const english of ['Hurry up!', 'I missed the train', 'Coffee — black']) {
-      const slots = planReminders(input({ phraseFor: phrases(english) }));
+    for (const [english, situation] of [['Hurry up!'], ['I missed the train'], ['Coffee — black'], [''], ['   '], ['Two coffees, table 4'], ['Hello.', 'situation:pharmacy-headache'], ['Hello.', 'situation:admin-which-counter'], ['Hello.', 'situation:not-a-scene'], ['Hello.', undefined]] as const) {
+      const pick = situation === undefined ? (at: number) => ({ id: `phrase-${UTC.dayOf(at)}`, en: english }) : phrases(english, situation);
+      const slots = planReminders(input({ phraseFor: pick }));
       assert.deepEqual(named(slots), [], `"${english}" was named`);
       const plain = planReminders(input({ phraseFor: phrases('Hello.') }));
       const day = named(plain)[0]!.day;
@@ -571,8 +578,9 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
       const before = slots.find((slot) => slot.day === addDays(day, -1))?.line;
       assert.ok(said === 'routine-phrase' || before === 'routine-phrase', `"${english}" fell back to ${said}`);
     }
-    // No phrase to hand (a guest): never named.
-    assert.deepEqual(named(planReminders(input({ guest: true }))), []);
+    // A guest, even with a phrase to hand: never named.
+    assert.ok(named(planReminders(input({ phraseFor: phrases('Hello.') }))).length > 0, 'the guest check below proves nothing');
+    assert.deepEqual(named(planReminders(input({ guest: true, phraseFor: phrases('Hello.') }))), []);
   });
 
   test('the tap opens the phrase the line named, even after midnight', () => {
@@ -592,12 +600,12 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
     for (const history of histories) {
       for (const slot of planReminders(input({ ...history, phraseFor: phrases('Hello.') }))) {
         assert.notEqual(slot.open, 'home', `${slot.line} opens Home`);
-        assert.equal(slot.phraseId, `phrase-${slot.day}`);
+        assert.equal(slot.phraseId, `phrase:situation:cafe-first-coffee:${slot.day}`);
         if (slot.pause) assert.equal(slot.open, 'settings');
       }
     }
-    const guest = planReminders(input({ guest: true }));
-    assert.ok(guest.some((slot) => slot.open === 'home'), 'a guest line changed where it opens');
+    const guest = planReminders(input({ guest: true, phraseFor: phrases('Hello.') }));
+    assert.ok(guest.some((slot) => slot.open === 'daily-phrase'), 'a guest line changed where it opens');
     assert.ok(guest.every((slot) => slot.phraseId === undefined));
   });
 
@@ -616,11 +624,14 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
     assert.ok(!planReminders(input({ freeRefill: at(TODAY, 8) })).some((slot) => slot.line === 'free-talk'), 'a refill already passed said "again" every day');
     assert.ok(!planReminders(input({ freeRefill: refill, guest: true })).some((slot) => slot.line === 'free-talk'));
     assert.ok(!planReminders(input()).some((slot) => slot.line === 'free-talk'));
-    // Heard from billing: the free plan with a known refill, and nothing else.
-    assert.equal(freeRefillOf({ plan: 'trial', periodEnd: '2026-10-08T12:00:00.000Z' }), Date.UTC(2026, 9, 8, 12));
-    assert.equal(freeRefillOf({ plan: 'trial', periodEnd: null }), undefined);
-    assert.equal(freeRefillOf({ plan: 'starter', periodEnd: '2026-10-08T12:00:00.000Z' }), undefined);
-    assert.equal(freeRefillOf({ plan: 'regular', periodEnd: '2026-10-08T12:00:00.000Z' }), undefined);
+    // Heard from billing: the free plan, run out, with a known refill, and nothing else.
+    const out = { canStart: false, secondsRemaining: 0 };
+    assert.equal(freeRefillOf({ plan: 'trial', periodEnd: '2026-10-08T12:00:00.000Z', ...out }), Date.UTC(2026, 9, 8, 12));
+    assert.equal(freeRefillOf({ plan: 'trial', periodEnd: '2026-10-08T12:00:00.000Z', canStart: false, secondsRemaining: 40 }), Date.UTC(2026, 9, 8, 12), 'too little left to start is run out');
+    assert.equal(freeRefillOf({ plan: 'trial', periodEnd: '2026-10-08T12:00:00.000Z', canStart: true, secondsRemaining: 600 }), undefined, 'a learner who never ran out heard "again"');
+    assert.equal(freeRefillOf({ plan: 'trial', periodEnd: null, ...out }), undefined);
+    assert.equal(freeRefillOf({ plan: 'starter', periodEnd: '2026-10-08T12:00:00.000Z', ...out }), undefined);
+    assert.equal(freeRefillOf({ plan: 'regular', periodEnd: '2026-10-08T12:00:00.000Z', ...out }), undefined);
     assert.equal(freeRefillOf(null), undefined);
   });
 
@@ -634,17 +645,65 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
     assert.equal(weekly[0]?.day, day(4));
     assert.equal(weekly[0]?.title, 'This week with Céline');
     assert.equal(weekly[0]?.body, '2 days of French, 3 practices.');
+    assert.equal(weekly[0]?.open, 'streak');
+    assert.deepEqual(routeForReminder(reminderOpenOf(weekly[0]?.open), reminderPhraseOf(weekly[0]?.phraseId)), { name: 'Streak' }, 'the week does not open the Streak screen');
+    // The week's first day, Monday day(-2), is counted.
+    const monday = planReminders(input({ now, practiceDays: [day(-2)], finishes: [at(day(-2), 9)] })).find((slot) => slot.line === 'weekly');
+    assert.equal(monday?.body, '1 day of French, 1 practice.', 'the Monday of the week was not counted');
+    // An empty week: no weekly line on its Sunday.
+    assert.ok(!planReminders(input({ now, practiceDays: [day(-3)], finishes: [at(day(-3), 9)] })).some((slot) => slot.line === 'weekly'), 'an empty week got a weekly line');
     const one = planReminders(input({ now, practiceDays: [day(2)], finishes: [at(day(2), 9)] })).find((slot) => slot.line === 'weekly');
     assert.equal(one?.body, '1 day of French, 1 practice.');
     // Streak off: no weekly line, and no digits.
     const quiet = planReminders(input({ ...week, choice: { enabled: true, time: 'evening', mentionStreak: false } }));
     assert.ok(!quiet.some((slot) => slot.line === 'weekly'));
+    for (const slot of [...quiet, ...planReminders(input({ ...week, phraseFor: phrases('Hello.'), choice: { enabled: true, time: 'evening', mentionStreak: false } }))]) {
+      assert.doesNotMatch(`${slot.title} ${slot.body}`, /\d/, `a number on the lock screen with streak mentions off: ${slot.title} / ${slot.body}`);
+    }
     // A week whose reminder days exclude Sunday has none.
     assert.ok(!planReminders(input({ ...week, choice: { enabled: true, time: 'evening', days: [2, 3, 4, 5, 6, 7] } })).some((slot) => slot.line === 'weekly'));
     // Only ever on a Sunday.
     for (const slot of planReminders(input({ practiceDays: [day(-1)] }))) {
       if (slot.line === 'weekly') assert.equal(new Date(`${slot.day}T00:00:00Z`).getUTCDay(), 0);
     }
+  });
+
+  test('"A moment of French" opens the conversation, like the free-to-talk line (founder, 2026-11-19)', () => {
+    const moment = ROUTINE_LINES.find((line) => line.id === 'routine-moment')!;
+    assert.equal(moment.open, 'speak');
+    assert.deepEqual(routeForReminder(moment.open, null), { name: 'Tabs', params: { screen: 'Tutor' } });
+    // A slot with a planned phrase still opens Speak for it, not the phrase.
+    const slot = planReminders(input({ phraseFor: phrases('Hello.') })).find((next) => next.line === 'routine-moment');
+    assert.equal(slot?.open, 'speak');
+  });
+
+  test('the refill as billing answered it: kept for its account, kept through a failed fetch', () => {
+    const out = { plan: 'trial' as const, periodEnd: '2026-10-08T12:00:00.000Z', canStart: false, secondsRemaining: 0 };
+    const known = heardRefill(null, 3, out);
+    assert.deepEqual(known, { owner: 3, at: Date.UTC(2026, 9, 8, 12) });
+    // A null answer (a failure or the timeout) keeps what was known.
+    assert.equal(heardRefill(known, 3, null), known);
+    assert.equal(heardRefill(null, 3, null), null);
+    // A real answer replaces it, a paid plan included.
+    assert.deepEqual(heardRefill(known, 3, { ...out, plan: 'starter' }), { owner: 3, at: undefined });
+    assert.deepEqual(heardRefill(known, 4, out), { owner: 4, at: Date.UTC(2026, 9, 8, 12) });
+  });
+
+  test('the planner hears billing on mount, on a billing change, on the foreground and after a settle, one fetch each', () => {
+    const planner = code('./ReminderPlanner.tsx');
+    // Only the account it was read for plans with it, and a sign-out forgets it.
+    assert.match(planner, /const refill = freeRefill !== null && freeRefill\.owner === owner \? freeRefill\.at : undefined;/, 'another account\'s refill is planned for');
+    assert.match(planner, /export function stopReminders\(\): Promise<ScheduleOutcome> \{\s*if \(!REMINDERS_AVAILABLE\) return Promise\.resolve\('unavailable'\);\s*freeRefill = null;/, 'a sign-out keeps the refill');
+    // Heard, then planned; a null answer keeps the last one.
+    assert.match(planner, /if \(owner !== scopeGeneration\(\)\) return;\s*freeRefill = heardRefill\(freeRefill, owner, status\);/);
+    assert.match(planner, /void replanReminders\(\{ tutor: tutorRef\.current \}\);\s*\}\);\s*\};/, 'the refetch does not re-plan once billing answered');
+    // A settle and a return to the foreground refetch, and re-plan through the fetch, not beside it.
+    assert.match(planner, /const offSettled = onSettled\(hear\);/, 'a settled sitting does not refetch billing');
+    assert.match(planner, /if \(state === 'active'\) hear\(\);\s*else if \(replansOn\(state\)\) void replanReminders\(\{ tutor: tutorRef\.current \}\);/, 'the foreground does not refetch billing, or plans twice');
+    assert.equal((planner.match(/fetchBillingStatus\(/g) ?? []).length, 1, 'billing is fetched in more than one place');
+    // The billing listener leaves with the planner.
+    assert.match(planner, /const offBilling = onBillingChange\(/);
+    assert.match(planner, /return \(\) => \{\s*offSettled\(\);\s*appState\.remove\(\);\s*offBilling\(\);\s*\};/, 'the billing listener outlives the planner');
   });
 
   test('precedence: pause, milestone eve, save, free talk, weekly, then the rotation', () => {

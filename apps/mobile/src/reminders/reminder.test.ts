@@ -31,7 +31,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { DAILY_PHRASES } from '@luvani/core';
+import { DAILY_PHRASES, DAILY_SCENARIOS } from '@luvani/core';
 import { TUTOR_NAME } from '../tutor/tutorName.ts';
 
 import { STREAK_BAN_EXEMPTIONS, guiltIn as guiltOf, streakGuiltIn as streakGuiltOf } from '../copy/guilt.ts';
@@ -44,6 +44,7 @@ import {
   REMINDER_LINES,
   STREAK_SAVE_LINES,
   NAMED_PHRASE_LINE,
+  NAMEABLE_SITUATIONS,
   namedPhraseFits,
   REMINDER_OFF,
   REMINDER_PAUSED,
@@ -468,27 +469,46 @@ describe('the save lines (T1.2, D25)', () => {
   });
 });
 
+const reminderMessageOf = (english: string) => ({ title: NAMED_PHRASE_LINE.title({ n: 0, lifetime: 0, tutor: 'Léa', english }), body: NAMED_PHRASE_LINE.body({ n: 0, lifetime: 0, tutor: 'Léa', english }) });
+
 describe('the named phrase line (T1.3, D28)', () => {
-  test('the scans read the named line for every phrase that can be picked, and a phrase that fails them is never named', () => {
+  test('the scans read the named line for every phrase that can be picked, and a phrase that fails them, or sits outside the everyday situations, is never named', () => {
+    // The allow-list, as the founder chose it on 2026-11-19 (café and food, shopping, directions and travel, greetings).
+    assert.deepEqual([...NAMEABLE_SITUATIONS], ['cafe-and-food', 'shops-and-markets', 'transport']);
     assert.ok(DAILY_PHRASES.length > 20, 'the phrase pool is too short to be the pool');
+    const themeOf = new Map(DAILY_SCENARIOS.map((scene) => [scene.id, scene.theme]));
     let fits = 0;
     for (const phrase of DAILY_PHRASES) {
       const facts = { n: 1, lifetime: 1, tutor: TUTOR_NAME, english: phrase.en };
       const title = NAMED_PHRASE_LINE.title(facts);
       const body = NAMED_PHRASE_LINE.body(facts);
-      if (namedPhraseFits(phrase.en, TUTOR_NAME)) {
+      const everyday = NAMEABLE_SITUATIONS.includes(themeOf.get(phrase.scenarioId)!);
+      if (namedPhraseFits(phrase, TUTOR_NAME)) {
         fits += 1;
+        assert.ok(everyday, `"${phrase.en}" is named from ${themeOf.get(phrase.scenarioId)}, outside the everyday situations`);
         assert.ok(REMINDER_COPY.includes(title), `the scans never read "${title}"`);
-        assert.ok(REMINDER_COPY.includes(body));
-        assert.doesNotMatch(title, /\.”|\?”\?/, `"${title}" keeps a full stop or doubles the question mark`);
-        assert.ok(!title.includes(phrase.fr) || phrase.fr === phrase.en, `"${title}" shows the French`);
+        assert.ok(REMINDER_COPY.includes(body), `the scans never read "${body}"`);
+        assert.doesNotMatch(body, /\.”|\?”\?/, `"${body}" keeps a full stop or doubles the question mark`);
+        assert.ok(!body.includes(phrase.fr) || phrase.fr === phrase.en, `"${body}" shows the French`);
+        assert.doesNotMatch(body, /\d/, `"${body}" puts a number on the lock screen`);
       } else {
-        assert.ok(guiltOf(`${title} ${body}`) !== undefined || streakGuiltOf(`${title} ${body}`) !== undefined || /[—–·!]|in a row|yesterday/i.test(`${title} ${body}`), `"${phrase.en}" was refused for no reason`);
+        assert.ok(!everyday || guiltOf(`${title} ${body}`) !== undefined || streakGuiltOf(`${title} ${body}`) !== undefined || /[—–·!\d]|in a row|yesterday/i.test(`${title} ${body}`), `"${phrase.en}" was refused for no reason`);
       }
     }
     assert.ok(fits > 0, 'no phrase can be named');
-    assert.equal(namedPhraseFits('Hurry up!', 'Léa'), false);
-    assert.equal(namedPhraseFits('I missed the train', 'Léa'), false);
-    assert.equal(namedPhraseFits("I'd like a coffee.", 'Léa'), true);
+    const cafe = { id: 'phrase:situation:cafe-first-coffee:0' };
+    assert.equal(namedPhraseFits({ ...cafe, en: 'Hurry up!' }, 'Léa'), false);
+    assert.equal(namedPhraseFits({ ...cafe, en: 'I missed the train' }, 'Léa'), false);
+    assert.equal(namedPhraseFits({ ...cafe, en: "I'd like a coffee." }, 'Léa'), true);
+    // An empty English, or one with a digit, is never named.
+    assert.equal(namedPhraseFits({ ...cafe, en: '' }, 'Léa'), false);
+    assert.equal(namedPhraseFits({ ...cafe, en: '  ' }, 'Léa'), false);
+    assert.equal(namedPhraseFits({ ...cafe, en: 'Table for 2, please' }, 'Léa'), false);
+    // Outside the everyday situations, or an id this build cannot place: never named.
+    assert.equal(namedPhraseFits({ id: 'phrase:situation:pharmacy-headache:0', en: 'Hello.' }, 'Léa'), false);
+    assert.equal(namedPhraseFits({ id: 'phrase-2026-10-07', en: 'Hello.' }, 'Léa'), false);
+    // The new copy (founder, 2026-11-19): a fixed title, the English in the body.
+    assert.deepEqual(reminderMessageOf("I'd like a coffee."), { title: 'How do you say this?', body: "“I'd like a coffee” Today's phrase, with Léa." });
+    assert.deepEqual(reminderMessageOf('Where is it?'), { title: 'How do you say this?', body: "“Where is it?” Today's phrase, with Léa." });
   });
 });

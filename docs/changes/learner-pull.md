@@ -231,6 +231,14 @@ slice B, which waits on a later decision about that rule. Slice A:
 - **Taps open a practice**: a slot with a planned phrase that would have opened Home opens that phrase. The pause note
   keeps Settings; guest slots are unchanged (they carry no phrase).
 - **Precedence**: pause, milestone eve, save, free talk, weekly, then the rotation. The one-day avoid rule stays.
+- **Second round (founder, 2026-11-19, in chat).** The named line is now title "How do you say this?", body
+  "“{english}” Today's phrase, with {tutor}." (English only; a trailing "." dropped, a "?" or other final mark kept). A
+  phrase is named only from the everyday situations in `reminder.ts` `NAMEABLE_SITUATIONS` (scenario themes
+  `cafe-and-food`, `shops-and-markets`, `transport`; `friends-and-small-talk` is left out because it holds personal lines such as "I feel awful, but I really cannot come tonight."; 352 of the 1,000 phrases, 164 of the 200
+  Home can pick), and never with a digit or an empty English; every other phrase says the generic phrase line. The
+  weekly line opens the Streak screen; "A moment of French" opens Speak. Free to talk goes only to a learner who ran out
+  (`canStart` false or no seconds left); billing is refetched on the foreground and after a settled sitting (one fetch
+  per event, then the re-plan), and a failed fetch keeps the last known refill.
 
 ### T1.4: Your talk days
 

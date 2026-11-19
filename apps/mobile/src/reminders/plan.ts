@@ -214,10 +214,22 @@ export interface PlanInput {
  * a paid plan, an unknown plan, or a refill not yet known. Held in memory by
  * the planner only; a refill used on another device may leave it stale (D28).
  */
-export function freeRefillOf(status: { plan: string; periodEnd: string | null } | null): number | undefined {
-  if (status === null || status.plan !== 'trial' || status.periodEnd === null) return undefined;
+export function freeRefillOf(status: { plan: string; periodEnd: string | null; canStart: boolean; secondsRemaining: number } | null): number | undefined {
+  // Only for a learner who has run out: one who can still start never hears "again".
+  if (status === null || status.plan !== 'trial' || status.periodEnd === null || (status.canStart && status.secondsRemaining > 0)) return undefined;
   const at = new Date(status.periodEnd).getTime();
   return Number.isFinite(at) ? at : undefined;
+}
+
+/** The refill the planner holds after billing answered for `owner`: a null answer (a failure or a timeout) keeps what was known. */
+/** The refill as last heard, for the account (`scopeGeneration`) it was read for. */
+export interface HeldRefill {
+  owner: number;
+  at: number | undefined;
+}
+
+export function heardRefill(held: HeldRefill | null, owner: number, status: Parameters<typeof freeRefillOf>[0]): HeldRefill | null {
+  return status === null ? held : { owner, at: freeRefillOf(status) };
 }
 
 /**
@@ -519,7 +531,7 @@ export function planReminders(input: PlanInput): ReminderSlot[] {
     const week = { days: practiceDays.filter((d) => d >= from && d <= day).length, practices: input.finishes.filter((f) => calendar.dayOf(f) >= from && calendar.dayOf(f) <= day).length };
     const weekly = mentionStreak && weekdayIndex(day) === 6 && week.days >= 1;
     const special = freeTalk ? FREE_TALK_LINE : weekly ? WEEKLY_LINE : null;
-    const line = pause ? pauseLine : lineFor(day, n, lifetime, mentionStreak, avoid, cliff, special, phrase !== undefined && namedPhraseFits(phrase.en, input.tutor));
+    const line = pause ? pauseLine : lineFor(day, n, lifetime, mentionStreak, avoid, cliff, special, phrase !== undefined && namedPhraseFits(phrase, input.tutor));
     previous = { day, line: line.id };
     const message = reminderMessage(line, { n, lifetime, tutor: input.tutor, ...(phrase !== undefined ? { english: phrase.en } : {}), week });
     // A slot with a planned phrase opens a practice, never Home.

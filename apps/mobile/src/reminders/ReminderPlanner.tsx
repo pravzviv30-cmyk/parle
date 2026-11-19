@@ -58,12 +58,13 @@ import {
   noteAnswered,
   noteOpened,
   freezeProtectionOf,
-  freeRefillOf,
+  heardRefill,
   planReminders,
   plannedLog,
   replanStep,
   slotDay,
   smartTime,
+  type HeldRefill,
   type ReminderLog,
   type ReminderSlot,
 } from './plan.ts';
@@ -116,7 +117,7 @@ let chain: Promise<unknown> = Promise.resolve();
  * read for (T1.3). In memory only, never stored; heard the way the trial
  * reminder hears billing (`useTrialReminderSync`).
  */
-let freeRefill: { owner: number; at: number | undefined } | null = null;
+let freeRefill: HeldRefill | null = null;
 
 /** Run planner work alone, in the order it was asked for. */
 function alone<T>(work: () => Promise<T>): Promise<T> {
@@ -357,23 +358,27 @@ export function ReminderPlanner(): null {
     void replanReminders({ tutor });
   }, [tutor]);
   useEffect(() => {
-    const offSettled = onSettled(() => {
-      void replanReminders({ tutor: tutorRef.current });
-    });
-    const appState = AppState.addEventListener('change', (state) => {
-      if (replansOn(state)) void replanReminders({ tutor: tutorRef.current });
-    });
-    // The free plan's refill, heard from billing and on every billing change, then planned for (T1.3).
+    // The free plan's refill, heard from billing (one fetch per event) and then
+    // planned for (T1.3): on mount, on a billing change, on the foreground and
+    // after a settled sitting, since a free conversation fires no billing change.
     const userId = activeUserId();
     const owner = scopeGeneration();
     const hear = (): void => {
-      if (userId === null) return;
+      if (userId === null) {
+        void replanReminders({ tutor: tutorRef.current });
+        return;
+      }
       void fetchBillingStatus(userId).then((status) => {
         if (owner !== scopeGeneration()) return;
-        freeRefill = { owner, at: freeRefillOf(status) };
+        freeRefill = heardRefill(freeRefill, owner, status);
         void replanReminders({ tutor: tutorRef.current });
       });
     };
+    const offSettled = onSettled(hear);
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') hear();
+      else if (replansOn(state)) void replanReminders({ tutor: tutorRef.current });
+    });
     hear();
     const offBilling = onBillingChange((change) => {
       if (change.userId === userId) hear();
