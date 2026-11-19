@@ -125,3 +125,41 @@ test('the env-built OpenAI client sends drills to OPENAI_DRILLS_MODEL', async (t
   await client.drills({ kind: 'drills', system: buildSystemBlocks(), request: 'Write drills.' }).catch(() => undefined);
   assert.equal(models[0], 'drills-x');
 });
+
+test('brainClientFromEnv reads BRAIN_EFFORT and GROQ_MODEL from the env it is given, not the process', async (t) => {
+  const saved = { BRAIN_EFFORT: process.env.BRAIN_EFFORT, GROQ_MODEL: process.env.GROQ_MODEL };
+  t.after(() => {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  });
+  // The process says one thing; the env handed to the factory says another.
+  process.env.BRAIN_EFFORT = 'high';
+  process.env.GROQ_MODEL = 'process-groq';
+  const bodies: Record<string, unknown>[] = [];
+  const capture = (async (_url: unknown, init: { body: string }) => {
+    bodies.push(JSON.parse(init.body));
+    return new Response('{}', { status: 400 });
+  }) as unknown as typeof fetch;
+  const system = buildSystemBlocks();
+  const sent = async (env: Record<string, string | undefined>, call: 'turn' | 'frame') => {
+    bodies.length = 0;
+    const client = brainClientFromEnv(env, capture);
+    await (call === 'turn'
+      ? client.turn({ kind: 'turn', system, messages: [{ role: 'user', text: 'Bonjour !' }] })
+      : client.frame({ kind: 'frame', system, request: 'un café' })).catch(() => undefined);
+    return bodies[0]!;
+  };
+
+  // No effort in the env: Luna's live default of none survives the process's high.
+  const openaiDefault = await sent({ TUTOR_LLM: 'openai', OPENAI_API_KEY: 'test' }, 'frame');
+  assert.deepEqual(openaiDefault.reasoning, { effort: 'none' });
+  const openaiSet = await sent({ TUTOR_LLM: 'openai', OPENAI_API_KEY: 'test', BRAIN_EFFORT: 'medium' }, 'frame');
+  assert.deepEqual(openaiSet.reasoning, { effort: 'medium' });
+
+  const anthropic = await sent({ ANTHROPIC_API_KEY: 'test', BRAIN_EFFORT: 'medium' }, 'turn');
+  assert.equal((anthropic.output_config as { effort?: string }).effort, 'medium');
+
+  const groq = await sent({ TUTOR_LLM: 'groq', GROQ_API_KEY: 'test', GROQ_MODEL: 'env-groq' }, 'turn');
+  assert.equal(groq.model, 'env-groq');
+});

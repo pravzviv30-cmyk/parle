@@ -14094,7 +14094,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1115 — brainClientFromEnv reads effort and model from the process, not the env it is given
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/llm/factory.ts:73
 - note: run1-2. Dev scripts only; production passes `process.env`. The Luna default of `none` must survive when no effort is set.
 - verified-by: `brainClientFromEnv reads BRAIN_EFFORT and GROQ_MODEL from the env it is given, not the process`
