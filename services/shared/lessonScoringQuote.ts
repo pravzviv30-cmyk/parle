@@ -3,9 +3,7 @@
  * The price is the cost model (DEFAULT_COST_MODEL.assessmentPerUtterance), not a verified vendor quote. */
 import {DEFAULT_COST_MODEL} from '@luvani/core/metering';
 import type {PaidComponent} from './paidAdmission.ts';
-import {paidConfigurationSha256,SCORING_MAX_WAV_BYTES} from './paidExecution.ts';
-/** Longest audio one call may carry, from the per-call WAV ceiling (32 bytes/ms after the 44-byte header). */
-export const LESSON_SCORING_MAX_CALL_MILLIS=(SCORING_MAX_WAV_BYTES-44)/32;
+import {paidConfigurationSha256} from './paidExecution.ts';
 /** Four scores per reference turn of the 12-turn cafe lesson; scoring fires only when the learner says the reference line. */
 export const LESSON_SCORING_EFFECTS=48;
 /** The whole 900 s lesson, which is also the supported audio maximum. */

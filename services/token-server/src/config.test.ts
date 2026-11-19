@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import { productionConfigurationProblems } from './config.ts';
 
@@ -142,5 +143,62 @@ describe('production starts closed', () => {
       }),
       [],
     );
+  });
+
+  test('a weekly product id without the five billing keys is a production configuration problem', () => {
+    const base = {
+      NODE_ENV: 'production',
+      SUPABASE_URL: 'https://project.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role',
+      LIVEKIT_URL: 'wss://luvani.livekit.cloud',
+      LUVANI_AGENT_SECRET: 'synthetic-agent-secret-at-least-32-characters',
+      LUVANI_ALLOWED_ORIGINS: 'https://app.luvani.example',
+      UPSTASH_REDIS_REST_URL: 'https://redis.example',
+      UPSTASH_REDIS_REST_TOKEN: 'redis-token',
+      LUVANI_RATE_LIMIT_SALT: 'a-unique-deployment-salt-at-least-32-chars',
+    };
+    assert.deepEqual(
+      productionConfigurationProblems({ ...base, REVENUECAT_STARTER_WEEKLY_PRODUCT_ID: 'starter-weekly' }),
+      ['complete RevenueCat billing configuration'],
+    );
+    assert.deepEqual(
+      productionConfigurationProblems({
+        ...base,
+        REVENUECAT_SECRET_API_KEY: 'api',
+        LUVANI_REVENUECAT_WEBHOOK_SECRET: 'synthetic-webhook-secret-at-least-32-chars',
+        REVENUECAT_ENTITLEMENT_ID: 'luvani',
+        REVENUECAT_STARTER_PRODUCT_ID: 'starter',
+        REVENUECAT_REGULAR_PRODUCT_ID: 'regular',
+        REVENUECAT_STARTER_WEEKLY_PRODUCT_ID: 'starter-weekly',
+      }),
+      [],
+    );
+  });
+
+  test('the environment contract names every billing product id the server reads', () => {
+    const source = readFileSync(new URL('./billing/revenuecat.ts', import.meta.url), 'utf8');
+    const read = [...new Set(source.match(/REVENUECAT_[A-Z_]+_(ID|KEY)/g))].sort();
+    assert.deepEqual(read, [
+      'REVENUECAT_ENTITLEMENT_ID',
+      'REVENUECAT_REGULAR_PRODUCT_ID',
+      'REVENUECAT_REGULAR_YEARLY_PRODUCT_ID',
+      'REVENUECAT_SECRET_API_KEY',
+      'REVENUECAT_STARTER_PRODUCT_ID',
+      'REVENUECAT_STARTER_WEEKLY_PRODUCT_ID',
+      'REVENUECAT_STARTER_YEARLY_PRODUCT_ID',
+    ]);
+    for (const code of ['REVENUECAT_UNKNOWN_PRODUCT', 'REVENUECAT_GRACE_PERIOD', 'REVENUECAT_ENTITLEMENT_MISSING']) {
+      assert.ok(source.includes(code), code);
+    }
+    const contract = JSON.parse(readFileSync(new URL('../../../deployment/environment-contract.json', import.meta.url), 'utf8')) as {
+      roles: Record<string, Record<string, string[]>>;
+    };
+    const billingRoles = Object.entries(contract.roles)
+      .map(([role, lists]) => [role, Object.values(lists).flat()] as const)
+      .filter(([, names]) => names.includes('REVENUECAT_STARTER_YEARLY_PRODUCT_ID'));
+    assert.deepEqual(billingRoles.map(([role]) => role), ['api', 'maintenance']);
+    for (const [role, names] of billingRoles) {
+      for (const name of read) assert.ok(names.includes(name), `${role} lacks ${name}`);
+    }
   });
 });

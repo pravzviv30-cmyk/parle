@@ -1,6 +1,7 @@
 import type { GuestLiveRecord } from './guestLive.ts';
 import type { GuestScene, GuestSceneTurnId } from '@luvani/core';
 import type { GuestMetricValue } from './guestMetrics.ts';
+import { upstashCommand } from './upstash.ts';
 /** Guest capabilities only open the bounded starter, never ordinary authenticated routes. Live guests retain a bounded acknowledged learning summary for at most 30 days, and a scene keeps only its acknowledged turn ids; no raw audio. Once claimed, a record shrinks to `claimedRecord` with at most 48 hours to live. */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import {
@@ -116,23 +117,11 @@ export class RedisGuestStore implements GuestStore {
     this.token = token;
     this.request = request;
   }
+  // A row holds one agent body of at most 160 KB (server.ts readJson). GET returns it as a JSON string inside
+  // JSON: escaping doubles each quote or backslash, and an encoder that writes \uXXXX can make one byte six.
+  // 6 x 160 KB = 960 KB, which leaves 64 KB of the 1 MiB cap for the rest of the row and the wrapper.
   private async command(command: unknown[]): Promise<unknown> {
-    const response = await this.request(this.url, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${this.token}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(command),
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!response.ok) throw new Error('guest store unavailable');
-    const body = (await response.json()) as {
-      result?: unknown;
-      error?: unknown;
-    };
-    if (body.error) throw new Error('guest store unavailable');
-    return body.result;
+    return upstashCommand(this.request, this.url, this.token, command, () => new Error('guest store unavailable'), 1024 * 1024);
   }
   async create(key: string, row: GuestRecord): Promise<boolean> {
     const result = await this.command([

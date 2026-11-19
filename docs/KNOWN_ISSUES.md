@@ -11173,6 +11173,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: services/tutor-agent/src/agent.ts (guest scene rooms), services/token-server/src/guestSceneAdmission.ts
 - note: Found 2026-10-23 in the guest first scene review (UI-011). The service-wide daily ceiling (`LUVANI_GUEST_SCENE_DAILY`) bounds money, but nothing bounds how many guest scenes run at once. A burst of guests, honest or not, can take every worker slot and delay a paying learner's room. Add a small concurrent-scene cap at the worker claim (for example three live scene rooms), or reserve worker capacity for authenticated sessions, before raising the ceiling above the default.
+- note: 2026-11-18, founder: no cap now. A guest concurrency cap must be decided before the daily guest scene ceiling (GUEST_SCENE_DEFAULT_DAILY, 24) is raised. Fleet capacity not measured.
 - verified-by: `a guest scene claim is refused while the concurrent scene cap is full`
 
 ### F868 — The one-scene-per-device limit is a forgeable installation id
@@ -13608,6 +13609,47 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: supabase/staging-verification.json:5
 - note: Founder Q4 sets when; needs probe P0 and a hosted capture. `data-engineer`. Regenerate the record and the runbook's opening paragraph together. The test ties the two to each other, not to the migration folder. 2026-11-18: the runbook's opening paragraph now names `wtexbzuyfersdtiekrvp` with 48 migrations applied and 42 held, and says the JSON is the 2026-10-07 capture of `cfimkuustkhthujdpjlq`. The regeneration is blocked while migration 42 is held, because `scripts/verifyCurrentHostedSchema.mjs` requires the hosted migration history to equal every source migration (and the expected catalog includes 42's table). It unblocks once 42 is applied, or through a held-migration rule in the verifier, which is its own decision.
 - verified-by: `the staging record and the runbook name the same project and migration count`
+
+### F1090 — The weekly Starter product id is read by the server but unknown to the config check and the environment contract
+- severity: P2
+- status: [x]
+- where: services/token-server/src/config.ts:91
+- note: B1-1. Set alone, the id passes the production config check and then crashes startup at server.ts:218. The contract lists it for neither api nor maintenance, so an operator who follows the contract leaves the renewal sweep reading weekly payers as unknown products. Names and one check only; no learner-facing change. 2026-11-18: fixed. `productionConfigurationProblems` counts the weekly id with the two yearly ids, so a weekly id without the five billing keys is refused by name before startup. `deployment/environment-contract.json` lists it under api and maintenance, and the runbook's role list names it beside the yearly ids. The contract test reads the seven `REVENUECAT_*_ID` and `_KEY` names from `billing/revenuecat.ts` and requires each in both roles.
+- verified-by: `the environment contract names every billing product id the server reads`
+- verified-by: `a weekly product id without the five billing keys is a production configuration problem`
+
+### F1091 — The Upstash REST command is written five times, none through the bounded fetch
+- severity: P2
+- status: [x]
+- where: services/token-server/src/rateLimit.ts:106
+- note: B1-2. One upstashCommand helper over boundedFetchJson replaces the copies in rateLimit.ts (two), onboardingGuest.ts, guestSceneAdmission.ts and guestSpeechAdmission.ts. The first two tests are characterization, written and green before the refactor. The founder chose "Treat as service failure" on 2026-11-18, so the lease copy joined too: a store error on acquire is now a failure (the route's internal error), not a 409 busy session.
+- note: Accepted difference 3 of the B1 contract: UpstashRateLimiter's error for a 200 carrying `error` changed from "distributed rate limiter returned an invalid decision" to "distributed rate limiter returned 200". Both refuse.
+- verified-by: `each Upstash adapter posts its command as JSON with the bearer token`
+- verified-by: `an Upstash failure keeps each adapter's own error wording`
+- verified-by: `every Upstash command goes through one bounded helper that refuses a redirect and an oversized answer`
+- verified-by: `an error answer from the lease store is a failure, not a busy session`
+
+### F1092 — Three shared exports nothing imports, and a comment attached to nothing
+- severity: P2
+- status: [x]
+- where: services/shared/lessonScoringQuote.ts:7
+- note: B1-3. isInventoryIpa, LESSON_SCORING_MAX_CALL_MILLIS, the paidBindings re-export in paidService.ts and the orphaned decoder comment in onboardingSpeech.ts. The 30 s assertion stays in the named test, written inline.
+- verified-by: `the reviewed envelope rests on a 30 s per-call ceiling shared by the gate and the live converter`
+
+### F1093 — A guest row can be accepted at up to 160 KB but is read back through a 64 KB cap
+- severity: P2
+- status: [x]
+- where: services/token-server/src/onboardingGuest.ts:124
+- note: Found by the B1 judge, 2026-11-18, as a regression this branch introduced (before B1 there was no read cap). The agent guest route reads a 160 KB body (server.ts:392) and stores its baseline pack in the guest row. Redis GET answers the row as a JSON string inside JSON, so each quote or backslash doubles, and the 64 KB cap applied after that escaping: an all-quote row failed from about 32 KB raw (2 x 32,762 bytes plus the 13-byte wrapper passes 65,536), and mixed quote-heavy rows of about 35 to 55 KB, all well under 64 KB raw. Every later get, update, claimGuest and shrinkClaimed then threw network-response-limit for the row's 30-day TTL. No honest input is known to reach it; a real guest pack was not measured.
+- note: Fixed in B1, 2026-11-18. upstashCommand takes an optional maxBytes (default 64 KB, unchanged for every other adapter) and RedisGuestStore reads with 1 MiB. Arithmetic: a row is one body of at most 160 KB plus a small rest (a checkpoint replaces the baseline, it never accumulates). Plain escaping is at most 2x, about 320 KB (the test's 160 KB quote row answers 327,521 bytes). An encoder that writes \uXXXX for HTML or non-ASCII characters can reach 6x, 960 KB, which still leaves 64 KB of the 1 MiB cap for the rest of the row and the wrapper. Whether Upstash escapes that way was not checked.
+- verified-by: `a guest row the agent route accepts can always be read back`
+
+### F1094 — Stalled request bodies can hold the busy cap for 30 to 35 s
+- severity: P2
+- status: [ ]
+- where: services/token-server/src/requestBoundary.ts:34
+- note: Handed over from B2 (B2-3), 2026-11-18. After F1100 makes the 30 s request deadline real, 128 sockets that stall or trickle a body still fill the 128-slot busy cap; 128 every 30 s is 256 requests a minute, under the 600 a minute /events budget. NEEDS-PROBE first: if Railway's edge buffers request bodies, close this. If not, the bound is a shorter body deadline for the small-JSON routes in readRequestBytes or a per-address in-flight cap, either of which can refuse a real learner on a bad network, so it needs the founder's yes.
+- verified-by: `stalled request bodies cannot hold the busy cap past the body deadline`
 
 ### F1244 — The interlock and restored body on the migration 49 rollback are not pinned by a test
 - severity: P2

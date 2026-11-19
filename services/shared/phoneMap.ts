@@ -73,8 +73,3 @@ export function toInventoryIpa(symbol: string): string | null {
   }
   return null;
 }
-
-/** Is this already a symbol the inventory knows? Exposed for tests. */
-export function isInventoryIpa(symbol: string): boolean {
-  return FRENCH_IPA.has(symbol);
-}
