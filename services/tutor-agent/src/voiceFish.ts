@@ -239,6 +239,9 @@ class FinalMarkingTTS extends tts.TTS {
   constructor(inner: tts.TTS) {
     super(inner.sampleRate, inner.numChannels, inner.capabilities);
     this.inner = inner;
+    // The plugin emits on itself, but CachedTTS (and so the session) listens on
+    // this wrapper; without this a vendor error never reaches the session.
+    inner.on('error', (ev) => this.emit('error', ev));
   }
 
   override get model(): string {

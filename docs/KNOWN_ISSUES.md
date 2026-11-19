@@ -13949,9 +13949,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1111 — Under the fish voice vendor a vendor error never reaches the session
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: services/tutor-agent/src/voiceFish.ts:239
 - note: B3b-2. CachedTTS listens on the FinalMarkingTTS wrapper, but the plugin emits on the inner TTS, which has no listener and throws ERR_UNHANDLED_ERROR. Non-production only, because preflight refuses fish in production. Forward error from inner; the test asserts exactly one event.
+- note: Fixed 2026-11-19 on claude/review-b3b: the FinalMarkingTTS constructor forwards error from inner; the named test fails with 0 events before and passes with 1 after. A real mid-line stream failure also delivers exactly one event, now pinned in `a stream that errors mid-line never reaches disk, even through the adapter`. metrics_collected is not forwarded; nothing listens on it.
 - verified-by: `a fish vendor error reaches the session through the final-marking wrapper`
 
 ### F1112 — Nothing keeps the tutor agent's seed topic caps equal to the token server's
