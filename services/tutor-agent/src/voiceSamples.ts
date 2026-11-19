@@ -36,12 +36,12 @@
  * on every gate. What the clips SOUND like is still a question only an ear can
  * answer, which is what the `heard` field is for.
  *
- * WHAT IT COSTS. Eight voices at about sixty characters each is under five
- * hundred characters, once. This is the cheap script; warmCache.ts is the
+ * WHAT IT COSTS. Six voices at about sixty characters each is under four
+ * hundred characters a run. This is the cheap script; warmCache.ts is the
  * expensive one.
  *
- * BUNDLE SIZE IS THE CONSTRAINT. These ship inside the app download, so eight
- * clips is eight times whatever one weighs. AAC at 48 kbit/s mono puts a
+ * BUNDLE SIZE IS THE CONSTRAINT. These ship inside the app download, so six
+ * clips is six times whatever one weighs. AAC at 48 kbit/s mono puts a
  * four-second clip near 20KB; the ceiling below is 150KB and a clip that
  * exceeds it never reaches the assets folder at all, because a file that big
  * would be found by a reviewer's download-size complaint rather than by us.
@@ -66,7 +66,7 @@ import { encodeWav, type WavData } from './wav.ts';
  */
 export const SAMPLES_DIR = fileURLToPath(new URL('../../../apps/mobile/assets/voices', import.meta.url));
 
-/** The bundle budget for one clip. Eight of these ship in every download. */
+/** The bundle budget for one clip. Six of these ship in every download. */
 export const MAX_SAMPLE_BYTES = 150 * 1024;
 
 /**
@@ -380,7 +380,7 @@ async function synthesizeClip(
     return { wav: encodeWav(levelClip(joinClip(frames))), chars, voiceKey: cached.opts.voiceKey, sampleRate: cached.sampleRate };
   } finally {
     // The HTTP path holds no socket, but the fish vendor holds a client and
-    // eight of those is eight reasons this script would not exit.
+    // six of those is six reasons this script would not exit.
     await cached.close();
   }
 }
@@ -397,7 +397,7 @@ async function main(): Promise<void> {
   const encoder = ENCODERS.find(present);
   if (!encoder) {
     // Checked before the first synthesis. Discovering there is no encoder after
-    // eight paid requests would mean paying again on the next attempt, which is
+    // six paid requests would mean paying again on the next attempt, which is
     // the one avoidable cost in this script.
     console.error(
       `[voice-samples] no audio encoder found. Install one of: ${ENCODERS.join(', ')} ` +
@@ -431,7 +431,7 @@ async function main(): Promise<void> {
   let billed = 0;
   const previous = readManifest();
   // One timestamp for the run, so every row says when this set was read rather
-  // than eight times that differ by milliseconds.
+  // than six times that differ by milliseconds.
   const readAt = new Date().toISOString();
   const clips: Partial<Record<TutorVoiceKey, SampleRecord>> = {};
 
