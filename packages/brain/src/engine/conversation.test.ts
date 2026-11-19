@@ -296,6 +296,22 @@ describe('the ladder in free conversation', () => {
     state = integrateTurn(state, spoke(), coached).state;
     assert.equal(state.ladder.rung, 4);
   });
+
+  test('a good reply on an exchange the learner was helped on earns no unassisted credit', () => {
+    const atFree = (s: ConversationState): ConversationState => ({ ...s, ladder: { ...s.ladder, rung: 4 } });
+    // Control: the same good reply with no help is credited, so the zeros below mean something.
+    const plain = integrateTurn(atFree(fresh()), spoke(), sampleTurn()).state;
+    assert.equal(plain.ladder.unassistedTurns, 1);
+
+    const hinted = applyNonSpokenInput(atFree(fresh()), { type: 'help' }).state;
+    assert.equal(hinted.assistanceDepth, 1);
+    assert.ok(hinted.ladder.rung >= 3, 'still on a rung where credit is minted');
+    assert.equal(integrateTurn(hinted, spoke(), sampleTurn()).state.ladder.unassistedTurns, 0);
+
+    const twice = applyNonSpokenInput(applyNonSpokenInput(fresh(), { type: 'help' }).state, { type: 'help' }).state;
+    assert.equal(twice.assistanceDepth, 2);
+    assert.equal(integrateTurn(atFree(twice), spoke(), sampleTurn()).state.ladder.unassistedTurns, 0);
+  });
 });
 
 describe('beats — the conversation always moves', () => {

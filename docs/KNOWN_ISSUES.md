@@ -14144,7 +14144,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1121 — In free conversation a reply right after help still counts as unassisted
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/engine/conversation.ts:866
 - note: run2-1, the brain half of F1069. The founder answered "Stop after hint or line" on 2026-11-18, so the fix passes `assisted: state.assistanceDepth > 0` to `applyTurn`: a hint or the full line both end unassisted credit for that exchange. Past sessions are not changed.
 - verified-by: `a good reply on an exchange the learner was helped on earns no unassisted credit`

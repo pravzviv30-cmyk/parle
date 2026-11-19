@@ -865,7 +865,7 @@ export function integrateTurn(
   let quality: ReturnType<typeof assessmentToQuality> | null = null;
   if (input.type === 'spoke') {
     quality = assessmentToQuality(turn.assessment, turn.coach);
-    const applied = applyTurn(ladder, { type: 'spoke', quality });
+    const applied = applyTurn(ladder, { type: 'spoke', quality, assisted: state.assistanceDepth > 0 });
     ladder = applied.state;
     directive = applied.directive;
   }
