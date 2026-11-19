@@ -45,6 +45,7 @@ import { addClaims, addCovers, loadGame, setQuestDay } from './store.ts';
 import { NO_OUTSIDE_FACTS, badgeFactsFrom, finishedSittings, gameViewFrom, type BillingFacts } from './view.ts';
 import { LOCAL_CALENDAR, emptyLog, freezeProtectionOf, planReminders } from '../reminders/plan.ts';
 import { STREAK_SAVE_LINES } from '../reminders/reminder.ts';
+import { seedCanvasLearner } from '../dev/canvasLearner.ts';
 
 function installDisk(): Map<string, string> {
   const map = new Map<string, string>();
@@ -1005,6 +1006,41 @@ describe('Board A moments from a real settle (founder, 2026-11-19)', () => {
     const third = await drill(NOW, 10);
     assert.ok(third);
     assert.equal(third.banked, false, 'a later sitting claimed the bank again');
+  });
+});
+
+describe('Board A moment 5 on the free plan, the push-check repro (2026-11-19)', () => {
+  test('a review that is the day\'s second practice banks the free learner\'s freeze and says so', async () => {
+    const FREE: BillingFacts = { plan: 'trial', lapsed: false, secondsRemaining: 0, canStart: false };
+    pin({ billing: () => FREE });
+    for (let n = 3; n >= 1; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    // One practice already today, in the activity log.
+    assert.equal(await recordActivity('drill', 10, NOW - 2 * HOUR, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    const before = gameViewFrom(await readGameFacts(NO_OUTSIDE_FACTS, FREE), TODAY);
+    assert.equal(before.freezeBanked, false);
+    const at = NOW - MINUTE;
+    const delta = await settleSitting({ source: 'review', at, xpEarned: 5, activeMs: MINUTE, write: () => recordActivity('review', 5, at, { activeMs: MINUTE, finished: true }) });
+    assert.ok(delta);
+    assert.equal(gameViewFrom(await readGameFacts(NO_OUTSIDE_FACTS, FREE), TODAY).freezeBanked, true, 'the fixture did not bank');
+    assert.equal(delta.banked, true, 'the sitting that banked the freeze was not told');
+  });
+
+  test('the canvas learner on the free plan: a finished review after her one practice today says "One freeze banked"', async () => {
+    const FREE: BillingFacts = { plan: 'trial', lapsed: false, secondsRemaining: 0, canStart: false };
+    pin({ billing: () => FREE });
+    const ON = { NODE_ENV: 'development', EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT: '1', EXPO_PUBLIC_LUVANI_CANVAS_LEARNER: '1' };
+    assert.deepEqual(await seedCanvasLearner({ id: uid }, { kind: 'mock' }, NOW - 10 * MINUTE, ON), { ok: true });
+    assert.ok(await seedExistingLearner());
+    const view = gameViewFrom(await readGameFacts(NO_OUTSIDE_FACTS, FREE), TODAY);
+    assert.equal(view.quests.facts.finished, 1, 'the seed is not one practice today');
+    assert.equal(view.freezeBanked, false);
+    const at = NOW - MINUTE;
+    const delta = await settleSitting({ source: 'review', at, xpEarned: 5, activeMs: MINUTE, write: () => recordActivity('review', 5, at, { activeMs: MINUTE, finished: true }) });
+    assert.ok(delta);
+    assert.equal(gameViewFrom(await readGameFacts(NO_OUTSIDE_FACTS, FREE), TODAY).freezeBanked, true, 'the fixture did not bank');
+    assert.equal(delta.banked, true, 'the sitting that banked the freeze was not told');
+    assert.equal(endCardView(delta, { count: 5 }).banked, GAME_COPY.endCard.banked);
   });
 });
 
