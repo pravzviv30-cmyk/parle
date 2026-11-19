@@ -11,7 +11,7 @@
  * The shared contract for Phase 1 of docs/come-alive (README Part 6): one
  * pipeline, one type.
  */
-import type { CoverKind, DailyGoalMinutes, QuestId, StreakState } from '@luvani/core';
+import { localDayKey, type CoverKind, type DailyGoalMinutes, type DayKey, type QuestId, type RepairOffer, type StreakCover, type StreakState } from '@luvani/core';
 import type { SittingSource } from './model.ts';
 
 /** Where a finished sitting came from (the game store's one list). Never a new activity kind (F731). */
@@ -56,6 +56,10 @@ export interface GameDelta {
     readonly milestone: number | null;
     /** Set when this sitting completed a repair or a cover bridged the run, else null. */
     readonly restoredBy: CoverKind | null;
+    /** True when this extension came after a day a freeze covered (any freeze the run kept, whoever wrote it). Board A moment 2. */
+    readonly carried: boolean;
+    /** The repair this settle wrote and the run kept, with the number the Streak screen promised, else null. Board A moment 4. */
+    readonly repaired: RepairedRun | null;
   };
   readonly quests: {
     /** Quests this sitting completed, in slot order. */
@@ -76,6 +80,15 @@ export interface GameDelta {
   };
   /** Badge ids awarded by this sitting, in catalogue order. */
   readonly badges: readonly string[];
+  /** True only when this sitting's own landed write banked a freeze (Board A moment 5). Never predicted. */
+  readonly banked: boolean;
+}
+
+export interface RepairedRun {
+  /** The oldest day the kept repair covers: the moment's key is `repair:<day>`. */
+  readonly day: DayKey;
+  /** The run the Streak screen promised to bring back. */
+  readonly runBefore: number;
 }
 
 /** The number of quests a day deals. */
@@ -93,4 +106,53 @@ const QUESTS_A_DAY = 3;
 export function allQuestsDoneNow(delta: Pick<GameDelta, 'quests'>): boolean {
   const { completedNow, done, doneBefore } = delta.quests;
   return completedNow.length > 0 && doneBefore < QUESTS_A_DAY && done >= QUESTS_A_DAY;
+}
+
+/**
+ * True when the day's first practice extends a run across a day a freeze
+ * covered since the previous practice. Read from the run as it stands, never
+ * from what this settle wrote, because the quiet catch-up writes most freezes.
+ * A refunded freeze (its day practised) is not in the run, a travel day is not
+ * a freeze, and a repair takes its own moment.
+ */
+export function carriedNow(before: StreakState, after: StreakState, extendedFirst: boolean, repaired: RepairedRun | null): boolean {
+  const last = before.lastPracticeDay;
+  if (!extendedFirst || repaired !== null || last === null) return false;
+  return after.coveredInRun.some((held) => held.kind === 'freeze' && held.day > last);
+}
+
+/**
+ * The repair this settle wrote, if the run kept it as a repair: two phones can
+ * write a freeze and a repair for one day, and the streak keeps one. Null when
+ * nothing promised a number to bring back.
+ */
+export function repairedNow(written: readonly StreakCover[], after: StreakState, promised: RepairOffer | null): RepairedRun | null {
+  if (promised === null) return null;
+  const days = new Set(written.filter((cover) => cover.kind === 'repair').map((cover) => cover.day));
+  const kept = after.coveredInRun.find((held) => held.kind === 'repair' && days.has(held.day));
+  return kept === undefined ? null : { day: kept.day, runBefore: promised.runBefore };
+}
+
+/**
+ * True only when this sitting banked a freeze and the disk says so: the bank
+ * was empty before and is banked after, the sitting's day is a bank day, the
+ * sitting itself is on disk, and neither the snapshot nor the disk (less this
+ * sitting) held two sittings that day already, so a bank another phone made
+ * is never claimed. A guest never banks.
+ */
+export function bankedNow(i: {
+  source: SittingSource;
+  at: number;
+  day: DayKey;
+  beforeSittings: readonly { at: number }[];
+  afterSittings: readonly { at: number }[];
+  beforeBanked: boolean;
+  afterBanked: boolean;
+  afterBankDays: readonly DayKey[];
+}): boolean {
+  if (i.source === 'guest' || i.beforeBanked || !i.afterBanked || !i.afterBankDays.includes(i.day)) return false;
+  const onDay = (list: readonly { at: number }[]) => list.filter((sitting) => localDayKey(sitting.at) === i.day);
+  const after = onDay(i.afterSittings);
+  if (!after.some((sitting) => sitting.at === i.at)) return false;
+  return onDay(i.beforeSittings).length < 2 && after.filter((sitting) => sitting.at !== i.at).length < 2;
 }

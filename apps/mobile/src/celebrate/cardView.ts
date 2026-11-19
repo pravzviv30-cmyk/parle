@@ -36,6 +36,12 @@ export interface CardView {
   readonly rows: readonly string[];
   /** What a screen reader hears when the card appears: the title and the main value. */
   readonly announce: string;
+  /**
+   * Board A (2026-11-19): 'tick' for a run a freeze carried (the check on a
+   * mint disc), 'repair' for a kept repair (RepairMark on a white tile), null
+   * for every other card.
+   */
+  readonly mark: 'tick' | 'repair' | null;
 }
 
 const GROUND: Readonly<Record<TakeoverType, CardGround>> = {
@@ -64,7 +70,7 @@ export function rowFor(event: CelebrationEvent): string | null {
       return WALL_READY;
     case 'streak-milestone':
     case 'streak-extended':
-      return streakValue(event.data.current);
+      return event.type === 'streak-extended' && event.data.form === 'repaired' ? GAME_COPY.streak.restored : streakValue(event.data.current);
     case 'level-up':
       return GAME_COPY.level.title(event.data.level);
     case 'badge-earned': {
@@ -91,13 +97,22 @@ export function shownTitle(view: CardView, at: { readonly titleReached: boolean;
 
 export function cardView(card: TakeoverCard): CardView {
   const rows = card.also.map(rowFor).filter((row): row is string => row !== null);
-  const base = { ground: GROUND[card.type], timeline: card.type, rows, titleBefore: null, badges: [] as Badge[] };
+  const base = { ground: GROUND[card.type], timeline: card.type, rows, titleBefore: null, badges: [] as Badge[], mark: null };
   const first = card.shows[0];
   if (first === undefined) throw new Error('a card with nothing to show');
 
   switch (first.type) {
     case 'streak-extended': {
-      const { current, lifetimeDays } = first.data;
+      const { current, lifetimeDays, form, runBefore } = first.data;
+      const lifetime = GAME_COPY.streak.lifetime(lifetimeDays);
+      if (form === 'carried') {
+        const title = GAME_COPY.streak.carried(current);
+        return { ...base, hero: null, mark: 'tick', title, lines: [lifetime], announce: spoken([title, lifetime]) };
+      }
+      if (form === 'repaired' && runBefore !== undefined) {
+        const title = GAME_COPY.streak.back(runBefore);
+        return { ...base, hero: null, mark: 'repair', title, lines: [lifetime], announce: spoken([title, lifetime]) };
+      }
       const title = GAME_COPY.streak.line(current);
       return { ...base, hero: { value: current, unit: GAME_COPY.streak.label }, title, lines: [GAME_COPY.streak.lifetime(lifetimeDays)], announce: spoken([title, streakValue(current)]) };
     }

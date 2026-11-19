@@ -49,6 +49,8 @@ export interface EndCardView {
   readonly questProgress: string | null;
   /** Said when the daily XP limit held some of this sitting back. */
   readonly capLine: string | null;
+  /** "One freeze banked", drawn beside the freeze mark, only when settle read this sitting's bank back (Board A moment 5). */
+  readonly banked: string | null;
   /** The card's beats: `end-card-quests` (the quest sound with the quiet line) only on the sitting that finished the third quest. */
   readonly timeline: Extract<TimelineId, 'end-card' | 'end-card-quests'>;
 }
@@ -123,6 +125,7 @@ export function endCardView(
     quests,
     questProgress: done > 0 ? GAME_COPY.quests.progress(done) : null,
     capLine: delta.xp.capped ? GAME_COPY.endCard.capLine : null,
+    banked: delta.banked ? GAME_COPY.endCard.banked : null,
     timeline: allQuestsDoneNow(delta) ? 'end-card-quests' : 'end-card',
   };
 }

@@ -34,7 +34,49 @@ function everyString(view: CardView): string[] {
   return [view.title, ...(view.titleBefore === null ? [] : [view.titleBefore]), ...view.lines, ...view.rows, view.announce, ...(view.hero === null ? [] : [view.hero.unit])];
 }
 
+const carried = (current: number, lifetimeDays: number, day = '2026-10-06'): CelebrationEvent => ({ type: 'streak-extended', key: celebrationKey.streak(day), origin: 'account', at: AT, data: { day, current, lifetimeDays, form: 'carried' } });
+const repairedOn = (runBefore: number, day = '2026-10-06'): CelebrationEvent => ({ type: 'streak-extended', key: celebrationKey.repair('2026-10-04'), origin: 'account', at: AT, data: { day, current: runBefore + 2, lifetimeDays: 40, form: 'repaired', runBefore } });
+
+describe('Board A: the carried and repaired cards (founder, 2026-11-19)', () => {
+  test('a run a freeze carried says how many days of French, with the lifetime line and a mint tick', () => {
+    const view = cardView(cardOf([carried(13, 40)]));
+    assert.equal(view.title, '13 days of French.');
+    assert.deepEqual(view.lines, ['40 days you have practised']);
+    assert.equal(view.mark, 'tick');
+    assert.equal(view.hero, null);
+    assert.equal(view.ground, 'paper');
+  });
+
+  test('a repaired run names the number the Streak screen promised, with the repair mark', () => {
+    const view = cardView(cardOf([repairedOn(12)]));
+    assert.equal(view.title, 'Your 12-day streak is back.');
+    assert.deepEqual(view.lines, ['40 days you have practised']);
+    assert.equal(view.mark, 'repair');
+    assert.equal(view.hero, null);
+    assert.ok(isSeenKey(celebrationKey.repair('2026-10-04')));
+    assert.ok(isRememberedInSeen(repairedOn(12)));
+  });
+
+  test('a plain extension keeps today\'s card', () => {
+    const view = cardView(cardOf([streak(12, 240)]));
+    assert.equal(view.mark, null);
+    assert.equal(view.title, GAME_COPY.streak.line(12));
+  });
+
+  test('a repair and a milestone on one day make one takeover, the milestone, carrying "Your streak is back." as a row', () => {
+    const cards = planBurst([milestone(7), repairedOn(5, '2026-10-06')], 3);
+    assert.equal(cards.length, 1);
+    assert.equal(cards[0]!.type, 'streak-milestone');
+    assert.equal(cards[0]!.covers.length, 2, 'the repair moment would replay after the milestone played');
+    const view = cardView({ ...cards[0]!, id: 'card-1' });
+    assert.deepEqual(view.rows, [GAME_COPY.streak.restored]);
+    assert.equal(rowFor(repairedOn(5)), GAME_COPY.streak.restored);
+  });
+});
+
 const views: CardView[] = [
+  cardView(cardOf([carried(13, 40)])),
+  cardView(cardOf([repairedOn(12)])),
   cardView(cardOf([streak(1, 1)])),
   cardView(cardOf([streak(12, 240)])),
   ...[7, 30, 100, 365, 730].map((n) => cardView(cardOf([milestone(n)]))),

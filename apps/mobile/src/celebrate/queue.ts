@@ -199,7 +199,12 @@ export function isShowable(event: CelebrationEvent): boolean {
     case 'purchase-confirmed':
       return text(event.data.transactionId);
     case 'streak-extended':
-      return isDayKey(event.data.day) && whole(event.data.current, 1) && whole(event.data.lifetimeDays, 1);
+      return (
+        isDayKey(event.data.day) &&
+        whole(event.data.current, 1) &&
+        whole(event.data.lifetimeDays, 1) &&
+        (event.data.form !== 'repaired' || whole(event.data.runBefore, 1))
+      );
     case 'streak-milestone':
       return (
         isDayKey(event.data.day) &&
@@ -268,7 +273,10 @@ export function planBurst(events: readonly CelebrationEvent[], budget: number): 
     const sameDay = streaks.filter((event) => event.data.day === day);
     const milestones = sameDay.filter((event): event is EventOf<'streak-milestone'> => event.type === 'streak-milestone');
     const shown = milestones.length > 0 ? milestones.reduce((best, event) => (event.data.milestone > best.data.milestone ? event : best)) : sameDay[sameDay.length - 1]!;
-    cards.push(planned(shown.type, [shown], streaks));
+    const card = planned(shown.type, [shown], streaks);
+    // A repair beside a milestone rides on the milestone card as one row (Board A moment 4).
+    const repair = shown.type === 'streak-milestone' ? sameDay.find((event) => event.type === 'streak-extended' && event.data.form === 'repaired') : undefined;
+    cards.push(repair === undefined ? card : { ...card, also: [repair] });
   }
 
   const levels = of('level-up');
