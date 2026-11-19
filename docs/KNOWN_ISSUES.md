@@ -14134,7 +14134,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1120 — Three brain rules are restated beside their owner
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/profile/profile.ts:571
 - note: run2-10 and the two caps of run2-11. `profile.ts` imports the coaching pair from the engine; the recap cap reads core; the snapshot example cap reads `MAX_PATTERN_EXAMPLE`. All four tests below exist and must be green before and after.
 - verified-by: `a form corrected earlier earns no profile credit later, matching the end card`

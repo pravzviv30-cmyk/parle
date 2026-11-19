@@ -736,11 +736,8 @@ export function historyForPublishedTurn(raw: TutorTurn, view: TurnView): string 
  * while an offered form is only "not the learner's own words" in the same
  * breath it was modelled in.
  *
- * `applyTurnToProfile` in profile/profile.ts holds a private copy of this pair
- * and of `namedInCoaching`, because that file was closed to edits when these
- * moved here. The two must not drift: one turn gets one verdict, and the record
- * and the end card have to be reading the same one. Exported so that copy can
- * become an import.
+ * `applyTurnToProfile` in profile/profile.ts imports this pair, so one turn
+ * gets one verdict and the record and the end card read the same one.
  */
 export function coachedForms(turn: TutorTurn): { quoted: string[]; named: string[] } {
   const quoted: string[] = [];
