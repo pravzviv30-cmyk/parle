@@ -14127,7 +14127,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1119 — The scene-aim line ends in a double period
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: packages/brain/src/prompt/turnContext.ts:129
 - note: run2-9. Prompt text in the per-turn context, not the cached prefix and not learner copy.
 - verified-by: `the scene aim line reads as clean sentences on the last attempt and on a forced advance`
