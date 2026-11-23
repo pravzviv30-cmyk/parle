@@ -322,7 +322,7 @@ export function ReminderAsk<T extends ReminderMode>({
 }
 
 /** Step 2 (T1.4, Direction A): seven named chips in two rows, the one line under them, and the two answers. */
-function TalkDaysCard({
+export function TalkDaysCard({
   tutor,
   picked,
   limitTapped,
