@@ -324,11 +324,15 @@ export function talkDaysOffered(): boolean {
  * land; it never rejects.
  */
 export async function chooseTalkDays(talkDays: readonly number[], tutor: string): Promise<ScheduleOutcome> {
+  // The account the choice was made in: a sign-out or switch mid-way writes nothing.
+  const owner = scopeGeneration();
   try {
     const stored = await loadReminder({ strict: true });
     if (stored === null) return 'failed';
     const next: StoredReminder = { ...stored, talkDays: [...talkDays] };
+    if (scopeGeneration() !== owner) return 'failed';
     if ((await saveReminder(next)) !== 'durable') return 'failed';
+    if (scopeGeneration() !== owner) return 'failed';
     return await replanReminders({ tutor, choice: next });
   } catch {
     return 'failed';

@@ -694,7 +694,11 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
     const planner = code('./ReminderPlanner.tsx');
     const choose = planner.slice(planner.indexOf('export async function chooseTalkDays('), planner.indexOf('export async function smartReminderTime('));
     assert.ok(choose.length > 0, 'chooseTalkDays moved; this reads nothing');
-    assert.match(choose, /if \(\(await saveReminder\(next\)\) !== 'durable'\) return 'failed';\s*return await replanReminders\(/, 'days that were not saved are planned for');
+    assert.match(choose, /if \(\(await saveReminder\(next\)\) !== 'durable'\) return 'failed';\s*(?:if \(scopeGeneration\(\) !== owner\) return 'failed';\s*)?return await replanReminders\(\{ tutor, choice: next \}\);/, 'days that were not saved are planned for, or the plan is not the choice written');
+    // A sign-out or account switch between the read and the write must not land A's days in B's key.
+    assert.match(choose, /const owner = scopeGeneration\(\);\s*try \{\s*const stored = await loadReminder\(/, 'the account is not captured before the read');
+    assert.match(choose, /if \(scopeGeneration\(\) !== owner\) return 'failed';\s*if \(\(await saveReminder\(next\)\)/, "another account's key can be written");
+    assert.match(choose, /!== 'durable'\) return 'failed';\s*if \(scopeGeneration\(\) !== owner\) return 'failed';\s*return await replanReminders\(/, 'another account is planned for');
     assert.match(choose, /\} catch \{\s*return 'failed';\s*\}\s*\}\s*$/, 'a throwing write or replan rejects instead of answering failed');
   });
 
@@ -758,6 +762,7 @@ describe('your talk days in the plan (T1.4, founder 2026-11-19)', () => {
     assert.deepEqual(talkOf({ plan: 'starter', periodEnd: null, canStart: true, secondsRemaining: 600 }), { free: false, open: true });
     assert.deepEqual(talkOf({ plan: 'regular', periodEnd: null, canStart: true, secondsRemaining: 0 }), { free: false, open: false });
     assert.deepEqual(talkOf({ plan: 'trial', periodEnd: null, canStart: false, secondsRemaining: 0 }), { free: true, open: false });
+    assert.deepEqual(talkOf({ plan: 'starter', periodEnd: null, canStart: false, secondsRemaining: 600 }), { free: false, open: false }, 'minutes left but billing says no start');
     assert.equal(talkOf(null), undefined);
   });
 

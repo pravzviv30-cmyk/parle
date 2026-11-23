@@ -328,7 +328,7 @@ describe('the ask, step 2: your talk days (T1.4, Direction A, founder 2026-11-19
     assert.match(use, /await chooseTalkDays\(picked, tutor\);\s*keep\(\);/, 'the chosen days are not saved before the answer');
     // keep() runs after the await, so chooseTalkDays must never reject (pinned in plan.test.ts) or the card holds.
     const planner = readFileSync(new URL('./ReminderPlanner.tsx', import.meta.url), 'utf8');
-    assert.match(planner, /export async function chooseTalkDays\([^)]*\): Promise<ScheduleOutcome> \{\s*try \{/, 'a rejection leaves the card saving forever');
+    assert.match(planner, /export async function chooseTalkDays\([^)]*\): Promise<ScheduleOutcome> \{\s*(?:\/\/[^\n]*\s*)?const owner = scopeGeneration\(\);\s*try \{/, 'a rejection leaves the card saving forever');
   });
 
   test('the saved days preselect, else Mon, Wed and Fri, read without a dialog', () => {
@@ -357,6 +357,8 @@ describe('the ask, step 2: your talk days (T1.4, Direction A, founder 2026-11-19
     assert.doesNotMatch(chip, /\bdisabled=\{/, 'a chip is disabled and leaves the focus order');
     assert.match(chip, /<TalkDayChips picked=\{picked\} onPressDay=\{onPressDay\} \/>/, 'step 2 draws its own chips');
     assert.doesNotMatch(chips, /\bdisabled=\{/, 'a chip is disabled and leaves the focus order');
+    // Press skips its haptic only when onPress returns false: the reason is still said, with no tick.
+    assert.match(chips, /onPress=\{\(\) => \{\s*onPressDay\(day\);\s*return blocked \? false : undefined;\s*\}\}/, 'a blocked chip still ticks');
     assert.match(source, /talkDayReason\(picked, day\)/, 'the reason is not under the day');
     assert.match(source, /<Icon name="check"/, 'a chosen chip says so by colour alone');
     // The one line under the chips is live.

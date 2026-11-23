@@ -370,7 +370,7 @@ describe('what a reminder is not allowed to know', () => {
       'the planner writes a choice other than a yes, a pause, a put-back or talk days',
     );
     // Talk days (T1.4) are written over the stored choice as it was, never turning it off.
-    assert.match(planner, /if \(stored === null\) return 'failed';\s*const next: StoredReminder = \{ \.\.\.stored, talkDays: \[\.\.\.talkDays\] \};\s*if \(\(await saveReminder\(next\)\) !== 'durable'\) return 'failed';/, 'the talk-day write changes more than the talk days');
+    assert.match(planner, /if \(stored === null\) return 'failed';\s*const next: StoredReminder = \{ \.\.\.stored, talkDays: \[\.\.\.talkDays\] \};\s*if \(scopeGeneration\(\) !== owner\) return 'failed';\s*if \(\(await saveReminder\(next\)\) !== 'durable'\) return 'failed';/, 'the talk-day write changes more than the talk days');
     assert.match(planner, /const yes = \(mode: ReminderMode\): StoredReminder => \(\{ \.\.\.\(stored \?\? \{\}\), enabled: true, time: mode, paused: false \}\);/, 'the ask writes a yes that is not on');
     assert.match(planner, /save: \(reminder\) => \(reminder\.enabled \? saveReminder\(yes\(reminder\.time\)\) : saveReminder\(stored \?\? reminder\)\),/, 'the put-back after a refused yes writes off over what was there');
     assert.match(planner, /if \(step\.pause && choice !== null\) await saveReminder\(\{ \.\.\.choice, paused: true \}\);/, 'the pause is written for something other than the note having gone out');
@@ -539,6 +539,8 @@ describe('your talk days, the shared rule (T1.4, founder 2026-11-19)', () => {
     assert.equal(talkDaysFit([MON, TUE]), false);
     assert.equal(talkDaysFit([SUN, MON]), false, 'Sunday and Monday are next to each other');
     assert.equal(talkDaysFit([SAT, SUN]), false);
+    assert.equal(talkDaysFit([0]), false, 'not a weekday');
+    assert.equal(talkDaysFit([9]), false, 'not a weekday');
     assert.equal(talkDaysFit([SUN, TUE, THU]), true);
     assert.equal(talkDaysFit([MON, WED, FRI, SUN]), false, 'four days');
     assert.equal(talkDaysFit([MON, MON]), false, 'a day twice');
@@ -550,6 +552,12 @@ describe('your talk days, the shared rule (T1.4, founder 2026-11-19)', () => {
     assert.equal(talkDayBlock([MON], TUE), MON);
     assert.equal(talkDayBlock([MON], SUN), MON, 'the week wraps');
     assert.equal(talkDayBlock([MON], WED), null);
+    // Between two chosen days, the one before it is named first, whatever order they were picked in.
+    for (const chosen of [[MON, WED], [WED, MON]]) {
+      assert.equal(talkDayBlock(chosen, TUE), MON);
+      assert.equal(talkDayReason(chosen, TUE), 'next to Mon');
+      assert.equal(talkDayLabel(chosen, TUE), 'Tuesday, next to Monday, not available');
+    }
     assert.equal(talkDayBlock([MON], MON), null, 'a chosen day is not blocked');
     assert.equal(talkDayReason([MON], SUN), 'next to Mon');
     assert.equal(talkDayReason([MON], WED), null);

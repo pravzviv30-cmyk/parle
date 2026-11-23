@@ -310,6 +310,13 @@ describe('the reminder store — version 2 (Come alive, README Part 5.F)', () =>
     // Junk inside an otherwise good set is cleaned the way days are.
     disk.map.set(key, `{"version":2,"reminder":{"enabled":true,"time":"lunch","talkDays":[5,"x",1,9,1,3]},"log":${JSON.stringify(emptyLog())}}`);
     assert.deepEqual(await loadReminder({ strict: true }), { enabled: true, time: 'lunch', talkDays: [1, 3, 5] });
+
+    // A write never puts an empty or rule-breaking set on disk.
+    for (const talkDays of [[2, 3], []]) {
+      assert.equal(await saveReminder({ enabled: true, time: 'lunch', talkDays }), 'durable');
+      const onDisk = (JSON.parse(disk.map.get(key)!) as { reminder: Record<string, unknown> }).reminder;
+      assert.equal('talkDays' in onDisk, false, `talk days ${JSON.stringify(talkDays)} were written`);
+    }
     setActiveUser(null);
   });
 

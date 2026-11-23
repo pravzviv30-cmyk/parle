@@ -26,7 +26,11 @@ export function TalkDayChips({ picked, onPressDay }: { picked: readonly number[]
         style={[st.chip, { backgroundColor: chosen ? t.brandMark : blocked ? t.skeleton : t.quiet }]}
         accessibilityLabel={talkDayLabel(picked, day)}
         accessibilityState={{ selected: chosen, disabled: blocked }}
-        onPress={() => onPressDay(day)}
+        onPress={() => {
+          onPressDay(day);
+          // A blocked chip says why but ignores the press: no tick.
+          return blocked ? false : undefined;
+        }}
       >
         <View style={st.chipHead}>
           {chosen ? <Icon name="check" size={16} color={t.onBrand} /> : null}
