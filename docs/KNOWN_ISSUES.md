@@ -14082,6 +14082,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: services/token-server/src/store.ts:41
 - note: Deferred from B2 (B2-6), 2026-11-18. The webhook dedupes through billingEventComplete and applyBilling (server.ts:632), so recordBillingEvent has no caller and its interface comment is untrue. Removing it changes store.ts, which apps/mobile/src/wall/moneyUntouched.test.ts pins by SHA-256, so the removal lands with a dated hash update and a revenue review in M1 (a frontend slice that runs the design reviews anyway). Six store.supabase.test.ts tests die with it; the SQL record_billing_event goes to D1.
+- note: 2026-11-23, from B3b part B (F1311): the grantSession comment in services/token-server/src/tokens.ts (about :317) still says the tutor refusing an already-reported session id closes replay. That in-memory guard is gone; the durable claim_tutor_session_v1 claim does it (F79). tokens.ts is pinned the same way, so the one-comment fix rides with this entry's M1 hash update.
 - verified-by: `billing projection uses one RPC carrying vendor state but never a stale usage counter`
 
 ### F1055 — ciContract.test.ts times out at 15 s on some runs

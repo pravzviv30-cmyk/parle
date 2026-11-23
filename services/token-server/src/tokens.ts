@@ -314,8 +314,8 @@ export async function grantSession(
     // with leeway, measured live at roughly 90 seconds (a credential 30s past
     // expiry was accepted, 900s past was refused). Shortening this does not
     // close replay and does break a learner whose network drops mid-session, so
-    // the boundary that actually closes it is the durable claim_tutor_session_v1
-    // claim, which refuses a session id it has already seen (F77, F79).
+    // the boundary that actually closes it is the tutor refusing a session id
+    // that has already been reported — see tutor.ts (F77).
     ttl: opts.config.ttlSeconds ?? 5 * 60,
     // The agent reads these to know which lesson to teach and where the learner
     // left off, so a session never restarts from turn one after an interruption.
