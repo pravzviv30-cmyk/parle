@@ -3,17 +3,21 @@
  * and the Settings sheet. What a press does is the caller's (`talkDayPress`
  * in `settings/talkDays.ts`, the ask's own `pressDay`); this only draws.
  */
-import type { ReactElement } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useState, type ReactElement } from 'react';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Press } from '../components.tsx';
 import { Icon } from '../icons/Icon.tsx';
 import { HIT, bType, radius, space, type } from '../theme.ts';
 import { TALK_DAYS_COPY, TALK_DAY_ORDER, talkDayBlocked, talkDayLabel, talkDayReason, talkDaysValue } from './reminder.ts';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
+import { chipsStack } from './chipHead.ts';
 
 export function TalkDayChips({ picked, onPressDay }: { picked: readonly number[]; onPressDay: (day: number) => void }): ReactElement {
   const t = useB();
   const st = useThemedStyles(makeSt);
+  const { fontScale } = useWindowDimensions();
+  const [cellWidth, setCellWidth] = useState(0);
+  const stack = chipsStack(cellWidth, fontScale);
   const chip = (day: number) => {
     const chosen = picked.includes(day);
     const blocked = talkDayBlocked(picked, day);
@@ -33,7 +37,7 @@ export function TalkDayChips({ picked, onPressDay }: { picked: readonly number[]
           return blocked ? false : undefined;
         }}
       >
-        <View style={st.chipHead}>
+        <View style={[st.chipHead, stack && st.chipHeadStacked]}>
           {chosen ? <Icon name="check" size={16} color={t.onBrand} /> : null}
           <Text style={[type.button, { textAlign: 'center', color: chosen ? t.onBrand : blocked ? t.muted : t.text }]}>{talkDaysValue([day])}</Text>
         </View>
@@ -42,7 +46,7 @@ export function TalkDayChips({ picked, onPressDay }: { picked: readonly number[]
     );
   };
   return (
-    <View accessibilityLabel={TALK_DAYS_COPY.row} style={st.days}>
+    <View accessibilityLabel={TALK_DAYS_COPY.row} style={st.days} onLayout={(e) => setCellWidth((e.nativeEvent.layout.width - space(2) * 3) / 4)}>
       <View style={st.row}>{TALK_DAY_ORDER.slice(0, 4).map(chip)}</View>
       <View style={st.row}>
         {TALK_DAY_ORDER.slice(4).map(chip)}
@@ -60,6 +64,8 @@ function makeSt(t: B) {
     cell: { flex: 1 },
     // Grows with the words, so nothing clips at 320 or the largest text size.
     chip: { flexGrow: 1, minHeight: HIT, borderRadius: radius.field, paddingVertical: space(2), paddingHorizontal: space(1), alignItems: 'center', justifyContent: 'center', gap: space(0.5) },
-    chipHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: space(1) },
+    chipHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(1) },
+    // Set for the whole grid by chipsStack, never per chip.
+    chipHeadStacked: { flexDirection: 'column' },
   });
 }

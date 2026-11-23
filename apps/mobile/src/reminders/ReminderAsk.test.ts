@@ -365,13 +365,17 @@ describe('the ask, step 2: your talk days (T1.4, Direction A, founder 2026-11-19
     assert.match(source, /<Text accessibilityLiveRegion="polite" style=\{\[type\.small, st\.soft\]\}>\{talkDaysLine\(picked, limitTapped\)\}<\/Text>/);
   });
 
-  test('a chip row is one height, the head wraps, the words centre, and a chosen chip pops', () => {
+  test('a chip row is one height, every head stacks together, the words centre, and a chosen chip pops', () => {
     const chips = code('./TalkDayChips.tsx');
     const style = (name: string) => chips.match(new RegExp(`\\b${name}: \\{([^}]*)\\}`))?.[1] ?? '';
     // Press draws style on an inner view; the chip must fill its stretched cell.
     assert.match(style('chip'), /\bflex(Grow)?: 1\b/, 'a chip does not fill its cell, so a row is uneven');
     assert.match(style('chip'), /minHeight: HIT/, 'a chip lost its touch floor');
-    assert.match(style('chipHead'), /flexWrap: 'wrap'/, 'the tick and day cannot wrap at 320');
+    // One decision for the grid, from its measured width, not a wrap per chip.
+    assert.doesNotMatch(style('chipHead'), /flexWrap/, 'each chip wraps on its own, so one grid shows chosen two ways');
+    assert.match(chips, /const stack = chipsStack\(cellWidth, fontScale\);/, 'the head layout is not decided once for the grid');
+    assert.match(chips, /<View style=\{\[st\.chipHead, stack && st\.chipHeadStacked\]\}>/, 'a chip does not take the grid\'s head layout');
+    assert.match(chips, /<View accessibilityLabel=\{TALK_DAYS_COPY\.row\} style=\{st\.days\} onLayout=/, 'the grid is not measured');
     assert.match(style('chipHead'), /justifyContent: 'center'/);
     assert.match(chips, /<Text style=\{\[type\.button, \{ textAlign: 'center',/, 'the day is not centred');
     assert.match(chips, /<Text style=\{\[bType\.bold12, st\.soft, \{ textAlign: 'center' \}\]\}>\{reason\}/, 'the reason wraps left-aligned');
