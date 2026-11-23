@@ -365,6 +365,19 @@ describe('the ask, step 2: your talk days (T1.4, Direction A, founder 2026-11-19
     assert.match(source, /<Text accessibilityLiveRegion="polite" style=\{\[type\.small, st\.soft\]\}>\{talkDaysLine\(picked, limitTapped\)\}<\/Text>/);
   });
 
+  test('a chip row is one height, the head wraps, the words centre, and a chosen chip pops', () => {
+    const chips = code('./TalkDayChips.tsx');
+    const style = (name: string) => chips.match(new RegExp(`\\b${name}: \\{([^}]*)\\}`))?.[1] ?? '';
+    // Press draws style on an inner view; the chip must fill its stretched cell.
+    assert.match(style('chip'), /\bflex(Grow)?: 1\b/, 'a chip does not fill its cell, so a row is uneven');
+    assert.match(style('chip'), /minHeight: HIT/, 'a chip lost its touch floor');
+    assert.match(style('chipHead'), /flexWrap: 'wrap'/, 'the tick and day cannot wrap at 320');
+    assert.match(style('chipHead'), /justifyContent: 'center'/);
+    assert.match(chips, /<Text style=\{\[type\.button, \{ textAlign: 'center',/, 'the day is not centred');
+    assert.match(chips, /<Text style=\{\[bType\.bold12, st\.soft, \{ textAlign: 'center' \}\]\}>\{reason\}/, 'the reason wraps left-aligned');
+    assert.match(chips, /selected=\{chosen\}/, 'a chosen chip has no selection pop');
+  });
+
   test('Use these days is off with none picked; the step labels and the words are the spec\'s', () => {
     const source = ask() + code('./TalkDayChips.tsx');
     assert.match(source, /<PillButton label=\{TALK_DAYS_COPY\.use\} disabled=\{picked\.length === 0 \|\| saving\} onPress=\{onUse\} \/>/);

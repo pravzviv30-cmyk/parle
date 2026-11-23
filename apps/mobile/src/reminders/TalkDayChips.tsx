@@ -22,6 +22,7 @@ export function TalkDayChips({ picked, onPressDay }: { picked: readonly number[]
       <Press
         key={day}
         haptic="selection"
+        selected={chosen}
         frame={st.cell}
         style={[st.chip, { backgroundColor: chosen ? t.brandMark : blocked ? t.skeleton : t.quiet }]}
         accessibilityLabel={talkDayLabel(picked, day)}
@@ -34,9 +35,9 @@ export function TalkDayChips({ picked, onPressDay }: { picked: readonly number[]
       >
         <View style={st.chipHead}>
           {chosen ? <Icon name="check" size={16} color={t.onBrand} /> : null}
-          <Text style={[type.button, { color: chosen ? t.onBrand : blocked ? t.muted : t.text }]}>{talkDaysValue([day])}</Text>
+          <Text style={[type.button, { textAlign: 'center', color: chosen ? t.onBrand : blocked ? t.muted : t.text }]}>{talkDaysValue([day])}</Text>
         </View>
-        {reason !== null ? <Text style={[bType.bold12, st.soft]}>{reason}</Text> : null}
+        {reason !== null ? <Text style={[bType.bold12, st.soft, { textAlign: 'center' }]}>{reason}</Text> : null}
       </Press>
     );
   };
@@ -58,7 +59,7 @@ function makeSt(t: B) {
     row: { flexDirection: 'row', gap: space(2) },
     cell: { flex: 1 },
     // Grows with the words, so nothing clips at 320 or the largest text size.
-    chip: { minHeight: HIT, borderRadius: radius.field, paddingVertical: space(2), paddingHorizontal: space(1), alignItems: 'center', justifyContent: 'center', gap: space(0.5) },
-    chipHead: { flexDirection: 'row', alignItems: 'center', gap: space(1) },
+    chip: { flexGrow: 1, minHeight: HIT, borderRadius: radius.field, paddingVertical: space(2), paddingHorizontal: space(1), alignItems: 'center', justifyContent: 'center', gap: space(0.5) },
+    chipHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: space(1) },
   });
 }
