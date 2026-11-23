@@ -117,7 +117,7 @@ export const TIMELINES: Readonly<Record<TimelineId, Timeline>> = {
   'streak-carried': {
     id: 'streak-carried',
     beats: [
-      { t: 120, element: 'mark', transform: 'the mint disc grows in and the tick wipes on (check-draw)', motion: springOf('pop'), sound: 'streak', haptic: 'thump' },
+      { t: 120, element: 'mark', transform: 'the mint CheckDisc rises in, translateY 24 to 0', motion: springOf('pop'), sound: 'streak', haptic: 'thump' },
       { t: 420, element: 'words', transform: 'nothing moves', motion: cue, haptic: 'arrived' },
       { t: 600, element: 'lines', transform: 'StaggerIn, translateY 10 to 0', motion: timing('base') },
     ],

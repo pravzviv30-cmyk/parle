@@ -301,7 +301,7 @@ export function planBurst(events: readonly CelebrationEvent[], budget: number): 
     const last = playing[playing.length - 1]!;
     playing[playing.length - 1] = {
       ...last,
-      also: [...last.also, ...rest.flatMap((card) => card.shows)],
+      also: [...last.also, ...rest.flatMap((card) => [...card.shows, ...card.also])],
       covers: [...last.covers, ...rest.flatMap((card) => card.covers)],
     };
   }
