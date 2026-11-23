@@ -1532,6 +1532,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   exists as exactly two cards across the whole corpus ("pardon, vous pouvez répéter ?" in the
   café unit and "plus lentement, s'il vous plaît" in chemin), and repair is the most-used
   move a beginner has.
+- note: 2026-11-23, founder: "Trial in the hotel". The hotel's take-key beat asks the learner to say the floor back, and a missed number gets the usual rescue, so nobody is stranded. The other missions keep their numbers optional for now. The where line is stale: there are 20 missions now, from packages/core/src/missions/missions.ts:408. Built with wave 3 M4b (missions).
 - verified-by: `a learner is asked to understand a number at least once across the missions`
 
 ### F56 — Two hops of the mission pipe have no tripwire watching them
@@ -4302,6 +4303,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   zero ledger coverage. This is precisely the failure mode F235, F236, F243 and F254 were written to
   prevent, applied to one phase and skipped for the next. The roadmap rule should cover Phase 8 the
   way it covers Phase 7.
+- note: 2026-11-23: no founder question. This is an engineering pin: a Phase 8 row test beside the Phase 5 pin in services/token-server/src/verify/deliveryRoadmap.test.ts. It goes with wave 3 M1, which already carries the F1306 token-server change.
 - verified-by: `the roadmap's Phase 8 row matches the ledger's built state`
 
 ### F272 — The account export had never been run, and did not work the first time it was
@@ -8608,6 +8610,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   marketed the app does not actually gate. `capabilities.ts` is the one place that says what a plan
   opens; the plans page reads it and a test refuses any gate on packs, phrases, missions, drills or
   review.
+- note: 2026-11-23: no founder question is left. REV-002 and REV-003 (DECISIONS.md) settled what each plan opens. The plans page draws its rows from wall/wallCopy.ts (YOURS_ROWS, ADDS_ROWS), not from planInclusions, which only tests read, so the verified-by test checks an unused export. M1 either points the page at planInclusions or deletes it and re-points the test, then closes this.
 - verified-by: `each plan lists only what capabilities.ts opens, and nothing gates packs, phrases or missions`
 
 ### F565 — Custom rehearsal and arc continuation are open to every plan
@@ -9285,6 +9288,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [ ]
 - where: apps/mobile/src/auth/AuthFlow.tsx:39
 - note: After F633 the words are honest, but the refusal still lives in PreAccountOnboarding's own state, so "I have an account" then back starts the first run fresh in the same launch. If the founder wants it held, the in-memory shape is `const [refused, setRefused] = useState(false)` in AuthFlow, passed to PreAccountOnboarding as `refused`/`onRefuse` to seed its `useState(refused)`; the founder also decides whether SignIn's "Create one" is withheld while refused. Do not persist the refusal to the device without founder and legal approval: that stores new data about a minor with a retention period. Answered by the founder on 2026-09-30: firmer, and clear on refusal. The refusal holds for the whole launch, in memory only and never on the device, and it clears the saved first-run draft, first name included; a relaunch may ask again.
+- note: 2026-11-23: no founder question is left. The answered behaviour is built: App.tsx:720 keeps preAccountRefused in memory and passes it to AuthFlow, tested in onboarding/firstRun.test.ts:125 and :129. M2 confirms that SignIn's "Create one" is withheld while refused, then closes this.
 - verified-by: `authentication cannot undo a refusal or silently make its draft eligible`
 
 ### F638 — The under-13 refusal's words say closing the app starts the first run fresh, but a relaunch reopens the save page with the pill live
@@ -9328,6 +9332,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [ ]
 - where: apps/mobile/src/legal/policy.ts:214
 - note: found by the judge of the F637/F639 stage. policy.ts:135 says 'the app asks once' and :214 says 'The app asks once, in plain words, and takes the answer.' PRIVACY_AND_SAFETY.md:560 says 'Onboarding asks once'. Since the founder's 2026-09-30 decision, a relaunch after an under-13 answer before an account asks again, and the doc's Not true yet table says so. Proposed wording, which needs founder sign-off because it is legal copy: :135 'Your answer to the age question. It is a gate rather than a detail we file, and Luvani is for learners of thirteen and over.' :214 'Luvani is for learners of thirteen and over. The app asks in plain words and takes the answer.' Regenerate dist/privacy.html through html.ts, and change PRIVACY_AND_SAFETY.md:560 to match.
+- note: 2026-11-23: no founder question is left. Superseded by F831, now closed: legal/policy.ts no longer says the app asks once, and the verified-by test exists in legal/policy.test.ts. M2 checks that dist/privacy.html was regenerated, then closes this.
 - verified-by: `the privacy notice's age section does not promise the question is asked only once`
 
 ### F650 — Two lists still rule their own rows inside the new white list card, so they draw two hairlines between rows
@@ -11095,6 +11100,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: apps/mobile/src/conversationPacks/store.ts:186
 - note: Found 2026-10-20 in B3 (B-Practice). The artboard's "Works offline once unlocked" was checked against the code: `loadConversationPackForLearner` reads the server on a Supabase build and never falls back to the device's cached pack, so ConversationPractice says "This conversation isn't available here." offline even though Practice drew the conversation from the cache. The line is not drawn on Practice until this is true. Fix: fall back to the owned cached pack when the server cannot be reached (not on a 404, which means deleted).
+- note: 2026-11-23, founder: "Work offline". loadConversationPackForLearner falls back to the owned cached pack when the server cannot be reached, but not on a 404, which means deleted. Practice may then draw "Works offline once unlocked" (practice/practiceTabView.ts:16). Built with wave 3 M1 (conversationPacks).
 - verified-by: `conversation practice opens from the device cache when the server cannot be reached on Supabase builds`
 
 ### F856 — Speak calls the next scene on the path "Recommended" when nothing recommended it
@@ -11126,6 +11132,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: packages/core/src/quests/catalogue.ts:76
 - note: Found 2026-10-20 in B6. The stretch quest's title is "Earn {n} XP", drawn on Today's three. XP is the reward for practice, not the practice; a quest that names XP as the goal invites grinding the cheapest source. Reword as practice (a scene, a fix, minutes) with XP as the chip only. The catalogue is core's, so the change is core's.
+- note: 2026-11-23, founder: "Retire the XP quest". The `xp` stretch quest leaves the catalogue. The stretch slot keeps minutes, new-phrases, scene-on-own, sound-check and goal, and XP stays the reward chip. A day already holding the XP quest must still read and settle. quests.test.ts:191 pins the old title. Built with wave 3 M4b.
 - verified-by: `no quest title names XP as its goal`
 
 ### F860 — Saved conversation text opens without the conversation it came from
@@ -11133,6 +11140,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: apps/mobile/src/conversationPacks/SavedTextScreen.tsx:13
 - note: Found 2026-10-20 in B6. The Codex library port (B3) opens `SavedConversationText` as a list. Codex linked a library row to one conversation's saved text by `sessionId`; that param and link were not ported, so a learner who opens a conversation's text from Practice lands on the whole list. Add the optional `sessionId` route param and scroll or filter to it.
+- note: 2026-11-23, founder: "Open that conversation". SavedConversationText takes an optional sessionId (nav/types.ts:268) and opens on that conversation from ConversationsScreen.tsx:279 and PracticeTab.tsx:212. The full list stays one step back. Built with wave 3 M1 (conversationPacks).
 - verified-by: `a conversation's saved text opens on that conversation`
 
 ### F861 — Today's fix card copies the drill's exercise-picking rule
@@ -11195,6 +11203,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: apps/mobile/src/auth/installation.ts:11, services/token-server/src/guestSceneAdmission.ts
 - note: Found 2026-10-23 in the guest first scene review (UI-011). The 30-day scene marker is keyed on `x-luvani-installation`, a random UUID in AsyncStorage. A reinstall or cleared app data resets it, and any HTTP client can send a fresh one. The money limit is the daily ceiling, so this is a fairness gap, not a cost hole. Once the Apple Developer membership and Play Console exist, bind the scene claim to DeviceCheck bits on iOS (one per device, survives reinstall) and a Play Integrity verdict on Android. Then update the privacy labels for any new device signal.
+- note: 2026-11-23: already accepted as a courtesy limit by UI-011 (DECISIONS.md). The money limit is the daily ceiling of 24 scenes, about $12 a day at worst. This stays open and blocked until the Apple Developer membership and the Play Console exist. It is not a wave 3 item.
 - verified-by: `a second guest scene from the same attested device is refused after a reinstall`
 
 ### F869 — A signed-out guest live start fails before its token request

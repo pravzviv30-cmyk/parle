@@ -2703,3 +2703,25 @@ no second cleanup queue, motion state store or navigation owner was introduced.
 - Reason: the review's plan leaves to the founder anything a learner sees, hears,
   pays or has stored, and each of these was such a choice.
 - Consequence: recorded once, after the wave 2 merges (faster stages, 2026-11-19).
+
+## DEV-005 — Whole-code review, before wave 3: the founder's product answers
+
+- Date: 2026-11-23
+- Status: accepted (founder, in chat, the one sitting before wave 3)
+- Decision:
+  - **Numbers (F55): "Trial in the hotel".** The hotel's take-key beat asks the
+    learner to say the floor back. A missed number gets the usual rescue, so
+    nobody is stranded. Other missions keep their numbers optional for now.
+  - **The XP quest (F859): "Retire the XP quest".** "Earn {n} XP" leaves Today's
+    quests. The stretch slot keeps its other five, and XP stays the reward chip.
+  - **Saved text (F860): "Open that conversation".** Opening saved text from one
+    conversation opens that conversation, with the full list one step back.
+  - **Offline practice (F855): "Work offline".** Conversation practice opens from
+    the phone's copy when the server cannot be reached, but not when the
+    conversation was deleted. Practice may then say "Works offline once unlocked".
+- Reason: each is something a learner sees or does, which the review's plan leaves
+  to the founder.
+- Consequence: built in wave 3, F55 and F859 with M4b and F860 and F855 with M1.
+  The other five plan entries needed no founder call: F637 and F642 are built or
+  superseded and close in M2, F564 closes in M1, F271 is an engineering pin in M1,
+  and F868 stays accepted under UI-011 until the store accounts exist.
