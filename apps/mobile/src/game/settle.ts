@@ -80,6 +80,7 @@ import { loadActiveDays, loadActivity, recordActiveDay, type ActivityEntry, type
 import type { PersistAck } from '../storage/ack.ts';
 import { activeUserId, onUserScopeReset, scopeGeneration } from '../storage/scope.ts';
 import type { GameDelta, SittingSource } from './delta.ts';
+import { bankedNow, carriedNow, repairedNow } from './delta.ts';
 import { eventsFromDelta } from './events.ts';
 import { enqueueCelebrations, loadGameLocal, setLastPracticeOffset, setPaidSince, setProtectedSince, type GameLocal } from './gameLocal.ts';
 import { MAX_SITTING_ACTIVE_MS, isSittingSource, seenIn, type QuestClaimRow, type StoredGame } from './model.ts';
@@ -603,6 +604,8 @@ async function settleNow(token: SettleToken, sitting: SittingFacts): Promise<Gam
   const ids: readonly QuestId[] = after.quests.ids ?? [];
   const claimedNow = new Set(done.claims.map((claim) => claim.questId));
   const credit = creditedXp(sitting.source, earned, before.activity, done.facts.activity);
+  const extendedFirst = beforeView.streak.today === 'open' && after.streak.today === 'practised';
+  const repaired = repairedNow(done.covers, after.streak, beforeView.repair);
   const delta: GameDelta = {
     key: `sitting:${sitting.source}:${at}`,
     source: sitting.source,
@@ -626,9 +629,11 @@ async function settleNow(token: SettleToken, sitting: SittingFacts): Promise<Gam
     streak: {
       before: beforeView.streak,
       after: after.streak,
-      extendedNow: (beforeView.streak.today === 'open' && after.streak.today === 'practised') || restoredBy === 'repair',
+      extendedNow: extendedFirst || restoredBy === 'repair',
       milestone: milestoneCrossed(bridged.current, after.streak.current),
       restoredBy,
+      carried: carriedNow(beforeView.streak, after.streak, extendedFirst, repaired),
+      repaired,
     },
     quests: {
       completedNow: ids.filter((id) => claimedNow.has(id)),
@@ -641,6 +646,16 @@ async function settleNow(token: SettleToken, sitting: SittingFacts): Promise<Gam
     },
     level: { before: beforeView.level.level, after: after.level.level },
     badges: done.badges,
+    banked: bankedNow({
+      source: sitting.source,
+      at,
+      day: sittingDay,
+      beforeSittings: finishedSittings(before),
+      afterSittings: finishedSittings(done.facts),
+      beforeBanked: beforeView.freezeBanked,
+      afterBanked: after.freezeBanked,
+      afterBankDays: after.days.bankDays,
+    }),
   };
 
   // 5. The moments, queued on this phone and handed to the host. Nothing plays

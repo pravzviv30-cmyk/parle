@@ -28,6 +28,7 @@ export function eventsFromDelta(delta: GameDelta, origin: CelebrationOrigin, day
   const at = delta.at;
   const after = delta.streak.after;
 
+  const repaired = delta.streak.repaired;
   if (delta.streak.milestone !== null) {
     // A milestone replaces the same day's plain streak moment.
     if (after.runStart !== null) {
@@ -39,13 +40,24 @@ export function eventsFromDelta(delta: GameDelta, origin: CelebrationOrigin, day
         data: { day, current: after.current, lifetimeDays: after.lifetimeDays, milestone: delta.streak.milestone, runStart: after.runStart },
       });
     }
-  } else if (delta.streak.extendedNow && after.today === 'practised') {
+  }
+  if (repaired !== null && after.today === 'practised') {
+    // A kept repair has its own key. Beside a milestone the host folds it into
+    // the milestone card as "Your streak is back." (Board A moment 4).
+    out.push({
+      type: 'streak-extended',
+      key: celebrationKey.repair(repaired.day),
+      origin,
+      at,
+      data: { day, current: after.current, lifetimeDays: after.lifetimeDays, form: 'repaired', runBefore: repaired.runBefore },
+    });
+  } else if (delta.streak.milestone === null && delta.streak.extendedNow && after.today === 'practised') {
     out.push({
       type: 'streak-extended',
       key: celebrationKey.streak(day),
       origin,
       at,
-      data: { day, current: after.current, lifetimeDays: after.lifetimeDays },
+      data: { day, current: after.current, lifetimeDays: after.lifetimeDays, ...(delta.streak.carried ? { form: 'carried' as const } : {}) },
     });
   }
 

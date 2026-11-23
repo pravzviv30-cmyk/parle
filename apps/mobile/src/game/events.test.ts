@@ -54,10 +54,11 @@ function deltaFrom(random: () => number): GameDelta {
       totalAfter: 0,
     },
     goal: { target: 10, minutesBefore: 0, minutesAfter: 0, metNow: random() < 0.5 },
-    streak: { before, after, extendedNow: practisedAfter && !practisedBefore, milestone, restoredBy: null },
+    streak: { before, after, extendedNow: practisedAfter && !practisedBefore, milestone, restoredBy: null, carried: false, repaired: null },
     quests: { completedNow: [...completedNow], done, doneBefore: done - completedNow.length },
     level: { before: levelBefore, after: levelBefore + pick([0, 0, 1, 2]) },
     badges: random() < 0.4 ? pick([['streak-7'], ['first-conversation', 'level-10'], []]) : [],
+    banked: false,
   };
 }
 
@@ -109,6 +110,41 @@ describe('the moments a settled sitting may celebrate — F744', () => {
     assert.deepEqual(eventsFromDelta(nothing, 'account', DAY), []);
     // Finishing all three quests is not a takeover either: the end card says it in one quiet line (D22).
     assert.deepEqual(eventsFromDelta({ ...nothing, quests: { completedNow: ['finish-practice'], done: 3, doneBefore: 2 } }, 'account', DAY), []);
+  });
+});
+
+describe('Board A: a carried run and a repaired one (founder, 2026-11-19)', () => {
+  const base = deltaFrom(mulberry32(7));
+  const extended: GameDelta = {
+    ...base,
+    streak: { ...base.streak, before: streakOf(4, false), after: streakOf(5, true), extendedNow: true, milestone: null, restoredBy: null, carried: false, repaired: null },
+    level: { before: 2, after: 2 },
+    badges: [],
+  };
+
+  test('a carried run keeps the day key and says so; a plain one is unchanged', () => {
+    const carried = eventsFromDelta({ ...extended, streak: { ...extended.streak, carried: true } }, 'account', DAY);
+    assert.deepEqual(carried.map((e) => [e.key, e.data]), [[celebrationKey.streak(DAY), { day: DAY, current: 5, lifetimeDays: 5, form: 'carried' }]]);
+    const plain = eventsFromDelta(extended, 'account', DAY);
+    assert.deepEqual(plain.map((e) => [e.key, e.data]), [[celebrationKey.streak(DAY), { day: DAY, current: 5, lifetimeDays: 5 }]]);
+  });
+
+  test('a kept repair replaces the day\'s card with its own key and the promised number', () => {
+    const repaired = { day: addDays(DAY, -2), runBefore: 4 };
+    const events = eventsFromDelta({ ...extended, streak: { ...extended.streak, repaired } }, 'account', DAY);
+    assert.deepEqual(events.map((e) => [e.type, e.key, e.data]), [
+      ['streak-extended', `repair:${repaired.day}`, { day: DAY, current: 5, lifetimeDays: 5, form: 'repaired', runBefore: 4 }],
+    ]);
+  });
+
+  test('a repair and a milestone in one settle publish both, so the milestone card can carry the repair as a row', () => {
+    const repaired = { day: addDays(DAY, -2), runBefore: 6 };
+    const after = streakOf(7, true);
+    const events = eventsFromDelta({ ...extended, streak: { ...extended.streak, after, milestone: 7, repaired } }, 'account', DAY);
+    assert.deepEqual(events.map((e) => [e.type, e.key]), [
+      ['streak-milestone', celebrationKey.milestone(7, after.runStart!)],
+      ['streak-extended', `repair:${repaired.day}`],
+    ]);
   });
 });
 

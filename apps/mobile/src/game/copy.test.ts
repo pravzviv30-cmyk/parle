@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { GAME_COPY } from './copy.ts';
-import { streakGuiltIn } from '../copy/guilt.ts';
+import { guiltIn, streakGuiltIn } from '../copy/guilt.ts';
 
 /** Every string the game layer can say, with the numbers filled in at their edges. */
 function everyLine(): string[] {
@@ -75,6 +75,15 @@ function everyLine(): string[] {
     c.progress.nextUp,
     c.progress.earnedOn('3 October 2026'),
     c.progress.countedFromSaved,
+    // Board A (founder, 2026-11-19).
+    c.streak.carried(2),
+    c.streak.carried(13),
+    c.streak.back(1),
+    c.streak.back(12),
+    c.nudge.coveredDay('yesterday'),
+    c.nudge.coveredDay('Tuesday'),
+    c.nudge.coveredDays(2),
+    c.endCard.banked,
   ];
   return lines;
 }
@@ -87,6 +96,16 @@ describe('game copy — what the streak, goal, quests and badges say', () => {
       assert.doesNotMatch(line, /\bin a row\b/i, `"${line}" claims days in a row, but covered days bridge a run (F741)`);
       assert.doesNotMatch(line, /[!]/, `"${line}" shouts`);
     }
+  });
+
+  test('Board A lines say exactly what the founder approved, and pass both guilt lists', () => {
+    assert.equal(GAME_COPY.streak.carried(13), '13 days of French.');
+    assert.equal(GAME_COPY.streak.back(12), 'Your 12-day streak is back.');
+    assert.equal(GAME_COPY.nudge.coveredDay('yesterday'), 'A freeze covered yesterday.');
+    assert.equal(GAME_COPY.nudge.coveredDay('Tuesday'), 'A freeze covered Tuesday.');
+    assert.equal(GAME_COPY.nudge.coveredDays(3), 'Freezes covered 3 days.');
+    assert.equal(GAME_COPY.endCard.banked, 'One freeze banked');
+    for (const line of everyLine()) assert.equal(guiltIn(line), undefined, `"${line}" says "${guiltIn(line) ?? ''}"`);
   });
 
   test('a level is a number and never a rank name', () => {

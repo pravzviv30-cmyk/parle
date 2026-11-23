@@ -23,10 +23,11 @@ function delta(change: { xp?: Partial<GameDelta['xp']>; goal?: Partial<GameDelta
     activeMs: 540_000,
     xp: { earned: 24, counted: 24, capped: false, bonus: 0, questXp: 0, totalBefore: 100, totalAfter: 124, ...change.xp },
     goal: { target: 10, minutesBefore: 3, minutesAfter: 12, metNow: true, ...change.goal },
-    streak: { before: RUN, after: { ...RUN, current: change.current ?? RUN.current }, extendedNow: false, milestone: null, restoredBy: null },
+    streak: { before: RUN, after: { ...RUN, current: change.current ?? RUN.current }, extendedNow: false, milestone: null, restoredBy: null, carried: false, repaired: null },
     quests: { completedNow: [], done: 0, doneBefore: 0 },
     level: { before: 3, after: 3 },
     badges: [],
+    banked: false,
   };
 }
 

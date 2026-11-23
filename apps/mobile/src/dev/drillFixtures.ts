@@ -152,10 +152,11 @@ export const END_DELTA: GameDelta = {
   activeMs: 4 * 60 * 1000,
   xp: { earned: 24, counted: 24, capped: false, bonus: 0, questXp: 0, totalBefore: 116, totalAfter: 140 },
   goal: { target: 10, minutesBefore: 4, minutesAfter: 8, metNow: false },
-  streak: { before: streak(2, 'open'), after: streak(3, 'practised'), extendedNow: true, milestone: null, restoredBy: null },
+  streak: { before: streak(2, 'open'), after: streak(3, 'practised'), extendedNow: true, milestone: null, restoredBy: null, carried: false, repaired: null },
   quests: { completedNow: [], done: 1, doneBefore: 1 },
   level: { before: 2, after: 2 },
   badges: [],
+  banked: false,
 };
 
 /** The same delta for a review sitting. */

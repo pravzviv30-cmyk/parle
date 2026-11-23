@@ -237,6 +237,12 @@ describe('the game facts merge — F729', () => {
     // D22: the streak is the only day-scoped kind; the retired chest kind is not day-scoped and is refused.
     assert.equal(isDaySeenKey('streak:2026-10-05'), true);
     assert.equal(isDaySeenKey('chest:2026-10-05'), false);
+    // Board A (2026-11-19): a kept repair and a freeze-covered note are day-scoped too, each keyed by a real day.
+    assert.equal(isDaySeenKey('repair:2026-10-05'), true);
+    assert.equal(isDaySeenKey('covered:2026-10-05'), true);
+    assert.equal(isSeenKey('repair:2026-10-05'), true);
+    assert.equal(isSeenKey('covered:2026-10-05'), true);
+    assert.equal(isSeenKey('covered:yesterday'), false);
     for (const key of ['milestone:100:2026-10-05', 'level:5', 'badge:streak-7', 'purchase:2000000123456789', 'quest:2026-10-05:xp']) {
       assert.equal(isDaySeenKey(key), false, `${key} was treated as day-scoped`);
       assert.equal(seenDay(key), null);

@@ -400,3 +400,11 @@ describe('free earn-back and the banked freeze on the Streak screen', () => {
     assert.equal(spent.freezes?.returns, 'Your freeze is in use. It comes back on Monday 12 October.');
   });
 });
+
+describe('the Streak screen draws the one freeze mark (T3.1)', () => {
+  const parts = readFileSync(new URL('./StreakParts.tsx', import.meta.url), 'utf8');
+  test('it imports FreezeMark from the game art and keeps no outlined snowflake of its own', () => {
+    assert.match(parts, /import \{ FreezeMark \} from '\.\/art\/FreezeMark\.tsx';/);
+    assert.doesNotMatch(parts, /Snowflake|stroke=/);
+  });
+});

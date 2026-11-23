@@ -36,7 +36,7 @@ export interface HomeDrawn<M> {
 const inFront = (state: AppStateStatus | null | undefined): boolean => state !== 'background' && state !== 'inactive';
 
 /** True once the learner can see Home's numbers and that has held for `DRAW_SETTLE_MS`. */
-function useDrawGate(): boolean {
+export function useDrawGate(): boolean {
   const focused = useIsFocused();
   const [active, setActive] = useState(() => inFront(AppState.currentState));
   const [held, setHeld] = useState(() => celebrationsHeld());

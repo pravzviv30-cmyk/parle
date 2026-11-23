@@ -4,13 +4,12 @@
  *
  * Pure presentation: every word and every day's state arrives from
  * `streakScreenView.ts` and `streakNudge.ts`, and every colour is a `useB()`
- * token. The snowflake is the artboard's own path. Marks (circles, rings, the
+ * token. The freeze is the game art's `FreezeMark`. Marks (circles, rings, the
  * bar) are decoration: each cell's spoken label says what the day was.
  */
 
 import type { ReactNode } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 
 import { BArt } from '../art/BArt.tsx';
 import { LockBadge, Press } from '../components.tsx';
@@ -21,6 +20,8 @@ import { Icon } from '../icons/Icon.tsx';
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 import { tapSettled } from '../motion/haptics.ts';
 import { HIT, bType, decorative, paper, type, corner, radius } from '../theme.ts';
+import { FreezeMark } from './art/FreezeMark.tsx';
+import { freezeGround } from './freezeGround.ts';
 import { RepairMark } from './art/RepairMark.tsx';
 import { monthWeeks, type DayCellView, type MonthView } from './streakScreenView.ts';
 
@@ -28,15 +29,6 @@ import { monthWeeks, type DayCellView, type MonthView } from './streakScreenView
 const STREAK_REPAIR_PLAN = 'starter' as const;
 
 const CIRCLE = 36;
-
-/** The artboard's snowflake (stroke 2). */
-export function Snowflake({ size, color }: { size: number; color: string }) {
-  return (
-    <Svg {...decorative} width={size} height={size} viewBox="0 0 24 24">
-      <Path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6M9.5 4.5L12 7l2.5-2.5M9.5 19.5L12 17l2.5 2.5" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
 
 /** The week strip's white card: seven circles over their letters. */
 export function WeekStrip({ week }: { week: readonly DayCellView[] }) {
@@ -64,7 +56,7 @@ function DayCircle({ cell }: { cell: DayCellView }) {
   if (cell.state === 'covered') {
     return (
       <View {...decorative} style={[s.circle, { backgroundColor: t.lavender }]}>
-        {cell.cover === 'repair' ? <RepairMark size={22} /> : cell.cover === 'travel' ? <Icon name="trip" variant="bulk" size={18} color={t.link} /> : <Snowflake size={18} color={t.link} />}
+        {cell.cover === 'repair' ? <RepairMark size={22} /> : cell.cover === 'travel' ? <Icon name="trip" variant="bulk" size={18} color={t.link} /> : <FreezeMark size={18} ground={freezeGround(t.mode)} />}
       </View>
     );
   }
@@ -72,14 +64,14 @@ function DayCircle({ cell }: { cell: DayCellView }) {
   return <View {...decorative} style={[s.circle, { backgroundColor: t.inset }]} />;
 }
 
-/** The freeze card: the snowflake disc, the title and its line, the paragraph, and the trial pill's footer. */
+/** The freeze card: the freeze disc, the title and its line, the paragraph, and the trial pill's footer. */
 export function FreezeCard({ title, sub, line, returns, upsell, onUpsell }: { title: string; sub: string; line: string; returns: string | null; upsell: string | null; onUpsell: () => void }) {
   const t = useB();
   const s = useThemedStyles(makeStyles);
   return (
     <View style={s.freeze}>
       <View style={s.freezeHead}>
-        <View {...decorative} style={s.freezeDisc}><Snowflake size={28} color={t.link} /></View>
+        <View {...decorative} style={s.freezeDisc}><FreezeMark size={28} ground={freezeGround(t.mode)} /></View>
         <View style={s.grow}>
           <Text accessibilityRole="header" style={[bType.bold18, { color: t.text }]}>{title}</Text>
           <Text style={[bType.meta, { color: t.muted }]}>{sub}</Text>

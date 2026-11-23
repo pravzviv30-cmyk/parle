@@ -45,6 +45,7 @@ import { addClaims, addCovers, loadGame, setQuestDay } from './store.ts';
 import { NO_OUTSIDE_FACTS, badgeFactsFrom, finishedSittings, gameViewFrom, type BillingFacts } from './view.ts';
 import { LOCAL_CALENDAR, emptyLog, freezeProtectionOf, planReminders } from '../reminders/plan.ts';
 import { STREAK_SAVE_LINES } from '../reminders/reminder.ts';
+import { seedCanvasLearner } from '../dev/canvasLearner.ts';
 
 function installDisk(): Map<string, string> {
   const map = new Map<string, string>();
@@ -601,6 +602,8 @@ describe('settling a finished sitting, after review — F744', () => {
     assert.equal(frozen.streak.after.current, 11);
     assert.equal(frozen.streak.milestone, null, 'a freeze replayed the 7 the run passed last week');
     assert.deepEqual(streakMoments().map((e) => e.key), [`streak:${TODAY}`], 'today\'s streak moment was lost to an old milestone');
+    assert.equal(frozen.streak.carried, true, 'a run the freeze carried was not said as carried (Board A moment 2)');
+    assert.equal((streakMoments()[0]!.data as { form?: string }).form, 'carried');
 
     // A repair. Ten days ending three days ago, two days ago missed, yesterday
     // practised: the missed day sits behind a new run, where no freeze reaches,
@@ -617,7 +620,11 @@ describe('settling a finished sitting, after review — F744', () => {
     assert.equal(repaired.streak.restoredBy, 'repair');
     assert.equal(repaired.streak.after.current, 12);
     assert.equal(repaired.streak.milestone, null, 'a repair replayed the 7 the run passed days ago');
-    assert.deepEqual(streakMoments().map((e) => e.key), [`streak:${TODAY}`]);
+    // Board A moment 4: a kept repair takes its own key and the promised number, and is never also "carried".
+    assert.deepEqual(repaired.streak.repaired, { day: addDays(TODAY, -2), runBefore: 10 });
+    assert.equal(repaired.streak.carried, false);
+    assert.deepEqual(streakMoments().map((e) => e.key), [`repair:${addDays(TODAY, -2)}`]);
+    assert.deepEqual(streakMoments()[0]!.data, { day: TODAY, current: 12, lifetimeDays: 12, form: 'repaired', runBefore: 10 });
   });
 
   test('a sitting after more than four hundred days of practice is credited every XP it earned', async () => {
@@ -953,6 +960,103 @@ describe('F918 minutes', () => {
     seen = await surfaces();
     assert.deepEqual(seen.goal, { number: '5', of: '/5', label: 'minutes' });
     assert.equal(seen.journey.value, '5');
+  });
+});
+
+describe('Board A moments from a real settle (founder, 2026-11-19)', () => {
+  const paid: BillingFacts = { plan: 'regular', lapsed: false, secondsRemaining: 1200, canStart: true };
+
+  test('a freeze the quiet catch-up wrote still makes the run carried, though this settle wrote no cover', async () => {
+    pin({ billing: () => paid });
+    for (let n = 6; n >= 2; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.equal(await addCovers([{ day: addDays(TODAY, -1), kind: 'freeze', at: NOW - 2 * HOUR }]), 'durable');
+    assert.ok(await seedExistingLearner());
+    heard = [];
+    const delta = await drill(NOW, 10);
+    assert.ok(delta);
+    assert.equal(delta.streak.restoredBy, null, 'the fixture wrote the freeze in this settle');
+    assert.equal(delta.streak.carried, true);
+    assert.deepEqual(streakMoments().map((e) => [e.key, (e.data as { form?: string }).form]), [[`streak:${TODAY}`, 'carried']]);
+  });
+
+  test('a run with no cover since the last practice is a plain extension', async () => {
+    pin({ billing: () => paid });
+    for (let n = 6; n >= 1; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    heard = [];
+    const delta = await drill(NOW, 10);
+    assert.ok(delta);
+    assert.equal(delta.streak.carried, false);
+    assert.equal(delta.streak.repaired, null);
+    assert.equal(delta.banked, false, 'the day\'s first sitting banked a freeze');
+    assert.equal('form' in streakMoments()[0]!.data, false, 'a plain extension changed its card');
+  });
+
+  test('the second sitting of a day banks a freeze, read back from disk, and the third does not', async () => {
+    pin({ billing: () => paid });
+    for (let n = 3; n >= 1; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    const first = await drill(NOW - 2 * HOUR, 10);
+    assert.ok(first);
+    assert.equal(first.banked, false);
+    const second = await drill(NOW - HOUR, 10);
+    assert.ok(second);
+    assert.equal(second.banked, true, 'the sitting that banked a freeze was not told');
+    assert.equal(endCardView(second).banked, GAME_COPY.endCard.banked);
+    const third = await drill(NOW, 10);
+    assert.ok(third);
+    assert.equal(third.banked, false, 'a later sitting claimed the bank again');
+  });
+});
+
+describe('Board A moment 5, a bank already full', () => {
+  test('an earlier day banked and not spent: today\'s second sitting banks nothing new', async () => {
+    pin({ billing: () => ({ plan: 'regular', lapsed: false, secondsRemaining: 1200, canStart: true }) });
+    for (let n = 3; n >= 2; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    assert.equal(await recordActivity('drill', 10, NOW - DAY - HOUR, { finished: true }), 'durable');
+    assert.equal(await recordActivity('drill', 10, NOW - DAY, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    const first = await drill(NOW - HOUR, 10);
+    assert.ok(first);
+    assert.equal(first.banked, false);
+    const second = await drill(NOW, 10);
+    assert.ok(second);
+    assert.equal(second.banked, false, 'a full bank was said as newly banked');
+  });
+});
+
+describe('Board A moment 5 on the free plan, the push-check repro (2026-11-19)', () => {
+  test('a review that is the day\'s second practice banks the free learner\'s freeze and says so', async () => {
+    const FREE: BillingFacts = { plan: 'trial', lapsed: false, secondsRemaining: 0, canStart: false };
+    pin({ billing: () => FREE });
+    for (let n = 3; n >= 1; n -= 1) assert.equal(await recordActivity('drill', 10, NOW - n * DAY, { finished: true }), 'durable');
+    // One practice already today, in the activity log.
+    assert.equal(await recordActivity('drill', 10, NOW - 2 * HOUR, { finished: true }), 'durable');
+    assert.ok(await seedExistingLearner());
+    const before = gameViewFrom(await readGameFacts(NO_OUTSIDE_FACTS, FREE), TODAY);
+    assert.equal(before.freezeBanked, false);
+    const at = NOW - MINUTE;
+    const delta = await settleSitting({ source: 'review', at, xpEarned: 5, activeMs: MINUTE, write: () => recordActivity('review', 5, at, { activeMs: MINUTE, finished: true }) });
+    assert.ok(delta);
+    assert.equal(gameViewFrom(await readGameFacts(NO_OUTSIDE_FACTS, FREE), TODAY).freezeBanked, true, 'the fixture did not bank');
+    assert.equal(delta.banked, true, 'the sitting that banked the freeze was not told');
+  });
+
+  test('the canvas learner on the free plan: a finished review after her one practice today says "One freeze banked"', async () => {
+    const FREE: BillingFacts = { plan: 'trial', lapsed: false, secondsRemaining: 0, canStart: false };
+    pin({ billing: () => FREE });
+    const ON = { NODE_ENV: 'development', EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT: '1', EXPO_PUBLIC_LUVANI_CANVAS_LEARNER: '1' };
+    assert.deepEqual(await seedCanvasLearner({ id: uid }, { kind: 'mock' }, NOW - 10 * MINUTE, ON), { ok: true });
+    assert.ok(await seedExistingLearner());
+    const view = gameViewFrom(await readGameFacts(NO_OUTSIDE_FACTS, FREE), TODAY);
+    assert.equal(view.quests.facts.finished, 1, 'the seed is not one practice today');
+    assert.equal(view.freezeBanked, false);
+    const at = NOW - MINUTE;
+    const delta = await settleSitting({ source: 'review', at, xpEarned: 5, activeMs: MINUTE, write: () => recordActivity('review', 5, at, { activeMs: MINUTE, finished: true }) });
+    assert.ok(delta);
+    assert.equal(gameViewFrom(await readGameFacts(NO_OUTSIDE_FACTS, FREE), TODAY).freezeBanked, true, 'the fixture did not bank');
+    assert.equal(delta.banked, true, 'the sitting that banked the freeze was not told');
+    assert.equal(endCardView(delta, { count: 5 }).banked, GAME_COPY.endCard.banked);
   });
 });
 

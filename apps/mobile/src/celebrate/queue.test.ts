@@ -714,3 +714,23 @@ describe('the celebration queue — F743', () => {
     release();
   });
 });
+
+describe('a repaired streak card needs its number', () => {
+  test('no whole runBefore is not showable; runBefore 12 is', () => {
+    const repaired = (runBefore?: number): CelebrationEvent => ({ type: 'streak-extended', key: celebrationKey.streak(DAY), origin: 'account', at: AT, data: { day: DAY, current: 13, lifetimeDays: 20, form: 'repaired', ...(runBefore === undefined ? {} : { runBefore }) } } as CelebrationEvent);
+    assert.equal(isShowable(repaired()), false, 'runBefore missing');
+    assert.equal(isShowable(repaired(0)), false, 'runBefore 0');
+    assert.equal(isShowable(repaired(12)), true);
+  });
+});
+
+describe('a repair folded with its milestone keeps its row (code review 2026-11-23)', () => {
+  test('past the budget, the milestone card folds into rows with "Your streak is back." still among them', () => {
+    const repair: CelebrationEvent = { type: 'streak-extended', key: celebrationKey.repair('2026-10-05'), origin: 'account', at: AT, data: { day: DAY, current: 7, lifetimeDays: 40, form: 'repaired', runBefore: 6 } };
+    const cards = planBurst([purchase('t-1'), milestone(7, DAY), repair], 1);
+    assert.equal(cards.length, 1);
+    assert.equal(cards[0]!.type, 'purchase-confirmed');
+    assert.ok(cards[0]!.also.some((event) => event.key === repair.key), 'the repair row was dropped when its milestone card folded');
+    assert.ok(cards[0]!.covers.some((event) => event.key === repair.key));
+  });
+});

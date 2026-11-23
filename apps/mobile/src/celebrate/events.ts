@@ -65,6 +65,14 @@ export interface StreakData {
   readonly current: number;
   /** Practice days in all. Always shown beside the run, and never falls (D2). */
   readonly lifetimeDays: number;
+  /**
+   * Board A (2026-11-19): 'carried' when a freeze covered a day since the last
+   * practice (key `streak:<day>`), 'repaired' for a kept repair (key
+   * `repair:<coverDay>`, with `runBefore`). Absent on a plain extension.
+   */
+  readonly form?: 'carried' | 'repaired';
+  /** The run the Streak screen promised to bring back; only with form 'repaired'. */
+  readonly runBefore?: number;
 }
 
 export interface StreakMilestoneData extends StreakData {
@@ -107,6 +115,9 @@ export type CelebrationEvent =
 export const celebrationKey = {
   purchase: (transactionId: string): string => `purchase:${transactionId}`,
   streak: (day: DayKey): string => `streak:${day}`,
+  repair: (coverDay: DayKey): string => `repair:${coverDay}`,
+  /** Today's freeze-covered line, not a takeover; never in `currentMomentKeys`, or the catch-up would mark it seen unshown. */
+  covered: (day: DayKey): string => `covered:${day}`,
   milestone: (milestone: number, runStart: DayKey): string => `milestone:${milestone}:${runStart}`,
   level: (level: number): string => `level:${level}`,
   badge: (id: string): string => `badge:${id}`,

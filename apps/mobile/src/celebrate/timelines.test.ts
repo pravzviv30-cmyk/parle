@@ -16,7 +16,7 @@ import { CELEBRATION_MAX_MS } from '../motion/tokens.ts';
 import { SFX_APPROVED, SFX_IDS } from '../sound/sfxManifest.ts';
 import type { SfxId } from '../sound/sfxIds.ts';
 import { TAKEOVER_ORDER } from './events.ts';
-import { TIMELINES, beatAt, beatEffects, beatSpan, beatTimes, playsStill, springSettleMs, stillEffects, type HapticCue, type TimelineId } from './timelines.ts';
+import { TIMELINES, beatAt, beatEffects, beatSpan, beatTimes, playsStill, springSettleMs, stillEffects, takeoverTimeline, type HapticCue, type TimelineId } from './timelines.ts';
 
 const ALL = Object.values(TIMELINES);
 const HELD = [
@@ -128,7 +128,6 @@ describe('celebration timelines — F743', () => {
       ...[...body.matchAll(/beatAt\((?:TIMELINE|timeline|TIMELINES\['[a-z-]+'\]), '([a-z-]+)'\)/g)].map((m) => m[1]!),
     ];
     const templates: [TimelineId, string][] = [
-      ['streak-extended', './templates/StreakExtended.tsx'],
       ['streak-milestone', './templates/StreakMilestone.tsx'],
       ['level-up', './templates/LevelUp.tsx'],
       ['badge-earned', './templates/BadgeEarned.tsx'],
@@ -140,7 +139,24 @@ describe('celebration timelines — F743', () => {
     for (const [id, path] of templates) {
       const elements = asked(read(path));
       assert.ok(elements.length > 0, `${path} waits for no beat, so this check reads nothing`);
-      for (const element of elements) assert.doesNotThrow(() => beatAt(TIMELINES[id], element), `${path} waits for "${element}", which ${id} has no beat for`);
+      for (const element of elements) beatAt(TIMELINES[id], element);
+    }
+    // StreakExtended draws three forms, each on its own timeline: every form's elements need a beat in that form's.
+    const streak = read('./templates/StreakExtended.tsx');
+    const branch = (mark: string): string => {
+      const at = streak.indexOf(`if (view.mark === '${mark}') {`);
+      assert.notEqual(at, -1, `StreakExtended no longer has its ${mark} form`);
+      return streak.slice(at, streak.indexOf('\n  }\n', at));
+    };
+    const forms: [TimelineId, string][] = [
+      ['streak-carried', branch('tick')],
+      ['streak-repaired', branch('repair')],
+      ['streak-extended', streak.replace(branch('tick'), '').replace(branch('repair'), '')],
+    ];
+    for (const [id, body] of forms) {
+      const elements = asked(body);
+      assert.ok(elements.length > 0, `StreakExtended's ${id} form waits for no beat, so this check reads nothing`);
+      for (const element of elements) assert.ok(TIMELINES[id].beats.some((beat) => beat.element === element), `StreakExtended's ${id} form waits for "${element}", which ${id} has no beat for`);
     }
     // The frame's words: every takeover's lines, a streak's number, a level's new title.
     const frame = read('./Takeover.tsx');
@@ -149,5 +165,41 @@ describe('celebration timelines — F743', () => {
     beatAt(TIMELINES['streak-extended'], 'number');
     beatAt(TIMELINES['streak-milestone'], 'number');
     beatAt(TIMELINES['level-up'], 'title');
+  });
+
+  test('a run a freeze carried and a kept repair play their own quiet beats (Board A)', () => {
+    // The card's mark picks the timeline; every other card keeps its own type's.
+    assert.equal(takeoverTimeline({ timeline: 'streak-extended', mark: 'tick' }), 'streak-carried');
+    assert.equal(takeoverTimeline({ timeline: 'streak-extended', mark: 'repair' }), 'streak-repaired');
+    assert.equal(takeoverTimeline({ timeline: 'streak-extended', mark: null }), 'streak-extended');
+    assert.equal(takeoverTimeline({ timeline: 'streak-milestone', mark: null }), 'streak-milestone');
+    for (const id of ['streak-carried', 'streak-repaired'] as const) {
+      const timeline = TIMELINES[id];
+      assert.ok(timeline.end <= CELEBRATION_MAX_MS, `${id} runs past ${CELEBRATION_MAX_MS} ms`);
+      // The existing streak sound and haptics, kept; shown still, the same sound and thump.
+      assert.deepEqual(cues(id).sounds, ['streak']);
+      assert.deepEqual(cues(id).haptics, ['thump', 'arrived']);
+      assert.deepEqual(timeline.still, { sound: 'streak', haptic: 'thump' });
+      // No flame, no sparks, no hero number: the mark and the words only.
+      const elements = timeline.beats.map((beat) => beat.element);
+      for (const gone of ['flame', 'sparks', 'number', 'label', 'burst']) assert.ok(!elements.includes(gone), `${id} still has a ${gone} beat`);
+      beatAt(timeline, 'mark');
+      beatAt(timeline, 'lines');
+      // The mark turns on after the first frame, so the check draws instead of mounting already on.
+      assert.ok(beatAt(timeline, 'mark') > 0);
+    }
+    const frame = read('./Takeover.tsx');
+    assert.match(frame, /const timeline = TIMELINES\[takeoverTimeline\(view\)\];/, 'the frame plays the card type, not its form');
+    const stage = read('./templates/StreakExtended.tsx');
+    // The carried form: the ink tick on a mint disc (CheckDisc), rising in on its beat; the repaired form: RepairMark on a white tile.
+    assert.match(stage, /view\.mark === 'tick'/);
+    assert.match(stage, /view\.mark === 'repair'/);
+    assert.match(stage, /<CheckDisc size=\{DISC\} fill=\{colour\.mint\} tick=\{textOn\.mint\} \/>/);
+    assert.match(stage, /<RepairMark /);
+    assert.match(stage, /backgroundColor: paper\.card/);
+    // Flame and confetti only on the plain extension, after both forms have returned.
+    const plain = stage.slice(stage.lastIndexOf("view.mark === 'repair'"));
+    assert.ok(plain.includes('<Flame') && plain.includes('<Confetti'));
+    assert.ok(!stage.slice(0, stage.lastIndexOf("view.mark === 'repair'")).includes('<Flame'));
   });
 });

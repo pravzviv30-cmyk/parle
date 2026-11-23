@@ -303,7 +303,9 @@ export function isBonusKey(value: unknown): value is string {
  * This is the one rule; `celebrate/events.ts` re-exports it as `isDaySeenKey`
  * and `SEEN_DAY_KEPT_DAYS`.
  */
-export const DAY_SEEN_KINDS = ['streak'] as const;
+// `repair:<coverDay>` (a kept repair's takeover) and `covered:<day>` (Today's
+// freeze-covered line, never in `currentMomentKeys`) joined on 2026-11-19 (Board A).
+export const DAY_SEEN_KINDS = ['streak', 'repair', 'covered'] as const;
 
 /**
  * Kinds no build writes any more, refused by the reader like any other row it

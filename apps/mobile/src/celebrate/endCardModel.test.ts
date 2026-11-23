@@ -23,6 +23,7 @@ function delta(change: {
   xp?: Partial<GameDelta['xp']>;
   goal?: Partial<GameDelta['goal']>;
   quests?: Partial<GameDelta['quests']>;
+  banked?: boolean;
 } = {}): GameDelta {
   const completedNow = change.quests?.completedNow ?? [];
   const done = change.quests?.done ?? 0;
@@ -33,13 +34,21 @@ function delta(change: {
     activeMs: change.activeMs === undefined ? 312_000 : change.activeMs,
     xp: { earned: 30, counted: 30, capped: false, bonus: 0, questXp: 0, totalBefore: 100, totalAfter: 130, ...change.xp },
     goal: { target: 10, minutesBefore: 4, minutesAfter: 9, metNow: false, ...change.goal },
-    streak: { before: RUN, after: RUN, extendedNow: false, milestone: null, restoredBy: null },
+    streak: { before: RUN, after: RUN, extendedNow: false, milestone: null, restoredBy: null, carried: false, repaired: null },
     // Unless a test says otherwise, the day stood at what this sitting's own quests added to.
     quests: { completedNow, done, doneBefore: Math.max(0, done - completedNow.length), ...change.quests },
     level: { before: 3, after: 3 },
     badges: [],
+    banked: change.banked ?? false,
   };
 }
+
+describe('Board A: a freeze banked on the ending (founder, 2026-11-19)', () => {
+  test('the banked row shows only when settle read the bank back for this sitting', () => {
+    assert.equal(endCardView(delta({ banked: true })).banked, 'One freeze banked');
+    assert.equal(endCardView(delta()).banked, null, 'a bank was claimed the delta never read back');
+  });
+});
 
 describe('the end card — F743', () => {
   test('an end card shows a tile only when its number exists', () => {

@@ -7,10 +7,10 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { streakFrom } from '@luvani/core';
+import { addDays, streakFrom } from '@luvani/core';
 
 import { guiltIn, streakGuiltIn } from '../copy/guilt.ts';
-import { homeNudge } from './nudge.ts';
+import { homeNudge, todayNudge } from './nudge.ts';
 
 const TODAY = '2026-10-07';
 const daysBefore = (n: number): string[] =>
@@ -60,8 +60,46 @@ describe("Home's nudge line — F767", () => {
     // UI-015: TodayStats.tsx reads it (as TodayHero.tsx did) and the sky draws
     // it under the tiles, and only when there is one, in onBrand on the sky.
     const hero = readFileSync(new URL('../game/TodayStats.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
-    assert.match(hero, /const nudge = homeNudge\(run\);/);
+    assert.match(hero, /const \{ nudge, ask \} = nudgeSlot\(run, today, known\);/);
     const sky = readFileSync(new URL('./SkyBand.tsx', import.meta.url), 'utf8').replace(/\s+/g, ' ');
-    assert.match(sky, /\{nudge !== null \? <Text style=\{\[type\.body, \{ color: t\.onBrand \}\]\}>\{nudge\}<\/Text> : null\}/);
+    assert.match(sky, /<Text style=\{\[type\.body, s\.grow, \{ color: t\.onBrand \}\]\}>\{nudge\}<\/Text>/);
+  });
+});
+
+describe("Board A: a freeze covered a day, in Today's nudge slot (founder, 2026-11-19)", () => {
+  const before = (n: number): string => addDays(TODAY, -n);
+  const never = (): boolean => false;
+  const freeze = (n: number) => ({ day: before(n), kind: 'freeze' as const, at: 1 });
+
+  test('one covered day is yesterday or its weekday, with the freeze mark and its own seen key', () => {
+    const yesterday = streakFrom({ practiceDays: [before(4), before(3), before(2)], covers: [freeze(1)], today: TODAY });
+    assert.deepEqual(todayNudge(yesterday, TODAY, never), { text: 'A freeze covered yesterday.', freezeMark: true, seenKey: `covered:${before(1)}` });
+    const monday = streakFrom({ practiceDays: [before(4), before(3), before(1)], covers: [freeze(2)], today: TODAY });
+    assert.equal(monday.today, 'open');
+    assert.deepEqual(todayNudge(monday, TODAY, never), { text: homeNudge(monday)!, freezeMark: false, seenKey: null }, 'a freeze before the last practice is old news');
+  });
+
+  test('a weekday names a covered day that was not yesterday', () => {
+    const two = streakFrom({ practiceDays: [before(5), before(4), before(3)], covers: [freeze(2), { day: before(1), kind: 'travel' as const, at: 1 }], today: TODAY });
+    assert.equal(todayNudge(two, TODAY, never)?.text, 'A freeze covered Monday.', 'a travel day was counted as a freeze');
+  });
+
+  test('two or more covered days are counted', () => {
+    const run = streakFrom({ practiceDays: [before(5), before(4), before(3)], covers: [freeze(2), freeze(1)], today: TODAY });
+    assert.deepEqual(todayNudge(run, TODAY, never), { text: 'Freezes covered 2 days.', freezeMark: true, seenKey: `covered:${before(1)}` });
+  });
+
+  test('once seen it is gone, and the usual line comes back', () => {
+    const run = streakFrom({ practiceDays: [before(4), before(3), before(2)], covers: [freeze(1)], today: TODAY });
+    assert.deepEqual(todayNudge(run, TODAY, (key) => key === `covered:${before(1)}`), { text: homeNudge(run)!, freezeMark: false, seenKey: null });
+  });
+
+  test('a milestone eve keeps the slot, and nothing speaks once today is practised', () => {
+    const eve = streakFrom({ practiceDays: [6, 5, 4, 3, 2, 1].map((n) => before(n + 1)), covers: [freeze(1)], today: TODAY });
+    assert.equal(eve.current, 6);
+    assert.deepEqual(todayNudge(eve, TODAY, never), { text: 'One practice today reaches your 7-day milestone.', freezeMark: false, seenKey: null });
+    const done = streakFrom({ practiceDays: [before(3), before(2), TODAY], covers: [freeze(1)], today: TODAY });
+    assert.equal(todayNudge(done, TODAY, never), null);
+    assert.equal(todayNudge(null, TODAY, never), null);
   });
 });

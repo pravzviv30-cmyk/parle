@@ -41,6 +41,8 @@ export const GAME_COPY = {
     } satisfies Record<SittingSource, string>,
     capLine: "You reached today's XP limit. This practice still counts for your streak.",
     alsoToday: 'Also today',
+    /** A row with the freeze mark, only when this sitting's own write banked a freeze (Board A, 2026-11-19). */
+    banked: 'One freeze banked',
   },
 
   goal: {
@@ -68,6 +70,9 @@ export const GAME_COPY = {
   nudge: {
     waiting: (current: number): string => `Your ${current}-day streak is waiting. A short practice today makes it ${current + 1}.`,
     milestoneEve: (next: number): string => `One practice today reaches your ${next}-day milestone.`,
+    /** A freeze covered one day since the last practice: "yesterday" or its weekday (Board A, 2026-11-19). */
+    coveredDay: (when: string): string => `A freeze covered ${when}.`,
+    coveredDays: (count: number): string => `Freezes covered ${count} days.`,
   },
 
   /**
@@ -164,6 +169,10 @@ export const GAME_COPY = {
     /** A row on the first run's save card, and only while the run is alive. */
     dayOf: (current: number): string => `Day ${current} of your streak`,
     restored: 'Your streak is back.',
+    /** The takeover for a run a freeze carried (Board A moment 2). */
+    carried: (current: number): string => `${current} days of French.`,
+    /** The takeover for a kept repair, with the number the Streak screen promised (Board A moment 4). */
+    back: (runBefore: number): string => `Your ${runBefore}-day streak is back.`,
     /** The same phrasing as progress/dayCount.ts, so the two never disagree. */
     lifetime: (total: number): string => `${total} ${total === 1 ? 'day' : 'days'} you have practised`,
     milestone: (n: number): string => {

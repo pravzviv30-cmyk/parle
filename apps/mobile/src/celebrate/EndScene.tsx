@@ -40,6 +40,8 @@ import { CLOUD_VIEWBOX } from '../art/mascots/mascotFaces.ts';
 import { CLOUD_POSES } from '../art/mascots/mascotPoses.ts';
 import { Toast as ToastMascot } from '../art/mascots/Toast.tsx';
 import { EarGlyph, GhostButton, PillButton } from '../components.tsx';
+import { FreezeMark } from '../game/art/FreezeMark.tsx';
+import { freezeGround } from '../game/freezeGround.ts';
 import type { GameDelta } from '../game/delta.ts';
 import { Tile } from '../game/TodayStatTiles.tsx';
 import { STAT_GAP, statCoins, statRowTileWidth, statTileLayout, type StatTileLayout } from '../game/todayHeroView.ts';
@@ -273,6 +275,15 @@ function Body({
                 <Text key="quests" style={[type.small, { color: t.muted }]}>
                   {view.questProgress}
                 </Text>,
+              ]
+            : []),
+          // Board A: settle read this sitting's banked freeze back.
+          ...(view.banked !== null
+            ? [
+                <View key="banked" style={s.banked}>
+                  <FreezeMark size={22} ground={freezeGround(t.mode)} />
+                  <Text style={[type.bodyStrong, s.grow, { color: t.text }]}>{view.banked}</Text>
+                </View>,
               ]
             : []),
           ...(view.capLine !== null
@@ -510,6 +521,7 @@ const makeStyles = (_t: B) =>
     goal: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
     grow: { flex: 1, minWidth: 0 },
     rows: { gap: space(1.5) },
+    banked: { flexDirection: 'row', alignItems: 'center', gap: space(2.5) },
     phrase: { flexDirection: 'row', alignItems: 'center', gap: space(2.5), minHeight: HIT + space(1.5), paddingVertical: space(1.5), borderBottomWidth: StyleSheet.hairlineWidth },
     hear: { width: HEAR, height: HEAR, borderRadius: HEAR / 2, alignItems: 'center', justifyContent: 'center' },
     hearGap: { width: HEAR },

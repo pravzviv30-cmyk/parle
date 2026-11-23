@@ -267,9 +267,9 @@ export function HomeTab() {
       {/* The habit first: TodayStats reads the game layer itself, and draws
           nothing it could not read rather than a nought. */}
       <TodayStats sky={sky}>
-        {({ tiles, nudge }) => (
+        {({ tiles, nudge, freezeMark }) => (
           <TodayLayout
-            sky={<SkyBand sky={sky} greeting={greeting} profile={<ProfileButton ground={sky.chip} />} stats={tiles} nudge={nudge} overlap={plain ? 0 : TODAY_OVERLAP} focused={focused} scrolledPast={scrolledPast} onMeasure={setSkySize} />}
+            sky={<SkyBand sky={sky} greeting={greeting} profile={<ProfileButton ground={sky.chip} />} stats={tiles} nudge={nudge} freezeMark={freezeMark} overlap={plain ? 0 : TODAY_OVERLAP} focused={focused} scrolledPast={scrolledPast} onMeasure={setSkySize} />}
             hero={heroCard}
             overlap={plain ? 0 : TODAY_OVERLAP}
             pathTitle={TODAY_COPY.path}
