@@ -38,7 +38,7 @@ import {
 // One text-mode window for both session shapes, imported rather than restated:
 // two ideas of how long a typed answer may take drift apart within a month, and
 // the learner would feel the difference as two different tutors. The import
-// goes both ways between these files (convo.ts already takes the replay ledger
+// goes both ways between these files (convo.ts already takes UNSIGNED_SESSION_ID
 // from here) and neither module reads the other while it is being evaluated.
 import { MOMENT_GRACE_MS, MOMENT_HOLD_CAP_MS, TEXT_SILENCE_MS } from './convo.ts';
 import { NO_THINKING_TIME, type ThinkingTimeSink } from './thinkingTime.ts';
@@ -134,51 +134,9 @@ export function guardScriptedOutput(source: ReadableStream<llm.ChatChunk | strin
  * The session id agent.ts has not written yet.
  *
  * Direct unit tests build tutors with no signed room, and `reportUsage` already
- * refuses to debit against this value. Nothing below treats it as a session
- * either, so a test tutor can never poison the replay ledger.
+ * refuses to debit against this value.
  */
 export const UNSIGNED_SESSION_ID = '00000000-0000-4000-8000-000000000000';
-
-/** What the learner is told when a spent credential re-opens their room. */
-export const REPLAYED_SESSION_MESSAGE = 'That session has already finished. Start a new one whenever you are ready.';
-
-/** How many reported session ids a worker keeps before dropping the oldest. */
-const REPORTED_SESSIONS_KEPT = 10_000;
-
-/**
- * Session ids this job process has reported, and a check that never fires.
- *
- * A join credential outlives its session, and LiveKit re-creates a closed room
- * for whoever presents one (F77). This set was meant to refuse that replay, but
- * each job runs in its own process, so the set is always empty when a session
- * id lands. What refuses a replay is the durable `claim_tutor_session_v1`
- * claim, which the database turns down for a session it has already seen.
- * Part B (F1311) removes this set and its functions.
- */
-const reportedSessions = new Set<string>();
-
-/** Record that a session's seconds have been reported and its room is spent. */
-export function noteSessionReported(sessionId: string): void {
-  if (sessionId === UNSIGNED_SESSION_ID) return;
-  reportedSessions.add(sessionId);
-  // Oldest first. An id old enough to fall out of this window is long past the
-  // expiry of any credential that could name it.
-  while (reportedSessions.size > REPORTED_SESSIONS_KEPT) {
-    const oldest = reportedSessions.values().next();
-    if (oldest.done) break;
-    reportedSessions.delete(oldest.value);
-  }
-}
-
-/** Has this worker already reported this session? */
-export function sessionAlreadyReported(sessionId: string): boolean {
-  return sessionId !== UNSIGNED_SESSION_ID && reportedSessions.has(sessionId);
-}
-
-/** Test seam: one test's replay must never be another test's history. */
-export function forgetReportedSessions(): void {
-  reportedSessions.clear();
-}
 
 // The background scorer moved to liveScoring.ts so the conversation shares it;
 // these stay exported from here so existing imports keep working.
@@ -224,8 +182,6 @@ export class LuvaniTutor extends voice.Agent {
     if (failure) this.serviceFailure ??= failure;
     return failure;
   }
-  /** A spent credential re-opened this room, so this tutor never goes on air. */
-  private refused = false;
   /** Keeps a copy of each utterance on its way to the recogniser. */
   private readonly tap = new UtteranceTap();
   /**
@@ -333,9 +289,6 @@ export class LuvaniTutor extends voice.Agent {
   /** Wire up the channel back to the app. */
   attach(publish: Publisher): void {
     this.publish = publish;
-    // The refusal is decided when the signed session id lands, which is before
-    // there is any channel back to the app. Say it now or nobody hears it.
-    if (this.refused) this.publishError(REPLAYED_SESSION_MESSAGE);
   }
 
   attachLifecycle(lifecycle: RuntimeLifecycle): void { this.lifecycle = lifecycle; }
@@ -376,7 +329,7 @@ export class LuvaniTutor extends voice.Agent {
 
   /** Send the app whatever it should be rendering right now. */
   sendCurrentPrompt(session?: voice.AgentSession): void {
-    if (this.refused || this.state.finished) return;
+    if (this.state.finished) return;
     const prompt = currentPrompt(this.lesson, this.state);
     this.thinkingTime.rung(prompt.directive.rung);
     this.publish({ t: 'prompt', prompt });
@@ -474,7 +427,6 @@ export class LuvaniTutor extends voice.Agent {
 
   /** Handle an intent the learner expressed by tapping rather than speaking. */
   async handleClientMessage(session: voice.AgentSession, payload: Uint8Array): Promise<void> {
-    if (this.refused) return; // a spent credential gets no lesson, whatever it taps
     const received = readClientInput(payload);
     if (!received.message) { if (received.reason === 'oversized') this.rejectInput(INPUT_LIMIT_MESSAGE); return; }
     const msg = received.message;
@@ -583,7 +535,7 @@ export class LuvaniTutor extends voice.Agent {
    * round trip. Text mode says nothing: the published prompt is the turn.
    */
   speakCurrentTurn(session: voice.AgentSession, options: { newTurn?: boolean; rescue?: boolean } = {}): void {
-    if (this.ended || this.voiceless || this.refused) return;
+    if (this.ended || this.voiceless) return;
     const prompt = currentPrompt(this.lesson, this.state);
     // The rescue phrasing models the line to repeat, whatever the rung.
     const directive = options.rescue ? directiveFor(prompt.directive.rung, true) : prompt.directive;
@@ -742,7 +694,7 @@ export class LuvaniTutor extends voice.Agent {
   /** What sessionEnd.ts reads to find a gap and see the last exchange land. */
   sessionEndView(): SessionEndView {
     return { learnerTurns: this.learnerTurns, busy: this.queue.busy || this.replayQueue.busy,
-      over: this.ended || this.refused || this.closingForTime, voiceless: this.voiceless, held: this.heldTurnOpen };
+      over: this.ended || this.closingForTime, voiceless: this.voiceless, held: this.heldTurnOpen };
   }
 
   /** The heads-up a minute before the cap: the frame, and the line said aloud. */
@@ -757,7 +709,7 @@ export class LuvaniTutor extends voice.Agent {
    * then the ending `leave` gets (summary and settlement), then the room.
    */
   async closeForTime(): Promise<void> {
-    if (this.ended || this.refused || this.closingForTime) return;
+    if (this.ended || this.closingForTime) return;
     this.closingForTime = true;
     this.exit?.mark('cap');
     this.cancelLiveReplies();
@@ -816,7 +768,6 @@ export class LuvaniTutor extends voice.Agent {
 
   /** The learner said something. Grade it, move the ladder, re-brief the tutor. */
   private async userTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
-    if (this.refused) throw new voice.StopResponse();
     this.clearRescue();
     this.learnerSpeaking = false;
     const transcript = newMessage.textContent ?? '';
@@ -1025,7 +976,6 @@ export class LuvaniTutor extends voice.Agent {
         ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}), ...this.sceneReport(this.state.finished) });
       this.state = this.withPronunciation(this.acknowledgedState);
       const summary = summarise(this.state);
-      noteSessionReported(this.sessionId);
       await this.publish({ t: 'summary', summary });
       await this.publish({ t: 'settlement', result: settlement });
       return;
@@ -1056,9 +1006,6 @@ export class LuvaniTutor extends voice.Agent {
       // reaching learners unusable and the vendor bill is being paid for them.
       console.log(`[luvani] SESSION_NOT_CHARGED session=${this.sessionId.slice(0, 8)} reason=no-learner-turn`);
     }
-    // Spent before the call goes out: a crash between here and the debit must
-    // not leave a used credential looking fresh to the next room it opens.
-    noteSessionReported(this.sessionId);
     const settlement = await reportUsage({
       userId: this.learnerId,
       sessionId: this.sessionId,
@@ -1081,20 +1028,10 @@ export class LuvaniTutor extends voice.Agent {
 
   /**
    * agent.ts writes the signed session id here from the join credential's
-   * metadata, before the tutor has said a word or armed a clock.
-   *
-   * The reported-session check below never fires: it reads a per-process set
-   * that is always empty at this point. The durable `claim_tutor_session_v1`
-   * claim is what refuses a replay. Part B (F1311) removes the check.
+   * metadata, before the tutor has said a word or armed a clock. The durable
+   * `claim_tutor_session_v1` claim is what refuses a replay.
    */
   set sessionId(value: string) {
     this.sessionIdValue = value;
-    if (!sessionAlreadyReported(value)) return;
-    this.refused = true;
-    // `ended` is what makes finish() a no-op and stops the rescue arming, so
-    // from here nothing can debit, speak, or move the ladder.
-    this.ended = true;
-    this.clearRescue();
-    console.warn(`[luvani] refused a replayed join credential for session ${value.slice(0, 8)}`);
   }
 }

@@ -37,14 +37,8 @@ import { CLOSE_LINE, HEADS_UP_LINE, boundedPlayout, type SessionEndView } from '
 import { INPUT_BUSY_MESSAGE, INPUT_LIMIT_MESSAGE, readClientInput } from './runtimeInput.ts';
 import { inCharacterRecast } from './spokenRecast.ts';
 import type { InputReplyTimingRecord, ReplyInput, SceneReplyTimingRecord } from './sceneReplyTiming.ts';
-// One replay ledger for the worker, not one per agent class. Both session
-// shapes are served by the same process and both report to the same endpoint,
-// so a spent credential has to be spent for both of them.
 import {
-  REPLAYED_SESSION_MESSAGE,
   UNSIGNED_SESSION_ID,
-  noteSessionReported,
-  sessionAlreadyReported,
 } from './tutor.ts';
 import { sensitiveMemoryCategory } from '@luvani/brain/profile';
 
@@ -1354,8 +1348,6 @@ export class LuvaniConversation extends voice.Agent {
     await this.finish();
     this.closeRoom();
   }
-  /** A spent credential re-opened this room, so this tutor never goes on air. */
-  private refused = false;
   /**
    * Where the session is: choosing a topic, waiting on the scenario builder,
    * or inside the scene. The fallback conversation is constructed eagerly so
@@ -1383,20 +1375,10 @@ export class LuvaniConversation extends voice.Agent {
 
   /**
    * agent.ts writes the signed session id here before the tutor opens its mouth.
-   *
-   * As in `LuvaniTutor`, the reported-session check below never fires: it reads
-   * a per-process set that is always empty at this point. The durable
-   * `claim_tutor_session_v1` claim is what refuses a replay. Part B (F1311)
-   * removes the check.
+   * The durable `claim_tutor_session_v1` claim is what refuses a replay.
    */
   set sessionId(value: string) {
     this.sessionIdValue = value;
-    if (!sessionAlreadyReported(value)) return;
-    this.refused = true;
-    this.ended = true;
-    this.clearRescue();
-
-    console.warn(`[luvani] refused a replayed join credential for session ${value.slice(0, 8)}`);
   }
   /** Raw provider-neutral tokens, so development sessions produce real cost evidence. */
   private modelUsage: LlmUsage = ZERO_USAGE;
@@ -1785,9 +1767,6 @@ export class LuvaniConversation extends voice.Agent {
   /** Wire up the channel back to the app. */
   attach(publish: Publisher): void {
     this.publish = publish;
-    // The refusal is decided when the signed session id lands, which is before
-    // there is any channel back to the app. Say it now or nobody hears it.
-    if (this.refused) this.publishError(REPLAYED_SESSION_MESSAGE);
   }
 
   /** Latency marks for the stages this class owns. The worker wires the sink. */
@@ -1998,9 +1977,6 @@ export class LuvaniConversation extends voice.Agent {
    */
   open(session: voice.AgentSession): void {
     void session; // kept for signature parity with LuvaniTutor; speech goes via this.session
-    // A spent credential gets no opening line, no scenario call and no scene.
-    // This is the guard that keeps a replayed room from costing model money.
-    if (this.refused) return;
     // A mission's scene was written before the learner ever tapped it, so there
     // is nothing to design and nothing to wait for: no scenario call, none of
     // G3's ten to twenty five seconds of unexplained silence, and no F37 fall
@@ -2499,7 +2475,7 @@ export class LuvaniConversation extends voice.Agent {
   /** What sessionEnd.ts reads to find a gap and see the last exchange land. */
   sessionEndView(): SessionEndView {
     return { learnerTurns: this.learnerTurns, busy: this.queue.busy || this.replayQueue.busy,
-      over: this.ended || this.refused || this.closingForTime, voiceless: this.voiceless, held: this.heldTurnOpen };
+      over: this.ended || this.closingForTime, voiceless: this.voiceless, held: this.heldTurnOpen };
   }
 
   /** The heads-up a minute before the cap: the frame, and the line said aloud. */
@@ -2516,7 +2492,7 @@ export class LuvaniConversation extends voice.Agent {
    * hard stop still closes the room if settlement is slow.
    */
   async closeForTime(): Promise<void> {
-    if (this.ended || this.refused || this.closingForTime) return;
+    if (this.ended || this.closingForTime) return;
     this.closingForTime = true;
     this.exit?.mark('cap');
     this.clearRescue();
@@ -2612,7 +2588,6 @@ export class LuvaniConversation extends voice.Agent {
 
   /** What a client message actually does. Wrapped by handleClientMessage. */
   private async routeClientMessage(payload: Uint8Array): Promise<void> {
-    if (this.refused) return; // a spent credential gets no conversation, whatever it taps
     const received = readClientInput(payload);
     if (!received.message) { if (received.reason === 'oversized') this.rejectInput(INPUT_LIMIT_MESSAGE); return; }
     const msg = received.message;
@@ -2886,10 +2861,6 @@ export class LuvaniConversation extends voice.Agent {
 
   /** The learner said something. Run it through the brain, speak the answer. */
   private async userTurnCompleted(_chatCtx: llm.ChatContext, newMessage: llm.ChatMessage, heard: SplitHeard | null = null): Promise<void> {
-    if (this.refused) {
-      this.beginReplyTiming?.(false);
-      throw new voice.StopResponse();
-    }
     this.releaseMoment();
     this.clearRescue();
     this.learnerSpeaking = false;
@@ -3511,7 +3482,7 @@ export class LuvaniConversation extends voice.Agent {
         ...(this.firstPractice && this.safetyStopped ? {firstPracticeStopped: true} : {}),
         ...(this.serviceFailure ? { serviceFailure: this.serviceFailure } : {}) });
       this.lastRecap = { ...this.lastRecap, profile: this.profile };
-      noteSessionReported(this.sessionId); this.cancelCanDoEvidence();
+      this.cancelCanDoEvidence();
       await this.publish(this.lastRecap);
       await this.publish({ t: 'settlement', result: settlement });
       this.logSpendSummary();
@@ -3549,9 +3520,6 @@ export class LuvaniConversation extends voice.Agent {
     if (billableSeconds === 0) {
       console.log(`[luvani] SESSION_NOT_CHARGED session=${this.sessionId.slice(0, 8)} reason=no-learner-turn`);
     }
-    // Spent before the call goes out: a crash between here and the debit must
-    // not leave a used credential looking fresh to the next room it opens.
-    noteSessionReported(this.sessionId);
     const settlement = await reportUsage({
       userId: this.learnerId,
       sessionId: this.sessionId,

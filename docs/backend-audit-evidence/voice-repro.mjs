@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { inspect } from 'node:util';
 const { safetyDecision } = await import(new URL('../../services/tutor-agent/src/safety.ts',import.meta.url));
 const { LuvaniTutor } = await import(new URL('../../services/tutor-agent/src/tutor.ts',import.meta.url));
@@ -83,13 +82,8 @@ result.brainOutage={definitiveMockFailures:failedTurns,meteredSeconds:debit.seco
 globalThis.fetch=realFetch; Date.now=realNow;
 console.error=previousError; console.log=previousLog; console.info=realInfo;
 
-const replayImport = 'import {noteSessionReported,sessionAlreadyReported} from '+JSON.stringify(new URL('../../services/tutor-agent/src/tutor.ts',import.meta.url).href)+';';
-const sid='12345678-1234-4123-8123-123456789abc';
-const first=spawnSync(process.execPath,['--experimental-strip-types','--input-type=module','-e',`${replayImport}noteSessionReported("${sid}"); console.log(sessionAlreadyReported("${sid}"));`],{encoding:'utf8'});
-const second=spawnSync(process.execPath,['--experimental-strip-types','--input-type=module','-e',`${replayImport}console.log(sessionAlreadyReported("${sid}"));`],{encoding:'utf8'});
-assert.equal(first.status,0,first.stderr); assert.equal(second.status,0,second.stderr);
-assert.equal(first.stdout.trim(),'true'); assert.equal(second.stdout.trim(),'false');
-result.replay = {markedInOneJob:first.stdout.trim(),seenInFreshJob:second.stdout.trim(),liveRoomReplayTest:false};
+// The in-memory replay ledger this block measured was removed under F1311; the durable claim is the guard.
+result.replay = {inMemoryLedger:'removed under F1311',durableGuard:'claim_tutor_session_v1',liveRoomReplayTest:false};
 
 const error = new BrainParseError('Synthetic invalid model response','SYNTHETIC_PRIVATE_TEXT_MARKER');
 assert.ok(inspect(error).includes('SYNTHETIC_PRIVATE_TEXT_MARKER'));

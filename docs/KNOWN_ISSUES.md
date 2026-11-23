@@ -1816,7 +1816,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   with roughly 90s of leeway, accepting credentials 30s past expiry and refusing at 900s, so
   the five-minute ttl in tokens.ts is a floor on the replay window rather than a ceiling.
   Room name reuse after a session has been reported is the seam to close.
-- verified-by: `a join credential cannot re-open a room whose session has already been reported`
+- note: Re-pointed 2026-11-19 (F1311). The durable `claim_tutor_session_v1` claim refuses a
+  replay. The in-memory reported-session set, and the test that named it, were removed under
+  F1311, because each job is its own process and the set was always empty.
+- verified-by: `a claim the database refuses throws before any provider is built`
 
 ### F78 — An abandoned room holds a tutor worker for half a minute
 - severity: P2
@@ -1840,7 +1843,9 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: F77 closed the money half of a replayed join credential by having the tutor refuse a
   session id it has already reported, but that ledger lives in the worker's memory. It closes
   the replay against the worker that served the original session, which is the whole fleet
-  today and is why this is P2 rather than P1. A second worker, or the same worker after a
+  today and is why this is P2 rather than P1. (2026-11-19: it never did. Each job is its own
+  process, so the ledger was always empty when a session id landed; it was removed under
+  F1311.) A second worker, or the same worker after a
   restart, would not know. The durable answer already exists: `session_usage` records every
   reported session id, so the join path can consult it. That is a token-server change and was
   outside the voice engineer's territory, so it is filed rather than reached for. Related:
@@ -14077,6 +14082,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [ ]
 - where: services/token-server/src/store.ts:41
 - note: Deferred from B2 (B2-6), 2026-11-18. The webhook dedupes through billingEventComplete and applyBilling (server.ts:632), so recordBillingEvent has no caller and its interface comment is untrue. Removing it changes store.ts, which apps/mobile/src/wall/moneyUntouched.test.ts pins by SHA-256, so the removal lands with a dated hash update and a revenue review in M1 (a frontend slice that runs the design reviews anyway). Six store.supabase.test.ts tests die with it; the SQL record_billing_event goes to D1.
+- note: 2026-11-23, from B3b part B (F1311): the grantSession comment in services/token-server/src/tokens.ts (about :317) still says the tutor refusing an already-reported session id closes replay. That in-memory guard is gone; the durable claim_tutor_session_v1 claim does it (F79). tokens.ts is pinned the same way, so the one-comment fix rides with this entry's M1 hash update.
 - verified-by: `billing projection uses one RPC carrying vendor state but never a stale usage counter`
 
 ### F1055 — ciContract.test.ts times out at 15 s on some runs
@@ -14242,3 +14248,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: packages/brain/src/engine/conversation.ts:682
 - note: Found by the B4 /code-review, 2026-11-19. sanitizeTurn cleans narration and sceneReply fr and en but not frWritten or support.hintEn, so a model em dash in the written French or the English hint reaches the screen. createConversation shares the same field list for the opening.
 - verified-by: `a turn's written form and hint reach the learner without an em dash`
+
+### F1311 — The in-memory replay ledger can never fire and is removed
+- severity: P2
+- status: [x]
+- where: services/tutor-agent/src/tutor.ts:1034
+- note: B3b-4, part B. Each job is its own process, so reportedSessions is always empty when a session id lands. The durable claim refuses a replay. Filed on the -b branch only after F79 is ticked on main; F77 is re-pointed to F79's test in the same commit. Two tests die; no floor is lowered.
+- note: Fixed 2026-11-19 on claude/review-b3b-b: the set, its three functions, REPORTED_SESSIONS_KEPT, REPLAYED_SESSION_MESSAGE, the refused field and every read in both tutors are gone, with the two tests and their cleanup calls. The tutor-agent suite went from 1050 to 1048 (main had grown since the contract's 1044). F77 points at the durable claim's test, and voice-repro.mjs and voice-result.json no longer measure the set.
+- verified-by: `claim validates the owner fence and rejects a reused or oversized reservation`
+- verified-by: `a claim the database refuses throws before any provider is built`
