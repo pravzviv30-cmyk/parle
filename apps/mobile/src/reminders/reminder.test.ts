@@ -58,6 +58,17 @@ import {
   reminderRow,
   reminderTime,
   smartGloss,
+  DEFAULT_TALK_DAYS,
+  TALK_DAY_FREE_LINE,
+  TALK_DAY_LINE,
+  TALK_DAYS_COPY,
+  talkDayBlock,
+  talkDayLabel,
+  talkDayReason,
+  talkDaysFit,
+  talkDaysLine,
+  talkDaysPicked,
+  talkDaysValue,
 } from './reminder.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
@@ -355,9 +366,11 @@ describe('what a reminder is not allowed to know', () => {
     const planner = withoutComments(readFileSync(join(HERE, PLANNER), 'utf8'));
     assert.deepEqual(
       (planner.match(/saveReminder\((?:[^()]|\([^()]*\))*\)/g) ?? []).sort(),
-      ['saveReminder(stored ?? reminder)', 'saveReminder(yes(reminder.time))', 'saveReminder({ ...choice, paused: true })'],
-      'the planner writes a choice other than a yes, a pause or a put-back',
+      ['saveReminder(next)', 'saveReminder(stored ?? reminder)', 'saveReminder(yes(reminder.time))', 'saveReminder({ ...choice, paused: true })'],
+      'the planner writes a choice other than a yes, a pause, a put-back or talk days',
     );
+    // Talk days (T1.4) are written over the stored choice as it was, never turning it off.
+    assert.match(planner, /if \(stored === null\) return 'failed';\s*const next: StoredReminder = \{ \.\.\.stored, talkDays: \[\.\.\.talkDays\] \};\s*if \(scopeGeneration\(\) !== owner\) return 'failed';\s*if \(\(await saveReminder\(next\)\) !== 'durable'\) return 'failed';/, 'the talk-day write changes more than the talk days');
     assert.match(planner, /const yes = \(mode: ReminderMode\): StoredReminder => \(\{ \.\.\.\(stored \?\? \{\}\), enabled: true, time: mode, paused: false \}\);/, 'the ask writes a yes that is not on');
     assert.match(planner, /save: \(reminder\) => \(reminder\.enabled \? saveReminder\(yes\(reminder\.time\)\) : saveReminder\(stored \?\? reminder\)\),/, 'the put-back after a refused yes writes off over what was there');
     assert.match(planner, /if \(step\.pause && choice !== null\) await saveReminder\(\{ \.\.\.choice, paused: true \}\);/, 'the pause is written for something other than the note having gone out');
@@ -512,5 +525,78 @@ describe('the named phrase line (T1.3, D28)', () => {
     // The new copy (founder, 2026-11-19): a fixed title, the English in the body.
     assert.deepEqual(reminderMessageOf("I'd like a coffee."), { title: 'How do you say this?', body: "“I'd like a coffee” Today's phrase, with Léa." });
     assert.deepEqual(reminderMessageOf('Where is it?'), { title: 'How do you say this?', body: "“Where is it?” Today's phrase, with Léa." });
+  });
+});
+
+// Expo weekdays: 1 Sunday, 2 Monday ... 7 Saturday.
+const [SUN, MON, TUE, WED, THU, FRI, SAT] = [1, 2, 3, 4, 5, 6, 7];
+
+describe('your talk days, the shared rule (T1.4, founder 2026-11-19)', () => {
+  test('up to three days, never two next to each other, Sunday and Monday next to each other', () => {
+    assert.equal(talkDaysFit([MON, WED, FRI]), true);
+    assert.equal(talkDaysFit([TUE]), true);
+    assert.equal(talkDaysFit([]), true, 'none picked is a fit; the buttons say none is not enough');
+    assert.equal(talkDaysFit([MON, TUE]), false);
+    assert.equal(talkDaysFit([SUN, MON]), false, 'Sunday and Monday are next to each other');
+    assert.equal(talkDaysFit([SAT, SUN]), false);
+    assert.equal(talkDaysFit([0]), false, 'not a weekday');
+    assert.equal(talkDaysFit([9]), false, 'not a weekday');
+    assert.equal(talkDaysFit([SUN, TUE, THU]), true);
+    assert.equal(talkDaysFit([MON, WED, FRI, SUN]), false, 'four days');
+    assert.equal(talkDaysFit([MON, MON]), false, 'a day twice');
+    assert.equal(talkDaysFit([0, 8]), false, 'not a weekday');
+    assert.deepEqual([...DEFAULT_TALK_DAYS], [MON, WED, FRI]);
+  });
+
+  test('a blocked day names the chosen day it sits next to, in words', () => {
+    assert.equal(talkDayBlock([MON], TUE), MON);
+    assert.equal(talkDayBlock([MON], SUN), MON, 'the week wraps');
+    assert.equal(talkDayBlock([MON], WED), null);
+    // Between two chosen days, the one before it is named first, whatever order they were picked in.
+    for (const chosen of [[MON, WED], [WED, MON]]) {
+      assert.equal(talkDayBlock(chosen, TUE), MON);
+      assert.equal(talkDayReason(chosen, TUE), 'next to Mon');
+      assert.equal(talkDayLabel(chosen, TUE), 'Tuesday, next to Monday, not available');
+    }
+    assert.equal(talkDayBlock([MON], MON), null, 'a chosen day is not blocked');
+    assert.equal(talkDayReason([MON], SUN), 'next to Mon');
+    assert.equal(talkDayReason([MON], WED), null);
+    assert.equal(talkDayLabel([MON], MON), 'Monday, chosen');
+    assert.equal(talkDayLabel([MON], TUE), 'Tuesday, next to Monday, not available');
+    assert.equal(talkDayLabel([MON], THU), 'Thursday');
+  });
+
+  test('the line under the chips: blocked days, the limit, and none picked', () => {
+    assert.equal(talkDaysLine([MON, THU], false), 'Tue, Wed, Fri and Sun sit next to a chosen day.');
+    assert.equal(talkDaysLine([MON, WED, FRI], false), 'Tue, Thu, Sat and Sun sit next to a chosen day.');
+    assert.equal(talkDaysLine([MON, WED, FRI], true), 'Three days is the most. Tap a chosen day to free it.');
+    assert.equal(talkDaysLine([MON], true), 'Tue and Sun sit next to a chosen day.', 'the limit line only once three are chosen');
+    assert.equal(talkDaysLine([], false), 'Pick at least one day, or choose Not now.');
+    assert.equal(talkDaysLine([], false, TALK_DAYS_COPY.noneSettings), 'Pick at least one day, or turn off talk days.');
+    assert.equal(talkDaysLine([SUN, TUE], false), 'Mon, Wed and Sat sit next to a chosen day.');
+  });
+
+  test('the saved days preselect, else Mon, Wed and Fri; the row says the days or Off', () => {
+    assert.deepEqual(talkDaysPicked([TUE, SAT]), [TUE, SAT]);
+    assert.deepEqual(talkDaysPicked(undefined), [MON, WED, FRI]);
+    assert.deepEqual(talkDaysPicked([]), [MON, WED, FRI]);
+    assert.deepEqual(talkDaysPicked([MON, TUE]), [MON, WED, FRI], 'a saved set that breaks the rule');
+    assert.equal(talkDaysValue([FRI, MON, WED]), 'Mon, Wed, Fri');
+    assert.equal(talkDaysValue([SUN]), 'Sun');
+    assert.equal(talkDaysValue(undefined), 'Off');
+    assert.equal(talkDaysValue([]), 'Off');
+  });
+
+  test('the talk-day lines are scanned, name the tutor, and carry no digit', () => {
+    assert.ok(REMINDER_LINES.includes(TALK_DAY_LINE) && REMINDER_LINES.includes(TALK_DAY_FREE_LINE), 'a talk-day line is outside the scans');
+    const facts = { n: 0, lifetime: 0, tutor: 'Léa' };
+    assert.equal(TALK_DAY_LINE.title(facts), 'A conversation with Léa today');
+    assert.equal(TALK_DAY_LINE.body(facts), 'Léa is ready to talk when you are.');
+    assert.equal(TALK_DAY_FREE_LINE.title(facts), 'A conversation with Léa today');
+    assert.equal(TALK_DAY_FREE_LINE.body(facts), 'Léa is free to talk again.');
+    // The sheet's own words, and a spread of under-chip lines, go through the copy sweep too.
+    for (const line of [...Object.values(TALK_DAYS_COPY), talkDaysLine([MON, THU], false), talkDaysLine([SUN], false)]) {
+      assert.ok(REMINDER_COPY.includes(line.replace('{tutor}', TUTOR_NAME)), `the sweep never reads "${line}"`);
+    }
   });
 });

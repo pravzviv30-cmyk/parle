@@ -213,6 +213,7 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
   // The pool is chosen once; each slot's phrase is picked for its own day (T1.3).
   const level = await phraseLevel();
   const refill = freeRefill !== null && freeRefill.owner === owner ? freeRefill.at : undefined;
+  const talk = freeRefill !== null && freeRefill.owner === owner ? freeRefill.talk : undefined;
   let log: ReminderLog = step.log;
   if (visiting()) log = noteOpened(log, now, LOCAL_CALENDAR);
   const slots = planReminders({
@@ -228,6 +229,7 @@ async function replanAccount(options: ReplanOptions): Promise<ScheduleOutcome> {
     todayUnknown: facts === null,
     phraseFor: (at) => phraseOn(level, at),
     ...(refill !== undefined ? { freeRefill: refill } : {}),
+    ...(talk !== undefined ? { talk } : {}),
   });
   if (!live()) return 'failed';
   return handOver(slots, log, now, (next) => (live() ? saveReminderLog(next) : Promise.resolve('failed' as const)));
@@ -305,6 +307,36 @@ export async function turnOnReminder(time: ReminderMode, tutor: string): Promise
     },
   );
   return answer === 'on' ? 'done' : 'failed';
+}
+
+/**
+ * Whether the ask offers talk days (T1.4): a signed-in account whose plan
+ * billing has answered for, in memory. Guests and an unknown plan get none.
+ */
+export function talkDaysOffered(): boolean {
+  return activeUserId() !== null && freeRefill !== null && freeRefill.owner === scopeGeneration() && freeRefill.talk !== undefined;
+}
+
+/**
+ * The learner picked their talk days (the ask's step 2, or Settings): written
+ * over the stored choice, then planned for. `failed` when the choice could not
+ * be read, there is none to add them to, or the write or the plan did not
+ * land; it never rejects.
+ */
+export async function chooseTalkDays(talkDays: readonly number[], tutor: string): Promise<ScheduleOutcome> {
+  // The account the choice was made in: a sign-out or switch mid-way writes nothing.
+  const owner = scopeGeneration();
+  try {
+    const stored = await loadReminder({ strict: true });
+    if (stored === null) return 'failed';
+    const next: StoredReminder = { ...stored, talkDays: [...talkDays] };
+    if (scopeGeneration() !== owner) return 'failed';
+    if ((await saveReminder(next)) !== 'durable') return 'failed';
+    if (scopeGeneration() !== owner) return 'failed';
+    return await replanReminders({ tutor, choice: next });
+  } catch {
+    return 'failed';
+  }
 }
 
 /** The learner's own time as the smart mode reads it now, or null until their rhythm shows. */

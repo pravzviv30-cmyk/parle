@@ -29,6 +29,7 @@ import {
   freezeProtectionOf,
   freeRefillOf,
   heardRefill,
+  talkOf,
   planReminders,
   plannedLog,
   plannedSlots,
@@ -680,13 +681,25 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
   test('the refill as billing answered it: kept for its account, kept through a failed fetch', () => {
     const out = { plan: 'trial' as const, periodEnd: '2026-10-08T12:00:00.000Z', canStart: false, secondsRemaining: 0 };
     const known = heardRefill(null, 3, out);
-    assert.deepEqual(known, { owner: 3, at: Date.UTC(2026, 9, 8, 12) });
+    assert.deepEqual(known, { owner: 3, at: Date.UTC(2026, 9, 8, 12), talk: { free: true, open: false } });
     // A null answer (a failure or the timeout) keeps what was known.
     assert.equal(heardRefill(known, 3, null), known);
     assert.equal(heardRefill(null, 3, null), null);
     // A real answer replaces it, a paid plan included.
-    assert.deepEqual(heardRefill(known, 3, { ...out, plan: 'starter' }), { owner: 3, at: undefined });
-    assert.deepEqual(heardRefill(known, 4, out), { owner: 4, at: Date.UTC(2026, 9, 8, 12) });
+    assert.deepEqual(heardRefill(known, 3, { ...out, plan: 'starter' }), { owner: 3, at: undefined, talk: { free: false, open: false } });
+    assert.deepEqual(heardRefill(known, 4, out), { owner: 4, at: Date.UTC(2026, 9, 8, 12), talk: { free: true, open: false } });
+  });
+
+  test('chooseTalkDays plans only what was written, and never rejects', () => {
+    const planner = code('./ReminderPlanner.tsx');
+    const choose = planner.slice(planner.indexOf('export async function chooseTalkDays('), planner.indexOf('export async function smartReminderTime('));
+    assert.ok(choose.length > 0, 'chooseTalkDays moved; this reads nothing');
+    assert.match(choose, /if \(\(await saveReminder\(next\)\) !== 'durable'\) return 'failed';\s*(?:if \(scopeGeneration\(\) !== owner\) return 'failed';\s*)?return await replanReminders\(\{ tutor, choice: next \}\);/, 'days that were not saved are planned for, or the plan is not the choice written');
+    // A sign-out or account switch between the read and the write must not land A's days in B's key.
+    assert.match(choose, /const owner = scopeGeneration\(\);\s*try \{\s*const stored = await loadReminder\(/, 'the account is not captured before the read');
+    assert.match(choose, /if \(scopeGeneration\(\) !== owner\) return 'failed';\s*if \(\(await saveReminder\(next\)\)/, "another account's key can be written");
+    assert.match(choose, /!== 'durable'\) return 'failed';\s*if \(scopeGeneration\(\) !== owner\) return 'failed';\s*return await replanReminders\(/, 'another account is planned for');
+    assert.match(choose, /\} catch \{\s*return 'failed';\s*\}\s*\}\s*$/, 'a throwing write or replan rejects instead of answering failed');
   });
 
   test('the planner hears billing on mount, on a billing change, on the foreground and after a settle, one fetch each', () => {
@@ -723,5 +736,100 @@ describe('a reminder worth reading, slice A (T1.3, D28)', () => {
     // The pause note still takes the fifth unanswered slot.
     const fifth = planReminders(input({ freeRefill: at(day(4), 12) }));
     assert.equal(fifth[UNANSWERED_LIMIT]?.line, 'pause');
+  });
+});
+
+describe('your talk days in the plan (T1.4, founder 2026-11-19)', () => {
+  // TODAY, 2026-10-07, is a Wednesday. Expo weekdays: 2 Monday, 4 Wednesday, 6 Friday, 1 Sunday.
+  const MWF = { enabled: true, time: 'evening' as const, talkDays: [2, 4, 6] };
+  const PAID = { free: false, open: true };
+  const talking = (slots: readonly ReminderSlot[]) => slots.filter((slot) => slot.line === 'talk-day' || slot.line === 'talk-day-free').map((slot) => slot.day);
+
+  test('a talk day says "A conversation with {tutor} today" only when a conversation can start, opening Speak', () => {
+    const slots = planReminders(input({ choice: MWF, talk: PAID }));
+    // Wed and Fri; Monday, day(5), falls after the fifth slot (the pause note, day(4)).
+    assert.deepEqual(talking(slots), [TODAY, day(2)], 'Wed and Fri');
+    const wed = slots[0]!;
+    assert.equal(wed.title, 'A conversation with Céline today');
+    assert.equal(wed.body, 'Céline is ready to talk when you are.');
+    assert.equal(wed.open, 'speak');
+    // A free learner who can still start: the same line.
+    assert.deepEqual(talking(planReminders(input({ choice: MWF, talk: { free: true, open: true } }))), [TODAY, day(2)]);
+    // Nothing can start (a paid plan with no minutes left, or the free one used with no known refill): the usual line.
+    assert.deepEqual(talking(planReminders(input({ choice: MWF, talk: { free: false, open: false } }))), []);
+    assert.deepEqual(talking(planReminders(input({ choice: MWF, talk: { free: true, open: false } }))), []);
+    // Heard from billing: the plan known, and whether one can start now.
+    assert.deepEqual(talkOf({ plan: 'starter', periodEnd: null, canStart: true, secondsRemaining: 600 }), { free: false, open: true });
+    assert.deepEqual(talkOf({ plan: 'regular', periodEnd: null, canStart: true, secondsRemaining: 0 }), { free: false, open: false });
+    assert.deepEqual(talkOf({ plan: 'trial', periodEnd: null, canStart: false, secondsRemaining: 0 }), { free: true, open: false });
+    assert.deepEqual(talkOf({ plan: 'starter', periodEnd: null, canStart: false, secondsRemaining: 600 }), { free: false, open: false }, 'minutes left but billing says no start');
+    assert.equal(talkOf(null), undefined);
+  });
+
+  test('the free body when the free conversation came back before the slot', () => {
+    const refill = at(day(1), 12);
+    const slots = planReminders(input({ choice: MWF, talk: { free: true, open: false }, freeRefill: refill }));
+    // Wednesday, before the refill: the usual line. Friday, after it: the free body.
+    assert.deepEqual(talking(slots), [day(2)]);
+    const fri = slots.find((slot) => slot.day === day(2))!;
+    assert.equal(fri.line, 'talk-day-free');
+    assert.equal(fri.title, 'A conversation with Céline today');
+    assert.equal(fri.body, 'Céline is free to talk again.');
+    assert.equal(fri.open, 'speak');
+    // Thursday, the first slot after the refill and no talk day, keeps the free-to-talk line.
+    assert.equal(slots.find((slot) => slot.day === day(1))?.line, 'free-talk');
+  });
+
+  test('order: pause, milestone eve, save, talk day, free to talk, the week line', () => {
+    const FREE = { cap: 1, paidSince: null, protectedSince: '2026-09-01' };
+    const spent = { practiceDays: [day(-4), day(-3), day(-2)], covers: [{ day: day(-1), kind: 'freeze' as const, at: 0 }] };
+    // Save beats the talk day.
+    const save = planReminders(input({ ...spent, freezes: FREE, choice: MWF, talk: PAID }));
+    assert.ok(STREAK_SAVE_LINES.some((line) => line.id === save[0]?.line), `today said ${save[0]?.line}`);
+    // The milestone eve beats it: a six-day run makes Wednesday the eve of seven.
+    const eve = planReminders(input({ practiceDays: [day(-6), day(-5), day(-4), day(-3), day(-2), day(-1)], choice: MWF, talk: PAID }));
+    assert.equal(eve[0]?.line, MILESTONE_EVE_LINE.id);
+    // The talk day beats free to talk on the refill's first slot.
+    const free = planReminders(input({ choice: MWF, talk: { free: true, open: false }, freeRefill: at(TODAY, 12) }));
+    assert.equal(free[0]?.line, 'talk-day-free');
+    assert.ok(!free.some((slot) => slot.line === 'free-talk'), 'free to talk said again after the talk day said it');
+    // The talk day beats the week line on a Sunday talk day.
+    const now = at(day(3), 9);
+    const sunday = planReminders(input({ now, practiceDays: [day(2)], finishes: [at(day(2), 9)], choice: { ...MWF, talkDays: [1, 4] }, talk: PAID }));
+    assert.equal(sunday.find((slot) => slot.day === day(4))?.line, 'talk-day');
+    // The pause note still takes the fifth unanswered slot, talk day or not.
+    const fifth = planReminders(input({ choice: { ...MWF, talkDays: [1] }, talk: PAID }));
+    assert.equal(fifth[UNANSWERED_LIMIT]?.day, day(4));
+    assert.equal(fifth[UNANSWERED_LIMIT]?.line, 'pause');
+  });
+
+  test('Sunday and Monday are next to each other, and at most three days: a set that breaks the rule plans no talk day', () => {
+    for (const talkDays of [[1, 2], [7, 1], [2, 3], [2, 4, 6, 1], [2, 2]]) {
+      assert.deepEqual(talking(planReminders(input({ choice: { ...MWF, talkDays }, talk: PAID }))), [], `${talkDays} was planned`);
+    }
+    assert.deepEqual(talking(planReminders(input({ now: at(day(3), 9), choice: { ...MWF, talkDays: [1, 3] }, talk: PAID }))), [day(4), day(6)], 'Sun and Tue');
+  });
+
+  test('guests and an unknown plan get no talk day', () => {
+    assert.deepEqual(talking(planReminders(input({ choice: MWF, talk: PAID, guest: true }))), []);
+    assert.deepEqual(talking(planReminders(input({ choice: MWF }))), []);
+  });
+
+  test('a missed talk day says nothing, the days stay where they are, and a practised talk day gets nothing', () => {
+    // Thursday morning, Wednesday's talk day missed.
+    const choice = { ...MWF, talkDays: [2, 4, 6] };
+    const thursday = planReminders(input({ now: at(day(1), 9), choice, talk: PAID, log: { ...emptyLog(), sent: [TODAY] } }));
+    assert.equal(thursday[0]?.day, day(1));
+    assert.notEqual(thursday[0]?.line, 'talk-day');
+    for (const slot of thursday) assert.doesNotMatch(`${slot.title} ${slot.body}`, /miss|again tomorrow|last|yesterday/i, `"${slot.title} / ${slot.body}" reads the missed day`);
+    assert.deepEqual(talking(thursday), [day(2)]);
+    assert.deepEqual(choice.talkDays, [2, 4, 6]);
+    // One a day: a talk day already practised has no reminder.
+    assert.ok(!planReminders(input({ choice, talk: PAID, practiceDays: [TODAY] })).some((slot) => slot.day === TODAY));
+    // Every talk-day slot names the tutor, and with streak mentions off carries no digit.
+    for (const slot of planReminders(input({ choice: { ...choice, mentionStreak: false }, talk: PAID }))) {
+      assert.ok(`${slot.title} ${slot.body}`.includes('Céline'));
+      assert.doesNotMatch(`${slot.title} ${slot.body}`, /\d/);
+    }
   });
 });

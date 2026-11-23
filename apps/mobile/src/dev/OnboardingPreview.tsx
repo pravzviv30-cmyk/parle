@@ -42,6 +42,9 @@ import { ToastPill } from '../celebrate/Toast.tsx';
 import { PHRASEBOOK_EMPTY, PhrasebookEmpty } from '../phrases/PhrasebookScreen.tsx';
 import { OutOfTimeMoment } from '../tabs/TutorTab.tsx';
 import { OUT_OF_TIME } from '../empty/emptyStates.ts';
+import { TalkDaysCard } from '../reminders/ReminderAsk.tsx';
+import { DEFAULT_TALK_DAYS } from '../reminders/reminder.ts';
+import { talkDayPress } from '../settings/talkDays.ts';
 
 const unavailable = async (): Promise<AuthResult> => ({ ok: false, message: 'Screen preview only. No account was created or changed.' });
 const previewAdapterBase: AuthAdapter = {
@@ -66,7 +69,7 @@ const previewFirstLive: FirstLiveRecord = {
 const QUIET_OUT_OF_TIME = { title: OUT_OF_TIME.title, body: `Your next free conversation is ready on Monday at 4:10 pm. ${OUT_OF_TIME.still}`, action: OUT_OF_TIME.action };
 /** The support details' line on the live error preview (F998): synthetic, no microphone was asked for. */
 const LIVE_ERROR_PREVIEW_MESSAGE = 'Screen preview. No microphone was asked for.';
-const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'how-its-going-both', 'how-its-going-better', 'how-its-going-again', 'how-its-going-free', 'quiet-toast', 'quiet-phrasebook', 'quiet-speak', 'live-error', ...DRILL_PREVIEWS, ...RECAP_PREVIEW_KEYS, ...TODAY_PREVIEW_KEYS, 'select'] as const;
+const PREVIEWS = ['orb', 'live-speaking', 'live-typing', 'live-tap-to-send', 'live-wrap-up', 'hear-it', 'reason', 'interests', 'start-level', 'confidence', 'focus', 'time', 'plan', 'tutor', 'signup', 'signin', 'auth-flow', 'streak', 'streak-long', 'streak-empty', 'saved', 'celebration', 'partial', 'account', 'journey', 'your-french-full', 'your-french-sounds', 'your-french-scenes', 'your-french-forward', 'your-french-free', 'how-its-going-both', 'how-its-going-better', 'how-its-going-again', 'how-its-going-free', 'quiet-toast', 'quiet-phrasebook', 'quiet-speak', 'live-error', 'talk-days', ...DRILL_PREVIEWS, ...RECAP_PREVIEW_KEYS, ...TODAY_PREVIEW_KEYS, 'select'] as const;
 type Preview = typeof PREVIEWS[number];
 const LABELS: Record<Preview, string> = {
   'live-speaking': 'Live speaking layout', 'live-typing': 'Live typing layout',
@@ -80,6 +83,7 @@ const LABELS: Record<Preview, string> = {
   'quiet-toast': 'Phrase saved toast',
   'quiet-phrasebook': 'Phrasebook, nothing kept yet', 'quiet-speak': 'Speak, out of the free conversation',
   'live-error': 'Live error, microphone refused',
+  'talk-days': 'Reminder, talk days step',
   ...TODAY_PREVIEW_LABELS,
   ...Object.fromEntries(DRILL_PREVIEWS.map((key) => [key, `Practice, ${key.slice('drill-'.length).replace(/-/g, ' ')}`])) as Record<DrillPreviewKey, string>,
   ...Object.fromEntries(RECAP_PREVIEW_KEYS.map((key) => [key, `Recap, ${key.slice('recap-'.length).replace(/-/g, ' ')}`])) as Record<RecapPreviewKey, string>,
@@ -207,6 +211,7 @@ export function OnboardingPreview() {
           {screen === 'quiet-toast' && <ModeScope mode={yourFrenchMode}><View style={[st.toast, { backgroundColor: b[yourFrenchMode].ground }]}><ToastPill /></View></ModeScope>}
           {screen === 'quiet-phrasebook' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset" header={<ScreenHeader back={{ onPress: () => go('select') }} />} footer={<PillButton label={PHRASEBOOK_EMPTY.action} onPress={() => go('select')} lip />}><PhrasebookEmpty title={PHRASEBOOK_EMPTY.title} body={PHRASEBOOK_EMPTY.body} /></ScrollScreen></ModeScope>}
           {screen === 'quiet-speak' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset"><OutOfTimeMoment card={QUIET_OUT_OF_TIME} onPlans={() => go('select')} /></ScrollScreen></ModeScope>}
+          {screen === 'talk-days' && <ModeScope mode={yourFrenchMode}><ScrollScreen bottom="inset"><TalkDaysPreview /></ScrollScreen></ModeScope>}
           {(screen === 'live-speaking' || screen === 'live-typing' || screen === 'live-tap-to-send' || screen === 'live-wrap-up') && <ModeScope mode={yourFrenchMode}><LiveRoomPreview key={screen} startTyping={screen === 'live-typing'} tapToSend={screen === 'live-tap-to-send'} wrappingUp={screen === 'live-wrap-up'} controls={controlsVisible} onEnd={() => go('celebration')} /></ModeScope>}
           {(titles[screen] !== undefined || screen === 'interests') && <PreAccountOnboarding key={screen} previewOnly
             initialDraft={{ ...draft, page: screen as PreAccountOnboardingDraft['page'] }} onDraftChange={setDraft}
@@ -229,6 +234,18 @@ export function OnboardingPreview() {
       </View>}
     </View>
   </AuthProvider>;
+}
+
+/** The reminder ask's step 2 (T1.4) with Camille, which web never reaches because reminders are native only. Nothing is saved. */
+function TalkDaysPreview() {
+  const [picked, setPicked] = useState<number[]>(() => [...DEFAULT_TALK_DAYS]);
+  const [limitTapped, setLimitTapped] = useState(false);
+  const pressDay = (day: number) => {
+    const next = talkDayPress(picked, day);
+    setPicked(next.picked);
+    setLimitTapped(next.limitTapped);
+  };
+  return <TalkDaysCard tutor="Camille" picked={picked} limitTapped={limitTapped} saving={false} onPressDay={pressDay} onUse={() => {}} onKeep={() => {}} />;
 }
 
 /** Uses the production room and transcript. These messages never reach a tutor service. */

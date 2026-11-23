@@ -582,3 +582,34 @@ describe('the part of the day the reminder lands in — F576', () => {
     assert.ok(writtenBefore(REMINDER_CARD, 'row.on && (', 'REMINDER_TIME_TITLE'));
   });
 });
+
+describe('your talk days on Settings (T1.4)', () => {
+  test('the row is drawn only when talkDaysRowShown says so, with talkDaysValue', () => {
+    assert.match(REMINDER_CARD, /reminders && talkDaysRowShown\(row, talkDaysOffered\(\)\) && \(\s*<SettingsRow label=\{TALK_DAYS_COPY\.row\} value=\{talkDaysValue\(stored\?\.talkDays\)\} onPress=\{openTalkDays\} \/>/);
+  });
+
+  test('the sheet: shared chips, the Settings none line, Save and a Turn off shown only when on', () => {
+    const start = TAB.indexOf("<BottomSheet visible={sheet === 'talkDays' && reminderOwned}");
+    assert.ok(start !== -1, 'there is no talk days sheet');
+    const sheet = TAB.slice(start, TAB.indexOf('</BottomSheet>', start));
+    assert.match(sheet, /<TalkDayChips picked=\{talkDraft\} onPressDay=\{pressTalkDay\} \/>/);
+    assert.match(sheet, /talkDaysLine\(talkDraft, talkLimit, TALK_DAYS_COPY\.noneSettings\)/);
+    assert.match(sheet, /accessibilityLiveRegion="polite"/);
+    assert.match(sheet, /<PillButton label=\{TALK_DAYS_COPY\.save\} tone="brand" disabled=\{!talkDaysCanSave\(talkDraft, talkBusy\)\} onPress=\{\(\) => saveTalkDays\(talkDraft\)\} \/>/);
+    assert.match(sheet, /talkDaysOn\(stored\?\.talkDays\) && <GhostButton label=\{TALK_DAYS_COPY\.turnOff\} disabled=\{talkBusy\} onPress=\{\(\) => saveTalkDays\(\[\]\)\} \/>/);
+    assert.doesNotMatch(sheet, /#[0-9a-fA-F]{3,8}\b/);
+  });
+
+  test('saving goes through chooseTalkDays with the picked days; a press goes through talkDayPress', () => {
+    const save = TAB.slice(TAB.indexOf('const saveTalkDays = '), TAB.indexOf('const pressTalkDay = '));
+    assert.ok(save.length > 0, 'the save handler moved; this reads nothing');
+    assert.match(save, /if \(!ownsReminderNow\(\) \|\| talkBusy\) return;/);
+    assert.match(save, /chooseTalkDays\(days, tutorNameOf\(profile\)\)/);
+    // A failed save re-reads the disk so the row shows what landed, with the sheet and trouble line kept.
+    assert.match(save, /if \(outcome === 'failed'\) \{\s*setReminderTrouble\(REMINDER_SCHEDULE_TROUBLE\);\s*void loadReminder\(\{ strict: true \}\)\.then\(\(saved\) => \{ if \(ownsReminderNow\(\)\) setStored\(saved\); \}\)\.catch\(\(\) => \{\}\);\s*return;/, 'the row keeps the old days after a failed save');
+    const press = TAB.slice(TAB.indexOf('const pressTalkDay = '), TAB.indexOf('const pressTalkDay = ') + 400);
+    assert.match(press, /const next = talkDayPress\(talkDraft, day\);/);
+    assert.match(press, /AccessibilityInfo\.announceForAccessibility\(next\.said\)/);
+    assert.match(TAB, /setTalkDraft\(talkDaysPicked\(stored\?\.talkDays\)\)/, 'the sheet does not preselect the saved days');
+  });
+});

@@ -274,7 +274,8 @@ describe('the Settings screen is one push away — F473', () => {
     // 2026-10-20 UI-008, artboard B-Settings: twenty-four. Plan gains the
     // free band row (Free speaking time), and Practice draws Speaking target
     // and the correction style as rows into Learning preferences.
-    assert.equal(rows.length, 24, `Settings draws ${rows.length} rows, which is not the shape the seven groups have`);
+    // T1.4 (founder, 2026-11-19): twenty-five. Reminders gains Talk days, shown beside a reminder that is on.
+    assert.equal(rows.length, 25, `Settings draws ${rows.length} rows, which is not the shape the seven groups have`);
     for (const row of rows) {
       assert.doesNotMatch(row, /label="/, `a Settings row spells its label in JSX: ${row.split('\n')[0]}`);
       assert.match(row, /label=\{/, `a Settings row has no label at all: ${row.split('\n')[0]}`);
@@ -489,7 +490,8 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // presets, which were a sheet on Profile (F576). Both take the screen for
       // the same reason the other four do.
       // `help` joined with F922: the answers and the address, a bottom sheet in place.
-      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'delete', 'export', 'display', 'name', 'help'],
+      // `talkDays` joined with T1.4: the chips, a bottom sheet in place.
+      ['none', 'acknowledgements', 'policy', 'terms', 'intro', 'reminderTime', 'talkDays', 'delete', 'export', 'display', 'name', 'help'],
       'the sheet union names something other than the views this screen draws',
     );
     assert.ok(!SETTINGS.includes('unavailable'), 'the export refusal is a sheet again, which is where F489 started');
@@ -498,7 +500,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     // there is no such thing as an open sheet the learner cannot see. That is
     // the fix by construction: a card drawn at the foot of a scroll could be
     // open and invisible, and an early return cannot.
-    for (const member of members.filter((m) => m !== 'none' && m !== 'reminderTime' && m !== 'export' && m !== 'display' && m !== 'name' && m !== 'help')) {
+    for (const member of members.filter((m) => m !== 'none' && m !== 'reminderTime' && m !== 'talkDays' && m !== 'export' && m !== 'display' && m !== 'name' && m !== 'help')) {
       assert.ok(
         SETTINGS.includes(`if (sheet === '${member}')`),
         `the ${member} sheet is not an early return, so it can be open while the learner is looking at something else`,
@@ -507,6 +509,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
     assert.match(SETTINGS, /<BottomSheet visible=\{sheet === 'display'\} title="Display" onClose=\{\(\) => setSheet\('none'\)\}/);
     assert.match(SETTINGS, /<BottomSheet visible=\{sheet === 'export'\} title="Download your data" onClose=\{closeCurrentSheet\}/);
     assert.match(SETTINGS, /<BottomSheet visible=\{sheet === 'reminderTime' && reminderOwned\} title=\{REMINDER_TIME_TITLE\}/);
+    assert.match(SETTINGS, /<BottomSheet visible=\{sheet === 'talkDays' && reminderOwned\} title=\{TALK_DAYS_COPY\.row\} onClose=\{\(\) => setSheet\('none'\)\}/);
     assert.match(SETTINGS, /onClose=\{\(\) => setSheet\('none'\)\}/);
 
 
@@ -522,7 +525,7 @@ describe('a refusal is drawn where it happened and said out loud — F489, F490,
       // The reminder presets joined the delete confirmation with revamp A. It
       // is an ordinary `ScrollScreen` drawn by this file with no hook of its
       // own, so this screen's hook is the only thing that can close it.
-      ['reminderTime', 'delete', 'export', 'display', 'name', 'help'],
+      ['reminderTime', 'talkDays', 'delete', 'export', 'display', 'name', 'help'],
       'the hardware back is answered for a sheet this screen does not draw in place, so a press is eaten',
     );
     // The four that stand it down are exactly the four that bring their own

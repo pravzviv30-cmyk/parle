@@ -164,6 +164,10 @@
     "label": "{REMINDER_ASK_COPY.notNow}"
   },
   {
+    "file": "reminders/ReminderAsk.tsx",
+    "label": "{REMINDER_ASK_COPY.notNow}"
+  },
+  {
     "file": "settings/SettingsScreen.tsx",
     "label": "{deleting ? 'Verifying…' : 'Verify and delete permanently'}"
   },
@@ -374,5 +378,9 @@
   {
     "file": "tutor/RealMomentScreen.tsx",
     "label": "{checking ? TUTOR_OFFLINE.checking : TUTOR_OFFLINE.retry}"
+  },
+  {
+    "file": "settings/SettingsScreen.tsx",
+    "label": "{TALK_DAYS_COPY.turnOff}"
   }
 ]

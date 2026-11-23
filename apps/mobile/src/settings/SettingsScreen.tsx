@@ -61,7 +61,7 @@
  */
 
 import { useCallback, useState, type ReactNode } from 'react';
-import { AppState, StyleSheet, View, Text } from 'react-native';
+import { AppState, AccessibilityInfo, StyleSheet, View, Text } from 'react-native';
 import Constants from 'expo-constants';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { bType, space, type } from '../theme.ts';
@@ -122,9 +122,13 @@ import {
   REMINDER_TIMES,
   REMINDER_TIME_SUB,
   REMINDER_TIME_TITLE,
+  TALK_DAYS_COPY,
   reminderChoice,
   reminderRow,
   smartGloss,
+  talkDaysLine,
+  talkDaysPicked,
+  talkDaysValue,
   type ClockTime,
   type ReminderMode,
   type StoredReminder,
@@ -135,7 +139,9 @@ import {
   askReminderPermission,
   reminderPermission,
 } from '../reminders/schedule.ts';
-import { replanReminders, smartReminderTime } from '../reminders/ReminderPlanner.tsx';
+import { chooseTalkDays, replanReminders, smartReminderTime, talkDaysOffered } from '../reminders/ReminderPlanner.tsx';
+import { TalkDayChips } from '../reminders/TalkDayChips.tsx';
+import { talkDayPress, talkDaysCanSave, talkDaysOn, talkDaysRowShown } from './talkDays.ts';
 import { openMail } from './links.ts';
 import { phoneRows, type PhonePermission, type PhonePermissionKey } from './phone.ts';
 import { PHONE_SETTINGS_AVAILABLE, microphonePermission, openPhoneSettings } from './phoneSettings.ts';
@@ -184,7 +190,7 @@ import type { AuthResult } from '../auth/types.ts';
  * closing a card nobody had seen. A refusal is not a sheet: it is a line in the
  * group whose control caused it, which is what every other one here already is.
  */
-type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'intro' | 'reminderTime' | 'delete' | 'export' | 'display' | 'name' | 'help';
+type Sheet = 'none' | 'acknowledgements' | 'policy' | 'terms' | 'intro' | 'reminderTime' | 'talkDays' | 'delete' | 'export' | 'display' | 'name' | 'help';
 
 /**
  * Said when the disk refuses the reminder's two-field write, and only then.
@@ -297,6 +303,10 @@ export function SettingsScreen({
   const [unreadReminderOwner, setUnreadReminderOwner] = useState<{ scope: number; userId: string | null } | null>(null);
   const [reminderAttempt, setReminderAttempt] = useState(0);
   const [reminderBusy, setReminderBusy] = useState(false);
+  // The talk days sheet's draft (T1.4): the chips picked, a blocked press at the limit, a save under way.
+  const [talkDraft, setTalkDraft] = useState<number[]>([]);
+  const [talkLimit, setTalkLimit] = useState(false);
+  const [talkBusy, setTalkBusy] = useState(false);
   // The time the smart mode reads from the learner's own rhythm, or null until
   // it shows. Read, never guessed: the sheet says "until your rhythm shows".
   const [smartTime, setSmartTime] = useState<ClockTime | null>(null);
@@ -685,6 +695,42 @@ export function SettingsScreen({
     })().catch(() => { if (ownsReminderNow()) setReminderTrouble(REMINDER_SAVE_TROUBLE); });
   };
 
+  /** The talk days sheet opens on the saved days, else Mon, Wed and Fri. */
+  const openTalkDays = () => {
+    setTalkDraft(talkDaysPicked(stored?.talkDays));
+    setTalkLimit(false);
+    setReminderTrouble(null);
+    setSheet('talkDays');
+  };
+
+  /** Save (the picked days) or Turn off (none), through the planner; the sheet closes once the phone took it. */
+  const saveTalkDays = (days: readonly number[]) => {
+    if (!ownsReminderNow() || talkBusy) return;
+    setTalkBusy(true);
+    setReminderTrouble(null);
+    void chooseTalkDays(days, tutorNameOf(profile))
+      .then((outcome) => {
+        if (!ownsReminderNow()) return;
+        if (outcome === 'failed') {
+          setReminderTrouble(REMINDER_SCHEDULE_TROUBLE);
+          void loadReminder({ strict: true }).then((saved) => { if (ownsReminderNow()) setStored(saved); }).catch(() => {});
+          return;
+        }
+        setStored((was) => (was === null ? was : { ...was, talkDays: [...days] }));
+        setSheet('none');
+      })
+      .catch(() => { if (ownsReminderNow()) setReminderTrouble(REMINDER_SAVE_TROUBLE); })
+      .finally(() => setTalkBusy(false));
+  };
+
+  /** A chip press, decided by `talkDayPress`: a blocked chip changes nothing and says why. */
+  const pressTalkDay = (day: number) => {
+    const next = talkDayPress(talkDraft, day);
+    setTalkDraft(next.picked);
+    setTalkLimit(next.limitTapped);
+    AccessibilityInfo.announceForAccessibility(next.said);
+  };
+
   /** Hand the learner to their own phone, and say so when the phone will not go. */
   const walkToPhoneSettings = (key: PhonePermissionKey) => {
     setPhoneTrouble(null);
@@ -971,7 +1017,7 @@ export function SettingsScreen({
           {reminders && row !== null && row.note.length > 0 && (
             <Text style={[bType.note, { color: t.muted, paddingTop: space(3) }]}>{row.note}</Text>
           )}
-          {reminderOwned && sheet !== 'reminderTime' && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
+          {reminderOwned && sheet !== 'reminderTime' && sheet !== 'talkDays' && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
           {reminderUnknown && <View style={{ gap: space(2), paddingVertical: space(3) }}>
             <Text accessibilityLiveRegion="polite" style={[bType.note, { color: t.muted }]}>{reminderPending ? 'Checking reminder status…' : 'Reminder status could not be read. Try again before changing it.'}</Text>
             {reminderUnread && <IconAction ground={t.mode === 'dark' ? 'blue' : 'paper'} layout="inline" icon="refresh" label="Retry reminder status" onPress={() => setReminderAttempt(value => value + 1)} />}
@@ -988,6 +1034,9 @@ export function SettingsScreen({
           )}
           {reminders && row !== null && row.on && (
             <SettingsRow label={REMINDER_TIME_TITLE} value={chosen.label} onPress={() => setSheet('reminderTime')} />
+          )}
+          {reminders && talkDaysRowShown(row, talkDaysOffered()) && (
+            <SettingsRow label={TALK_DAYS_COPY.row} value={talkDaysValue(stored?.talkDays)} onPress={openTalkDays} />
           )}
           {trialShown && <TrialReminderRow trial={trial} first={!reminders} />}
           {phoneDrawn.notifications}
@@ -1123,6 +1172,17 @@ export function SettingsScreen({
         <OptionRow key={option.value} title={option.label} detail={option.gloss}
           selected={chosen.value === option.value} onPress={() => chooseReminderTime(option.value)} />
       ))}
+      {reminderOwned && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
+    </BottomSheet>
+    <BottomSheet visible={sheet === 'talkDays' && reminderOwned} title={TALK_DAYS_COPY.row} onClose={() => setSheet('none')} surface={t.card} ink={t.text} footer={
+      <View style={{ gap: space(1) }}>
+        <PillButton label={TALK_DAYS_COPY.save} tone="brand" disabled={!talkDaysCanSave(talkDraft, talkBusy)} onPress={() => saveTalkDays(talkDraft)} />
+        {talkDaysOn(stored?.talkDays) && <GhostButton label={TALK_DAYS_COPY.turnOff} disabled={talkBusy} onPress={() => saveTalkDays([])} />}
+      </View>
+    }>
+      <Text style={[type.body, { color: t.muted }]}>{TALK_DAYS_COPY.body}</Text>
+      <TalkDayChips picked={talkDraft} onPressDay={pressTalkDay} />
+      <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted }]}>{talkDaysLine(talkDraft, talkLimit, TALK_DAYS_COPY.noneSettings)}</Text>
       {reminderOwned && reminderTrouble !== null && <TroubleLine message={reminderTrouble} />}
     </BottomSheet>
     <BottomSheet visible={sheet === 'name'} title="Your name" onClose={() => setSheet('none')} surface={t.card} ink={t.text}>
