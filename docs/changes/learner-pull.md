@@ -118,13 +118,13 @@ Owners are the territory engineers from `docs/TEAM.md`, at the low effort set in
 | T1.1 | One fix a day, free | frontend-engineer | F1 | normal | done: PR #30 |
 | T1.2 | Save-your-streak line | progress-retention-engineer | F2 | normal | done: PR #32 |
 | T1.3 | Reminder content: phrase named, taps into practice, free talk back, goal and next lines, the fix line, the week line | progress-retention-engineer | T1.2 | normal | slice A done: PR #36; slice B waits on the read rule |
-| T1.4 | Your talk days | progress-retention-engineer | T1.3 | normal | todo |
+| T1.4 | Your talk days | progress-retention-engineer | T1.3 | normal | done: PR #47 (UI-026) |
 | T2.1 | Free review of conversation phrases | practice-ux-engineer | F3, F7 | normal per F7 | done: PR #33 |
 | T2.2 | Homework the next conversation checks | practice-ux-engineer, frontend-engineer | T1.1 | normal | todo |
 | T2.3 | Free earn-back repair | progress-retention-engineer | F4, F7 | per F7 | done: PR #35 |
 | T2.4 | Bank a freeze | progress-retention-engineer | F5, T2.3 | per F7 | done: PR #35 |
-| T3.1 | One freeze mark everywhere (slop fix) | design-system-engineer | none | normal | building on `claude/board-a` (UI-025) |
-| T3.2 | Board A, streak moments | frontend-engineer after the board | T1.2, T3.1 | normal | picked 2026-11-19 (UI-025): four moments from the A row; building on `claude/board-a` |
+| T3.1 | One freeze mark everywhere (slop fix) | design-system-engineer | none | normal | done: PR #45 (UI-025) |
+| T3.2 | Board A, streak moments | frontend-engineer after the board | T1.2, T3.1 | normal | done: PR #45 (UI-025), four moments from the A row |
 | T3.3 | Board B, never a dead end | frontend-engineer, practice-ux-engineer | F6, T1.1 | normal | blocked: F6 |
 | T3.4 | Board C, French anywhere | practice-ux-engineer | board | normal | todo |
 | T3.5 | Board D, your French piles up | frontend-engineer, practice-ux-engineer | board | normal | todo |
@@ -390,6 +390,8 @@ Show a fix only when its line was heard clearly, using per-turn STT confidence i
 | 2026-11-18 | Proposals | The founder sent all 16 push-check proposals from PRs #30, #32, #33 and #35 to a board. | Boards A-E |
 | 2026-11-19 | T1.3 slice A | Founder approved the plan and copy in chat (D28). Built test first in `Luvani-worktrees/reminder-content`; mobile suite and typecheck green. | Review, gate, `/push-check`, `/land`; slice B decision |
 | 2026-11-19 | T1.3 | Slice A planned (explorer map, founder answers in two rounds), built by progress-retention-engineer test first, push-checked (two reviewer rounds; Impeccable fix then ship; unslop pass; security none) and landed as PR #36 (29253670). Founder sent 3 more proposals to a board and kept friends and small talk out of the named phrases. | T1.4 talk days; slice B needs the read rule opened |
+| 2026-11-23 | T3.1, T3.2 | Board A (UI-025) built test first on `claude/board-a`, with the freeze-mark branch merged in. Push-check: frontend and tests reviewers (4 tests added, mutation-proven), /code-review (2 nits fixed), Impeccable fix then ship, unslop fail then pass (CheckDisc on the carried card, the white crystal on dark grounds), security none. Landed as PR #45 (821ab3a4). 5 proposals queued for a board. | A dev fixture with a freeze-covered run, to capture the carried and repaired takeovers |
+| 2026-11-23 | T1.4 | Talk-day board picked (UI-026). Built test first on `claude/talk-days`. Push-check: reminders are off on web, so a dev screen preview (`?preview=talk-days`) was added for the browser pass; frontend reviewer (cross-account write and blocked-chip haptic fixed), tests reviewer (5 gaps pinned), /code-review, Impeccable and unslop three rounds each to ship and pass, security none. Landed as PR #47. 5 proposals queued for a board. | Founder: a line when the step-2 save fails (new copy); Settings row reactivity |
 
 ## Landing
 

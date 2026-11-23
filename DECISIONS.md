@@ -2642,7 +2642,7 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     the lifetime line; "One freeze banked" as a row on the ending of the practice that earned it.
   - A repair and a milestone in one practice make one takeover: the milestone, carrying "Your streak is back." as a row.
   - Talk days (T1.4) get their own small board before any code.
-- Consequence: built on `claude/board-a`; no stored-shape change beyond a day-scoped seen kind.
+- Consequence: built on `claude/board-a` and landed as PR #45; no stored-shape change beyond a day-scoped seen kind.
 
 ## LEARN-019 — In free conversation, a reply right after help is not the learner's own
 
@@ -2725,3 +2725,21 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   The other five plan entries needed no founder call: F637 and F642 are built or
   superseded and close in M2, F564 closes in M1, F271 is an engineering pin in M1,
   and F868 stays accepted under UI-011 until the store accounts exist.
+
+## UI-026 — Talk days board: two rows of named chips, a blocked day says why
+
+- Date: 2026-11-19
+- Status: accepted (founder, in chat, on the talk-day board https://claude.ai/artifact/CM4LPsGRMzPj3bhzbqruGf)
+- Decision:
+  - Direction A: seven named chips in two rows (four and three); a day next to a chosen one cannot be picked and says
+    why in words ("next to Mon"). Up to three days, never two next to each other, the week wrapping. One rule for
+    every plan; guests and an unknown plan get none.
+  - Step 2 of the reminder ask follows a successful "Remind me": "Which days will you talk to {tutor}?", "Use these
+    days" and "Not now" (which keeps the reminder on). "Step 1 of 2" and "Step 2 of 2" sit under their headings.
+  - Settings shows a "Talk days" row only while the daily reminder is on, opening the same chips with "Save" and
+    "Turn off talk days".
+  - On a talk day, when a conversation can start, the reminder reads "A conversation with {tutor} today" and opens
+    Speak ("{tutor} is free to talk again" when the free conversation came back before the slot). A missed talk day
+    says nothing.
+- Consequence: built as T1.4 and landed as PR #47; `talkDays` is an optional field on the stored reminder choice
+  (still version 2).
