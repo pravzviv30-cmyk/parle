@@ -2644,3 +2644,62 @@ no second cleanup queue, motion state store or navigation owner was introduced.
   - Talk days (T1.4) get their own small board before any code.
 - Consequence: built on `claude/board-a`; no stored-shape change beyond a day-scoped seen kind.
 
+## LEARN-019 — In free conversation, a reply right after help is not the learner's own
+
+- Date: 2026-11-18
+- Status: accepted (founder, "Stop after hint or line"; extends LEARN-001)
+- Decision: in free conversation, a good reply on an exchange where the app had
+  shown the hint or the full line (`assistanceDepth > 0`) earns no unassisted
+  credit. Some sessions therefore no longer earn the +10 XP bonus or the "held on
+  their own" line.
+- Reason: LEARN-001 kept help out of `timesUsedWell`, but the free-conversation
+  ladder still counted a helped reply as the learner's own.
+- Consequence: past sessions are not changed. `packages/brain/src/engine/conversation.ts`
+  passes `assisted` to `applyTurn`, and PEDAGOGY.md "Help is not independence" says
+  so in one sentence. F1121, PR #43.
+
+## VOICE-025 — Retries one second apart, and the cap ends with the line, the recap, then the close
+
+- Date: 2026-11-18
+- Status: accepted (founder, "1 s apart, then probe" and "Line, recap, close").
+  Built in PR #44, which lands only after the founder's device run to the cap.
+- Decision:
+  - A live session's heartbeat, turn save and claim wait 1 s between failed tries,
+    bounded by the lease time left. Attempt counts are unchanged. Once the
+    lifecycle has stopped, settlement tries go back to back, as before (F1319).
+  - At the cap, paid voice stops, the existing time-limit line is sent, the session
+    settles and the recap shows, then the room closes within 5 s. No new words.
+  - One exception (F1320): if the tutor's warm goodbye is already playing at the
+    cap, the line is skipped. The recap and the close still happen.
+  - The probe: restart the staging token server during a live session, note how
+    long its refusals last, and widen the spacing only if they outlast it.
+- Reason: three instant refusals spent a session's heartbeat tries in one
+  millisecond, and a session stopped at its cap showed "The connection dropped and
+  this session could not be saved" instead of the recap.
+- Consequence: F1106, F1107, F1308, F1309, F1319 and F1320. A lost lease still
+  disconnects at once with no line, and guest scenes keep their own stop. F1321 to
+  F1323 stay open for a scene slice.
+
+## DEV-004 — Whole-code review, wave 2: the founder's backend answers
+
+- Date: 2026-11-18
+- Status: accepted (founder, in chat, during Phase 4 wave 2)
+- Decision:
+  - **`minutes_refused` (F1099): "Yes, record it".** A paid reservation the
+    database refuses (402) records `minutes_refused` when the learner allows
+    analytics. The privacy notice already names the event. PR #40.
+  - **Store errors (F1091): "Treat as service failure".** The session lease uses
+    the shared Upstash helper, and a store error on acquire is the route's internal
+    error, not a 409 busy session. PR #37.
+  - **Guest concurrency (F867): "No cap now".** F867 stays open: a guest
+    concurrency cap is decided before the daily guest scene ceiling (24) is raised.
+  - **The spend script (B3a-8): "Delete it".** `services/tutor-agent/src/verify/brainSpend.ts`
+    is removed, with a note in F101. PR #38.
+  - **The HTTP survival harness (F1065): "Land without it".** After five judge
+    rounds it passed 239 of 240 runs under 8-way load, and the one failure never
+    reproduced. It runs by hand (`scripts/verifyHttpBoundary.manual.mjs`) and is out
+    of the gate. F1065, F1300, F1303 and F1305 stay open as P2 until a diagnostic run
+    finds the cause. PR #39.
+- Reason: the review's plan leaves to the founder anything a learner sees, hears,
+  pays or has stored, and each of these was such a choice.
+- Consequence: recorded once, after the wave 2 merges (faster stages, 2026-11-19).
