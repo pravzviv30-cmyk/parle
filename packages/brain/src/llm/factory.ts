@@ -8,7 +8,7 @@
  * of "which brain does TUTOR_LLM mean" is how two processes come to disagree
  * about what a learner is talking to.
  *
- * It is a lift, not a redesign: same flag, same four values, same clients, same
+ * It is a lift, not a redesign: same flag, same five values, same clients, same
  * defaults. The tutor agent's `brainClient()` now calls straight through here
  * and its tests still hold the promise this was built for — that moving from a
  * subscription to an API key is one line of .env and no code at all.
@@ -23,12 +23,13 @@ import { AnthropicBrainClient } from './anthropic.ts';
 import { ClaudeCliBrainClient } from './claudeCli.ts';
 import type { LlmClient } from './client.ts';
 import { JevFirstBrainClient } from './jevJudge.ts';
-import { OpenAiCompatBrainClient } from './openaiCompat.ts';
+import { OpenAiCompatBrainClient, defaultModel } from './openaiCompat.ts';
 import { OpenAiResponsesBrainClient } from './openaiResponses.ts';
+import { resolveRouting } from './routing.ts';
 import { SplitBrainClient } from './split.ts';
 import { typeSafeFromEnv } from './typesafe.ts';
 
-/** The four brains TUTOR_LLM can ask for. */
+/** The five brains TUTOR_LLM can ask for. */
 export type BrainChoice = 'anthropic' | 'groq' | 'openai' | 'claude-cli' | 'claude-cli-all';
 
 /**
@@ -55,6 +56,8 @@ export function brainChoice(env: Record<string, string | undefined> = process.en
  *          is the product, and routing.ts already keeps realtime turns on the
  *          fast tier. Needs ANTHROPIC_API_KEY.
  * `groq` — the documented $0 fallback for key-less setups.
+ * `openai`: OpenAI's Responses API with strict schemas, a model per call and
+ *          optional per-call overrides. Needs OPENAI_API_KEY.
  * `claude-cli` — a Claude subscription through the command line, so the
  *          coaching can be judged before an API key is bought. Split, because
  *          a CLI call costs about eight seconds: the post-session calls get
@@ -63,10 +66,10 @@ export function brainChoice(env: Record<string, string | undefined> = process.en
  *          turn included, for development only. It buys coaching quality with
  *          eight to twelve seconds of dead air per turn, which is why it is not
  *          the default and why preflight says so out loud. It exists because
- *          Groq's free tier rate-limits a real session, and a fourth value on
+ *          Groq's free tier rate-limits a real session, and a fifth value on
  *          the one enum beats a second flag that could disagree with it.
  *
- * TYPESAFE_API_KEY is not a fifth brain. It puts Jev in front of whichever
+ * TYPESAFE_API_KEY is not a sixth brain. It puts Jev in front of whichever
  * brain the flag chose, for the own-words judge only; see jevJudge.ts. Unset,
  * the brain comes back exactly as it did before the key existed.
  */
@@ -79,7 +82,7 @@ export function brainClientFromEnv(env: Record<string, string | undefined> = pro
 
 function vendorBrainFromEnv(env: Record<string, string | undefined>, transport?:typeof fetch): LlmClient {
   const brain = brainChoice(env);
-  if (brain === 'groq') return new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' },transport);
+  if (brain === 'groq') return new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '', model: defaultModel(env) },transport);
   if (brain === 'openai') {
     return new OpenAiResponsesBrainClient({
       apiKey: env.OPENAI_API_KEY,
@@ -90,6 +93,7 @@ function vendorBrainFromEnv(env: Record<string, string | undefined>, transport?:
       analystModel: env.OPENAI_ANALYST_MODEL,
       drillsModel: env.OPENAI_DRILLS_MODEL,
       curationModel: env.OPENAI_CURATION_MODEL,
+      env,
     },transport);
   }
   // No split, and no key: the subscription answers everything through the
@@ -100,9 +104,9 @@ function vendorBrainFromEnv(env: Record<string, string | undefined>, transport?:
     // run once the room has closed, and leave the learner's turn on the fast
     // one. See SplitBrainClient for why this is wiring and not routing.
     return new SplitBrainClient({
-      realtime: new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '' }),
+      realtime: new OpenAiCompatBrainClient({ apiKey: env.GROQ_API_KEY ?? '', model: defaultModel(env) }),
       considered: new ClaudeCliBrainClient(),
     });
   }
-  return new AnthropicBrainClient({apiKey:env.ANTHROPIC_API_KEY,...(transport?{fetch:transport}:{})});
+  return new AnthropicBrainClient({apiKey:env.ANTHROPIC_API_KEY,routing:resolveRouting(env),...(transport?{fetch:transport}:{})});
 }

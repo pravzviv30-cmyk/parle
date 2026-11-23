@@ -11,7 +11,7 @@
  */
 
 import { isMastered } from '@luvani/core';
-import { evictOverflowPhrases, evictStalePatterns, patternStatus, type LearnerProfile } from './profile.ts';
+import { MAX_PATTERN_EXAMPLE, evictOverflowPhrases, evictStalePatterns, patternStatus, type LearnerProfile } from './profile.ts';
 
 /**
  * 48 KB. Measured (snapshotBudget.test.ts): a heavy learner at realistic French
@@ -26,7 +26,7 @@ import { evictOverflowPhrases, evictStalePatterns, patternStatus, type LearnerPr
  */
 export const SNAPSHOT_MAX_BYTES = 48 * 1024;
 /** The same ceiling the other profile writer keeps for a pattern's example. */
-export const SNAPSHOT_MAX_EXAMPLE_CHARS = 160;
+export const SNAPSHOT_MAX_EXAMPLE_CHARS = MAX_PATTERN_EXAMPLE;
 /**
  * A phrase is a sayable line. The longest real phrase in the fixtures is under
  * 60 characters; 200 is three times that and still clips a runaway string.

@@ -27,7 +27,6 @@ import {
   type LadderDirective,
   type LadderState,
   type Rung,
-  type SupportLevel,
 } from '@luvani/core';
 
 import type {
@@ -39,8 +38,9 @@ import type {
   SupportView,
   TutorTurn,
 } from '../contract/types.ts';
-import type { LearnerGoal } from '@luvani/core';
+import type { LearnerGoal, TutorPersona } from '@luvani/core';
 import type { CefrBand, Pace, Strictness } from '../types.ts';
+import { coachedForms, namedInCoaching } from './coaching.ts';
 import {
   NOTHING_WAS_WRONG,
   coachFallbackLine,
@@ -416,7 +416,16 @@ export function createConversation(
   },
   now = Date.now(),
 ): ConversationState {
-  const frame = repairOpeningNarration(rawFrame, config.request ?? '');
+  const repaired = repairOpeningNarration(rawFrame, config.request ?? '');
+  // F1117: the scenario builder is a model call, so its opening passes the same sanitizer as a turn.
+  const clean = (line: ScenarioFrame['openingLine']) => ({ ...line, fr: sanitizeLearnerText(line.fr), en: sanitizeLearnerText(line.en) });
+  const frame = {
+    ...repaired,
+    titleEn: sanitizeLearnerText(repaired.titleEn),
+    beats: repaired.beats.map((beat) => ({ ...beat, goalEn: sanitizeLearnerText(beat.goalEn) })),
+    openingNarration: clean(repaired.openingNarration),
+    openingLine: clean(repaired.openingLine),
+  };
   const ladder = initialLadder(sceneOpensAt(learner, config.startRung));
   const beatStatus: Record<string, 'pending' | 'done'> = {};
   for (const beat of frame.beats) beatStatus[beat.id] = 'pending';
@@ -530,32 +539,6 @@ export function learnerSideSupport(support: SupportMaterial, sceneLine: string):
   return { ...support, fullLine, options };
 }
 
-export function supportViewFor(level: SupportLevel, material: SupportMaterial): SupportView {
-  switch (level) {
-    case 'full-line':
-      // No line left to hand over means `learnerSideSupport` found nothing in
-      // this turn's material it could vouch for as the learner's own. The hint
-      // is the honest floor: English, always their side of the scene, and it
-      // names the goal instead of handing over somebody else's line with
-      // confidence. Guessing here is how the defect got shipped in the first place.
-      if (material.fullLine.fr.trim().length === 0) return { kind: 'hint', hint: material.hintEn };
-      return {
-        kind: 'full-line',
-        line: material.fullLine.fr,
-        written: material.fullLine.frWritten,
-        gloss: material.fullLine.en,
-      };
-    case 'options':
-      // Never more than three — a learner reading four French sentences under
-      // time pressure is doing homework, not talking. Same cap as core.
-      return { kind: 'options', options: material.options.slice(0, 3).map((o) => ({ text: o.fr, en: o.en })) };
-    case 'hint':
-      return { kind: 'hint', hint: material.hintEn };
-    case 'none':
-      return { kind: 'none' };
-  }
-}
-
 /** The free tutor's disclosure rule. No ladder rung can reveal help early. */
 export function supportViewForAssistance(depth: AssistanceDepth, material: SupportMaterial): SupportView {
   if (depth === 0) return { kind: 'none' };
@@ -652,7 +635,7 @@ function sadNewsInput(input: LearnerTurnInput): boolean {
  * Build the model request for this input. Pure and byte-stable for identical
  * states — the multi-turn prompt cache depends on it.
  */
-export function prepareTurn(state: ConversationState, input: LearnerTurnInput): BrainTurnRequest {
+export function prepareTurn(state: ConversationState, input: LearnerTurnInput, persona?: TutorPersona): BrainTurnRequest {
   const beat = beatOf(state);
   const context = buildTurnContext({
     directive: state.directive,
@@ -685,7 +668,7 @@ export function prepareTurn(state: ConversationState, input: LearnerTurnInput): 
 
   return {
     kind: 'turn',
-    system: buildSystemBlocks(),
+    system: buildSystemBlocks(persona),
     messages: [
       { role: 'user', text: frameMessage(state.frame) },
       ...state.history,
@@ -724,64 +707,6 @@ export function historyForPublishedTurn(raw: TutorTurn, view: TurnView): string 
 }
 
 /**
- * What this turn's coaching named, normalised once.
- *
- * `quoted` is what the model says the learner got wrong — the verbatim fragment
- * handed back to them. `named` is that plus the form offered instead, which the
- * *tutor* produced, not the learner. Two lists because the two exclusions they
- * feed have different lifetimes: a quote is wrong for the rest of the session,
- * while an offered form is only "not the learner's own words" in the same
- * breath it was modelled in.
- *
- * `applyTurnToProfile` in profile/profile.ts holds a private copy of this pair
- * and of `namedInCoaching`, because that file was closed to edits when these
- * moved here. The two must not drift: one turn gets one verdict, and the record
- * and the end card have to be reading the same one. Exported so that copy can
- * become an import.
- */
-export function coachedForms(turn: TutorTurn): { quoted: string[]; named: string[] } {
-  const quoted: string[] = [];
-  const named: string[] = [];
-  for (const item of turn.coach) {
-    const quote = normalise(item.quote);
-    if (quote.length > 0) {
-      quoted.push(quote);
-      named.push(quote);
-    }
-    for (const offered of [item.better, item.betterWritten]) {
-      if (offered === null) continue;
-      const key = normalise(offered);
-      if (key.length > 0) named.push(key);
-    }
-  }
-  return { quoted, named };
-}
-
-/**
- * Was any of these forms named in that coaching?
- *
- * Matched on whole normalised words rather than equality, because a coach item
- * quotes a *fragment* of what the learner said: an exact comparison would miss
- * the phrase sitting inside a quote of the whole sentence, which is the common
- * case. Padding both sides with a space keeps "on" from matching inside
- * "bonjour" — normalise() has already reduced everything to space-separated
- * words, so a word boundary is a space.
- *
- * Over-matching costs one line off an end card; under-matching congratulates
- * somebody on the phrase they were just corrected for. The doubt goes this way
- * on purpose, the same way it does where credit is minted.
- */
-export function namedInCoaching(coached: readonly string[], ...forms: readonly (string | null)[]): boolean {
-  for (const form of forms) {
-    if (form === null) continue;
-    const needle = normalise(form);
-    if (needle.length === 0) continue;
-    if (coached.some((text) => ` ${text} `.includes(` ${needle} `))) return true;
-  }
-  return false;
-}
-
-/**
  * Does the model's own coach line describe the finding the code surfaced?
  *
  * The engine already picks one verdict per turn — `lead`, below — and the line
@@ -801,6 +726,8 @@ export function namedInCoaching(coached: readonly string[], ...forms: readonly (
  */
 function coachLineFits(line: string, lead: CoachItem): boolean {
   if (copyViolations(line).length > 0) return false;
+  // F1053: the voice says numbers in words, so a digit even inside quotes does not fit.
+  if (/\d/.test(line)) return false;
   if (NOTHING_WAS_WRONG.has(lead.kind) && landsAsCorrection(line)) return false;
   const offered = [lead.better, lead.betterWritten].filter((form) => normalise(form ?? '').length > 0);
   if (offered.length === 0) return true;
@@ -863,7 +790,7 @@ export function integrateTurn(
   let quality: ReturnType<typeof assessmentToQuality> | null = null;
   if (input.type === 'spoke') {
     quality = assessmentToQuality(turn.assessment, turn.coach);
-    const applied = applyTurn(ladder, { type: 'spoke', quality });
+    const applied = applyTurn(ladder, { type: 'spoke', quality, assisted: state.assistanceDepth > 0 });
     ladder = applied.state;
     directive = applied.directive;
   }

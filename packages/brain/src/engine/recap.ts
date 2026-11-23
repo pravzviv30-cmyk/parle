@@ -9,15 +9,15 @@
  * Numbers are allowed here and only here; mid-session they read as grades.
  */
 
-import { unassistedRate } from '@luvani/core';
+import { MAX_PACK_CORRECTIONS, unassistedRate } from '@luvani/core';
 
 import type { CoachItem, SessionRecap } from '../contract/types.ts';
 import type { CefrBand } from '../types.ts';
 import type { ConversationState } from './conversation.ts';
 import { KIND_PRIORITY } from './grading.ts';
 
-/** The recap holds this many fixes; core's MAX_PACK_CORRECTIONS must equal it (F906). */
-export const MAX_FIXES = 6;
+/** The recap holds as many fixes as core's conversation pack carries (F906). */
+export const MAX_FIXES = MAX_PACK_CORRECTIONS;
 const MAX_WINS = 5;
 const MAX_PHRASES = 12;
 

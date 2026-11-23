@@ -1,5 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   EVIDENCE_WINDOW,
@@ -398,6 +401,23 @@ describe('memory — what the tutor knows about the person', () => {
     assert.notEqual(profile.memory.opener, null, 'a clean opener survives dropped facts');
   });
 
+  test('an extracted fact is stored without an em dash', () => {
+    // F1117. Facts already stored are not rewritten; new ones are cleaned on the way in.
+    const profile = applyExtractionToProfile(
+      createProfile(),
+      {
+        facts: [{ ...fact('Loves cooking \u2014 mostly pasta'), fr: 'Adore cuisiner \u2014 surtout des pâtes', happensAround: 'this weekend \u2014 Saturday' }],
+        openerFr: null,
+        openerEn: null,
+      },
+      '2026-11-19T10:00:00Z',
+    );
+    const [stored] = profile.memory.facts;
+    assert.equal(stored?.en, 'Loves cooking, mostly pasta');
+    assert.equal(stored?.fr, 'Adore cuisiner, surtout des pâtes');
+    assert.equal(stored?.happensAround, 'this weekend, Saturday');
+  });
+
   test('a sensitive opener becomes null', () => {
     const fr = applyExtractionToProfile(createProfile(), { facts: [], openerFr: 'Et ton salaire ?', openerEn: 'And the pay?' }, '2026-10-28T10:00:00Z');
     assert.equal(fr.memory.opener, null);
@@ -698,5 +718,38 @@ describe('repairProfile: wire-only learner goals (LEARN-009)', () => {
       assert.equal('learnerGoals' in repairProfile(withGoals(junk)).memory, false, JSON.stringify(junk));
     }
     assert.equal('learnerGoals' in repairProfile(createProfile()).memory, false);
+  });
+});
+
+/**
+ * Every brain module `profile.ts` loads at run time, following relative
+ * imports and re-exports. `import type` and `export type` are erased and load
+ * nothing; anything else, even `import { type X }`, loads its module.
+ */
+function runtimeModulesFrom(entry: string): Set<string> {
+  const seen = new Set<string>();
+  const stack = [entry];
+  while (stack.length > 0) {
+    const file = stack.pop()!;
+    if (seen.has(file) || !existsSync(file)) continue;
+    seen.add(file);
+    const source = readFileSync(file, 'utf8');
+    const statements = /^(?:import|export)\s+(type\s+)?[^;'"]*?from\s+['"](\.[^'"]+)['"]|^import\s+['"](\.[^'"]+)['"]/gm;
+    for (const match of source.matchAll(statements)) {
+      if (match[1]) continue;
+      stack.push(resolve(dirname(file), (match[2] ?? match[3])!));
+    }
+  }
+  return seen;
+}
+
+describe('what the profile export ships to the app', () => {
+  test('the profile module loads no conversation engine code', () => {
+    const src = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const loaded = runtimeModulesFrom(resolve(src, 'profile/profile.ts'));
+    assert.ok(loaded.has(resolve(src, 'profile/errorTag.ts')), 'the walk follows real imports');
+    for (const heavy of ['engine/conversation.ts', 'prompt/system.ts', 'prompt/safetyConduct.ts', 'authenticity/fr.ts']) {
+      assert.equal(loaded.has(resolve(src, heavy)), false, `profile.ts reaches ${heavy}`);
+    }
   });
 });

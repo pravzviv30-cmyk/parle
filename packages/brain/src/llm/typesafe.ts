@@ -90,8 +90,6 @@ const SystemOneResponseZ = z.object({
 });
 
 export type JevAnswer = z.infer<typeof JevAnswerZ>;
-export type JevNoulAnswer = z.infer<typeof NoulAnswerZ>;
-export type JevChoiceAnswer = z.infer<typeof ChoiceAnswerZ>;
 
 export interface JevResult {
   /** The versioned model that answered, e.g. jev-1.13.0, never the alias. */

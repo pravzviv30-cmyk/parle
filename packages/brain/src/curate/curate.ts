@@ -160,7 +160,7 @@ export function extensionViolations(extension: NewPhrase): string[] {
   for (const [label, text] of [['en', en], ['enLiteral', extension.enLiteral ?? ''], ['note', extension.note ?? '']] as const) {
     if (text === '') continue;
     for (const rule of copyViolations(text)) reasons.push(`${label} breaks the ${rule} copy rule`);
-    if (carriesFrench(text)) reasons.push(`${label} looks French, not English: "${text}"`);
+    if (carriesFrench(text)) reasons.push(`${label} looks French, not English`);
   }
   return reasons;
 }
@@ -236,7 +236,7 @@ export function applyCuration(
         const reasons = extensionViolations(extension);
         if (reasons.length > 0) {
           rejected += 1;
-          console.warn(`[luvani] curation rejected the extension "${fr}": ${reasons.join('; ')}`);
+          console.warn(`[luvani] curation rejected the extension: ${reasons.join('; ')}`);
           continue;
         }
         claimed.add(key);

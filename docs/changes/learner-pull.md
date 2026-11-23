@@ -123,8 +123,8 @@ Owners are the territory engineers from `docs/TEAM.md`, at the low effort set in
 | T2.2 | Homework the next conversation checks | practice-ux-engineer, frontend-engineer | T1.1 | normal | todo |
 | T2.3 | Free earn-back repair | progress-retention-engineer | F4, F7 | per F7 | done: PR #35 |
 | T2.4 | Bank a freeze | progress-retention-engineer | F5, T2.3 | per F7 | done: PR #35 |
-| T3.1 | One freeze mark everywhere (slop fix) | design-system-engineer | none | normal | held: `claude/freeze-mark`, folds into board A |
-| T3.2 | Board A, streak moments | frontend-engineer after the board | T1.2, T3.1 | normal | todo; holds 8 queued proposals (save lines, banked row, bank moment, spent state, wraps) |
+| T3.1 | One freeze mark everywhere (slop fix) | design-system-engineer | none | normal | building on `claude/board-a` (UI-025) |
+| T3.2 | Board A, streak moments | frontend-engineer after the board | T1.2, T3.1 | normal | picked 2026-11-19 (UI-025): four moments from the A row; building on `claude/board-a` |
 | T3.3 | Board B, never a dead end | frontend-engineer, practice-ux-engineer | F6, T1.1 | normal | blocked: F6 |
 | T3.4 | Board C, French anywhere | practice-ux-engineer | board | normal | todo |
 | T3.5 | Board D, your French piles up | frontend-engineer, practice-ux-engineer | board | normal | todo |

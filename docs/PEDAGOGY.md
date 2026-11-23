@@ -266,6 +266,8 @@ A use only counts when the learner said it without help on that exchange. If
 the app had shown the hint or the full line, the brain records the use on
 `timesAssisted` instead of `timesUsedWell`, so it moves neither `used` nor
 mastery. The help stays visible; it just is not natural production.
+In free conversation a reply after a hint or the full line earns no
+unassisted credit on the ladder either (founder, 2026-11-18).
 
 A form the coach quoted as wrong earlier in the session earns no credit for the
 rest of it, neither `timesUsedWell` nor `timesAssisted`, and the end card leaves

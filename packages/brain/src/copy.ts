@@ -210,9 +210,6 @@ export function landsAsCorrection(text: string): boolean {
   return LANDS_AS_CORRECTION_RE.test(text);
 }
 
-/** Said when the tutor steps in after silence. Same line the scripted product uses. */
-export const RESCUE_LINE = "Let's take that one together.";
-
 /**
  * Said when a model turn fails entirely. The learner must never see a stack
  * trace, and they must never be given to understand it was their fault.
@@ -231,9 +228,6 @@ const RECOVERY: readonly string[] = [
   'Tell me that again, I lost it.',
   'Run that past me again.',
 ];
-
-/** How many recovery lines exist, so a session can rotate without repeating. */
-export const RECOVERY_VARIANTS = RECOVERY.length;
 
 /**
  * The recovery line for this moment. `variant` is the turn count, never random,

@@ -18,13 +18,14 @@
  * Two of them, the café and the apéro, are the frames `fixtures.ts` already
  * carries. They are referenced rather than copied, because two café scenes that
  * drifted apart is exactly the failure this file would otherwise introduce, and
- * because that file calls itself the quality bar. The other twenty-three of the
- * twenty-five are authored here to match it: the A0 and A1 scenes first, then
+ * because that file calls itself the quality bar. The other twenty-nine of the
+ * thirty-one are authored here to match it: the A0 and A1 scenes first, then
  * the seven A2 ones (weekend chat, first day at work, booking by phone, the
  * doctor, a shop return, a flat viewing and dinner with a partner's parents),
  * then six more A2 ones (signing up for a class, a bank account, cinema plans,
  * a winter coat in Montréal, a colleague's help and a partner's sister's
- * birthday).
+ * birthday), then the six B1 ones (a leak, a story over a drink, an opinion
+ * after a film, an interview, remote work and memories).
  *
  * The catalogue half lives in `@luvani/core`'s `missions/missions.ts` and repeats
  * these phrases as literal data, because core cannot import brain.
