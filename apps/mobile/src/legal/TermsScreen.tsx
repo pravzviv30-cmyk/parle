@@ -10,7 +10,7 @@
  * inside the app is a copy that goes stale the first time they revise it, which
  * is the same drift `scripts/legal-html.mjs` exists to prevent on our own words.
  *
- * ## The one outward link in the app
+ * ## The outward link to Apple's licence
  *
  * `settings/links.ts` opens it, in an in-app browser sheet rather than by
  * handing the phone to Safari, so a learner reading terms can close the sheet
@@ -28,7 +28,7 @@
 
 import { useState } from 'react';
 import { View, Text } from 'react-native';
-import { paper, space, type, corner } from '../theme.ts';
+import { space, type, corner } from '../theme.ts';
 import { Card, GhostButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';

@@ -25,7 +25,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, AppState, Easing, StyleSheet, View } from 'react-native';
+import { Animated, AppState, Easing, StyleSheet } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

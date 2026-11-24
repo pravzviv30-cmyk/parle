@@ -10,7 +10,7 @@
  * first time they revise it.
  *
  * The URL is a constant so the one screen that opens a browser opens a fixed
- * address rather than a string it built. It is the only outward link in the app.
+ * address rather than a string it built.
  */
 
 /** What the screen is called, and what the Settings row says. */
@@ -23,7 +23,7 @@ export const TERMS_DECLARATION = 'By starting practice or creating an account, y
 /** Apple's own standard licence, at the address Apple publishes it at. */
 export const APPLE_EULA_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
-/** The label on the one control that leaves the app. */
+/** The label on the control that opens Apple's licence. */
 export const TERMS_LINK_LABEL = "Read Apple's licence";
 
 /**

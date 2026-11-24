@@ -194,6 +194,13 @@ describe('the hosted legal pages — F480', () => {
       'the support page promises a reply nobody has committed to',
     );
   });
+
+  test('the support page links to the privacy notice at its clean address, not the file name', () => {
+    // F1139. Cloudflare answers `privacy.html` with a 308, so the link goes through hosted().
+    const html = supportHtml(SUPPLIED);
+    assert.ok(!html.includes('href="privacy.html"'), 'the support page links to the file name');
+    assert.ok(html.includes('href="/privacy"'), 'the support page lost its privacy link');
+  });
 });
 
 /** The same four characters `html.ts` takes out, so a comparison is like for like. */
