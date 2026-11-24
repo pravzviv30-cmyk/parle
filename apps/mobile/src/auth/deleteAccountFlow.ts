@@ -5,7 +5,7 @@
  * means the ordering nobody could test was the ordering that was wrong. The
  * steps are injected rather than imported so the sequence can be exercised with
  * a call log: `App.tsx` passes the real adapter and the real
- * `storage/scope.ts` erase, and `deleteAccountFlow.test.ts` passes doubles.
+ * `storage/scope.ts` erase, and `eraseNotice.test.ts` passes doubles.
  *
  * ## The two orderings that are load-bearing
  *

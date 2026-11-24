@@ -14278,3 +14278,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: 2026-11-24 (F1138, PR M2a): the onboarding half is done. The voice sheet and its private player, TutorSelection's `playing`/`onHear` fallback, the M2a-4 modules and exports, and the onboarding unused imports and locals are removed; 19 tests that read only deleted code are deleted with it (18 in the first round, 1 in the push-check round). The mobile floor stays at 4112 for now: the F1059 evidence contract holds the floors to the newest recorded gate (7,615, mobile 4112), so lowering it to 4094 needs that rule or the record to move first. Mobile runs 4322, above either number. The first verified-by passes. The entry stays open for PR M2a-c, which removes the dead auth modules (reached only through SignInScreen's unused imports, the `where`) and builds the second test. PreAccountOnboarding's unused `onRefuse` (PreAccountOnboarding.tsx:85) goes with M5a's refusal plumbing. A follow-up round also removed what the first left orphaned: onboarding/story.ts, firstRun/planModel.ts, FIRST_RUN_COPY.planLabel, C2Scene's vector parts, c2GestureAmount and the C2Goal type.
 - verified-by: `the first run plays tutor samples only through useTutorPreview`
 - verified-by: `the sign-in screen draws no welcome orb or glow and imports neither`
+
+### F1324 — A provider re-sign-in that returns another account must delete nothing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:193
+- note: native reauthentication accepts any returned account, so deletion removes the wrong one and reports success; refuse, sign out locally, and say so on the sign-in door.
+- note: Fixed 2026-11-24 on claude/review-m2a1: both native provider branches of `reauthenticateForDeletion` pass their result to `proveSameAccount` (auth/reauthProof.ts), which compares the session id with the one captured before the sign-in. A different id signs out locally, fires `onAccountChanged`, and returns the founder's line, so `deleteAccount` never runs and export makes no file. AuthProvider draws a "Different account" sheet, announced on iOS. Not device-verified: DEVICE_VERIFICATION.md D10. The web branch is a separate follow-up.
+- verified-by: `a provider reauthentication that returns another account deletes nothing`
+- verified-by: `both provider branches prove the same account before reporting success`
+- verified-by: `the different-account line is announced on the sign-in door and keeps the copy rules`
+- verified-by: `a sign-out that fails leaves no claim that the switch was undone`
+
+### F1326 — On web, a provider re-sign-in that returns another account is not noticed
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:197
+- note: Found 2026-11-24 by the F1324 builder and judge. On web the redirect returns signed in as account B, and the recency check compares claims.sub with the same swapped session, so it passes for B. Nothing is deleted without a second confirmation, but the learner is never told the account changed and can delete or export B believing it is A. Needs the expected id carried across the redirect and the F1324 sheet shown.
+- verified-by: `a web provider redirect that returns another account says so and deletes nothing`
+
