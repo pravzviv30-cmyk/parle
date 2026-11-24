@@ -29,6 +29,8 @@ export async function scoreRecordedAttempt(
     // The learner and the line ride in headers, never the URL (F626): a query
     // string is what proxies, access logs and crash reports keep. Encoded,
     // because a header must be ASCII and French has accented letters.
+    // The deadline starts at the upload, so a slow sign-in does not spend it.
+    const auth = await authHeaders();
     const res = await fetch(`${TOKEN_SERVER}/drill/score`, {
       method: 'POST',
       signal: AbortSignal.timeout(12_000),
@@ -36,7 +38,7 @@ export async function scoreRecordedAttempt(
         'content-type': 'application/octet-stream',
         'x-luvani-user': encodeURIComponent(userId),
         'x-luvani-reference': encodeURIComponent(reference),
-        ...(await authHeaders()),
+        ...auth,
       },
       body,
     });

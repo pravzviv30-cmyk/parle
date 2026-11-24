@@ -14304,10 +14304,12 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1144 — Two quick taps score and save one sound-check take twice
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:166
+- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:176
 - note: `phase` only changes after the awaited stop, so a second tap re-enters, reads the same `recorder.uri`, uploads again and persists again. Fails today: no re-entry guard exists.
 - note: Fixed 2026-11-24 on claude/review-m3b: `toggle` takes a `busyRef` before its first await and clears it in `finally`, as `RepeatThisView` does, so the early `selfGuided()` returns cannot lock the mic.
+- note: Push-check round, 2026-11-24: each take holds its own token in `busyRef`, so only that take clears it, and a restarted read (retry, or a new mission or learner) clears it, so a new read never finds the mic dead.
 - verified-by: `a second tap while the take is stopping scores and saves it once`
+- verified-by: `a new read never finds the mic held by an old take`
 
 ### F1145 — The score upload has no time limit
 - severity: P2
@@ -14315,21 +14317,24 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/speech/scoreAttempt.ts:32
 - note: React Native's Android client sets every timeout to zero, so a stalled scorer never settles and `consumeRecording` never discards. Fails today: the fetch receives no `signal`.
 - note: Fixed 2026-11-24 on claude/review-m3b: the upload carries `signal: AbortSignal.timeout(12_000)`, matching `judgeAttempt.ts`. A stalled scorer ends as null, and the take is discarded.
+- note: Push-check round, 2026-11-24: the sign-in headers are awaited first and the deadline is created at the fetch, as in `judgeAttempt.ts`, so a slow sign-in does not spend the scorer's 12 seconds.
 - verified-by: `a scoring upload that never answers ends as no verdict and the take is removed`
+- verified-by: `the upload deadline starts at the upload, not while the sign-in headers are fetched`
 
 ### F1146 — Hear it plays into the open mic and is not named by its word
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:284
+- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:321
 - note: no phase check, so the tutor's line is mixed into a scored take; the spoken name "Hear the reference line" does not contain "Hear it" (F951 rule).
 - note: Fixed 2026-11-24 on claude/review-m3b: while `shownPhase === 'recording'` the control does nothing, is marked disabled and sits at opacity 0.5. Its spoken name is "Hear it". It stays live during scoring, when the mic is already released.
+- note: Push-check round, 2026-11-24: it is also quiet in the start window (a `starting` state set before the start path's first await, while permission, the mode and prepare run with phase still `ready`). When off it is drawn in colour, `t.skeleton` behind `t.muted` ink, not at opacity 0.5 (DESIGN.md: off in colour rather than opacity).
 - verified-by: `Hear it is quiet while the take is recording`
 - verified-by: `the sound check's hear control is named by the word it shows`
 
 ### F1147 — The web sound seam never registers its pause
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/sound/sfx.web.ts:67
+- where: apps/mobile/src/sound/sfx.web.ts:68
 - note: `quietSfx()` pauses nothing in the browser preview; native is unaffected.
 - note: Fixed 2026-11-24 on claude/review-m3b: `sfx.web.ts` calls `setSfxPause(core.pauseAll)`, as `sfx.native.ts` does.
 - verified-by: `a voice line pauses the sound effects on the web seam too`
@@ -14344,10 +14349,19 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1328 — I said it without assessment, tapped while a take is stopping, saves two rows
 - severity: P2
-- status: [ ]
-- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:329
+- status: [x]
+- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:249
 - note: Found 2026-11-24 by the F1144 builder and judge. The button is disabled only in `scoring`. Tapped during the awaited stop, `selfGuided()` persists a self-guided row and shows the result; `toggle` then sets `scoring`, uploads the take and persists a second, scored row. Fix needs no new words: `selfGuided` from the button returns while `busyRef.current` is set.
+- note: Fixed 2026-11-24 on claude/review-m3b: the button calls `selfGuidedTap`, which returns while `busyRef.current` is set. That covers the start window as well as the stop.
 - verified-by: `a self-guided tap while the take is stopping saves nothing more`
+
+### F1329 — I said it without assessment, mid-take, leaves the mic open and the take on disk
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:249
+- note: Found 2026-11-24 by push-check. `selfGuided` accepts the `recording` phase but never stopped the recorder, released the mic hold, reset the audio mode or discarded the take, so the mic kept recording after the learner chose not to be assessed.
+- note: Fixed 2026-11-24 on claude/review-m3b: mid-take, `selfGuidedTap` runs `abandonSoundCheckRecording`, the screen's own leave path (stop, discard, `resetRecordingAudio`), and hands it to `cleanupRef` so a new take waits for it.
+- verified-by: `I said it without assessment during a take stops the mic and removes the take`
 
 ### F1172 — Fifteen learner-facing lines name Progress, Tutor or Home, which the tab bar calls Journey, Speak and Today
 - severity: P2

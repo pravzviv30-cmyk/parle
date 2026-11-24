@@ -42,3 +42,23 @@ test('a scoring upload that never answers ends as no verdict and the take is rem
   assert.deepEqual(removed, ['file://take.m4a']);
   assert.deepEqual(asked, [12_000], 'the deadline matches the other speech uploads');
 });
+
+test('the upload deadline starts at the upload, not while the sign-in headers are fetched', async () => {
+  // A slow token refresh must not eat the scorer's 12 seconds.
+  const order: string[] = [];
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  const score = await shipped('./scoreAttempt.ts', 'scoreRecordedAttempt', {
+    Platform: { OS: 'ios' },
+    File: class { bytes() { return Promise.resolve(new Uint8Array([1, 2, 3])); } },
+    authHeaders: async () => { await held; order.push('headers'); return {}; },
+    TOKEN_SERVER: 'https://tokens.invalid',
+    AbortSignal: { timeout: () => { order.push('deadline'); return new AbortController().signal; } },
+    fetch: async () => { order.push('upload'); return new Response('{}', { status: 500 }); },
+  });
+  const done = score('learner', 'file://take.m4a', 'Bonjour.');
+  for (let i = 0; i < 6; i++) await Promise.resolve();
+  release();
+  assert.equal(await done, null);
+  assert.deepEqual(order, ['headers', 'deadline', 'upload']);
+});

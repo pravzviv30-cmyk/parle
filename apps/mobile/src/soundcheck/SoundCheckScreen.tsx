@@ -62,7 +62,11 @@ export function SoundCheckScreen({
   const stopping = useRef<Promise<void> | null>(null);
   // A take's stop and start run one at a time: a second tap inside the stop
   // would score and save the same take twice (F1144, as in RepeatThisView).
-  const busyRef = useRef(false);
+  // Each take holds its own token, so an old take can never clear a new one.
+  const busyRef = useRef<object | null>(null);
+  // The start window: permission, the mode and prepare run while phase is still
+  // 'ready', and the tutor's line must not play into the take they open.
+  const [starting, setStarting] = useState(false);
   const stopRecorder = useCallback((): Promise<void> => {
     if (stopping.current) return stopping.current;
     const work = (async () => { await recorder.stop(); })().finally(() => { if (stopping.current === work) stopping.current = null; });
@@ -99,6 +103,7 @@ export function SoundCheckScreen({
   const shownAcoustic = ownerMatches ? acoustic : null;
   const shownResult = ownerMatches ? result : null;
   const voice = useRecorderLevel(recorder, shownPhase === 'recording');
+  const hearQuiet = shownPhase === 'recording' || starting;
 
   useEffect(() => {
     let cancelled = false;
@@ -109,6 +114,8 @@ export function SoundCheckScreen({
     setAcoustic(null);
     setResult(null);
     setPhase('loading');
+    busyRef.current = null;
+    setStarting(false);
     void Promise.resolve().then(() => loadSoundChecks({ strict: true })).then(
       (evidence) => {
         if (!sameAccount()) return;
@@ -168,7 +175,8 @@ export function SoundCheckScreen({
 
   const toggle = useCallback(async () => {
     if (busyRef.current || !reference || !ownsReadNow() || phase === 'scoring' || phase === 'loading' || phase === 'unread') return;
-    busyRef.current = true;
+    const mine = {};
+    busyRef.current = mine;
     try {
       if (phase === 'recording') {
         let lost = false;
@@ -200,6 +208,7 @@ export function SoundCheckScreen({
       }
 
       try {
+        setStarting(true);
         if (cleanupRef.current) await cleanupRef.current;
         if (!ownsReadNow()) return;
         const permission = await AudioModule.requestRecordingPermissionsAsync();
@@ -227,9 +236,29 @@ export function SoundCheckScreen({
         selfGuided();
       }
     } finally {
-      busyRef.current = false;
+      if (busyRef.current === mine) {
+        busyRef.current = null;
+        setStarting(false);
+      }
     }
   }, [reference, phase, recorder, stopRecorder, selfGuided, userId, persist, ownsReadNow, resetRecordingAudio]);
+
+  // The self-guided button. Inside a stop or a start, toggle owns the take and
+  // saves it once (F1328). Mid-take, the take is stopped, discarded and the mic
+  // let go through the leave path before the choice is saved (F1329).
+  const selfGuidedTap = useCallback(() => {
+    if (busyRef.current) return;
+    if (phase === 'recording') {
+      const abandoned = recorderUri(recorder, preparedUri.current);
+      preparedUri.current = null;
+      const work = abandonSoundCheckRecording(
+        recorder, stopRecorder, abandoned, discardRecording,
+        resetRecordingAudio,
+      ).finally(() => { if (cleanupRef.current === work) cleanupRef.current = null; });
+      cleanupRef.current = work;
+    }
+    selfGuided();
+  }, [phase, recorder, stopRecorder, resetRecordingAudio, selfGuided]);
 
   // No back header on the "no check" card: it is a terminal card and Done is the
   // one door. Everywhere else the chevron is the way out, so the "Not now" pill
@@ -290,15 +319,15 @@ export function SoundCheckScreen({
         <Card tone="journal" style={st.line}>
           <Text {...frenchText} style={[fitDisplay(shownReference), { color: t.text, textAlign: 'center' }]}>{shownReference}</Text>
           <Pressable
-            onPress={() => { if (ownsReadNow() && shownPhase !== 'recording') tutorVoice.speak(shownReference); }}
-            disabled={shownPhase === 'recording'}
+            onPress={() => { if (ownsReadNow() && !hearQuiet) tutorVoice.speak(shownReference); }}
+            disabled={hearQuiet}
             accessibilityRole="button"
-            accessibilityState={{ disabled: shownPhase === 'recording' }}
+            accessibilityState={{ disabled: hearQuiet }}
             accessibilityLabel="Hear it"
-            style={({ pressed }) => [st.hear, pressed && { opacity: 0.7 }, shownPhase === 'recording' && { opacity: 0.5 }]}
+            style={({ pressed }) => [st.hear, pressed && { opacity: 0.7 }, hearQuiet && { backgroundColor: t.skeleton }]}
           >
-            <EarGlyph size={16} color={t.text} />
-            <Text style={[type.label, { color: t.text }]}>Hear it</Text>
+            <EarGlyph size={16} color={hearQuiet ? t.muted : t.text} />
+            <Text style={[type.label, { color: hearQuiet ? t.muted : t.text }]}>Hear it</Text>
           </Pressable>
         </Card>
       ) : null}
@@ -326,7 +355,7 @@ export function SoundCheckScreen({
             {shownPhase === 'recording' ? 'Tap when you are done' : shownPhase === 'scoring' ? 'Checking the sound…' : 'Tap, then say the line'}
           </Text>
           {!CAN_RECORD && <Text style={[type.small, { color: t.muted, textAlign: 'center' }]}>Recording is unavailable here. Say it aloud and use the self-guided option.</Text>}
-          <IconAction layout="inline" icon="tick-circle" label="I said it without assessment" disabled={shownPhase === 'scoring'} onPress={() => selfGuided()} />
+          <IconAction layout="inline" icon="tick-circle" label="I said it without assessment" disabled={shownPhase === 'scoring'} onPress={selfGuidedTap} />
         </View>
       )}
     </DrillFrame>
