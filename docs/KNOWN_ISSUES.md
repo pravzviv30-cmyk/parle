@@ -11146,7 +11146,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F859 — Quest titles make XP the goal
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: packages/core/src/quests/catalogue.ts:76
 - note: Found 2026-10-20 in B6. The stretch quest's title is "Earn {n} XP", drawn on Today's three. XP is the reward for practice, not the practice; a quest that names XP as the goal invites grinding the cheapest source. Reword as practice (a scene, a fix, minutes) with XP as the chip only. The catalogue is core's, so the change is core's.
 - note: 2026-11-23, founder: "Retire the XP quest". The `xp` stretch quest leaves the catalogue. The stretch slot keeps minutes, new-phrases, scene-on-own, sound-check and goal, and XP stays the reward chip. A day already holding the XP quest must still read and settle. quests.test.ts:191 pins the old title. Built with wave 3 M4b.
