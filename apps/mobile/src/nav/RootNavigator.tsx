@@ -312,7 +312,7 @@ function LessonRoute() {
     <View style={[st.center, { backgroundColor: t.ground, gap: space(3), padding: space(6) }]}>
       <Text style={[type.body, { color: t.text }]}>Your previous lesson could not be read. Try again before starting so your practice opens with the right support.</Text>
       <PillButton label="Try again" onPress={() => setHistoryRead(value => value + 1)} />
-      <IconAction layout="inline" icon="home" label="Back to Home" onPress={leave} />
+      <IconAction layout="inline" icon="home" label="Back to Today" onPress={leave} />
     </View>
   );
   if (startRung === null) return <Loading />;

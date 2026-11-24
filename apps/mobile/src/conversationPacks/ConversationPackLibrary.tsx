@@ -258,7 +258,7 @@ export function ConversationPackLibrary({
         ) : (
           <Card style={st.section}>
             <Text style={[type.bodyStrong, { color: t.text }]}>{practice.pending ?? 'This conversation needs a little more time.'}</Text>
-            <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>Your saved phrases remain available in Progress.</Text>
+            <Text style={[type.small, { color: t.muted, marginTop: space(2) }]}>Your saved phrases are still in Journey.</Text>
           </Card>
         )}
 
@@ -280,7 +280,7 @@ export function ConversationPackLibrary({
 
   return (
     <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Label>Progress</Label>
+      <Label>Journey</Label>
       <Text accessibilityRole="header" style={[type.display, { color: t.text, marginTop: space(2) }]}>Practice from conversations</Text>
       <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>Curated phrases and corrections from situations you spoke through. Full conversation text is saved only if you choose it separately after a recap.</Text>
       {pageNote !== undefined && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted, marginTop: space(2) }]}>{pageNote}</Text>}

@@ -9249,11 +9249,12 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F632 — Seven lines still send the learner to My French, which the tab bar now calls Progress
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/settings/sections.ts:114
 - note: found by the Stage 2 pass B judge. F600 renamed the tab to Progress and F605 retitles the screen, but RecapScreen.tsx:178,181, settings/sections.ts:114, conversationPacks/ConversationPackLibrary.tsx:204, daily/DailyCard.tsx:59, profile/tutorMemory.ts:54 and tutor/TutorIntro.tsx:115 still tell the learner their phrases are saved in or managed in My French. After F605, no tab or title says My French, so a learner who looks for it finds nothing. Reword each one to Progress, or to the phrasebook where that is the real destination, in the same change as F605.
-- verified-by: `no learner-facing string names My French once the tab and its title say Progress`
 - note (2026-10-20, B6): still open. The tab is now titled Your journey (direction B), and two learner-facing strings still say My French: `MY_FRENCH_ROW = 'My French'` (apps/mobile/src/settings/profileView.ts:43, drawn as a Profile row in tabs/ProfileTab.tsx:291) and `SAVED_SUB = 'Manage in My French'` (apps/mobile/src/settings/sections.ts:119). The other sites this entry listed no longer name it.
+- note (2026-11-24, M5-copy): closed as superseded by F1172. The tab is now Journey, so the wider sweep there covers My French and Progress alike, and both strings this entry named are gone (`MY_FRENCH_ROW` deleted undrawn; `SAVED_SUB` no longer names it). Its verified-by points at F1172's test, which derives the retired names from TAB_LABELS; the old title `no learner-facing string names My French once the tab and its title say Progress` never had a test.
+- verified-by: `no learner-facing string names a destination the tab bar does not have`
 
 ### F633 — The under-13 refusal is said to last the session, but leaving through "I have an account" and back starts it fresh
 - severity: P1
@@ -14285,3 +14286,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-11-24 by the F1324 builder and judge. On web the redirect returns signed in as account B, and the recency check compares claims.sub with the same swapped session, so it passes for B. Nothing is deleted without a second confirmation, but the learner is never told the account changed and can delete or export B believing it is A. Needs the expected id carried across the redirect and the F1324 sheet shown.
 - verified-by: `a web provider redirect that returns another account says so and deletes nothing`
 
+### F1172 — Fifteen learner-facing lines name Progress, Tutor or Home, which the tab bar calls Journey, Speak and Today
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/RecapScreen.tsx:293
+- note: M1b-3, M3a-2, M3a-10, M4b-2, M4b-3, M5b-8. Supersedes F632. Wording per founder Q1 (2026-11-24, "Real tab, plain Back"): name the tab the learner really lands on, and plain "Back" where a button only goes back. `legal/policy.ts:153` and `legal/dist/privacy.html:60` stay with PR #28, which should adopt the same answer; they sit on the test's shrinking allowlist until it lands. The undrawn `PROGRESS_ROW` and `MY_FRENCH_ROW` in settings/profileView.ts are deleted.
+- verified-by: `no learner-facing string names a destination the tab bar does not have`

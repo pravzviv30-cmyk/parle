@@ -119,6 +119,6 @@ test('an unread prior lesson has retry and leave routes without guessing the ope
   await new Promise<void>(resolve => setImmediate(resolve));
   assert.deepEqual(states, [false, true]);
   assert.match(lesson, /if \(historyFailed\) return/);
-  assert.match(lesson, /label="Try again"/); assert.match(lesson, /label="Back to Home"/);
+  assert.match(lesson, /label="Try again"/); assert.match(lesson, /label="Back to Today"/);
   assert.match(lesson, /historySaveFailed=\{historySaveFailed\}/);
 });
