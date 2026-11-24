@@ -64,7 +64,7 @@ describe('two plain sentences about the week', () => {
 });
 
 /* 2026-10-20, B5, B-Today: the page's view model. */
-import { buildConversationPack, phraseKeyOf as keyOf, type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
+import { buildConversationPack, buildDrillSession, mixQueue, phraseKeyOf as keyOf, type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
 import { homeGreeting } from './greeting.ts';
 import { fallbackHero, heroStart, homeMissionFrom, type HomeMission } from './homeMission.ts';
 import {
@@ -197,6 +197,67 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.equal(oneFix({ ...base, replay: null }), null, 'a fix is drawn with no replay');
     assert.equal(oneFix({ ...base, replay: { ...replay, sayable: false } }), null, 'a fix opens an empty sitting');
     assert.equal(oneFix({ ...base, bank: [] }), null, 'a fix opens a drill with nothing in it');
+  });
+
+  test("Today's fix card and the drill agree on the exercise a fix opens on", () => {
+    // F861. The card reads the first exercise of the sitting it builds; the
+    // drill builds its own from the route and may then reorder it (`mix`). The
+    // two agree because a fix route scopes the sitting to one phrase, and
+    // `buildDrillSession` picks one exercise per phrase, so no reorder can move
+    // its opening. The quiet hour (`suppressMic`) is not looped here: it swaps
+    // only a line to repeat, which `hidesAnswer` already keeps the card off.
+    const better = 'Je peux payer par carte ?';
+    const key = keyOf(better);
+    const replay = { packId: 'p1', from: 'At the café', quote: 'je veux payer', better, betterEn: 'Can I pay by card?', why: 'Softer.', key, sayable: true };
+    const translate: DrillExercise = { id: 't', phraseKey: key, difficulty: 'production', kind: 'translate', fr: better, en: 'Can I pay by card?', direction: 'en-fr', accepted: [better] };
+    const repeat: DrillExercise = { id: 'r', phraseKey: key, difficulty: 'production', kind: 'repeat-this', reference: better, referenceEn: 'x', ipa: null, noMicTwin: { ...translate, id: 'r:quiet' } };
+    const other: DrillExercise = { ...translate, id: 'o', phraseKey: 'other', fr: 'Bonne soirée', accepted: ['Bonne soirée'] };
+    const deck: ReviewCard[] = [];
+    const bank = [translate, repeat, other];
+    const fix = oneFix({ replay, deck, bank, tutorName: 'Tutor', now: B5_NOW });
+    assert.ok(fix !== null, 'the fix this test pins is not offered');
+    const card = buildDrillSession(deck, bank, B5_NOW, { only: [key] }).queue[0]!;
+    assert.ok(hidesAnswer(card));
+
+    // DrillScreen's own steps, read from its source, so an edit there fails here:
+    // the sitting is built from the node's keys, then only `mix` reorders it.
+    const screen = readFileSync(new URL('../DrillScreen.tsx', import.meta.url), 'utf8');
+    const from = screen.indexOf('let built = buildDrillSession(');
+    assert.notEqual(from, -1, 'DrillScreen no longer builds its sitting where this test reads it');
+    const steps = screen.slice(from, screen.indexOf('setSession(built);', from));
+    assert.match(steps, /^let built = buildDrillSession\(deck, bank, now, node \? \{ only: node\.phraseKeys \} : undefined\);/, 'DrillScreen no longer scopes the sitting to the node the card routed');
+    assert.deepEqual(
+      [...steps.matchAll(/^\s*(?:if \(mix\) )?built = (.+);$/gm)].map((m) => m[1]),
+      ['{ ...built, queue: mixQueue(built.queue, topicGroups(topics)) }', 'suppressMic(built)'],
+      'DrillScreen changes its sitting after building it in a way this pin does not know',
+    );
+    assert.match(steps, /\n\s*if \(mix\) built = \{/, 'DrillScreen reorders the sitting without asking for a mix');
+
+    // The same steps, composed here over the same inputs.
+    const opening = (keys: readonly string[], mix: boolean, groups: readonly (readonly string[])[]) => {
+      let built = buildDrillSession(deck, bank, B5_NOW, { only: keys });
+      if (mix) built = { ...built, queue: mixQueue(built.queue, groups) };
+      return built.queue[0];
+    };
+    const lanes = [[], [[key]], [['other'], [key]], [[key], ['other']], [['other']]];
+
+    // The control: over two phrases the sitting holds two exercises, and the mix
+    // does move its opening, so the agreement below is not a reorder doing nothing.
+    assert.ok(buildDrillSession(deck, bank, B5_NOW, { only: [key, 'other'] }).queue.length > 1, 'the control sitting is too small to reorder');
+    assert.ok(lanes.some((g) => opening([key, 'other'], true, g)?.id !== opening([key, 'other'], false, g)?.id), 'the mix never moves a wider sitting\'s opening, so this test cannot see one');
+
+    // The fix: one phrase, no mix asked, one exercise, whatever the topics.
+    const params = fix.route.params as { node: { phraseKeys: readonly string[] }; mix?: boolean };
+    assert.ok(!('mix' in params), 'the fix route asks the drill to mix its sitting');
+    assert.deepEqual(params.node.phraseKeys, [key], 'the fix route scopes the drill to more than the card read');
+    assert.equal(buildDrillSession(deck, bank, B5_NOW, { only: params.node.phraseKeys }).queue.length, 1, 'a fix sitting holds more than one exercise, so a reorder can move its opening');
+    for (const groups of lanes) {
+      for (const mix of [false, true]) {
+        const drill = opening(params.node.phraseKeys, mix, groups);
+        assert.equal(drill?.id, card.id, `the drill opens on ${drill?.id}, the card read ${card.id} (mix ${mix}, topics ${JSON.stringify(groups)})`);
+        assert.ok(hidesAnswer(drill!), 'the drill opens on an exercise that shows the French first');
+      }
+    }
   });
 
   test('the week sums exactly seven local days, and is absent with no evidence', () => {

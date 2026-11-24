@@ -896,7 +896,7 @@ export default function App() {
   }, []);
   useEffect(() => { void loadHapticPreference(); }, []);
   useEffect(() => { void loadSoundPreference(); }, []);
-  const [loaded] = useFonts({
+  const [loaded, error] = useFonts({
     'Outfit-Regular': require('./assets/fonts/Outfit-Regular.ttf'),
     'Outfit-Medium': require('./assets/fonts/Outfit-Medium.ttf'),
     'Outfit-SemiBold': require('./assets/fonts/Outfit-SemiBold.ttf'),
@@ -931,7 +931,7 @@ export default function App() {
           accessibilityElementsHidden={!launched}
           importantForAccessibility={launched ? 'auto' : 'no-hide-descendants'}
         >
-          {loaded ? (
+          {loaded || error ? (
             // The navigator fills the device. Shared screen gutters and the dock
             // adapt independently, so iPad is not trapped in a phone-sized shell.
             <View style={st.shell}>

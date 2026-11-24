@@ -28,7 +28,7 @@ test('the native launch is released by the identical launch screen as soon as it
   assert.equal(screen.match(/hideNativeLaunch\(/g)?.length, 1, 'the native launch is released somewhere other than the layout handler');
   assert.equal(screen.match(/releaseNativeLaunch\b/g)?.length, 2, 'the release handler is called from somewhere other than layout');
   assert.match(app, /\{!launched && <LaunchScreen onDone=\{finishLaunch\} \/>\}/, 'nothing draws the launch screen over the app');
-  assert.match(app, /\{loaded \? \(/, 'the first screen no longer waits for Outfit');
+  assert.match(app, /\{loaded \|\| error \? \(/, 'the first screen no longer waits for Outfit, or for its failure (F1165)');
 });
 
 test('the native launch stays up until the launch screen is drawn over it', () => {
