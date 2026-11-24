@@ -4,14 +4,16 @@
  *
  * The tabs were renamed (Home became Today, Tutor became Speak, My French and
  * then Progress became Journey) and fifteen lines kept sending the learner to
- * the old names. The retired names are derived from `TAB_LABELS`, so a later
- * rename retires its old word here without anyone remembering to: every route
- * whose label differs from its route name, plus the two former labels that
- * were never route names, Progress and My French.
+ * the old names. The retired names are every route whose label differs from
+ * its route name, read from `TAB_LABELS`, plus `FORMER_LABELS`, the labels
+ * the bar once showed that were never route names. A rename does not retire
+ * the outgoing label on its own: whoever renames a tab adds the old label to
+ * `FORMER_LABELS` in the same change.
  *
- * Two shapes count. A place word before a retired name ("in Progress", "Back
- * to Tutor", "Opens Progress"), and a string or JSX text that is exactly a
- * former label (a row or an eyebrow reading "Progress"). A bare route name in
+ * Two shapes count. A place word or "your" before a retired name ("in
+ * Progress", "Back to Tutor", "Opens Progress", "your Tutor history"), and a
+ * string or JSX text that is exactly a former label (a row or an eyebrow
+ * reading "Progress"). A bare route name in
  * code (`navigate('Home')`) is neither, and "Tutor" as the tutor's own name
  * ("Finish a Tutor conversation") has no place word before it.
  *
@@ -51,8 +53,9 @@ const RETIRED = [
   ]),
 ];
 const NAME = RETIRED.map((n) => n.replace(' ', '\\s+')).join('|');
+// "your" alone marks a place too ("your Tutor history"); "the" alone is left out because "The Tutor agent" names the backend service, not a place.
 /** A place word, then a retired name with a capital, so "in progress" and "at home" stay ordinary French-learner English. */
-const PLACE = new RegExp(`\\b(?:to|in|into|from|at|on|Opens|Open|open|opens)\\s+(?:the\\s+)?(?:${NAME})\\b`);
+const PLACE = new RegExp(`\\b(?:to|in|into|from|at|on|Opens|Open|open|opens)\\s+(?:the\\s+)?(?:${NAME})\\b|\\b[Yy]our\\s+(?:${NAME})\\b`);
 const FORMER = FORMER_LABELS.map((n) => n.replace(' ', '\\s+')).join('|');
 /** A whole string, or a whole run of JSX text, that is exactly a former label. */
 const EXACT = new RegExp(`(['"\`])\\s*(?:${FORMER})\\s*\\1|>\\s*(?:${FORMER})\\s*<`);
@@ -88,6 +91,7 @@ test('no learner-facing string names a destination the tab bar does not have', (
   assert.equal(offends("navigation.navigate('Home')"), false, 'a route name in code is not copy');
   assert.equal(offends("'Finish a Tutor conversation'"), false, 'the tutor by name is not a place');
   assert.equal(offends("'Your progress in French'"), false);
+  assert.equal(offends("'Please sign in again before changing your Tutor history.'"), true, 'a retired name after your is a place too');
   assert.equal(stripComments("// Back to Tutor\nconst a = 1;").includes('Tutor'), false, 'a comment is still read as copy');
 
   const offences = new Map<string, string[]>();

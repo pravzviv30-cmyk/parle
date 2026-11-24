@@ -280,8 +280,7 @@ export function ConversationPackLibrary({
 
   return (
     <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>
-      <Label>Journey</Label>
-      <Text accessibilityRole="header" style={[type.display, { color: t.text, marginTop: space(2) }]}>Practice from conversations</Text>
+      <Text accessibilityRole="header" style={[type.display, { color: t.text }]}>Practice from conversations</Text>
       <Text style={[type.body, { color: t.muted, marginTop: space(2) }]}>Curated phrases and corrections from situations you spoke through. Full conversation text is saved only if you choose it separately after a recap.</Text>
       {pageNote !== undefined && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted, marginTop: space(2) }]}>{pageNote}</Text>}
       {linkMessage != null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted, marginTop: space(2) }]}>{linkMessage}</Text>}

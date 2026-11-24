@@ -14295,8 +14295,9 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F1327 — "Back to Today" on the unread-lesson screen goes back, which is not always Today
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/nav/RootNavigator.tsx:315
 - note: Found by the M5-copy judge, 2026-11-24. The button calls backOrTabs(nav), so a lesson opened from Speak or Practice whose history read fails returns there, not to Today. Q1's own rule says plain "Back" where a button only goes back, but the Q1 table approved "Back to Today". Founder to choose: plain "Back", or reset to the Today tab.
+- note (2026-11-24, founder): plain "Back". The button reads "Back" with the back glyph, and the test pins that it is the plain word on a button whose onPress is `leave = () => backOrTabs(nav)`.
 - verified-by: `the unread-lesson leave button names only where it really lands`
 
