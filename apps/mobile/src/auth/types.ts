@@ -30,6 +30,12 @@ export interface AuthAdapter {
   onPasswordRecovery?(cb: () => void): () => void;
   /** A native email callback could not be verified; no callback data leaves the adapter. */
   onEmailLinkFailure?(cb: () => void): () => void;
+  /**
+   * A provider re-sign-in before deletion or export returned a different
+   * account, which was signed out on this device (F1324). Optional: the mock
+   * adapter has no provider chooser to return someone else.
+   */
+  onAccountChanged?(cb: (purpose: 'deletion' | 'export') => void): () => void;
   signUpWithPassword(email: string, password: string): Promise<AuthResult>;
   /** Only email-verifying adapters offer this recovery action. */
   resendConfirmation?(email: string): Promise<AuthResult>;

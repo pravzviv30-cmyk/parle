@@ -299,4 +299,29 @@ describe('the Apple door is offered only where it works — F376', () => {
       'the delete sheet is drawn on Profile as well as on Settings, so there are two of it to keep in step',
     );
   });
+
+  /**
+   * F1324. A native provider sign-in swaps the session to whoever the chooser
+   * returned, so "ok" proves someone signed in, not the learner who asked. Both
+   * branches must hand the result to `proveSameAccount` with the id captured
+   * before the sign-in, or one of them can still delete the wrong account.
+   */
+  test('both provider branches prove the same account before reporting success', () => {
+    const adapter = read('supabaseAdapter.ts');
+    const start = adapter.indexOf('async reauthenticateForDeletion(');
+    assert.ok(start >= 0, 'reauthenticateForDeletion is gone or was renamed; this test would be reading nothing');
+    const body = adapter.slice(start, adapter.indexOf('async deleteAccount()', start));
+    assert.match(body, /const user = data\.session\?\.user;/, 'the id to prove must be captured before the provider sign-in');
+    for (const [provider, start] of [['google', 'startGoogleSignIn(client)'], ['apple', 'startAppleSignIn(client)']] as const) {
+      const branch = body.slice(body.indexOf(`provider === '${provider}') {`), body.indexOf('}\n      if (', body.indexOf(start)));
+      assert.ok(branch.includes(start), `the ${provider} branch no longer signs in through ${start}`);
+      assert.match(
+        branch,
+        /return proveSameAccount\(client, user\.id, result, purpose, accountChanged\);/,
+        `the ${provider} branch reports success without proving the returned account is the one that asked`,
+      );
+      assert.doesNotMatch(branch, /return result;/, `the ${provider} branch still returns the provider result unchecked`);
+    }
+    assert.match(adapter, /onAccountChanged\(cb\)/, 'the adapter must let AuthProvider hear about the account change');
+  });
 });

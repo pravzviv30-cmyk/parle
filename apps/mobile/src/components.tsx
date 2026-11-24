@@ -1839,7 +1839,7 @@ export function OptionRow({ title, detail, selected, onPress, accessibilityLabel
  * the way the old centred leave card said its question (F603). `ConfirmSheet`
  * in layout.tsx is drawn over this part and closes on its safe answer.
  */
-export function Sheet({ visible, title, onClose, children, footer, returnFocus, reading = false, surface, ink }: { visible: boolean; title: string; onClose: () => void | boolean; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null }; reading?: boolean; /** Panel colour from the selected appearance; paper when absent. */ surface?: string; /** Title ink from the selected appearance; paper ink when absent. */ ink?: string }) {
+export function Sheet({ visible, title, onClose, onShow, children, footer, returnFocus, reading = false, surface, ink }: { visible: boolean; title: string; onClose: () => void | boolean; /** Runs once the sheet has shown, after focus has moved to its heading. */ onShow?: () => void; children: ReactNode; footer?: ReactNode; returnFocus?: { current: Text | null }; reading?: boolean; /** Panel colour from the selected appearance; paper when absent. */ surface?: string; /** Title ink from the selected appearance; paper ink when absent. */ ink?: string }) {
   const insets = useSafeAreaInsets();
   const t = useB();
   const b = useThemedStyles(makeB);
@@ -1919,7 +1919,7 @@ export function Sheet({ visible, title, onClose, children, footer, returnFocus, 
     if (visible) focusHeading();
   }, [title]);
   return (
-    <Modal visible={present} transparent animationType="none" onShow={focusHeading} onRequestClose={onClose}>
+    <Modal visible={present} transparent animationType="none" onShow={() => { focusHeading(); onShow?.(); }} onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={b.sheetOverlay}>
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: arrival.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] }), backgroundColor: t.scrim }]}>
