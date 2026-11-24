@@ -257,6 +257,21 @@ describe('the revamp tokens are named once, in the theme — F569', () => {
     }
   });
 
+  test('a font load that fails still opens the app on the system face', () => {
+    // F1165. useFonts reports a failed load in its second value and leaves the
+    // first false, so a shell gated on `loaded` alone stays on <Loading /> for
+    // good. A missing face falls back to the platform's own, so the shell opens.
+    const app = readFileSync(join(SRC, '..', 'App.tsx'), 'utf8');
+    const hook = app.match(/const \[(\w+), (\w+)\] = useFonts\(\{/);
+    assert.ok(hook, 'App.tsx drops the useFonts error, so a failed load is never seen');
+    const [, loaded, error] = hook;
+    assert.match(
+      app,
+      new RegExp(`\\{${loaded} \\|\\| ${error} \\? \\(`),
+      'the shell renders only once the fonts load, so a failed load leaves the learner on the spinner',
+    );
+  });
+
   test('the one pen is ICONS.md\'s: STROKE is 2', () => {
     // Revamp B, F598. ICONS.md draws every mark at stroke-width 2 on a 24 box,
     // and the notebook's 2.2 was a hair heavier than every board the founder
