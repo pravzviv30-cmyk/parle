@@ -15,7 +15,6 @@ import { fileURLToPath } from 'node:url';
 import { evidence } from '../../../test/evidence.ts';
 import { FIRST_RUN_COPY, FIRST_RUN_LINES, SLOW_CHECK_MS, TAKE_CAP_SECONDS, exchangeLabel, issueActions, takeLength } from './copy.ts';
 import { NEXT_LABEL, NEXT_OFF_HINT } from './nextFace.ts';
-import { GOAL_TIERS, tierLabel, tierLine } from './planModel.ts';
 
 /** Praise a French interface would reach for. The tutor may say these in French; the app does not (D14). */
 const FRENCH_PRAISE = /\b(bravo|bien jou[ée]|parfait|super|g[ée]nial|tr[èe]s bien|formidable|magnifique|chapeau|f[ée]licitations|excellent)\b/i;
@@ -27,7 +26,6 @@ function lines(): string[] {
     NEXT_OFF_HINT,
     ...REASONS.map((r) => r.title),
     ...START_LEVELS.flatMap((l) => [l.title, l.gloss]).filter((line) => line !== ''),
-    ...GOAL_TIERS.flatMap((tier) => [tier.title, tierLine(tier.minutes), tierLabel(tier, true)]),
     exchangeLabel(0, 3),
   ];
 }
@@ -49,7 +47,6 @@ describe('the first run speaks plainly', () => {
     assert.equal(FIRST_RUN_COPY.stillChecking, 'Still checking. A slow connection can take a few seconds.');
     assert.equal(FIRST_RUN_COPY.exactlyNatural, 'Exactly the natural way.');
     assert.equal(FIRST_RUN_COPY.chooseEachTime, 'Choose each time');
-    assert.deepEqual(GOAL_TIERS.map((t) => t.title), ['Casual', 'Regular', 'Serious', 'Intense']);
     assert.ok(REASONS.some((r) => r.key === 'because' && r.title === 'Just exploring'), 'Just exploring is not the sixth answer');
     assert.equal(START_LEVELS.length, 4, 'the requested four self-reported starting points are incomplete');
     assert.match(START_LEVELS[0]!.title, /Brand new/);

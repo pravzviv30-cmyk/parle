@@ -7886,7 +7886,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every voice introduces itself in two short sentences the catalogue owns, French first`
 - verified-by: `the English sentence reaches the vendor on its own, short and in the same voice`
 - verified-by: `the introduction is written in one place, and every screen reads it from there`
-- note: 2026-11-24 (F1138, PR M2a): `voice sample captions come from the same catalogue as the bundled audio` is retired with the unreachable PreAccountOnboarding voice sheet it read, the only screen that drew the caption. The other verified-by lines stand.
+- note: 2026-11-24 (F1138, PR M2a): `voice sample captions come from the same catalogue as the bundled audio` is retired with the unreachable PreAccountOnboarding voice sheet it read. The caption itself is still drawn from the catalogue on Speak (tabs/TutorTab.tsx:108 and :278), which `tutor/speakView.test.ts:44` pins. The other verified-by lines stand.
 
 ### F506 — The output encoding was the plugin's default, and the clips were quieter than they needed to be
 - severity: P1
@@ -7927,7 +7927,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the committed clips record the text, the voice and the settings that made them`
 - verified-by: `the introduction is written in one place, and every screen reads it from there`
 - verified-by: `a clip nobody has listened to cannot be recorded as heard`
-- note: 2026-11-24 (F1138, PR M2a): `voice sample captions come from the same catalogue as the bundled audio` is retired with the unreachable PreAccountOnboarding voice sheet it read, the only screen that drew the caption. The other verified-by lines stand.
+- note: 2026-11-24 (F1138, PR M2a): `voice sample captions come from the same catalogue as the bundled audio` is retired with the unreachable PreAccountOnboarding voice sheet it read. The caption itself is still drawn from the catalogue on Speak (tabs/TutorTab.tsx:108 and :278), which `tutor/speakView.test.ts:44` pins. The other verified-by lines stand.
 
 ### F508 — No voice in the catalogue is verified for French-accented English on the pinned model
 - severity: P1
@@ -9290,7 +9290,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/auth/AuthFlow.tsx:39
 - note: After F633 the words are honest, but the refusal still lives in PreAccountOnboarding's own state, so "I have an account" then back starts the first run fresh in the same launch. If the founder wants it held, the in-memory shape is `const [refused, setRefused] = useState(false)` in AuthFlow, passed to PreAccountOnboarding as `refused`/`onRefuse` to seed its `useState(refused)`; the founder also decides whether SignIn's "Create one" is withheld while refused. Do not persist the refusal to the device without founder and legal approval: that stores new data about a minor with a retention period. Answered by the founder on 2026-09-30: firmer, and clear on refusal. The refusal holds for the whole launch, in memory only and never on the device, and it clears the saved first-run draft, first name included; a relaunch may ask again.
-- note: 2026-11-23: no founder question is left. The answered behaviour is built: App.tsx:720 keeps preAccountRefused in memory and passes it to AuthFlow, tested in onboarding/firstRun.test.ts:125 and :129. M2 confirms that SignIn's "Create one" is withheld while refused, then closes this.
+- note: 2026-11-23: no founder question is left. The answered behaviour is built: App.tsx:720 keeps preAccountRefused in memory and passes it to AuthFlow, tested in onboarding/firstRun.test.ts:33 and :37. M2 confirms that SignIn's "Create one" is withheld while refused, then closes this.
 - note: 2026-11-24 (F1138, PR M2a): closed as superseded, keeping its verified-by. The "I am younger than that" control and its `onRefuse` call were removed in fae6a3d3, so nothing can enter the pre-account refusal and "Create an account" cannot be reached while refused. The leftover refusal plumbing (App.tsx, AuthFlow.tsx, dev/OnboardingPreview.tsx) is removed by M5a, whose PR re-points this test.
 - verified-by: `authentication cannot undo a refusal or silently make its draft eligible`
 
@@ -14273,8 +14273,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1138 — M2a dead code: the unreachable voice sheet, orphan onboarding modules and dead auth modules
 - severity: P2
 - status: [ ]
-- where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx:82
+- where: apps/mobile/src/auth/SignInScreen.tsx:35
 - note: M2a-3 to M2a-6, across PRs M2a and M2a-c. Floors drop by the deleted tests only.
-- note: 2026-11-24 (F1138, PR M2a): the onboarding half is done. The voice sheet and its private player, TutorSelection's `playing`/`onHear` fallback, the M2a-4 modules and exports, and the onboarding unused imports and locals are removed; 18 tests that read only deleted code are deleted with it. The mobile floor stays at 4112 for now: the F1059 evidence contract holds the floors to the newest recorded gate (7,615, mobile 4112), so lowering it to 4094 needs that rule or the record to move first. Mobile runs 4323, above either number. The first verified-by passes. The entry stays open for PR M2a-c, which builds the second.
+- note: 2026-11-24 (F1138, PR M2a): the onboarding half is done. The voice sheet and its private player, TutorSelection's `playing`/`onHear` fallback, the M2a-4 modules and exports, and the onboarding unused imports and locals are removed; 18 tests that read only deleted code are deleted with it. The mobile floor stays at 4112 for now: the F1059 evidence contract holds the floors to the newest recorded gate (7,615, mobile 4112), so lowering it to 4094 needs that rule or the record to move first. Mobile runs 4323, above either number. The first verified-by passes. The entry stays open for PR M2a-c, which removes the dead auth modules (reached only through SignInScreen's unused imports, the `where`) and builds the second test. PreAccountOnboarding's unused `onRefuse` (PreAccountOnboarding.tsx:85) goes with M5a's refusal plumbing. A follow-up round also removed what the first left orphaned: onboarding/story.ts, firstRun/planModel.ts, FIRST_RUN_COPY.planLabel, C2Scene's vector parts, c2GestureAmount and the C2Goal type.
 - verified-by: `the first run plays tutor samples only through useTutorPreview`
 - verified-by: `the sign-in screen draws no welcome orb or glow and imports neither`

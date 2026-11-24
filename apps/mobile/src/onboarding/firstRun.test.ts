@@ -8,14 +8,14 @@ import { evidence } from '../../test/evidence.ts';
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-describe('screen one plays a real recorded exchange', () => {
+describe('screen one: the welcome', () => {
   // 2026-10-21 UI-008, artboard B-OB-Welcome: the welcome's line names the tutor, and the page is the brand ground with the canvas friends drawing.
   test("welcome values are visible and optional tutor samples never start on arrival", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /'hear-it': 'Welcome to Luvani'/); assert.match(screen, /Real conversations with your own tutor, from your very first try\./); assert.match(screen, /Start your personal plan/); assert.doesNotMatch(screen, /Coffee or tea|Bonjour, je vais prendre un|Hello, I will have a|autoplay|playExchange\(0\)/i); });
 
   test("welcome and recap share cream progress chrome with a readable bottom action", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /const blue = page === 'hear-it'/); assert.match(screen, /<FirstSessionCelebration/); assert.match(screen, /refused \? c\.paper : blue \? t\.brand : c\.paper/); assert.match(screen, /<OnboardingLayout/); assert.doesNotMatch(screen, /icon="back"/); assert.match(screen, /type\.display/); assert.match(screen, /label="Start your personal plan"/); assert.match(screen, /footer=\{footer\}/); assert.match(screen, /<BWelcomeArt \/>/); });
 });
 
-describe('screen two: the learner’s first line, then the first highlight', () => {
+describe('screen two: the first practice', () => {
   test("playback selects a model but only a real submitted reply can receive success feedback", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.doesNotMatch(screen, /sendGuestAttempt|<GuestRecording/); assert.match(screen, /next\.live\?\.outcome === 'completed' \? 'recap' : 'keep'/); const live = evidence('apps/mobile/src/onboarding/FirstLivePractice.tsx'); assert.match(live, /await readGuestLiveResult/); assert.ok(live.indexOf('await saveGuestPractice(next)') < live.indexOf('onFinished(next)')); assert.doesNotMatch(screen, /SceneMark|state="earned"|awardXp|pronunciationScore/); });
 });
 

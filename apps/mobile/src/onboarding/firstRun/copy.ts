@@ -14,8 +14,6 @@ export const FIRST_RUN_COPY = {
   /** The dashed card that holds the space until a drink is picked. */
   phrasePlaceholder: 'Your first French line appears here.',
 
-  /** The plan card's own name. */
-  planLabel: 'Your French plan',
   /** What each question is for, said under its title. All three are true of the code that reads the answer. */
   reasonWhy: 'This picks your first practice.',
   levelWhy: 'This sets how much help you get.',

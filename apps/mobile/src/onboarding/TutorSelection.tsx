@@ -38,7 +38,7 @@ export function TutorSelection({ chosen, preview, onChoose }: {
   return <View accessibilityRole="radiogroup" accessibilityLabel="Meet your tutor" style={st.cards}>
     {TUTOR_VOICE_OPTIONS.map(voice => {
       const selected = chosen === voice.value;
-      const phase = preview?.voice === voice.value ? preview.phase : 'idle';
+      const phase = preview.voice === voice.value ? preview.phase : 'idle';
       const ink = selected ? t.onBrand : t.text;
       return <View key={voice.value} style={[st.card, { backgroundColor: t.card }, selected && { backgroundColor: c.violet, borderColor: c.violet }]}>
         <Press haptic="selection" accessibilityRole="radio" accessibilityState={{ checked: selected }}

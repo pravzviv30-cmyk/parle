@@ -7,6 +7,7 @@ import { describe, test } from 'node:test';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
+import { previewLabel } from './previewLabel.ts';
 import {
   MAX_FIRST_NAME_CHARS,
   PRE_ACCOUNT_PAGES,
@@ -207,7 +208,7 @@ describe('the pre-account hand-off', () => {
   // 2026-10-21 UI-008, artboard B-OB-Welcome: the line now names the tutor.
   test("the welcome replaces drink preferences with useful personal-plan value", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Welcome to Luvani/); assert.match(screen, /Real conversations with your own tutor, from your very first try\./); assert.match(screen, /Start your personal plan/); assert.doesNotMatch(screen, /Coffee or tea|Bonjour, je vais prendre un|Hello, I will have a|draft\.drink === 'tea'/); });
 
-  test("tutor samples are optional and audio failure leaves the readable choice route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /useTutorPreview\(\{ active: active && page === 'choose-tutor' \}\)/); assert.match(screen, /preview=\{preview\}/); assert.match(screen, /onChoose=\{\(voice\) => choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); });
+  test("tutor samples are optional and audio failure leaves the readable choice route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /useTutorPreview\(\{ active: active && page === 'choose-tutor' \}\)/); assert.match(screen, /preview=\{preview\}/); assert.match(screen, /onChoose=\{\(voice\) => choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); /* A failed sample says so, offers the speaker again and keeps the choice. */ const tutors = evidence('apps/mobile/src/onboarding/TutorSelection.tsx'); assert.match(tutors, /accessibilityLabel=\{previewLabel\(phase, voice\.label\)\}/); assert.equal(previewLabel('error', 'Émilie'), 'Try Émilie’s voice again'); assert.match(tutors, /\{preview\.error\} Tap the speaker to try again\. You can still choose this tutor\./); });
 
   // F1138, M2a-3: the voice sheet nothing opened is gone, and its private player with it.
   test('the first run plays tutor samples only through useTutorPreview', () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const tutors = evidence('apps/mobile/src/onboarding/TutorSelection.tsx'); assert.match(screen, /useTutorPreview\(\{ active: active && page === 'choose-tutor' \}\)/); assert.match(screen, /preview=\{preview\}/); assert.doesNotMatch(screen, /useAudioPlayer|player\.|const hear =|'voice'/); assert.doesNotMatch(tutors, /onHear|playing = null|playing === voice/); });
