@@ -188,24 +188,14 @@ export interface PlanView {
 /** The stage words, as `BOnboardingParts.tsx` PLAN_STAGES and the Journey say them. */
 const STAGE_WORDS = ['Starter', 'Basics', 'Everyday', 'Chatting', 'Confident'] as const;
 
-export const PLAN_TITLE = 'Your plan';
 export const PLAN_SCENES_LABEL = 'Your first three scenes';
-export const MINUTES_LABEL = 'A flexible starting routine';
 export const GOAL_LABEL = 'Your goal';
-export const GOAL_NOTE = 'This goal chooses your first practice and guides your tutor.';
 export const METHOD_LABEL = 'How it works';
 export const METHOD_STEPS: readonly string[] = [
   'Talk through a real scene, one line at a time.',
   'Get help the moment you stall.',
   'Useful lines come back later as practice.',
 ];
-export const ROUTINE_OPTIONS: readonly AnswerOption<PlanMinutes>[] = [
-  { key: 5, title: 'Five minutes' },
-  { key: 10, title: 'Ten minutes' },
-  { key: 15, title: 'Fifteen minutes' },
-  { key: 'none', title: 'No fixed daily target' },
-];
-export const ROUTINE_NOTE = 'A suggestion for practice, not an extra allowance of live minutes. Change it whenever you like.';
 export const COVERAGE_NOTE = 'Beginner scenes. Your starting level is a suggestion, not a certified placement or a full tailored course.';
 
 export function startingReasonFor(level: StartLevel): string {
@@ -320,9 +310,7 @@ export function practiceForecast(minutes: PlanMinutes | null | undefined): Pract
 export const NO_STREAKS = 'A day off takes nothing away.';
 /** Beside the plan's hero number: "10 minutes a day". */
 export const MINUTES_UNIT = 'minutes a day';
-export const REMINDER_LABEL = 'Reminder';
 export const REMINDER_NOT_ON = 'Not on yet. You can turn it on later.';
-export const SAVE_PLAN = 'Save my plan';
 
 /**
  * The reminder as the plan shows it: the time, said to be off. Nothing is
@@ -337,15 +325,10 @@ export const TRIAL_LINE = 'One free conversation every other day, no card needed
 
 /** Every fixed line the plan and save pages can show, for the copy checks. */
 export const PLAN_COPY: readonly string[] = [
-  PLAN_TITLE,
   PLAN_SCENES_LABEL,
-  MINUTES_LABEL,
-  ROUTINE_NOTE,
   COVERAGE_NOTE,
-  ...ROUTINE_OPTIONS.map(option => option.title),
   MINUTES_UNIT,
   GOAL_LABEL,
-  GOAL_NOTE,
   METHOD_LABEL,
   ...METHOD_STEPS,
   GENTLE_PACE,
@@ -354,9 +337,7 @@ export const PLAN_COPY: readonly string[] = [
   START_AT_BASICS,
   START_AT_BASICS_HINT,
   NO_STREAKS,
-  REMINDER_LABEL,
   REMINDER_NOT_ON,
-  SAVE_PLAN,
   TRIAL_LINE,
 ];
 

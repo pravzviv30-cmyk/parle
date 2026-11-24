@@ -36,8 +36,8 @@ export function onboardingStageFraction(page: string, steps: readonly string[]):
  * done. Repeated practice/feedback exchanges share the same two onboarding
  * steps. Re-entering an earlier page never removes durable completed steps.
  */
-export function onboardingSteps({ five = false, signedIn = false, skipStreak = false, skipped = [], repair = false, eligibilityOnly = false }: {
-  five?: boolean; signedIn?: boolean; skipStreak?: boolean; skipped?: readonly string[]; repair?: boolean; eligibilityOnly?: boolean;
+export function onboardingSteps({ five = false, signedIn = false, skipped = [], repair = false, eligibilityOnly = false }: {
+  five?: boolean; signedIn?: boolean; skipped?: readonly string[]; repair?: boolean; eligibilityOnly?: boolean;
 } = {}): readonly string[] {
   if (eligibilityOnly) return ['age'];
   if (repair) return PAGES;
@@ -53,7 +53,6 @@ export function onboardingProgress({ page, completed = [], complete = false, ...
   complete?: boolean;
   five?: boolean;
   signedIn?: boolean;
-  skipStreak?: boolean;
   repair?: boolean;
   eligibilityOnly?: boolean;
   skipped?: readonly string[];

@@ -48,13 +48,13 @@ const MODULES =
 describe('the first-run parts only draw — F754', () => {
   test('no first-run page component can send, store or record activity', () => {
     const parts = readdirSync(HERE).filter((name) => /\.tsx?$/.test(name) && !name.includes('.test.'));
-    // The parts the plan, the start sheet, the practice, the win, the streak and
-    // the save card are built from. A part moved elsewhere would leave this
-    // folder and this check.
-    for (const expected of ['PlanCard.tsx', 'PlanReveal.tsx', 'GoalTile.tsx', 'ConsentFacts.tsx', 'LiveFace.tsx', 'StreakCelebrationScreen.tsx', 'WeekStrip.tsx']) {
+    // The parts the practice and the streak are built from. A part moved
+    // elsewhere would leave this folder and this check.
+    for (const expected of ['LiveFace.tsx', 'StreakCelebrationScreen.tsx']) {
       assert.ok(parts.includes(expected), `onboarding/firstRun/${expected} is missing, so this check no longer reads it`);
     }
-    for (const retired of ['ExchangeSteps.tsx', 'MicMeter.tsx', 'WinCard.tsx', 'StreakCard.tsx', 'InvestmentList.tsx']) assert.ok(!parts.includes(retired), `${retired} returned after replacement`);
+    // F1138: the plan card, reveal, goal tiles, consent facts, week strip, choice nudge and their models were dead and deleted.
+    for (const retired of ['ExchangeSteps.tsx', 'MicMeter.tsx', 'WinCard.tsx', 'StreakCard.tsx', 'InvestmentList.tsx', 'PlanCard.tsx', 'PlanReveal.tsx', 'GoalTile.tsx', 'ConsentFacts.tsx', 'WeekStrip.tsx', 'ChoiceNudge.tsx', 'micLevel.ts', 'winModel.ts', 'planModel.ts']) assert.ok(!parts.includes(retired), `${retired} returned after replacement`);
     assert.ok(!parts.includes('DayOne.tsx'), 'the retired streak hero remains alongside its replacement');
     for (const name of parts) {
       const body = code(name);

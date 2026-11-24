@@ -10,19 +10,7 @@ import { C2_MOTION } from '../../motion/tokens.ts';
 import { decorative } from '../../theme.ts';
 import { boldType as type, c } from '../boldRhythm.ts';
 import { SceneActivity } from './SceneActivity.ts';
-import { c2FloatAmount, c2GestureAmount, c2MotionRuns } from './c2MotionPolicy.ts';
-
-export type C2VectorPartDefinition = {
-  id: string;
-  xml: string;
-  gesture?: {
-    pivot: readonly [number, number];
-    rotate?: number;
-    lift?: number;
-    scale?: number;
-    phaseOffset?: number;
-  };
-};
+import { c2FloatAmount, c2MotionRuns } from './c2MotionPolicy.ts';
 
 /** The clock stays mounted. Backgrounding pauses it at its current pose. */
 function useC2Phase(active: boolean, duration: number, delayMs = 0) {
@@ -99,44 +87,8 @@ function DayOneBadge({ badge, phase, dayCount }: { badge: NonNullable<C2SceneDef
   </Reanimated.View>;
 }
 
-function GesturePart({ gesture, phase, width, height, children }: {
-  gesture: NonNullable<C2VectorPartDefinition['gesture']>;
-  phase: SharedValue<number>;
-  width: number;
-  height: number;
-  children: ReactNode;
-}) {
-  const pose = useAnimatedStyle(() => {
-    const amount = c2GestureAmount(phase.value, gesture.phaseOffset);
-    return { transform: [
-      { translateY: (gesture.lift ?? 0) * amount },
-      { rotate: `${(gesture.rotate ?? 0) * amount}deg` },
-      { scale: 1 + (gesture.scale ?? 0) * amount },
-    ] };
-  }, [gesture]);
-  return <Reanimated.View style={[{
-    position: 'absolute', left: 0, top: 0, width, height,
-    transformOrigin: [gesture.pivot[0], gesture.pivot[1], 0],
-  }, pose]}>{children}</Reanimated.View>;
-}
-
-/** A semantic body/hand/held-prop group shares the scene phase; XML never changes per frame. */
-export const C2VectorPart = memo(function C2VectorPart({ part, phase, width, height }: {
-  part: C2VectorPartDefinition;
-  phase: SharedValue<number>;
-  width: number;
-  height: number;
-}) {
-  const instanceId = useId();
-  const xml = useMemo(() => c2SvgForInstance(part.xml, instanceId), [part.xml, instanceId]);
-  const art = <SvgXml {...decorative} xml={xml} width={width} height={height} preserveAspectRatio="xMidYMid meet" />;
-  return part.gesture
-    ? <GesturePart gesture={part.gesture} phase={phase} width={width} height={height}>{art}</GesturePart>
-    : <View style={{ position: 'absolute', left: 0, top: 0, width, height }}>{art}</View>;
-});
-
 /** Source SVG attributes remain untouched; a scene wrapper scales the complete composition. */
-export const C2Artwork = memo(function C2Artwork({ scene, width, active = true, animated = true, spin = false, dayCount = 1, children, renderVectors }: {
+export const C2Artwork = memo(function C2Artwork({ scene, width, active = true, animated = true, spin = false, dayCount = 1, children }: {
   scene: C2SceneDefinition;
   width: number;
   active?: boolean;
@@ -145,8 +97,6 @@ export const C2Artwork = memo(function C2Artwork({ scene, width, active = true, 
   dayCount?: number;
   /** Locally redrafted vectors share the same scene clock and lifecycle as exports. */
   children?: ReactNode;
-  /** Optional local vector groups receive this existing clock, never a second loop. */
-  renderVectors?: (phase: SharedValue<number>) => ReactNode;
 }) {
   const phase = useC2Phase(active && animated, spin ? C2_MOTION.ringRotationMs : C2_MOTION.halfLoopMs * 2, spin ? C2_MOTION.ringDelayMs : 0);
   const float = useAnimatedStyle(() => ({ transform: [{ translateY: (scene.bob ?? 0) * c2FloatAmount(phase.value) }] }), [scene]);
@@ -155,7 +105,6 @@ export const C2Artwork = memo(function C2Artwork({ scene, width, active = true, 
     <View style={{ width: scene.width, height: scene.height, transformOrigin: 'left top', transform: [{ scale }] }}>
       <Reanimated.View style={[{ width: scene.width, height: scene.height }, float]}>
         {children}
-        {renderVectors?.(phase)}
         {scene.layers.map((layer, index) => <Layer key={`${layer.asset}/${index}`} layer={layer} phase={phase} />)}
         {scene.badge && <DayOneBadge badge={scene.badge} phase={phase} dayCount={dayCount} />}
       </Reanimated.View>

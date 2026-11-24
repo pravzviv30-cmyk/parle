@@ -17,7 +17,6 @@ import {
   NAME_LABEL,
   NAME_QUESTION,
   NAME_SKIP_HINT,
-  PAGES,
   ageGate,
   answersFrom,
   pageBefore,
@@ -148,7 +147,6 @@ export function OnboardingFlow({
     else { const handle = findNodeHandle(node); if (handle) AccessibilityInfo.setAccessibilityFocus(handle); }
   }, [page, loaded]);
 
-  const index = PAGES.indexOf(page);
   const refusal = oldEnough === false ? ageGate(false).refusal : null;
 
   // `onboarding_completed` used to be sent from here, first thing. It is sent

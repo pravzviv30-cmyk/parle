@@ -11,7 +11,7 @@
  */
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 import { BArt, type BArtName } from '../art/BArt.tsx';
 import { TutorPortrait } from '../tutor/TutorPortrait.tsx';

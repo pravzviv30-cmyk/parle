@@ -1418,8 +1418,8 @@ sound of its own:
   radio by default, and `role="checkbox"` serves a multi-select list; both say
   checked on a device and on the web. A Hear is its own speaker button beside
   it, so hearing never chooses. `OptionRow` and the first run's `Choice` are
-  thin names for it, onboarding's old `BoldChoice` folded into it, and
-  `ChoiceArt` draws an `IconTile`. Answers in a drill are `LipTile`s, not
+  thin names for it, and onboarding's old `BoldChoice` folded into it.
+  Answers in a drill are `LipTile`s, not
   `Choice` (UI-016).
 
 The deprecated TintRow, TintPanel, TintDisc, IconRowCard and HeroCard wrappers

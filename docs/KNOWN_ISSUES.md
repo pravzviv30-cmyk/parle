@@ -4763,12 +4763,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F301 — The sample player glue is copied between the Profile sheet and the first-run voice step
 - severity: P2
 - status: [ ]
-- where: apps/mobile/src/onboarding/OnboardingFlow.tsx:137
+- where: apps/mobile/src/tabs/ProfileTab.tsx:177
 - note: `playing` state, `useAudioPlayer()` and the `hearVoice` callback are the same fifteen lines
   in OnboardingFlow.tsx:137-153 and ProfileTab.tsx:185-203, with the pause-on-leave in a third
   shape each (`finish` versus `closeVoiceSheet`). `nextSample` already holds the one-at-a-time rule
   in a testable module, so what is copied is only React glue — but two copies of glue is how one
   screen gets a fix the other does not. Lift it into one hook in `tutor/` and have both call it.
+- note: 2026-11-24 (F1138, PR M2a): re-verified in M2. OnboardingFlow uses `tutor/useTutorPreview.ts`, and the third, unreachable copy in PreAccountOnboarding's voice sheet is deleted. What remains is ProfileTab's own `samplePlayer`/`hearVoice`/`nextSample` glue, so `where` moves to ProfileTab and the entry goes to M5a.
 - verified-by: `one hook owns the sample player, and both the sheet and the first-run step use it`
 
 ### F302 — A ticked ledger entry can name a describe block and still count as verified
@@ -7885,7 +7886,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `every voice introduces itself in two short sentences the catalogue owns, French first`
 - verified-by: `the English sentence reaches the vendor on its own, short and in the same voice`
 - verified-by: `the introduction is written in one place, and every screen reads it from there`
-- verified-by: `voice sample captions come from the same catalogue as the bundled audio`
+- note: 2026-11-24 (F1138, PR M2a): `voice sample captions come from the same catalogue as the bundled audio` is retired with the unreachable PreAccountOnboarding voice sheet it read. The caption itself is still drawn from the catalogue on Speak (tabs/TutorTab.tsx:108 and :278), which `tutor/speakView.test.ts:44` pins. The other verified-by lines stand.
 
 ### F506 — The output encoding was the plugin's default, and the clips were quieter than they needed to be
 - severity: P1
@@ -7926,7 +7927,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - verified-by: `the committed clips record the text, the voice and the settings that made them`
 - verified-by: `the introduction is written in one place, and every screen reads it from there`
 - verified-by: `a clip nobody has listened to cannot be recorded as heard`
-- verified-by: `voice sample captions come from the same catalogue as the bundled audio`
+- note: 2026-11-24 (F1138, PR M2a): `voice sample captions come from the same catalogue as the bundled audio` is retired with the unreachable PreAccountOnboarding voice sheet it read. The caption itself is still drawn from the catalogue on Speak (tabs/TutorTab.tsx:108 and :278), which `tutor/speakView.test.ts:44` pins. The other verified-by lines stand.
 
 ### F508 — No voice in the catalogue is verified for French-accented English on the pinned model
 - severity: P1
@@ -9264,9 +9265,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F634 — OnboardingFlow's OptionCard was to become OptionRow in F601, and was left without a word
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/onboarding/OnboardingFlow.tsx:351
 - note: F601's contract says "`OptionCard` becomes `OptionRow`. Nothing else changes." It was not built. A straight swap is not possible: OptionRow has no hear control, and the voice step's cards carry `onHear` and `playing={playing === option.value}`, which F355's test pins, so the swap would take the voice samples off the recovery route. The same file keeps `question: { ...type.display }` at :415, against F601's done-when that `type.display` appears in onboarding/ only on hear-it, first-line and FirstScene. Done when OptionRow can carry a sample (a design-system change) and the voice step uses it with F355 still passing, and the question is a working title.
+- note: 2026-11-24 (F1138, PR M2a): closed as superseded. OptionCard and `type.display` are gone; the recovery route's voice step draws TutorSelection with the shared preview hook, which is what `the recovery route's tutor cards keep independent selection and preview state` pins, and it passes.
 - verified-by: `the recovery route's tutor cards keep independent selection and preview state`
 
 ### F635 — The microphone refusal tells an Android learner to find a switch Android does not have
@@ -9285,10 +9287,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F637 — Founder question: should the under-13 refusal hold for the whole launch, across the sign-in detour
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/auth/AuthFlow.tsx:39
 - note: After F633 the words are honest, but the refusal still lives in PreAccountOnboarding's own state, so "I have an account" then back starts the first run fresh in the same launch. If the founder wants it held, the in-memory shape is `const [refused, setRefused] = useState(false)` in AuthFlow, passed to PreAccountOnboarding as `refused`/`onRefuse` to seed its `useState(refused)`; the founder also decides whether SignIn's "Create one" is withheld while refused. Do not persist the refusal to the device without founder and legal approval: that stores new data about a minor with a retention period. Answered by the founder on 2026-09-30: firmer, and clear on refusal. The refusal holds for the whole launch, in memory only and never on the device, and it clears the saved first-run draft, first name included; a relaunch may ask again.
-- note: 2026-11-23: no founder question is left. The answered behaviour is built: App.tsx:720 keeps preAccountRefused in memory and passes it to AuthFlow, tested in onboarding/firstRun.test.ts:125 and :129. M2 confirms that SignIn's "Create one" is withheld while refused, then closes this.
+- note: 2026-11-23: no founder question is left. The answered behaviour is built: App.tsx:720 keeps preAccountRefused in memory and passes it to AuthFlow, tested in onboarding/firstRun.test.ts:33 and :37. M2 confirms that SignIn's "Create one" is withheld while refused, then closes this.
+- note: 2026-11-24 (F1138, PR M2a): closed as superseded, keeping its verified-by. The "I am younger than that" control and its `onRefuse` call were removed in fae6a3d3, so nothing can enter the pre-account refusal and "Create an account" cannot be reached while refused. The leftover refusal plumbing (App.tsx, AuthFlow.tsx, dev/OnboardingPreview.tsx) is removed by M5a, whose PR re-points this test.
 - verified-by: `authentication cannot undo a refusal or silently make its draft eligible`
 
 ### F638 — The under-13 refusal's words say closing the app starts the first run fresh, but a relaunch reopens the save page with the pill live
@@ -10286,7 +10289,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/onboarding/PreAccountOnboarding.tsx, apps/mobile/src/onboarding/firstRun
 - note: Founder decisions D5, D13, D14 and README Part 5.C: where, level and daily goal build a visible plan card; the plan is revealed with real numbers; the first win is celebrated only for an accepted real reply; day one, the reminder ask and the save card come only after a finished practice; nothing in the first-run screens sends, stores or records activity before consent.
-- verified-by: `the win shows the learner's line beside the natural line and celebrates only an accepted real reply`
+- note: 2026-11-24 (F1138, PR M2a): `the win shows the learner's line beside the natural line and celebrates only an accepted real reply` is retired with `onboarding/firstRun/winModel.ts`, which no screen imported. The other verified-by lines stand.
 - verified-by: `the reminder is asked only after a finished practice and only on a real tap`
 - verified-by: `no first-run page component can send, store or record activity`
 - verified-by: `the save card lists only what this phone holds`
@@ -10686,7 +10689,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - status: [x]
 - where: apps/mobile/src/onboarding/firstRun/ChoiceNudge.tsx, apps/mobile/src/components.tsx
 - note: Each nudge request is consumed once, including reduced-motion taps, and settles on leave. The persistent sheet responder reads the current preference; rejected/short swipes land immediately when motion is reduced, and pending return animation cancels on preference change, a new gesture or unmount. Existing dismissal thresholds and refusal guards remain.
-- verified-by: `a choice nudge consumes each tap once, including taps with reduced motion`
+- note: 2026-11-24 (F1138, PR M2a): `a choice nudge consumes each tap once, including taps with reduced motion` is retired with `onboarding/firstRun/ChoiceNudge.tsx`, which only an unused import reached. The sheet half stands on its two tests.
 - verified-by: `sheet short/rejected swipe follows the latest reduced-motion setting`
 - verified-by: `sheet return motion cancels when the preference changes, a new gesture starts or it unmounts`
 
@@ -14266,6 +14269,15 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Fixed 2026-11-19 on claude/review-b3b-b: the set, its three functions, REPORTED_SESSIONS_KEPT, REPLAYED_SESSION_MESSAGE, the refused field and every read in both tutors are gone, with the two tests and their cleanup calls. The tutor-agent suite went from 1050 to 1048 (main had grown since the contract's 1044). F77 points at the durable claim's test, and voice-repro.mjs and voice-result.json no longer measure the set.
 - verified-by: `claim validates the owner fence and rejects a reused or oversized reservation`
 - verified-by: `a claim the database refuses throws before any provider is built`
+
+### F1138 — M2a dead code: the unreachable voice sheet, orphan onboarding modules and dead auth modules
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/auth/SignInScreen.tsx:35
+- note: M2a-3 to M2a-6, across PRs M2a and M2a-c. Floors drop by the deleted tests only.
+- note: 2026-11-24 (F1138, PR M2a): the onboarding half is done. The voice sheet and its private player, TutorSelection's `playing`/`onHear` fallback, the M2a-4 modules and exports, and the onboarding unused imports and locals are removed; 19 tests that read only deleted code are deleted with it (18 in the first round, 1 in the push-check round). The mobile floor stays at 4112 for now: the F1059 evidence contract holds the floors to the newest recorded gate (7,615, mobile 4112), so lowering it to 4094 needs that rule or the record to move first. Mobile runs 4322, above either number. The first verified-by passes. The entry stays open for PR M2a-c, which removes the dead auth modules (reached only through SignInScreen's unused imports, the `where`) and builds the second test. PreAccountOnboarding's unused `onRefuse` (PreAccountOnboarding.tsx:85) goes with M5a's refusal plumbing. A follow-up round also removed what the first left orphaned: onboarding/story.ts, firstRun/planModel.ts, FIRST_RUN_COPY.planLabel, C2Scene's vector parts, c2GestureAmount and the C2Goal type.
+- verified-by: `the first run plays tutor samples only through useTutorPreview`
+- verified-by: `the sign-in screen draws no welcome orb or glow and imports neither`
 
 ### F1324 — A provider re-sign-in that returns another account must delete nothing
 - severity: P1

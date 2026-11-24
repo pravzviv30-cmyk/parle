@@ -2458,7 +2458,7 @@ export function Choice({
 }: {
   title: string;
   detail?: string;
-  /** The mark at the head: an `IconTile`, or a `ChoiceArt` that draws one. */
+  /** The mark at the head: an `IconTile`. */
   tile?: ReactNode;
   /** The first run's older name for `tile`, until its pages move to it. */
   glyph?: ReactNode;
