@@ -14275,3 +14275,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: M5a-3. `useFonts` returns an error and `loaded` stays false, so `<Loading />` never leaves and the learner is stranded before sign-in with no retry. It is P1 by the plan's stranding rule, filed on the branch only. Mainly the web build, since native bundles the faces.
 - note: Fixed 2026-11-24 on claude/review-m5a (founder approved: the app opens on the phone's own font when ours fails to load). App.tsx keeps `useFonts`' error and renders the shell on `loaded || error`, so a missing Outfit face falls back to the platform's own. The test is a source check; the web check with the font request blocked belongs in push-check.
 - verified-by: `a font load that fails still opens the app on the system face`
+
+### F1167 — A failed font load on web falls back to the browser's serif, not a system sans
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/theme.ts:31
+- note: Found 2026-11-24 by the F1165 judge. With every .ttf blocked on the web build, text draws in Times because the Outfit family names carry no fallback. Give web a system-ui fallback so the failure path reads as the device's own face, as the founder's "the phone's own font" intends. Native falls back to the system face already.
+- verified-by: `a missing Outfit face on web falls back to the system sans`
+
