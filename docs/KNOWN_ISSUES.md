@@ -14377,7 +14377,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1149 — Dead code in live, tutor and walk
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/tutor/TutorMark.tsx:22
+- where: apps/mobile/src/tidy/orphans.test.ts:1
 - note: M3a-1, -3 (if Q1 is delete), -4, -6 and the confirmed part of -7. Each name has no non-test reference on origin/main.
 - note: Fixed 2026-11-24 on claude/review-m3a: deleted `tutor/TutorMark.tsx`, `tutor/continuity.ts` and its test (founder Q1: "Delete it"; F546 re-pointed); `launchAccessibilityLabel`, `launchNotice`, `orbStatusLabel` and `LAUNCH_NOTICE` from `orbState.ts`; `RealMomentScreen`'s three unused styles, `momentKey` prop, `Pressable` import and stale comment; the unused imports in `LiveErrorView`, `Transcript` and `WalkIntro`; and the unread `consent` in `abandonSession`. `tidy/orphans.test.ts` keeps them gone and `DESIGN.md` no longer lists TutorMark. No test floor was lowered.
 - verified-by: `the removed files and assets are not restored`
