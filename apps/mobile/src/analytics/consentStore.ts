@@ -20,7 +20,7 @@
  * ## Why this is not a field on `StoredProfile`
  *
  * Because a consent must never be able to come back after it is withdrawn.
- * `mergeStoredProfiles` (packages/brain/src/profile/merge.ts:441-449) picks
+ * `mergeStoredProfiles` (packages/brain/src/profile/merge.ts, its `pickAnswer`) picks
  * scalar answers by evidence weight, so a `yes` sitting on the profile of a
  * heavier device would win against a `no` written on a lighter one, and the
  * learner who turned the switch off on their phone would find it back on after
