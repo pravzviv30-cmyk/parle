@@ -64,7 +64,7 @@ describe('two plain sentences about the week', () => {
 });
 
 /* 2026-10-20, B5, B-Today: the page's view model. */
-import { buildConversationPack, phraseKeyOf as keyOf, type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
+import { buildConversationPack, buildDrillSession, mixQueue, phraseKeyOf as keyOf, suppressMic, type ConversationPack, type DrillExercise, type ReviewCard } from '@luvani/core';
 import { homeGreeting } from './greeting.ts';
 import { fallbackHero, heroStart, homeMissionFrom, type HomeMission } from './homeMission.ts';
 import {
@@ -197,6 +197,45 @@ describe('Today, B-Today (2026-10-20, B5)', () => {
     assert.equal(oneFix({ ...base, replay: null }), null, 'a fix is drawn with no replay');
     assert.equal(oneFix({ ...base, replay: { ...replay, sayable: false } }), null, 'a fix opens an empty sitting');
     assert.equal(oneFix({ ...base, bank: [] }), null, 'a fix opens a drill with nothing in it');
+  });
+
+  test("Today's fix card and the drill agree on the exercise a fix opens on", () => {
+    // F861. The card reads the first exercise of the sitting it builds; the
+    // drill builds its own from the route, then may reorder it (`mix`,
+    // DrillScreen) and swap spoken lines for their silent twins (`suppressMic`).
+    // Neither step may hand the drill a different opening than the card read.
+    const better = 'Je peux payer par carte ?';
+    const key = keyOf(better);
+    const replay = { packId: 'p1', from: 'At the café', quote: 'je veux payer', better, betterEn: 'Can I pay by card?', why: 'Softer.', key, sayable: true };
+    const translate: DrillExercise = { id: 't', phraseKey: key, difficulty: 'production', kind: 'translate', fr: better, en: 'Can I pay by card?', direction: 'en-fr', accepted: [better] };
+    const repeat: DrillExercise = { id: 'r', phraseKey: key, difficulty: 'production', kind: 'repeat-this', reference: better, referenceEn: 'x', ipa: null, noMicTwin: { ...translate, id: 'r:quiet' } };
+    const other: DrillExercise = { ...translate, id: 'o', phraseKey: 'other', fr: 'Bonne soirée', accepted: ['Bonne soirée'] };
+    const otherCard: ReviewCard = { id: 'other', kind: 'turn', front: 'Bonne soirée', back: 'x', context: '', ipa: '', addedAt: B5_NOW - 9e8, due: B5_NOW - 1, intervalDays: 1, ease: 2.5, reps: 0, lapses: 0 };
+    const deck = [otherCard];
+    const bank = [translate, repeat, other];
+    const fix = oneFix({ replay, deck, bank, tutorName: 'Tutor', now: B5_NOW });
+    assert.ok(fix !== null, 'the fix this test pins is not offered');
+    const card = buildDrillSession(deck, bank, B5_NOW, { only: [key] }).queue[0]!;
+    assert.ok(hidesAnswer(card));
+
+    // The card's route asks for no mix, so DrillScreen's `mix` is false for it.
+    const params = fix.route.params as { node: { phraseKeys: readonly string[] }; mix?: boolean };
+    assert.ok(!('mix' in params), 'the fix route asks the drill to mix its sitting');
+    // And were it mixed, a sitting scoped to one phrase is one lane, which the
+    // round robin returns unchanged, whatever topics the learner has.
+    const lanes = [[], [[key]], [['other'], [key]], [[key], ['other']], [['other']]];
+    for (const groups of lanes) {
+      for (const mix of [false, true]) {
+        for (const quiet of [false, true]) {
+          let built = buildDrillSession(deck, bank, B5_NOW, { only: params.node.phraseKeys });
+          if (mix) built = { ...built, queue: mixQueue(built.queue, groups) };
+          if (quiet) built = suppressMic(built);
+          const drill = built.queue[0];
+          assert.equal(drill?.id, card.id, `the drill opens on ${drill?.id}, the card read ${card.id} (mix ${mix}, quiet ${quiet}, topics ${JSON.stringify(groups)})`);
+          assert.ok(hidesAnswer(drill!), 'the drill opens on an exercise that shows the French first');
+        }
+      }
+    }
   });
 
   test('the week sums exactly seven local days, and is absent with no evidence', () => {

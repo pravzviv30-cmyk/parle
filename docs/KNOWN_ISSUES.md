@@ -11145,9 +11145,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F861 — Today's fix card copies the drill's exercise-picking rule
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/home/todayView.ts:197
 - note: Found 2026-10-20 in B6. `oneFix` calls `buildDrillSession(..., { only: [key] })` and checks `hidesAnswer` on the first exercise, so the card's promise ("the French stays hidden until you try") holds only while DrillScreen opens the same node the same way. If DrillScreen changes how it builds the sitting for a fix node, the card can promise a hidden answer the drill shows. Share one function for "the exercise a fix node opens on" between DrillScreen and todayView, or pin the two together with a test.
+- note: Pinned 2026-11-24 on claude/review-m5a, test-only. The test builds the sitting from the card's own route the way DrillScreen does, with and without its `mix` reorder and `suppressMic`, across topic splits, and checks the drill opens on the exercise the card read. The fix route carries no `mix`, and a sitting scoped to one phrase is one lane, which `mixQueue` returns unchanged. No input diverges today.
 - verified-by: `Today's fix card and the drill agree on the exercise a fix opens on`
 
 ### F862 — Unused code is kept alive only by its own tests
@@ -14266,3 +14267,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Fixed 2026-11-19 on claude/review-b3b-b: the set, its three functions, REPORTED_SESSIONS_KEPT, REPLAYED_SESSION_MESSAGE, the refused field and every read in both tutors are gone, with the two tests and their cleanup calls. The tutor-agent suite went from 1050 to 1048 (main had grown since the contract's 1044). F77 points at the durable claim's test, and voice-repro.mjs and voice-result.json no longer measure the set.
 - verified-by: `claim validates the owner fence and rejects a reused or oversized reservation`
 - verified-by: `a claim the database refuses throws before any provider is built`
+
+### F1165 — A font load that fails leaves the app on a spinner for good
+- severity: P1
+- status: [x]
+- where: apps/mobile/App.tsx:899
+- note: M5a-3. `useFonts` returns an error and `loaded` stays false, so `<Loading />` never leaves and the learner is stranded before sign-in with no retry. It is P1 by the plan's stranding rule, filed on the branch only. Mainly the web build, since native bundles the faces.
+- note: Fixed 2026-11-24 on claude/review-m5a (founder approved: the app opens on the phone's own font when ours fails to load). App.tsx keeps `useFonts`' error and renders the shell on `loaded || error`, so a missing Outfit face falls back to the platform's own. The test is a source check; the web check with the font request blocked belongs in push-check.
+- verified-by: `a font load that fails still opens the app on the system face`
