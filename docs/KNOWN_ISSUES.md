@@ -11148,11 +11148,15 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F859 — Quest titles make XP the goal
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: packages/core/src/quests/catalogue.ts:76
 - note: Found 2026-10-20 in B6. The stretch quest's title is "Earn {n} XP", drawn on Today's three. XP is the reward for practice, not the practice; a quest that names XP as the goal invites grinding the cheapest source. Reword as practice (a scene, a fix, minutes) with XP as the chip only. The catalogue is core's, so the change is core's.
 - note: 2026-11-23, founder: "Retire the XP quest". The `xp` stretch quest leaves the catalogue. The stretch slot keeps minutes, new-phrases, scene-on-own, sound-check and goal, and XP stays the reward chip. A day already holding the XP quest must still read and settle. quests.test.ts:191 pins the old title. Built with wave 3 M4b.
-- verified-by: `no quest title names XP as its goal`
+- note: fix in PR M4b; replaces the old verified-by, since the retired title stays for stored days.
+- note: Fixed 2026-11-24 on claude/review-m4b. `questEligible` answers `case 'xp': return false`, so the XP quest is never dealt. `xp` stays in `QUESTS`, `QuestId` and `QuestFamily`, and `isQuestId`, `questDef`, `questTitle`, `questProgress` and the icon switch are untouched, so a stored day or claim holding it still reads, draws and settles. The stretch draw is one shorter, so the two pinned picks in quests.test.ts moved their stretch quest (minutes to new-phrases, sound-check to goal); the first pick of a day is saved, so only two devices on different builds on the same day can differ, as the contract allows.
+- verified-by: `the XP quest is never dealt, on any day or goal`
+- verified-by: `a stored day and claim holding the XP quest still read`
+- verified-by: `a stored XP quest still draws on the quests card`
 
 ### F860 — Saved conversation text opens without the conversation it came from
 - severity: P3
@@ -14555,6 +14559,39 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Findings M1a-5, M1a-6, M1a-8 and M1a-9. One test dies with the ring.
 - note: Fixed 2026-11-24 on claude/review-m1a. The ring and its readers (`entries`, `lines`, `seen`, `clear`, `capacity`, `SYNC_RING_CAPACITY` and the `console` option) are gone; `App.tsx` only ever passed `record` on. The privacy test keeps its title and every privacy guarantee, now checked on the lines the `log` and `alarm` sinks receive: the exact key set became "every printed key is one of the eight", and `rev === null` became "no `rev=` printed". Counts in `policy.ts`, `registry.ts`, `diagnostics.ts` and `docs/STATE_AND_STORAGE.md` say fifteen synced and nineteen excluded, the envelope ceiling is 512 KiB, the stale F847 sentence is gone, and `analytics/consentStore.ts` cites `pickAnswer` instead of a line. The two unused test imports are removed. The F237 test was added in the same PR, so the mobile count did not fall and no floor was lowered.
 - verified-by: `sync diagnostics never contain payload fields or learner text`
+
+### F1158 — Today's streak tile is named without the words it shows
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/game/copy.ts:204
+- note: F951 rule; visible "Start today" and "3 days".
+- note: Fixed 2026-11-24 on claude/review-m4b. The spoken names are "3 days, practised today. Opens your streak." (and the "not practised yet today" twin, "1 day" for one) and "Start today. Opens your streak.".
+- verified-by: `the Today streak tile's spoken name starts with the words it shows`
+
+### F1159 — The Streak hero speaks the today line twice
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/game/streakScreenView.ts:328
+- note: the label ends with the line StreakScreen.tsx:118 also draws.
+- note: Fixed 2026-11-24 on claude/review-m4b. `hero.label` ends at the longest streak; the today line is said once, by its own Text under the week strip.
+- verified-by: `the Streak hero's spoken label does not repeat the today line drawn beside it`
+
+### F1160 — A daily take under a second gives no Finish and no reason
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/daily/DailyPracticeScreen.tsx:105
+- note: PRODUCT, Q3.
+- note: Fixed 2026-11-24 on claude/review-m4b, as the founder answered (DEV-006, 2026-11-24): a take under one second says "That one was very short. Try once more when you are ready." A take of a second or more keeps the compare note.
+- verified-by: `a take under a second says one more try is needed`
+
+### F1162 — Saving three phrases finishes the deck quest with no practice
+- severity: P2
+- status: [x]
+- where: packages/core/src/quests/progress.ts:66
+- note: C2-2, founder 2026-11-17 "Count only after practice"; gated on the day's finished practices in core.
+- note: Fixed 2026-11-24 on claude/review-m4b. `measure` returns `facts.finished > 0 ? count(facts.newPhrases) : 0` for `new-phrases`, so saves count once the same local day holds one finished practice, in either order. A claim already stored stays claimed. A day in progress with saves and no practice now reads 0 of 3 until a practice finishes.
+- verified-by: `every quest needs a finished practice: saving phrases alone completes none`
+- verified-by: `a new-phrases claim already stored stays claimed`
 
 ### F1331 — Create an account from sign-in fades out and never fades back in
 - severity: P1

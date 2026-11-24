@@ -12,6 +12,7 @@ import { streakGuiltIn } from '../copy/guilt.ts';
 import { emptyGame } from './model.ts';
 import { questsCardView } from './questsCardView.ts';
 import { NO_OUTSIDE_FACTS, gameViewFrom, type GameFacts } from './view.ts';
+import type { QuestId } from '@luvani/core';
 
 const TODAY = '2026-10-07';
 const at = (hour: number): number => new Date(2026, 9, 7, hour).getTime();
@@ -63,5 +64,39 @@ describe("Home's quests card — F767", () => {
       .replace(/(^|[^:])\/\/.*$/gm, '$1');
     assert.doesNotMatch(card, /[Cc]hest/, 'the quests card draws a chest');
     assert.doesNotMatch(card, /<Press\b|<Pressable\b|onPress/, 'a quest row became a door');
+  });
+});
+
+describe('quest days dealt before a change — F859, F1162', () => {
+  const stored = (ids: [QuestId, QuestId, QuestId], claimed: QuestId[], activity: GameFacts['activity']): GameFacts => ({
+    ...facts([]),
+    activity,
+    game: {
+      ...emptyGame(),
+      questDays: [{ day: TODAY, ids, at: at(8) }],
+      claims: claimed.map((questId) => ({ day: TODAY, questId, xp: 10, at: at(9) })),
+    },
+  });
+
+  test('a stored XP quest still draws on the quests card', () => {
+    const drill = [{ at: at(9), kind: 'drill' as const, xp: 20, activeMs: 180_000 }];
+    const open = questsCardView(gameViewFrom(stored(['finish-practice', 'practice-set', 'xp'], [], drill), TODAY).quests, { goalTarget: 10 })!;
+    assert.deepEqual(open.rows.map((row) => [row.id, row.title, row.count, row.icon]), [
+      ['finish-practice', 'Finish a practice', 'Done', 'practice'],
+      ['practice-set', 'Finish a short practice set', 'Done', 'practice'],
+      ['xp', 'Earn 40 XP', '20 of 40', 'star'],
+    ]);
+    const claimed = questsCardView(gameViewFrom(stored(['finish-practice', 'practice-set', 'xp'], ['xp'], drill), TODAY).quests, { goalTarget: 10 })!;
+    assert.deepEqual(claimed.rows[2]!.count, 'Done');
+    assert.equal(claimed.done, 1, 'only the claim counts toward the day');
+  });
+
+  test('a new-phrases claim already stored stays claimed', () => {
+    // C2-2: the deck quest now counts only after a practice. A claim written before stays, with no practice today.
+    const card = questsCardView(gameViewFrom(stored(['finish-practice', 'practice-set', 'new-phrases'], ['new-phrases'], []), TODAY).quests)!;
+    const row = card.rows.find((r) => r.id === 'new-phrases')!;
+    assert.equal(row.complete, true);
+    assert.equal(row.count, 'Done');
+    assert.equal(card.done, 1);
   });
 });

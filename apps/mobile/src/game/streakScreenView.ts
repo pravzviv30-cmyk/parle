@@ -325,7 +325,7 @@ export function streakScreenView(view: StreakFacts, shown: CalendarMonth): Strea
       lifetime,
       longest,
       today: todayLine,
-      label: `${running ? copy.count(streak.current) : copy.startStreak}. ${lifetime}.${longest === null ? '' : ` ${longest}.`} ${todayLine}`,
+      label: `${running ? copy.count(streak.current) : copy.startStreak}. ${lifetime}.${longest === null ? '' : ` ${longest}.`}`,
     },
     week,
     month,

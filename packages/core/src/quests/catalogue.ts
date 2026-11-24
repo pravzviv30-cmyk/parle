@@ -152,6 +152,9 @@ export function questEligible(
       return eligibility.conversations >= 1;
     case 'goal':
       return goalTarget !== null;
+    case 'xp':
+      // Retired (F859): never dealt, but kept in QUESTS so stored days and claims still read.
+      return false;
     default:
       return true;
   }

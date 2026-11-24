@@ -58,7 +58,7 @@ This section covers Home, the Progress tab, Profile, reminders and notifications
 
 | Element | Visual | Accessibility label (exact) | Tap |
 |---|---|---|---|
-| Flame | `AnimatedIcon name="flame"`, 24 pt, flame fill when `practisedToday`, outline in `paper.inkSoft` when not; number in `type.bodyStrong`. If streak is 0 and lifetime is 0, there is no number. | `"${n}-day streak, practised today"` / `"${n}-day streak, not practised yet today"` / `"Your streak starts with your first practice"` | `nav.navigate('Streak')` |
+| Flame | `AnimatedIcon name="flame"`, 24 pt, flame fill when `practisedToday`, outline in `paper.inkSoft` when not; number in `type.bodyStrong`. With no current streak the tile shows "Start / today" instead of a number. | `"${n} days, practised today. Opens your streak."` / `"${n} days, not practised yet today. Opens your streak."` ("1 day" for one) / `"Start today. Opens your streak."` (F1158, 2026-11-24: the spoken name starts with the words the tile shows) | `nav.navigate('Streak')` |
 | Goal ring | `ProgressRing size={HIT - space(2)} stroke={4}` plus `"${m} of ${goal} min"`; with no goal set, the ring is hidden and the label reads `"${m} min today"` | `"Daily goal: ${m} minutes practised, goal ${goal} minutes"` | `nav.navigate('Streak', { focus: 'goal' })` |
 | Level chip | `Icon name="star" variant="bulk"` + `"Level ${index+1}"`. **No rank names** (`LEVEL_NAMES` stays unshown, which keeps the pinned "no rank anywhere" true, `MyFrenchTab.test.ts:86`) | `"Level ${n}, ${xp} XP, ${away} XP to Level ${n+1}"` (top level: `"Level ${n}, ${xp} XP"`) | `nav.navigate('MyFrench')` |
 

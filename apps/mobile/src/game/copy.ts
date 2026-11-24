@@ -201,8 +201,8 @@ export const GAME_COPY = {
   /** What a screen reader hears for Home's three parts and Profile's tiles (Phase 4). */
   spoken: {
     streak: (current: number, practisedToday: boolean): string =>
-      `${current}-day streak, ${practisedToday ? 'practised today' : 'not practised yet today'}. Opens your streak.`,
-    noStreak: 'No streak running yet. Opens your streak.',
+      `${current} ${current === 1 ? 'day' : 'days'}, ${practisedToday ? 'practised today' : 'not practised yet today'}. Opens your streak.`,
+    noStreak: 'Start today. Opens your streak.',
     goal: (minutes: number | string, goal: number): string => `Daily goal: ${minutes} of ${goal} minutes practised today. Opens your streak.`,
     minutes: (minutes: number | string): string => `${minutes} minutes practised today. Opens your streak.`,
     level: (level: number, total: number, toNext: number): string =>

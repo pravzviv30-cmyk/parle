@@ -149,7 +149,7 @@ describe('the Streak screen — F770', () => {
     assert.equal(fresh.hero.words, 'Start a streak');
     assert.doesNotMatch(fresh.hero.label, /\b0\b|0-day/, 'a learner with no run is told "0 day streak"');
     assert.equal(screen.hero.running, true);
-    assert.match(screen.hero.label, /^2-day streak\. 10 days you have practised\. Longest streak: 8 days\. Practise today to reach 3\.$/);
+    assert.match(screen.hero.label, /^2-day streak\. 10 days you have practised\. Longest streak: 8 days\.$/);
     assert.equal(fresh.month.canGoBack, false);
 
     // The screen: its own route with a web path, seven columns, labelled month
@@ -407,4 +407,16 @@ describe('the Streak screen draws the one freeze mark (T3.1)', () => {
     assert.match(parts, /import \{ FreezeMark \} from '\.\/art\/FreezeMark\.tsx';/);
     assert.doesNotMatch(parts, /Snowflake|stroke=/);
   });
+});
+
+// F1159: the today line is drawn under the week strip, outside the hero group, so the group does not say it too.
+test("the Streak hero's spoken label does not repeat the today line drawn beside it", () => {
+  for (const practiceDays of [['2026-10-05', '2026-10-06'], ['2026-10-06', TODAY], []]) {
+    const hero = screenOf(facts({ practiceDays })).hero;
+    assert.ok(!hero.label.includes(hero.today), `"${hero.label}" repeats "${hero.today}"`);
+  }
+  const screen = screenOf(facts({ practiceDays: ['2026-10-05', '2026-10-06'] })).hero;
+  assert.equal(screen.label, '2-day streak. 2 days you have practised. Longest streak: 2 days.');
+  const source = readFileSync(new URL('./StreakScreen.tsx', import.meta.url), 'utf8');
+  assert.match(source, /<Text style=\{\[bType\.line15, s\.centred, s\.today, \{ color: t\.text \}\]\}>\{hero\.today\}<\/Text>/);
 });
