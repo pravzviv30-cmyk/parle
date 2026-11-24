@@ -13,7 +13,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { QUEST_XP, addDays } from '@luvani/core';
+import { QUEST_XP, addDays, questsToClaim } from '@luvani/core';
 
 import { MAX_ENVELOPE_BYTES, envelopeBytes, sameData, sealEnvelope, stableStringify } from '../sync/envelope.ts';
 import { fullGame } from './capacityFixture.ts';
@@ -285,4 +285,25 @@ test('a game row from a clock far ahead cannot shorten what another device keeps
   }
   assert.deepEqual(readGame({ ...recent, version: 1 }), recent, 'v1 upgrades without losing facts');
   assert.equal(result.version, 2, 'old builds must refuse to rewrite the safer format');
+});
+
+test('a stored day and claim holding the XP quest still read', () => {
+  // F859: the XP quest is no longer dealt, but days and claims written before stay readable for their 62 days.
+  const stored = withGameRows(emptyGame(), {
+    questDays: [
+      { day: TODAY, ids: ['practise-twice', 'conversation', 'xp'], at: BASE },
+      { day: addDays(TODAY, -1), ids: ['finish-practice', 'practice-set', 'xp'], at: BASE - DAY },
+    ],
+    claims: [{ day: addDays(TODAY, -1), questId: 'xp', xp: QUEST_XP, at: BASE - DAY }],
+  });
+  const read = readGame(JSON.parse(JSON.stringify(stored)));
+  assert.ok(read !== null && read !== 'newer', 'a stored XP quest day or claim was refused');
+  assert.deepEqual(read.questDays, stored.questDays);
+  assert.deepEqual(read.claims, stored.claims);
+  const merged = mergeGame(read, emptyGame());
+  assert.deepEqual(merged.claims, stored.claims, 'the merge dropped a stored XP claim');
+  assert.equal(merged.questDays.length, 2, 'the merge dropped a stored XP quest day');
+  // And today's stored XP quest still settles once its target is reached.
+  const facts = { finished: 2, phrasePractices: 0, recalled: 0, conversations: 0, practiceSets: 0, xp: 40, minutes: 0, goalMet: false, newPhrases: 0, scenesOnOwn: 0, soundChecks: 0 };
+  assert.deepEqual(questsToClaim({ day: TODAY, ids: ['practise-twice', 'conversation', 'xp'], facts, goalTarget: 10, claims: [] }), ['practise-twice', 'xp']);
 });

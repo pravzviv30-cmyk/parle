@@ -43,15 +43,16 @@ describe('picking a day\'s quests', () => {
     }
     // Pinned: two devices on different builds must agree, so a change to the
     // hash, the generator or the catalogue order has to fail here first.
+    // F859 (2026-11-24): retiring the XP quest shrank the stretch draw, so the stretch on both pinned days moved (minutes and sound-check before).
     assert.deepEqual(questsForDay({ day: '2026-10-05', seed: 'learner-1', eligibility: everything, goalTarget: 10 }), [
       'practise-twice',
       'conversation',
-      'minutes',
+      'new-phrases',
     ]);
     assert.deepEqual(questsForDay({ day: '2026-10-06', seed: 'learner-1', eligibility: everything, goalTarget: 10 }), [
       'review-recall',
       'conversation',
-      'sound-check',
+      'goal',
     ]);
   });
 
@@ -123,8 +124,23 @@ describe('picking a day\'s quests', () => {
     assert.ok(!questEligible('goal', everything, null));
     assert.ok(questEligible('goal', everything, 5));
     const quiet = { ...everything, liveSecondsRemaining: null };
-    for (const id of ['finish-practice', 'phrase-of-day', 'practice-set', 'xp', 'minutes', 'new-phrases', 'sound-check'] as const) {
+    for (const id of ['finish-practice', 'phrase-of-day', 'practice-set', 'minutes', 'new-phrases', 'sound-check'] as const) {
       assert.ok(questEligible(id, { ...quiet, phraseCards: 0, conversations: 0 }, null), `${id} should always be on offer`);
+    }
+  });
+});
+
+describe('the retired XP quest — F859', () => {
+  test('the XP quest is never dealt, on any day or goal', () => {
+    // Founder, 2026-11-23: "Retire the XP quest". It stays in the catalogue so stored days still read.
+    for (const goalTarget of [null, 5, 10, 15, 20] as const) {
+      assert.equal(questEligible('xp', everything, goalTarget), false, `the XP quest is on offer with goal ${goalTarget}`);
+      for (const seed of ['a', 'b', 'learner-1', 'learner-2']) {
+        for (const day of days(366)) {
+          const picked = questsForDay({ day, seed, eligibility: everything, goalTarget });
+          assert.ok(!picked.includes('xp'), `${day} dealt the XP quest to ${seed} with goal ${goalTarget}`);
+        }
+      }
     }
   });
 });
@@ -232,6 +248,17 @@ describe('quest progress and claims', () => {
     assert.deepEqual(questsToClaim({ day, ids, facts: done, goalTarget: 10, claims: all }), [], 'a day with all three claimed still had something to claim');
     // A day whose three are all done at once claims the three, and only the three.
     assert.deepEqual(questsToClaim({ day, ids, facts: done, goalTarget: 10, claims: [] }), ['finish-practice', 'practice-set', 'minutes']);
+  });
+
+  test('every quest needs a finished practice: saving phrases alone completes none', () => {
+    // C2-2, founder 2026-11-17: "Count only after practice".
+    const savedOnly: DayFacts = { ...noFacts, newPhrases: 3 };
+    for (const q of QUESTS) {
+      assert.equal(questProgress(q.id, savedOnly, 10).complete, false, `${q.id} is complete with no practice finished`);
+    }
+    assert.equal(questProgress('new-phrases', savedOnly).done, 0);
+    // Save then practise, or practise then save: one finished practice the same day counts the saves.
+    assert.deepEqual(questProgress('new-phrases', { ...savedOnly, finished: 1 }), { id: 'new-phrases', done: 3, target: 3, complete: true });
   });
 
   test('quest titles read as plain, kind English', () => {

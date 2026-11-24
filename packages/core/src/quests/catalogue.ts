@@ -152,6 +152,8 @@ export function questEligible(
       return eligibility.conversations >= 1;
     case 'goal':
       return goalTarget !== null;
+    case 'xp':
+      return false;
     default:
       return true;
   }

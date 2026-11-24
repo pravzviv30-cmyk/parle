@@ -56,7 +56,7 @@ describe("Home's today hero — F767", () => {
     assert.equal(hero.flame.count, 4);
     assert.equal(hero.flame.lit, true);
     assert.equal(hero.flame.words, 'day streak');
-    assert.equal(hero.flame.label, '4-day streak, practised today. Opens your streak.');
+    assert.equal(hero.flame.label, '4 days, practised today. Opens your streak.');
 
     // Today's minutes: measured active time only, floored; the untimed
     // conversation adds nothing, and wall-clock time is never read.
@@ -82,7 +82,7 @@ describe("Home's today hero — F767", () => {
     const open = heroOf(facts({ practiceDays: ['2026-10-04', '2026-10-05', '2026-10-06'], activity: [] }))!;
     assert.equal(open.flame.lit, false);
     assert.equal(open.flame.count, 3);
-    assert.equal(open.flame.label, '3-day streak, not practised yet today. Opens your streak.');
+    assert.equal(open.flame.label, '3 days, not practised yet today. Opens your streak.');
     assert.equal(open.goal.minutes, 0);
     assert.equal(open.goal.words, '0 of 10 min today');
 
@@ -205,4 +205,20 @@ describe('the goal coin and a word for a number — Today sky fix round 1', () =
     assert.equal(statTileLayout(109, 1.0, ['3', '4', '2']), 'side', 'digits alone changed the layout');
     assert.equal(statTileLayout(118, 1.15, ['Start', '4', '2']), 'stacked');
   });
+});
+
+// F1158 (the F951 rule): the streak tile is a button, so its spoken name starts with the words drawn on it.
+test("the Today streak tile's spoken name starts with the words it shows", () => {
+  const cases: [GameFacts, string][] = [
+    [facts(), '4 days, practised today. Opens your streak.'],
+    [facts({ practiceDays: ['2026-10-04', '2026-10-05', '2026-10-06'], activity: [] }), '3 days, not practised yet today. Opens your streak.'],
+    [facts({ practiceDays: [TODAY] }), '1 day, practised today. Opens your streak.'],
+    [facts({ practiceDays: [], activity: [] }), 'Start today. Opens your streak.'],
+  ];
+  for (const [f, said] of cases) {
+    const hero = heroOf(f)!;
+    const tile = statTileView(hero).streak;
+    assert.ok(hero.flame.label.startsWith(`${tile.number} ${tile.label}`), `"${hero.flame.label}" does not start with "${tile.number} ${tile.label}"`);
+    assert.equal(hero.flame.label, said);
+  }
 });

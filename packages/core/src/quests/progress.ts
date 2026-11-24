@@ -64,7 +64,7 @@ function measure(id: QuestId, facts: DayFacts): number {
     case 'minutes':
       return count(facts.minutes);
     case 'new-phrases':
-      return count(facts.newPhrases);
+      return facts.finished > 0 ? count(facts.newPhrases) : 0;
     case 'scene-on-own':
       return count(facts.scenesOnOwn);
     case 'sound-check':

@@ -102,8 +102,9 @@ export function DailyPracticeScreen() {
     });
     if (!live.current || ticket !== generation.current) return;
     held.current = recorded; setUri(recorded); setRecording(false);
-    setCompletedTake(recorded !== null && startedRecording.current !== null && Date.now() - startedRecording.current >= 1000);
-    setNote(modelAsset != null ? 'Hear your take, then the model. Your take stays on this device until you leave.' : 'Hear your take and practise the text again. Your take stays on this device until you leave.');
+    const long = recorded !== null && startedRecording.current !== null && Date.now() - startedRecording.current >= 1000;
+    setCompletedTake(long);
+    setNote(recorded !== null && !long ? 'That one was very short. Try once more when you are ready.' : modelAsset != null ? 'Hear your take, then the model. Your take stays on this device until you leave.' : 'Hear your take and practise the text again. Your take stays on this device until you leave.');
     })().catch(error => {
       if (live.current && ticket === generation.current) {
         held.current = null; setUri(null); setCompletedTake(false); setRecording(false);
