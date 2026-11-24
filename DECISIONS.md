@@ -2743,3 +2743,44 @@ no second cleanup queue, motion state store or navigation owner was introduced.
     says nothing.
 - Consequence: built as T1.4 and landed as PR #47; `talkDays` is an optional field on the stored reminder choice
   (still version 2).
+
+## DEV-006 — Whole-code review, wave 3: the founder's answers
+
+- Date: 2026-11-24
+- Status: accepted (founder, in chat, during Phase 4 wave 3; every answer the recommended option)
+- Decision:
+  - **Tab names (F1172): "Real tab, plain Back".** Learner copy names the tab the
+    learner really lands on (Journey, Speak, Today), and a button that only goes back
+    says plain "Back". Follow-ups: the unread-lesson button is plain "Back" (F1327);
+    "Tutor history" becomes "your conversations"; the Your conversations page has no
+    eyebrow label.
+  - **Practice XP after help (F1152): "No XP".** A phrase that had help earns no XP in
+    that sitting.
+  - **Review after Again (F1153): "Back tomorrow, same stage".** A card marked Again,
+    then Got it or Easy in the same sitting, counts as helped recall.
+  - **Out of minutes (F1134): "You've used your speaking time"** for every paid plan.
+  - **Reset link then relaunch (F1137): reopen on "Set a new password".**
+  - **Weekly help line (F1173): "mostly" only above half;** otherwise "This week was a
+    mix. Some scenes took more help than others."
+  - **Friends refresh (F1179):** keep the list and show the existing error line above it.
+  - **Short daily take (F1160):** "That one was very short. Try once more when you are
+    ready."
+  - **Web export too large (F1131):** say why, with the existing line.
+  - **Saved text door (F860):** "Saved conversation text", inside the opened conversation.
+  - **The tutor-remembers line (continuity.ts):** delete it.
+  - **The error-screen transcript:** leave it for a board.
+  - **Type roles (F1188):** keep the DESIGN.md table, delete the unread code list.
+  - **Figma reference files (F1189):** keep them.
+  - **Terms age wording (F1142):** "By starting practice, creating an account or
+    continuing, you confirm that you meet this minimum age and agree to these Terms."
+    Built after legal review and after PR #28.
+  - **toqr licence (F1143):** show the MIT text on Acknowledgements, pending legal advice.
+  - **Failed font load (F1165), status colour (F1180), "1 minute" (F1181):** approved as
+    written.
+  - **Bug fixes:** every confirmed wave 3 fix that adds no new words is approved;
+    anything with new words still comes to the founder.
+- Reason: the review's plan leaves to the founder anything a learner sees, hears, pays or
+  has stored.
+- Consequence: built slice by slice from `.forge/review-m1` to `review-m6`; landed so far:
+  F1324 (#48), M2a (#49), F1165 (#50), F1172 and F1327 (#51), the sound check fixes
+  F1144 to F1147, F1328 and F1329 (#52).
