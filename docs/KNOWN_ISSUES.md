@@ -2029,6 +2029,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - note: namespace, phase, status, attempt, revision and timing in a bounded ring buffer, in
   the existing [luvani] log style; the record type has no field that could hold a phrase, a
   name or a payload, and a test holds that shape.
+- note: 2026-11-24 (F1130): the ring buffer had no reader and is gone. Lines still go to the injected `log` and `alarm` sinks, and the test now checks what those sinks receive.
 - verified-by: `sync diagnostics never contain payload fields or learner text`
 
 ### F91 — Two engines against the real project prove isolation, replay, duplicates, conflict and corruption
@@ -3751,8 +3752,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F237 — Two source files are invisible to grep because they carry raw NUL bytes
 - severity: P2
-- status: [ ]
-- where: apps/mobile/src/sync/policy.ts:227
+- status: [x]
+- where: packages/core/src/review/merge.ts:180
 - note: `policy.ts` at lines 227, 364 and 400, and `packages/core/src/review/merge.ts:153`, embed a
   literal NUL as an identity delimiter rather than the escaped form, so grep calls both files
   binary and answers a search for any symbol in them with silence. Found when data-sync-engineer
@@ -3762,6 +3763,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   after `engine.test.ts` carried one, but it scans `*.test.ts` only, so a NUL in a source file is
   outside its view. The fix is the escape plus widening that scan to source; the delimiter
   behaviour must not change, because it is load-bearing for identity in both files.
+- note: Fixed 2026-11-24 on claude/review-m1a. `policy.ts` had already moved to `\u0000`; `merge.ts:180` now writes the escape too, the same string at runtime. `sourceText.test.ts` gains a second test over every tracked `.ts`, `.tsx`, `.js`, `.mjs`, `.cjs` and `.sql` file outside the suites, read from `git ls-files`; before the escape it named only `merge.ts:180`.
 - verified-by: `no tracked source file carries a control character that hides it from grep`
 
 ### F238 — The reminder is registered with the build, and lands on a channel with a name
@@ -14445,3 +14447,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note (2026-11-24, founder): plain "Back". The button reads "Back" with the back glyph, and the test pins that it is the plain word on a button whose onPress is `leave = () => backOrTabs(nav)`.
 - verified-by: `the unread-lesson leave button names only where it really lands`
 
+### F1130 — M1a dead and stale: the diagnostics ring nobody reads, wrong sync counts, a rotted citation
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/sync/diagnostics.ts:223
+- note: Findings M1a-5, M1a-6, M1a-8 and M1a-9. One test dies with the ring.
+- note: Fixed 2026-11-24 on claude/review-m1a. The ring and its readers (`entries`, `lines`, `seen`, `clear`, `capacity`, `SYNC_RING_CAPACITY` and the `console` option) are gone; `App.tsx` only ever passed `record` on. The privacy test keeps its title and every assertion, now made on the lines the `log` and `alarm` sinks receive. Counts in `policy.ts`, `registry.ts`, `diagnostics.ts` and `docs/STATE_AND_STORAGE.md` say fifteen synced and nineteen excluded, the envelope ceiling is 512 KiB, the stale F847 sentence is gone, and `analytics/consentStore.ts` cites `pickAnswer` instead of a line. The two unused test imports are removed. The F237 test was added in the same PR, so the mobile count did not fall and no floor was lowered.
+- verified-by: `sync diagnostics never contain payload fields or learner text`

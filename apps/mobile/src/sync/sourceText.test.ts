@@ -18,6 +18,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -78,5 +79,33 @@ test('every test file is plain text, so the titles the ledger names can be found
       `test titles the ledger names cannot be found in them. Write the character as an ` +
       `escape (\\u0000, \\u001b) instead — identical to the runtime, searchable to everything ` +
       `else:\n  ${offenders.join('\n  ')}`,
+  );
+});
+
+/**
+ * F237: the same hazard in source. `packages/core/src/review/merge.ts` carried a raw NUL
+ * as its identity delimiter, so grep called the CRDT merge binary. Tracked files only,
+ * read from git, so a local build output or a stray download cannot fail the gate.
+ */
+const SOURCE = /\.(ts|tsx|js|mjs|cjs|sql)$/;
+const TEST = /\.test\.tsx?$/;
+
+test('no tracked source file carries a control character that hides it from grep', () => {
+  const files = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    .split('\u0000')
+    .filter((file) => SOURCE.test(file) && !TEST.test(file));
+  assert.ok(files.length > 200, `expected to find the repo's source, found ${files.length}`);
+
+  const offenders: string[] = [];
+  for (const file of files) {
+    const hits = unsearchableBytes(readFileSync(path.join(ROOT, file), 'utf8'));
+    if (hits.length > 0) offenders.push(`${file}: ${hits.map((h) => `line ${h.line}`).join(', ')}`);
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `these source files contain a raw NUL, so grep treats them as binary. Write it as \\u0000 ` +
+      `instead, identical to the runtime:\n  ${offenders.join('\n  ')}`,
   );
 });

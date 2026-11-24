@@ -19,7 +19,7 @@
  *    this file that `diagnostics.test.ts` fails on.
  * 2. **Rebuilt, not referenced.** `record` never keeps the object it was handed. It
  *    copies the eight fields it knows into a fresh record, so a caller who passes a fat
- *    event with a transcript hanging off it puts nothing in the buffer but the eight.
+ *    event with a transcript hanging off it puts nothing in the line but the eight.
  * 3. **Normalised on the way in.** Every string is clamped to a short closed charset.
  *    A phrase, a name, an email address and a JSON fragment all contain characters the
  *    charset refuses, so each one becomes `?` rather than being trimmed into something
@@ -220,34 +220,23 @@ export function formatSyncDiagnostic(record: SyncDiagnostic): string {
   return `${prefix} ${parts.join(' ')}`;
 }
 
-// ──────────────────────────────────────────────────────────── the ring buffer
+// ─────────────────────────────────────────────────────────────── the recorder
 
 /**
- * How many events are kept. Enough to hold a full launch reconcile of twelve
- * namespaces with several conflict retries each, and small enough that a device
- * syncing badly for an hour still costs a fixed, tiny amount of memory.
- */
-export const SYNC_RING_CAPACITY = 96;
-
-/**
- * Statuses recorded but not printed.
+ * Statuses that are not printed.
  *
- * `unchanged` is the common case — most namespaces are clean most cycles — and twelve
- * of those per launch is the noise that trains people to filter the prefix out. It
- * still goes in the ring, where it is evidence rather than chatter.
+ * `unchanged` is the common case — most namespaces are clean most cycles — and fifteen
+ * of those per launch is the noise that trains people to filter the prefix out.
  */
 const SILENT_STATUSES: ReadonlySet<string> = new Set(['unchanged', 'stopped']);
 
 export interface SyncDiagnosticsOptions {
   /** Injected clock. `ms` is measured from the first call to this. */
   readonly now?: () => number;
-  readonly capacity?: number;
   /** Where ordinary lines go. The seam: swap this, and nothing else changes. */
   readonly log?: (line: string) => void;
   /** Where `SYNC_NOT_CONVERGED` goes. */
   readonly alarm?: (line: string) => void;
-  /** False keeps everything in the ring and prints nothing. */
-  readonly console?: boolean;
 }
 
 export interface SyncDiagnostics {
@@ -256,18 +245,10 @@ export interface SyncDiagnostics {
    * method, so it survives being detached from the object.
    */
   readonly record: (event: SyncDiagnosticInput) => void;
-  /** Oldest first. A copy: the caller cannot reach into the buffer. */
-  readonly entries: () => readonly SyncDiagnostic[];
-  /** Every line the ring would print, oldest first. For a support dump. */
-  readonly lines: () => readonly string[];
-  /** How many events have ever been recorded, including the ones dropped. */
-  readonly seen: () => number;
-  readonly clear: () => void;
-  readonly capacity: number;
 }
 
 /**
- * A bounded ring of records, and one line per interesting one.
+ * One line per interesting event. Nothing is kept.
  *
  * Nothing in here throws. A diagnostics sink that can fail a sync is worse than no
  * diagnostics: the engine already wraps this call defensively, and this is the other
@@ -275,14 +256,9 @@ export interface SyncDiagnostics {
  */
 export function createSyncDiagnostics(options: SyncDiagnosticsOptions = {}): SyncDiagnostics {
   const now = options.now ?? (() => Date.now());
-  const capacity = Math.max(1, Math.trunc(options.capacity ?? SYNC_RING_CAPACITY));
-  const toConsole = options.console ?? true;
   const log = options.log ?? ((line: string): void => console.log(line));
   const alarm = options.alarm ?? ((line: string): void => console.error(line));
   const started = now();
-
-  const ring: (SyncDiagnostic | undefined)[] = new Array<SyncDiagnostic | undefined>(capacity);
-  let written = 0;
 
   function elapsed(): number {
     const value = now() - started;
@@ -292,7 +268,7 @@ export function createSyncDiagnostics(options: SyncDiagnosticsOptions = {}): Syn
   function record(event: SyncDiagnosticInput): void {
     try {
       // Rebuilt field by field. Whatever else was hanging off `event` stays behind
-      // here, which is the point: the buffer holds these eight or nothing.
+      // here, which is the point: the line holds these eight or nothing.
       const entry: SyncDiagnostic = {
         namespace: token(event?.namespace),
         phase: token(event?.phase),
@@ -304,10 +280,6 @@ export function createSyncDiagnostics(options: SyncDiagnosticsOptions = {}): Syn
         ms: elapsed(),
       };
 
-      ring[written % capacity] = entry;
-      written += 1;
-
-      if (!toConsole) return;
       if (isSyncAlarm(entry)) alarm(formatSyncDiagnostic(entry));
       else if (!SILENT_STATUSES.has(entry.status)) log(formatSyncDiagnostic(entry));
     } catch {
@@ -315,25 +287,5 @@ export function createSyncDiagnostics(options: SyncDiagnosticsOptions = {}): Syn
     }
   }
 
-  function entries(): readonly SyncDiagnostic[] {
-    const out: SyncDiagnostic[] = [];
-    const start = written > capacity ? written - capacity : 0;
-    for (let at = start; at < written; at += 1) {
-      const entry = ring[at % capacity];
-      if (entry !== undefined) out.push(entry);
-    }
-    return out;
-  }
-
-  return {
-    record,
-    entries,
-    lines: () => entries().map(formatSyncDiagnostic),
-    seen: () => written,
-    clear: () => {
-      ring.fill(undefined);
-      written = 0;
-    },
-    capacity,
-  };
+  return { record };
 }
