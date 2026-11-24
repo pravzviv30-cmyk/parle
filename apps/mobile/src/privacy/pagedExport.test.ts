@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {test,beforeEach} from 'node:test';
 import {downloadPagedAccountData} from './pagedExport.ts';
 import type {AuthAdapter,AuthUser} from '../auth/types.ts';
-import {setActiveUser,USER_KEY_SUFFIXES} from '../storage/scope.ts';
+import {setActiveUser} from '../storage/scope.ts';
 const id='11111111-1111-4111-8111-111111111111';
 const user:AuthUser={id:'learner-A',email:null,provider:'password'};
 const sha256=async(bytes:Uint8Array)=>new Uint8Array(createHash('sha256').update(bytes).digest());

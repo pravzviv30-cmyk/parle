@@ -724,8 +724,9 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 ### The sync contract
 
 Since Phase 2, the account rather than the device is the durable home for most
-stores; `sync/policy.ts` is the count of record (fifteen synced, seventeen excluded after
-the device-local first-live arrival receipt and the appearance choice joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
+stores; `sync/policy.ts` is the count of record (fifteen synced, nineteen excluded after
+the device-local first-live arrival receipt, the speech dataset choice, the launch wall receipt
+and the appearance choice joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device
@@ -749,7 +750,7 @@ Four pieces, and each has one file:
 
 | file | what it owns |
 |---|---|
-| `sync/envelope.ts` | the wire shape `{ v, deviceId, savedAt, data }`, the 128KB ceiling, and reading a payload back safely |
+| `sync/envelope.ts` | the wire shape `{ v, deviceId, savedAt, data }`, the 512 KiB ceiling, and reading a payload back safely |
 | `sync/registry.ts` | the seam: stores call `markDirty(ns)` after a write lands, and register the adopter the engine hands a fold to |
 | `sync/backoff.ts` | full-jitter exponential retry, base 1s, cap 60s, injected clock |
 | `sync/engine.ts` | when to reconcile, the compare-and-swap, quarantine, the size refusal |
@@ -782,7 +783,7 @@ where two copies of the same sitting meet, the one carrying a duration wins, and
 a device that synced before the field existed cannot erase a measurement a newer
 one made.
 
-Seventeen are excluded, each with a written reason in `SYNC_EXCLUSIONS`.
+Nineteen are excluded, each with a written reason in `SYNC_EXCLUSIONS`.
 `appearance` is the light, dark or follow-device choice for this phone and its
 account; syncing an explicit override would change another device's appearance.
 Dark mode is on (UI-008); a screen draws the choice once its route is in `DARK_READY`.

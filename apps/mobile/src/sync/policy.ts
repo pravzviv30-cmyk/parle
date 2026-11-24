@@ -1,10 +1,10 @@
 /**
- * What happens when two devices disagree — one table, thirty-one namespaces, no exceptions.
+ * What happens when two devices disagree — one table, thirty-four namespaces, no exceptions.
  *
  * The engine in `engine.ts` decides *when* to reconcile. This file decides *what the
  * answer is*, and it is the only file in the app that holds an opinion about how two
  * copies of a learner become one. Fifteen namespaces are synced under three merge classes;
- * seventeen are excluded with a stated reason, because a namespace that is silently absent
+ * nineteen are excluded with a stated reason, because a namespace that is silently absent
  * from a sync table is indistinguishable from one somebody forgot.
  *
  * | namespace     | class      | the rule                                                  |
@@ -54,6 +54,8 @@
  * | `onboarding-repair-draft` | **excluded** — see SYNC_EXCLUSIONS             |
  * | `gameLocal`   | **excluded** — see SYNC_EXCLUSIONS                          |
  * | `home-seen`   | **excluded** — see SYNC_EXCLUSIONS                          |
+ * | `launch-wall-seen` | **excluded** — see SYNC_EXCLUSIONS                     |
+ * | `first-live-arrival` | **excluded** — see SYNC_EXCLUSIONS                   |
  *
  * ## Every policy is commutative and idempotent by construction
  *
@@ -803,14 +805,14 @@ export interface SyncExclusion {
 }
 
 /**
- * The fifteen namespaces that are on the device and stay on the device.
+ * The nineteen namespaces that are on the device and stay on the device.
  *
  * Each is here because syncing it is *wrong*, not because it is hard. A namespace
  * missing from the table above without an entry here is a store somebody forgot, and
  * `policy.test.ts` cannot tell the two apart unless the reason is written down.
  */
 export const SYNC_EXCLUSIONS: readonly SyncExclusion[] = [
-  { namespace: 'appearance', reason: 'The light, dark or follow-device choice belongs to this phone and its signed-in account. Following the device resolves against that phone’s OS setting; syncing an explicit override would unexpectedly change another device’s appearance. Resetting this account removes the local choice. While dark mode is off (KNOWN_ISSUES F847) the choice is stored but never drawn.' },
+  { namespace: 'appearance', reason: 'The light, dark or follow-device choice belongs to this phone and its signed-in account. Following the device resolves against that phone’s OS setting; syncing an explicit override would unexpectedly change another device’s appearance. Resetting this account removes the local choice.' },
   { namespace: 'home-seen', reason: "What this phone's Home last drew, so a number that rose since counts up once. A fact about one screen on one phone: synced, a tablet would skip a rise the learner never saw on it, and the real numbers all live in the synced game and activity records." },
   { namespace: 'launch-wall-seen', reason: "When this phone last opened the plans page on its own and whether a conversation was finished on it. A fact about one phone: synced, a tablet's showing would hide the offer on a phone that never drew it today, and the real practice record already lives in the synced activity." },
   { namespace: 'gameLocal', reason: "The OS schedule, timezone and the plan observed are facts about this phone; syncing them would nudge one learner twice and let one device's billing read decide another's." },
