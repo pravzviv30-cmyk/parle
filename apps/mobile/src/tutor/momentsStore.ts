@@ -92,12 +92,9 @@ export function loadMoments(): Promise<RealMoment[]> {
 export function saveMoment(kind: RealMomentKey, detail: string, now: number): Promise<RealMoment> {
   return serialized(async (key, owner) => {
     const current = await readStored(key);
-    const same = current.find((moment) => moment.kind === kind && moment.detail === detail);
-    const kept: RealMoment = same
-      ? { ...same, lastUsedAt: now }
-      : { id: `m${now.toString(36)}.${Math.random().toString(36).slice(2, 8)}`, kind, detail, at: now, lastUsedAt: now };
-    const rest = current.filter((moment) => moment !== same).sort((a, b) => b.lastUsedAt - a.lastUsedAt);
-    const next: StoredMoments = { version: VERSION, moments: [kept, ...rest].slice(0, MAX_MOMENTS) };
+    const moments = withMoment(current, kind, detail, now, `m${now.toString(36)}.${Math.random().toString(36).slice(2, 8)}`);
+    const kept = moments[0]!;
+    const next: StoredMoments = { version: VERSION, moments };
     try {
       await setItemInUserScope(owner, key, JSON.stringify(next));
     } catch {
@@ -109,9 +106,9 @@ export function saveMoment(kind: RealMomentKey, detail: string, now: number): Pr
 }
 
 /** Pure, so the cap and the ordering can be asked without a disk. */
-export function withMoment(current: readonly RealMoment[], kind: RealMomentKey, detail: string, now: number): RealMoment[] {
+export function withMoment(current: readonly RealMoment[], kind: RealMomentKey, detail: string, now: number, id = `m${now.toString(36)}`): RealMoment[] {
   const same = current.find((moment) => moment.kind === kind && moment.detail === detail);
-  const kept: RealMoment = same ? { ...same, lastUsedAt: now } : { id: `m${now.toString(36)}`, kind, detail, at: now, lastUsedAt: now };
+  const kept: RealMoment = same ? { ...same, lastUsedAt: now } : { id, kind, detail, at: now, lastUsedAt: now };
   const rest = current.filter((moment) => moment !== same).sort((a, b) => b.lastUsedAt - a.lastUsedAt);
   return [kept, ...rest].slice(0, MAX_MOMENTS);
 }
