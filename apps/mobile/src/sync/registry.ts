@@ -1,7 +1,7 @@
 import { scopeGeneration, writeInUserScope } from '../storage/scope.ts';
 
 /**
- * The seam between the twelve device stores and the one background reconciler.
+ * The seam between the fifteen synced device stores and the one background reconciler.
  *
  * Two directions, in the mould of `onUserScopeReset` in storage/scope.ts:
  *

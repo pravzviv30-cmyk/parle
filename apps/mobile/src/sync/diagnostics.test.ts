@@ -5,9 +5,10 @@
  * the first time somebody is debugging a sync bug at speed. So the first test here is
  * adversarial on purpose: it hands the recorder events with a learner's French, their
  * name, their email and a whole payload attached, and then goes looking for any of it
- * in the buffer, in the lines and in the JSON of both.
+ * in every line that reaches the injected `log` and `alarm` sinks, which are the only
+ * places the recorder sends anything.
  *
- * The rest is the ordinary contract — bounded ring, stable strings, never throws.
+ * The rest is the ordinary contract — stable strings, never throws.
  */
 
 import { test, describe } from 'node:test';
@@ -18,7 +19,6 @@ import {
   SYNC_ALARM_PREFIX,
   SYNC_DIAGNOSTIC_FIELDS,
   SYNC_LOG_PREFIX,
-  SYNC_RING_CAPACITY,
   UNKNOWN_TOKEN,
   createSyncDiagnostics,
   formatSyncDiagnostic,
@@ -67,6 +67,21 @@ const LEARNER_CONTENT = [
   'UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=',
 ] as const;
 
+/** The printed key for each `SyncDiagnostic` field, in print order. */
+const PRINTED_KEYS: readonly string[] = ['ns', 'phase', 'status', 'attempt', 'rev', 'bytes', 'code', 'ms'];
+
+/** A printed line back into its fields, so a test can check each one. */
+function fieldsOf(line: string): Record<string, string> {
+  const prefix = line.startsWith(`${SYNC_ALARM_PREFIX} `) ? SYNC_ALARM_PREFIX : SYNC_LOG_PREFIX;
+  assert.equal(line.startsWith(`${prefix} `), true, `not a sync line: ${line}`);
+  const fields: Record<string, string> = {};
+  for (const part of line.slice(prefix.length + 1).split(' ')) {
+    const at = part.indexOf('=');
+    fields[part.slice(0, at)] = part.slice(at + 1);
+  }
+  return fields;
+}
+
 describe('sync diagnostics — evidence, never content', () => {
   test('sync diagnostics never contain payload fields or learner text', () => {
     // ── Wall one: the type has nowhere to put a phrase.
@@ -105,36 +120,35 @@ describe('sync diagnostics — evidence, never content', () => {
       'the permitted field list changed — that is a privacy decision, not a refactor',
     );
 
-    // ── Wall two: what is handed over is not what is kept.
+    // ── Wall two: what is handed over is not what is sent.
     const clock = stopwatch();
-    const lines: string[] = [];
+    const logged: string[] = [];
+    const alarmed: string[] = [];
     const diagnostics = createSyncDiagnostics({
       now: clock.now,
-      log: (line) => lines.push(line),
-      alarm: (line) => lines.push(line),
+      log: (line) => logged.push(line),
+      alarm: (line) => alarmed.push(line),
     });
 
-    // An event decorated the way a hurried debugging session decorates one.
-    diagnostics.record(
-      event({
-        namespace: 'profile',
-        status: 'pushed',
-        bytes: 2_048,
-        transcript: 'je voudrais un café sil vous plait',
-        payload: { phrases: [{ fr: 'je ne sais pas', seen: 4 }] },
-        learner: { email: 'hello@thevisionarymedia.net', name: 'Marie Dubois' },
-        detail: 'pronunciation 62% on "bonjour"',
-        audio: 'UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=',
-      }),
-    );
+    // An event decorated the way a hurried debugging session decorates one, once for
+    // each sink: an ordinary push goes to `log`, a refused one to `alarm`.
+    const decorations = {
+      transcript: 'je voudrais un café sil vous plait',
+      payload: { phrases: [{ fr: 'je ne sais pas', seen: 4 }] },
+      learner: { email: 'hello@thevisionarymedia.net', name: 'Marie Dubois' },
+      detail: 'pronunciation 62% on "bonjour"',
+      audio: 'UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=',
+    };
+    diagnostics.record(event({ namespace: 'profile', status: 'pushed', bytes: 2_048, ...decorations }));
+    diagnostics.record(event({ namespace: 'profile', status: 'refused', code: 'over-size-cap', ...decorations }));
 
-    const kept = diagnostics.entries()[0];
-    assert.ok(kept !== undefined, 'the event was not recorded at all');
-    assert.deepEqual(
-      Object.keys(kept).sort(),
-      [...SYNC_DIAGNOSTIC_FIELDS].sort(),
-      'the buffer kept a key the record type does not declare',
-    );
+    assert.equal(logged.length, 1, 'the decorated push was not sent to log');
+    assert.equal(alarmed.length, 1, 'the decorated refusal was not sent to alarm');
+    for (const line of [...logged, ...alarmed]) {
+      for (const key of Object.keys(fieldsOf(line))) {
+        assert.ok(PRINTED_KEYS.includes(key), `a sink received a key the record type does not declare: ${key}`);
+      }
+    }
 
     // ── Wall three: learner content aimed at the fields that *do* exist.
     //
@@ -147,7 +161,7 @@ describe('sync diagnostics — evidence, never content', () => {
       );
     }
 
-    const dump = JSON.stringify(diagnostics.entries()) + '\n' + diagnostics.lines().join('\n');
+    const dump = [...logged, ...alarmed].join('\n');
     for (const content of LEARNER_CONTENT) {
       assert.equal(dump.includes(content), false, `learner content survived: ${content}`);
       // Not just the whole string — the halves a partial scrub would leave behind.
@@ -158,21 +172,23 @@ describe('sync diagnostics — evidence, never content', () => {
     assert.equal(dump.includes('62'), false, 'a pronunciation score survived');
 
     // The refusal is total, not partial: every one of those became `?`.
-    for (const entry of diagnostics.entries().slice(1)) {
-      assert.equal(entry.namespace, UNKNOWN_TOKEN);
-      assert.equal(entry.phase, UNKNOWN_TOKEN);
-      assert.equal(entry.status, UNKNOWN_TOKEN);
-      assert.equal(entry.code, UNKNOWN_TOKEN);
-      assert.equal(entry.rev, null, 'a string reached a numeric field');
+    const aimed = logged.slice(1);
+    assert.equal(aimed.length, LEARNER_CONTENT.length, 'an event aimed at the fields was not sent');
+    for (const line of aimed) {
+      const fields = fieldsOf(line);
+      assert.equal(fields.ns, UNKNOWN_TOKEN);
+      assert.equal(fields.phase, UNKNOWN_TOKEN);
+      assert.equal(fields.status, UNKNOWN_TOKEN);
+      assert.equal(fields.code, UNKNOWN_TOKEN);
+      assert.equal('rev' in fields, false, 'a string reached a numeric field');
     }
 
-    // ── And the standing invariant over everything in the ring: numbers, nulls, and
-    // short bare words. Nothing that has a space in it, an accent, an `@` or a quote.
-    for (const entry of diagnostics.entries()) {
-      for (const [field, value] of Object.entries(entry)) {
-        if (value === null || typeof value === 'number') continue;
-        assert.equal(typeof value, 'string', `${field} held a ${typeof value}`);
-        assert.match(String(value), /^[A-Za-z0-9?][A-Za-z0-9._-]{0,31}$/, `${field} held free text`);
+    // ── And the standing invariant over everything either sink received: whole numbers
+    // and short bare words. Nothing that has a space in it, an accent, an `@` or a quote.
+    for (const line of [...logged, ...alarmed]) {
+      for (const [field, value] of Object.entries(fieldsOf(line))) {
+        if (/^-?\d+$/.test(value)) continue;
+        assert.match(value, /^[A-Za-z0-9?][A-Za-z0-9._-]{0,31}$/, `${field} held free text`);
       }
     }
 
@@ -181,39 +197,6 @@ describe('sync diagnostics — evidence, never content', () => {
     assert.equal(token('soundChecks'), 'soundChecks');
     assert.equal(token(''), UNKNOWN_TOKEN);
     assert.equal(token(undefined), UNKNOWN_TOKEN);
-  });
-
-  test('the ring buffer holds a fixed number of events and drops the oldest first', () => {
-    const clock = stopwatch();
-    const diagnostics = createSyncDiagnostics({ now: clock.now, capacity: 4, console: false });
-
-    for (let i = 0; i < 10; i += 1) {
-      clock.tick(5);
-      diagnostics.record(event({ namespace: 'review', revision: i }));
-    }
-
-    const entries = diagnostics.entries();
-    assert.equal(entries.length, 4, 'the ring grew past its capacity');
-    assert.deepEqual(
-      entries.map((e) => e.rev),
-      [6, 7, 8, 9],
-      'the ring dropped the newest instead of the oldest',
-    );
-    assert.equal(diagnostics.seen(), 10, 'the dropped events were not counted');
-
-    // `ms` is a stopwatch from the recorder's first tick, so the gap between two
-    // records is readable and nothing in the ring is a wall-clock timestamp.
-    assert.deepEqual(
-      entries.map((e) => e.ms),
-      [35, 40, 45, 50],
-    );
-
-    diagnostics.clear();
-    assert.deepEqual(diagnostics.entries(), []);
-    assert.equal(diagnostics.seen(), 0);
-
-    // A default recorder is bounded too, without being asked.
-    assert.equal(createSyncDiagnostics({ console: false }).capacity, SYNC_RING_CAPACITY);
   });
 
   test('every event prints one greppable line in the [luvani] house style', () => {
@@ -231,20 +214,26 @@ describe('sync diagnostics — evidence, never content', () => {
       '[luvani:sync] ns=drills phase=push status=conflict attempt=2 rev=3 code=stale-revision ms=412',
     ]);
 
-    // `unchanged` is the common case and would drown the prefix twelve times a launch,
-    // so it stays in the ring as evidence and off the console as noise.
-    assert.equal(diagnostics.entries().length, 3);
+    // `unchanged` is the common case and would drown the prefix fifteen times a launch,
+    // so it stays off the console as noise.
     assert.equal(SYNC_LOG_PREFIX, '[luvani:sync]');
 
     // Absent facts are absent, never printed as a zero that looks measured.
-    const sparse = diagnostics.entries()[1];
-    assert.ok(sparse !== undefined);
-    const line = formatSyncDiagnostic(sparse);
+    const line = formatSyncDiagnostic({
+      namespace: token('topics'),
+      phase: token('cycle'),
+      status: token('unchanged'),
+      attempt: 0,
+      rev: null,
+      bytes: null,
+      code: null,
+      ms: 412,
+    });
     assert.equal(line, '[luvani:sync] ns=topics phase=cycle status=unchanged attempt=0 ms=412');
     assert.equal(line.includes('rev='), false);
     assert.equal(line.includes('bytes='), false);
     assert.equal(line.includes('code='), false);
-    for (const each of diagnostics.lines()) assert.equal(each.includes('\n'), false, 'a record printed over two lines');
+    for (const each of printed) assert.equal(each.includes('\n'), false, 'a record printed over two lines');
   });
 
   test('a namespace that will not converge raises a stable alarm string', () => {
@@ -279,7 +268,17 @@ describe('sync diagnostics — evidence, never content', () => {
 
     // The string itself is the interface. Changing it breaks whoever is grepping.
     assert.equal(SYNC_ALARM_PREFIX, '[luvani] SYNC_NOT_CONVERGED');
-    assert.equal(isSyncAlarm({ ...(diagnostics.entries()[3] as SyncDiagnostic) }), false);
+    const offline: SyncDiagnostic = {
+      namespace: token('topics'),
+      phase: token('cycle'),
+      status: token('offline'),
+      attempt: 0,
+      rev: null,
+      bytes: null,
+      code: token('no-token'),
+      ms: 0,
+    };
+    assert.equal(isSyncAlarm(offline), false);
   });
 
   test('the recorder accepts the engine event as it is and never throws on a broken one', () => {
@@ -298,7 +297,7 @@ describe('sync diagnostics — evidence, never content', () => {
     const lines: string[] = [];
     const diagnostics = createSyncDiagnostics({ now: stopwatch().now, log: (line) => lines.push(line), alarm: (line) => lines.push(line) });
 
-    // The wiring App.tsx will do: the sink handed straight to the engine, detached
+    // The wiring App.tsx does: the sink handed straight to the engine, detached
     // from its object, which is why `record` is a closure and not a method.
     const sink: (e: SyncEvent) => void = diagnostics.record;
     sink(fromEngine);
@@ -316,24 +315,29 @@ describe('sync diagnostics — evidence, never content', () => {
     for (const one of broken) {
       assert.doesNotThrow(() => diagnostics.record(one as SyncDiagnosticInput));
     }
-    assert.equal(diagnostics.seen(), 1 + broken.length);
+    assert.equal(lines.length, 1 + broken.length);
 
-    for (const entry of diagnostics.entries()) {
-      assert.equal(Number.isInteger(entry.attempt) && entry.attempt >= 0, true, 'attempt was not a whole count');
-      assert.equal(entry.rev === null || Number.isInteger(entry.rev), true, 'rev was not a whole number or null');
-      assert.equal(entry.bytes === null || Number.isInteger(entry.bytes), true, 'bytes was not a whole number or null');
-      assert.equal(Number.isInteger(entry.ms) && entry.ms >= 0, true, 'ms was not a whole count');
-      assert.equal(entry.namespace.length <= 32, true, 'an unbounded string reached the buffer');
+    for (const line of lines) {
+      const entry = fieldsOf(line);
+      assert.match(entry.attempt ?? '', /^\d+$/, 'attempt was not a whole count');
+      assert.equal(entry.rev === undefined || /^-?\d+$/.test(entry.rev), true, 'rev was not a whole number or absent');
+      assert.equal(entry.bytes === undefined || /^-?\d+$/.test(entry.bytes), true, 'bytes was not a whole number or absent');
+      assert.match(entry.ms ?? '', /^\d+$/, 'ms was not a whole count');
+      assert.equal((entry.ns ?? '').length <= 32, true, 'an unbounded string reached a sink');
     }
 
-    // A sink that throws is contained too — the alarm below explodes, sync does not.
+    // A sink that throws is contained too — the alarm below explodes, sync does not,
+    // and the next event still prints.
+    const after: string[] = [];
     const hostile = createSyncDiagnostics({
       now: stopwatch().now,
+      log: (line) => after.push(line),
       alarm: () => {
         throw new Error('sink down');
       },
     });
     assert.doesNotThrow(() => hostile.record(event({ status: 'refused', code: 'over-size-cap' })));
-    assert.equal(hostile.entries().length, 1, 'the record was lost when the sink failed');
+    hostile.record(event({ status: 'pushed' }));
+    assert.equal(after.length, 1, 'the recorder stopped working after a sink failed');
   });
 });

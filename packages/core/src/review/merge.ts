@@ -177,7 +177,7 @@ function canonical(card: ReviewCard): string {
     .filter((key) => !UNORDERED.has(key))
     .sort()
     .map((k) => `${k}=${JSON.stringify(rec[k]) ?? 'null'}`)
-    .join(' ');
+    .join('\u0000');
 }
 
 /**
