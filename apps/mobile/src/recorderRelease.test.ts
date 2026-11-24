@@ -36,7 +36,7 @@ import { recorderUri } from './daily/recorderUri.ts';
 import * as ownWordsCopy from './drill/ownWordsCopy.ts';
 
 type Platform = 'ios' | 'android';
-type Screen = 'drill';
+type Screen = keyof typeof SCREENS;
 type Leave = keyof typeof ENDINGS;
 type Element = { props: Record<string, unknown> };
 type Component = (props: Record<string, unknown>) => Element;
@@ -121,6 +121,9 @@ function mount(path: string, exported: string, platform: Platform) {
   let focused = true;
   let mutes = 0;
   let recorder: Recorder | undefined;
+  // The Say drill's audio mode, and a hold on its switch into record mode.
+  let mode: 'play' | 'record' = 'play';
+  let enterHold: Promise<void> | null = null;
   const same = (a: unknown[] | undefined, b: unknown[]) => a?.length === b.length && a.every((value, index) => Object.is(value, b[index]));
   const useRef = (value: unknown) => (cells[cursor++] ??= { current: value });
   const useEffect = (create: () => void | (() => void), deps: unknown[]) => {
@@ -148,7 +151,7 @@ function mount(path: string, exported: string, platform: Platform) {
       },
     },
     'react/jsx-runtime': { jsx: element, jsxs: element, Fragment: 'Fragment' },
-    'react-native': { StyleSheet: { create: (styles: unknown) => styles }, AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) }, Text: 'Text', View: 'View' },
+    'react-native': { StyleSheet: { create: (styles: unknown) => styles }, AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) }, Text: 'Text', View: 'View', Pressable: 'Pressable' },
     '@react-navigation/native': { useIsFocused: () => focused },
     'expo-audio': {
       AudioModule: { requestRecordingPermissionsAsync: async () => ({ granted: true }) },
@@ -166,6 +169,26 @@ function mount(path: string, exported: string, platform: Platform) {
       },
     },
     '../components.tsx': { IconAction: 'IconAction', GhostButton: 'GhostButton', MicGlyph: 'MicGlyph', Press: 'Press', SpeakCircle: 'SpeakCircle' },
+    // The Say drill (drill/kinds/RepeatThisView.tsx), one folder deeper (F795).
+    '../../components.tsx': { IconAction: 'IconAction', PillButton: 'PillButton', SpeakCircle: 'SpeakCircle' },
+    '../../theme.ts': { colour: {}, decorative: {}, type: {}, space: (n: number) => n * 4 },
+    '../../main/bTheme.tsx': { useB: () => ({ muted: 'muted', text: 'text', mode: 'light' }), useThemedStyles: () => ({}) },
+    '../DrillFrame.tsx': { DrillFrame: 'DrillFrame' },
+    '../drillStage.ts': { drillStage: () => ({}) },
+    '../SpeakMic.tsx': { SpeakMic: 'SpeakMic', ListeningCloud: 'ListeningCloud' },
+    '../speakFoot.ts': { RING_ROOM: 0 },
+    '../../speech/useRecorderLevel.ts': { useRecorderLevel: () => ({ metered: false, level: 0 }) },
+    '../../art/flat/Illustration.tsx': { Illustration: 'Illustration' },
+    '../../speech/tutorVoice.ts': { stop: () => {} },
+    '../../sound/audioFocus.ts': { holdMic: () => { mutes++; let released = false; return () => { if (!released) mutes--; released = true; }; } },
+    '../../speech/discardRecording.ts': { discardRecording: (uri: string | null) => { if (uri) disk.delete(uri); } },
+    '../../sound/audioSession.ts': {
+      enterRecording: async () => { await enterHold; mode = 'record'; },
+      leaveRecording: async () => { mode = 'play'; },
+    },
+    '../../daily/recorderUri.ts': { recorderUri },
+    './shared.tsx': { CAN_RECORD: true, HearRow: 'HearRow', METERED_TAKE: {} },
+    './styles.ts': { SPEAK: 108, makeDs: () => ({}) },
     '../theme.ts': { colour: {}, paper: {}, type: {}, space: (n: number) => n * 4 },
     // 2026-10-21 UI-008: the drill's spoken attempt reads its words colour from the theme.
     '../main/bTheme.tsx': { useB: () => ({ muted: 'muted', text: 'text' }) },
@@ -216,6 +239,13 @@ function mount(path: string, exported: string, platform: Platform) {
     get mutes(): number {
       return mutes;
     },
+    get mode(): 'play' | 'record' {
+      return mode;
+    },
+    /** Holds the Say drill's next switch into record mode open until it settles. */
+    holdEnter(hold: Promise<void>): void {
+      enterHold = hold;
+    },
     get recorder(): Recorder {
       assert.ok(recorder, 'the screen made no recorder');
       return recorder;
@@ -245,7 +275,8 @@ function press(tree: unknown, label: string): void {
     if (Array.isArray(node)) return node.map(find).find(Boolean);
     if (!node || typeof node !== 'object' || !('props' in node)) return undefined;
     const element = node as Element;
-    return element.props.accessibilityLabel === label ? element : find(element.props.children);
+    // The Say drill pins its mic in DrillFrame's `primary` slot.
+    return element.props.accessibilityLabel === label ? element : find(element.props.children) ?? find(element.props.primary);
   };
   const control = find(tree);
   assert.ok(control && typeof control.props.onPress === 'function', `no control is labelled "${label}"`);
@@ -259,6 +290,7 @@ async function settle(): Promise<void> {
 
 const SCREENS = {
   drill: { path: './drill/SpokenAttempt.tsx', exported: 'SpokenAttempt', start: 'Record your French', finish: 'Stop recording' },
+  say: { path: './drill/kinds/RepeatThisView.tsx', exported: 'RepeatThisView', start: 'Speak, record yourself saying it', finish: 'Done, stop recording' },
 } as const;
 
 /** Records one take on a screen and ends it the way `leave` says, or on screen when it is null. */
@@ -268,6 +300,13 @@ async function take(screen: Screen, platform: Platform, leave: Leave | null) {
   const sent: (string | null)[] = [];
   const props = {
     busy: false,
+    // The Say drill's own props; SpokenAttempt ignores them.
+    locked: false,
+    exercise: { kind: 'repeat-this', reference: 'Merci', referenceEn: 'Thanks', ipa: null },
+    shell: {},
+    onAnswer: () => {},
+    onNoMic: () => {},
+    onSpoke: (uri: string | null) => { sent.push(uri); },
     onTyping: () => {},
     onRecordingChange: () => {},
     // As PreAccountOnboarding does, a guest take moves onboarding on to its recap
@@ -351,8 +390,93 @@ test('a guest or drill take that ends after its screen has gone still deletes it
 
 test('a guest or drill take finished on its screen is handed on, and only the guest screen deletes it afterwards', async () => {
   for (const platform of ['ios', 'android'] as const) {
-    const drill = await take('drill', platform, null);
-    assert.deepEqual(drill.sent, [drill.file], `the drill take was not handed on, on ${platform}`);
-    assert.deepEqual(drill.left, [drill.file], `the drill screen deleted a take its consumer owns, on ${platform}`);
+    for (const screen of ['drill', 'say'] as const) {
+      const drill = await take(screen, platform, null);
+      assert.deepEqual(drill.sent, [drill.file], `the ${screen} take was not handed on, on ${platform}`);
+      assert.deepEqual(drill.left, [drill.file], `the ${screen} screen deleted a take its consumer owns, on ${platform}`);
+    }
+  }
+});
+
+test('a repeat-this take still recording when the drill goes is deleted', async () => {
+  // F795. The Say drill has no focus or AppState handling (out of scope), so
+  // 'blurred' is not run, and 'sent' is skipped as it is for the drill above.
+  for (const platform of ['ios', 'android'] as const) {
+    for (const leave of ['recording', 'preparing', 'failing'] as const) {
+      const run = `a say take that ${ENDINGS[leave]}, on ${platform}`;
+      const { file, sent, left, rejected, recorder, mutes } = await ending('say', platform, leave);
+      assert.ok(file, `${run}: the take never reached the disk, so this proves nothing`);
+      assert.equal(recorder.released, true, `${run}: the recorder was never released`);
+      assert.deepEqual(sent, [], `${run}: the wrong take was handed on`);
+      assert.deepEqual(rejected, [], `${run}: a promise rejected and nobody handled it`);
+      assert.equal(mutes, 0, `${run}: the microphone hold outlived the drill`);
+      const unnamed = platform === 'android' && leave !== 'recording';
+      if (!unnamed) assert.deepEqual(left, [], `${run}: the recording was left on the device`);
+    }
+  }
+});
+
+/** The Say drill, mounted with the props DrillScreen gives it, and what it handed on. */
+function sayDrill(platform: Platform) {
+  const s = mount(SCREENS.say.path, SCREENS.say.exported, platform);
+  const sent: (string | null)[] = [];
+  const props = {
+    locked: false,
+    exercise: { kind: 'repeat-this', reference: 'Merci', referenceEn: 'Thanks', ipa: null },
+    shell: {},
+    onAnswer: () => {},
+    onNoMic: () => {},
+    onSpoke: (uri: string | null) => { sent.push(uri); },
+  };
+  return { s, sent, press: (label: string) => press(s.render(props), label) };
+}
+
+test("leaving the Say drill while a second take is being prepared leaves the first take's file alone", async () => {
+  for (const platform of ['ios', 'android'] as const) {
+    const { s, sent, press: tap } = sayDrill(platform);
+    tap(SCREENS.say.start);
+    await settle();
+    tap(SCREENS.say.finish);
+    await settle();
+    const first = sent[0];
+    assert.ok(first, `the first take was not handed on, on ${platform}`);
+    let finishPrepare = () => {};
+    s.recorder.hold = new Promise<void>((resolve) => { finishPrepare = resolve; });
+    tap(SCREENS.say.start);
+    await settle();
+    s.unmount();
+    finishPrepare();
+    await settle();
+    assert.ok(s.disk.has(first), `the first take's file, which DrillScreen is scoring, was deleted, on ${platform}`);
+  }
+});
+
+test('a Say take whose stop throws still deletes its recording', async () => {
+  for (const platform of ['ios', 'android'] as const) {
+    const { s, sent, press: tap } = sayDrill(platform);
+    tap(SCREENS.say.start);
+    await settle();
+    assert.equal(s.recorder.recording, true);
+    // The native recorder has gone under the view: stop() rejects and the uri throws.
+    s.recorder.released = true;
+    tap(SCREENS.say.finish);
+    await settle();
+    assert.deepEqual(sent, [null], `a lost take was handed on for scoring, on ${platform}`);
+    assert.deepEqual([...s.disk], [], `a take whose stop threw was left on the device, on ${platform}`);
+  }
+});
+
+test('leaving the Say drill while it switches into record mode puts the audio mode back', async () => {
+  for (const platform of ['ios', 'android'] as const) {
+    const { s, press: tap } = sayDrill(platform);
+    let finishEnter = () => {};
+    s.holdEnter(new Promise<void>((resolve) => { finishEnter = resolve; }));
+    tap(SCREENS.say.start);
+    await settle();
+    s.unmount();
+    finishEnter();
+    await settle();
+    assert.equal(s.mode, 'play', `the audio mode was left in record after the drill went, on ${platform}`);
+    assert.equal(s.mutes, 0, `the microphone hold outlived the drill, on ${platform}`);
   }
 });
