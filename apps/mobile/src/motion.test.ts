@@ -785,6 +785,17 @@ describe('the onboarding transition always ends on a visible page — F1331', ()
     assert.ok(effects.some((e) => /Animated\.parallel/.test(e)), 'the fade-in is not started after the commit has rendered');
   });
 
+  test('a background or reduced-motion stop still runs the screen change the learner tapped for', () => {
+    const body = file('onboarding/OnboardingLayout.tsx').body;
+    const hook = body.slice(body.indexOf('export function useOnboardingTransition'));
+    // The stopped fade-out drops pending, so a handler that stops first would find nothing to run.
+    const handlers = [hook.slice(hook.indexOf('if (!reduced) return;')), hook.slice(hook.indexOf("if (state === 'active') return;"))];
+    for (const handler of handlers) {
+      const taken = handler.indexOf('const commit = pending.current;');
+      const stopped = handler.indexOf('animation.current?.stop();');
+      assert.ok(taken >= 0 && stopped >= 0 && taken < stopped, 'a handler stops the fade before taking the queued screen change, so the tap is lost');
+    }
+  });
   test('a fade-out that is stopped still leaves the page visible and the learner free to tap', () => {
     const body = file('onboarding/OnboardingLayout.tsx').body;
     const hook = body.slice(body.indexOf('export function useOnboardingTransition'));
@@ -792,5 +803,6 @@ describe('the onboarding transition always ends on a visible page — F1331', ()
     assert.ok(stopped, 'a stopped fade-out returns without putting the page back');
     assert.match(stopped[1] ?? '', /opacity\.setValue\(1\)/, 'a stopped fade-out leaves the page part-faded');
     assert.match(stopped[1] ?? '', /locked\.current = false/, 'a stopped fade-out leaves every button locked');
+    assert.match(stopped[1] ?? '', /pending\.current = null/, 'a stopped fade-out keeps its commit queued for a later event to replay');
   });
 });

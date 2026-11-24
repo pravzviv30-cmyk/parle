@@ -209,18 +209,18 @@ export function useOnboardingTransition() {
   }, [entering, opacity, shift]);
   useEffect(() => {
     if (!reduced) return;
-    animation.current?.stop();
     const commit = pending.current;
     pending.current = null;
+    animation.current?.stop();
     commit?.();
     opacity.setValue(1); shift.setValue(0); locked.current = false;
   }, [reduced, opacity, shift]);
   useEffect(() => {
     const app = AppState.addEventListener('change', state => {
       if (state === 'active') return;
-      animation.current?.stop();
       const commit = pending.current;
       pending.current = null;
+      animation.current?.stop();
       commit?.();
       opacity.setValue(1); shift.setValue(0); locked.current = false;
     });
@@ -233,7 +233,7 @@ export function useOnboardingTransition() {
     pending.current = commit;
     animation.current = Animated.timing(opacity, { toValue: 0, duration: 100, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' });
     animation.current.start(({ finished }) => {
-      if (!finished) { opacity.setValue(1); shift.setValue(0); locked.current = false; return; }
+      if (!finished) { pending.current = null; opacity.setValue(1); shift.setValue(0); locked.current = false; return; }
       const next = pending.current;
       pending.current = null;
       shift.setValue(backward ? -12 : 12);
