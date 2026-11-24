@@ -23,7 +23,7 @@
  */
 
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useLive } from '../app/LiveContext.tsx';
@@ -33,7 +33,7 @@ import { IconAction, Card, Field, GhostButton, Label, PillButton, TabBar, Option
 import { ScreenHeader, ScrollScreen } from '../layout.tsx';
 import { capabilitiesFor } from '../purchases/capabilities.ts';
 import { fetchBillingStatus } from '../purchases/client.ts';
-import { space, type, HIT, corner } from '../theme.ts';
+import { space, type } from '../theme.ts';
 import { TUTOR_OFFLINE, tutorGate } from './gate.ts';
 import { loadMoments, saveMoment, type RealMoment } from './momentsStore.ts';
 import {
@@ -58,24 +58,11 @@ import {
 import { useB, useThemedStyles, type B } from '../main/bTheme.tsx';
 
 /**
- * One moment the learner could bring, as a white cell on the page.
- *
- * Two columns, because eight of these read as a grid to choose from rather than
- * a list to read down, and that is what the mockup draws. Since the notebook
- * redesign (Phase 4, 2026-09-27) every cell is the same white: the place tints
- * retired, and the title is what tells one moment from another.
- *
- * Chosen is an ink ring, not a fill and never a second tint. `LipTile` and
- * `TabBar` already say "this one" that way, and a filled card here would read
- * as a state rather than a choice. The state is said twice, once per platform:
- * `accessibilityState` is what VoiceOver and TalkBack read, and `aria-selected`
- * is the only one react-native-web puts in the accessibility tree (F522).
- *
- * It grows rather than clips: `flexBasis` with `flexGrow`, so at the largest
- * reading size the two columns fall to one and every title wraps whole.
+ * One moment the learner could bring, as an `OptionRow`: the title tells one
+ * moment from another, and the row says "this one" the way every choice does.
  */
 function MomentCard({ title, gloss, selected, onPress }: {
-  momentKey: RealMomentKey; title: string; gloss: string;
+  title: string; gloss: string;
   selected: boolean; onPress: () => void;
 }) {
   return <OptionRow title={title} detail={gloss} selected={selected} onPress={onPress} />;
@@ -217,7 +204,6 @@ export function RealMomentScreen({
         {REAL_MOMENTS.map((option) => (
           <MomentCard
             key={option.key}
-            momentKey={option.key}
             title={option.en}
             gloss={option.gloss}
             selected={key === option.key}
@@ -288,7 +274,6 @@ export function RealMomentScreen({
               return (
                 <MomentCard
                   key={moment.id}
-                  momentKey={moment.kind}
                   title={brought.en}
                   gloss={moment.detail.length > 0 ? moment.detail : brought.gloss}
                   selected={key === moment.kind && detail === moment.detail}
@@ -309,18 +294,6 @@ export function RealMomentScreen({
 function makeSt(t: B) {
   return StyleSheet.create({
   kinds: { marginTop: space(4), gap: space(2) },
-  cell: { flexGrow: 1, flexBasis: 150, minHeight: HIT },
-  moment: {
-    backgroundColor: t.card,
-    ...corner.tile,
-    padding: space(4),
-    minHeight: HIT,
-    // The ring is drawn whatever the state, so a chosen card does not grow by
-    // two points and shove its neighbour down the grid.
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  chosen: { borderColor: t.text },
   detail: { marginTop: space(5) },
   action: { marginTop: space(6), gap: space(3) },
   gate: { marginTop: space(3), gap: space(3) },

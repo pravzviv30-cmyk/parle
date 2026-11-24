@@ -8419,11 +8419,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F546 — The tutor remembers, and no screen says so
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/tutor/continuity.ts:1
+- where: apps/mobile/src/tabs/TutorTab.tsx:5
 - note: the brain stores an opener for next time, the packs store what the last conversation was
-  about, and the progress store knows a scene left part way. `continuity.ts` reads them in that
-  priority and hands one line to Home and Tutor, and it invents nothing: a new learner gets null.
-- verified-by: `continuity comes from a real record in priority order, and a new learner gets nothing`
+  about, and the progress store knows a scene left part way. `continuity.ts` was written to read
+  them in that priority and hand one line to Home and Tutor, inventing nothing (see the next note).
+- note: 2026-11-24 (F1149, founder: "Delete it"): no screen ever imported `continuity.ts`, so it and
+  its test are deleted. The thread a learner can pick up reaches the Tutor tab as the Recommended
+  conversation, gated by the plan, and that is what this entry is now verified by.
+- verified-by: `a thread to pick up is the Recommended conversation, gated by the plan`
 
 ### F547 — Tutor offers four doors, not three ways in
 - severity: P2
@@ -14405,6 +14408,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: `quietSfx()` pauses nothing in the browser preview; native is unaffected.
 - note: Fixed 2026-11-24 on claude/review-m3b: `sfx.web.ts` calls `setSfxPause(core.pauseAll)`, as `sfx.native.ts` does.
 - verified-by: `a voice line pauses the sound effects on the web seam too`
+
+### F1148 — saveMoment's cap, order and dedupe are pinned only through a twin it never calls
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tutor/momentsStore.ts:93
+- note: `withMoment` duplicates the rule and is the only half tested.
+- note: Fixed 2026-11-24 on claude/review-m3a: `saveMoment` builds its list with `withMoment`, which takes an optional id so stored ids keep their random suffix. The new test drives `saveMoment` through a fake disk.
+- verified-by: `saveMoment keeps 20, newest first, and a repeat moves up rather than duplicating`
+
+### F1149 — Dead code in live, tutor and walk
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/tidy/orphans.test.ts:1
+- note: M3a-1, -3 (if Q1 is delete), -4, -6 and the confirmed part of -7. Each name has no non-test reference on origin/main.
+- note: Fixed 2026-11-24 on claude/review-m3a: deleted `tutor/TutorMark.tsx`, `tutor/continuity.ts` and its test (founder Q1: "Delete it"; F546 re-pointed); `launchAccessibilityLabel`, `launchNotice`, `orbStatusLabel` and `LAUNCH_NOTICE` from `orbState.ts`; `RealMomentScreen`'s three unused styles, `momentKey` prop, `Pressable` import and stale comment; the unused imports in `LiveErrorView`, `Transcript` and `WalkIntro`; and the unread `consent` in `abandonSession`. `tidy/orphans.test.ts` keeps them gone and `DESIGN.md` no longer lists TutorMark. No test floor was lowered.
+- verified-by: `the removed files and assets are not restored`
 
 ### F1150 — Dead names in soundcheck and scenes
 - severity: P2

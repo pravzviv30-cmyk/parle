@@ -425,6 +425,9 @@ welcome and Today have no onboarding strip. Welcome to Luvani is a still page
 with an explicit Continue; only its logo ring turns, after 800 ms, over 8.8
 seconds, and the page never dismisses itself.
 
+The tutor is drawn only as the orb. There is no face anywhere in this app and
+no initial either: the monogram is the learner's mark, never the tutor's.
+
 Every live tutor surface uses the shared room: a soft blue and lavender orb
 above tutor and learner bubbles, a transcript control, a composer in typing
 mode, and a compact Speaking/Typing control beside End session. Focus or a
@@ -1268,9 +1271,6 @@ the new look, listed at the end, and they go with their call sites.
 - **PhraseCard**: one French line, large, sized by `fitDisplay` rather than
   clipped, with a round white 44pt speaker beside it on a paper hairline and
   the ink speaker mark. It says "Hear" before it sounds and "Stop" while it does.
-- **TutorMark**: the tutor, drawn as the orb at 36 in a 44pt box with no disc,
-  and hidden from assistive tech. There is no face anywhere in this app and no
-  initial either: the monogram is the learner's mark, never the tutor's.
 - **SpeakCircle**: THE microphone: one 108pt circle used by every speaking
   surface. Green-ringed when waiting, green-filled (with the live glow, the
   only shadow in the app) when live — green means "you speak", matching the
