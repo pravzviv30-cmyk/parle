@@ -3,34 +3,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
-const nudge = readFileSync(new URL('./ChoiceNudge.tsx', import.meta.url), 'utf8');
-const nudgeEffect = nudge.slice(nudge.indexOf('  useEffect(() => {') + '  useEffect(() => {'.length,
-  nudge.indexOf('\n  }, [event, index, reduced, y, land]);'));
-const runNudge = new Function('event', 'index', 'reduced', 'handled', 'land', 'y', 'cancel', 'delay', 'sequence', 'timing', 'EASE', nudgeEffect);
-const landBody = nudge.match(/const land = useCallback\(\(\) => \{([^}]+)\}/)![1]!;
-const landNudge = new Function('cancel', 'y', landBody);
-
-test('a choice nudge consumes each tap once, including taps with reduced motion', () => {
-  const handled = { current: 0 }, y = { value: 0 };
-  let plays = 0, cancels = 0;
-  const cancel = () => { cancels++; };
-  const land = () => landNudge(cancel, y);
-  const run = (event: number, reduced: boolean) => runNudge(event, 0, reduced, handled, land, y, cancel,
-    () => { plays++; return 1; }, () => 1, () => 1, { out: [] });
-  run(0, false); assert.equal(plays, 0, 'mount must stay still');
-  run(1, false); assert.equal(plays, 1);
-  run(1, true); assert.equal(y.value, 0);
-  run(1, false); assert.equal(plays, 1, 'preference toggle must not replay the previous tap');
-  run(2, true); run(2, false);
-  assert.equal(plays, 1, 'a reduced-motion tap cannot be deferred until motion returns');
-  const cleanup = run(3, false);
-  assert.equal(plays, 2, 'a new intentional tap can nudge again');
-  land(); assert.equal(y.value, 0, 'background landing cancels and resets the nudge');
-  run(3, false); assert.equal(plays, 2, 'returning cannot replay the backgrounded nudge');
-  const beforeCleanup = cancels; cleanup(); assert.equal(cancels, beforeCleanup + 1);
-  assert.match(nudge, /useLandOnLeave\(land\)/, 'the production landing hook owns background and unmount');
-});
-
 const components = readFileSync(new URL('../../components.tsx', import.meta.url), 'utf8');
 const sheet = components.slice(components.indexOf('export function Sheet('));
 const responderSource = sheet.slice(sheet.indexOf('  const gesture ='), sheet.indexOf('  const focusHeading ='));

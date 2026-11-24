@@ -48,9 +48,6 @@
   "apps/mobile/src/onboarding/OnboardingLayout.tsx": {
     "literal-radius": 2
   },
-  "apps/mobile/src/onboarding/OnboardingMotion.tsx": {
-    "literal-radius": 1
-  },
   "apps/mobile/src/onboarding/PersonalPlan.tsx": {
     "literal-radius": 1
   },

@@ -78,7 +78,7 @@ describe('the personal onboarding journey', () => {
     assert.match(screen, /chosen=\{tutorStep\(draft\)\.chosen\}/); // F926: preselected
     assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/);
     assert.match(tutors, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
-    assert.match(tutors, /onPress=\{\(\) => preview \? preview\.toggle\(voice\.value\) : onHear\?\.\(voice\.value\)\}/);
+    assert.match(tutors, /onPress=\{\(\) => preview\.toggle\(voice\.value\)\}/);
     assert.match(tutors, /const selected = chosen === voice\.value/);
     assert.match(tutors, /accessibilityState=\{\{ checked: selected \}\}/);
     assert.doesNotMatch(tutors, /requestRecordingPermissions|player\.play|onChoose\(voice\.value\);\s*onHear/);

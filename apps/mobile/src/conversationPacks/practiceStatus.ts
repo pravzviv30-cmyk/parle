@@ -25,7 +25,7 @@ export const PRACTICE_STATUS_COPY = {
   failedList: 'Its phrases are ready to review',
   failedEmptyList: 'Practice didn’t come together',
   failedNote: 'Practice for this one didn’t come together. Its phrases are ready to review.',
-  failedEmptyNote: 'Practice for this one didn’t come together. Your saved phrases remain available in Progress.',
+  failedEmptyNote: 'Practice for this one didn’t come together. Your saved phrases are still in Journey.',
 } as const;
 
 export function practiceStatusOf(pack: ConversationPack): PracticeStatus {

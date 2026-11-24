@@ -242,7 +242,7 @@ describe('the voice audition and skip hold their three fixes — F303, F304, F30
     // the same way F305 walks FLOW/SHEET/components: the wiring on each surface,
     // then the drawing in the primitive.
     assert.match(FLOW, /preview=\{preview\}/);
-    assert.match(CARDS, /preview\?\.voice === voice\.value \? preview\.phase/);
+    assert.match(CARDS, /preview\.voice === voice\.value \? preview\.phase/);
     assert.match(CARDS, /previewLabel\(phase, voice\.label\)/);
     assert.match(SHEET, /playing=\{samplePlaying === option\.value\}/);
 

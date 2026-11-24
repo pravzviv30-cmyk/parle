@@ -47,7 +47,7 @@ export function profileStatsView(input: {
   }
   if (input.level !== null) {
     const title = GAME_COPY.level.title(input.level.level);
-    tiles.push({ id: 'level', value: `${input.level.level}`, words: 'Level', label: `${title}. Opens Progress.`, opens: 'MyFrench' });
+    tiles.push({ id: 'level', value: `${input.level.level}`, words: 'Level', label: `${title}. Opens Journey.`, opens: 'MyFrench' });
   }
   if (tiles.length === 0) return null;
   const freezes =

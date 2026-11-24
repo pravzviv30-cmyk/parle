@@ -89,7 +89,7 @@ export function DailyCard({ item, reveal = true, onSaved, compact = false, embed
       if (actual === saved) setNote('That save did not finish. Please try again.');
       else {
         setSaveRead({ owner, saved: actual }); onSaved?.(item.id, actual);
-        setNote(actual ? 'Saved in Progress, Daily collection.' : 'Removed from your daily collection.');
+        setNote(actual ? 'Saved to your daily collection.' : 'Removed from your daily collection.');
       }
     } catch {
       if (owner === scopeGeneration() && active.current) {

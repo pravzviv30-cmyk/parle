@@ -13,7 +13,7 @@
 export const RELOAD_INTRO = {
   title: 'Your last conversation ended.',
   start: 'Start again',
-  back: 'Back to Tutor',
+  back: 'Back',
 } as const;
 
 /** The path the web page was loaded at, before any in-app navigation. */
