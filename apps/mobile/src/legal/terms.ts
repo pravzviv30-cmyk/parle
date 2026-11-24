@@ -9,8 +9,8 @@
  * theirs, it is long, and a copy inside the app is a copy that goes stale the
  * first time they revise it.
  *
- * The URL is a constant so the one screen that opens a browser opens a fixed
- * address rather than a string it built.
+ * The URL is a constant so the Terms screen opens a fixed address rather than
+ * a string it built.
  */
 
 /** What the screen is called, and what the Settings row says. */

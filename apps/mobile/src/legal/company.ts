@@ -4,7 +4,7 @@
  * Two of the three are not supplied yet. That is the whole reason this module
  * exists rather than three strings written into whichever screen needed one:
  * an unset fact has to draw NOTHING, and a screen that spells its own address
- * has no way to be absent. This is `appVersionLine`'s shape (ProfileTab.tsx)
+ * has no way to be absent. This is `appVersionLine`'s shape (profile/appVersion.ts)
  * applied to three facts instead of one, and `company.test.ts` walks the source
  * to keep it that way.
  *
