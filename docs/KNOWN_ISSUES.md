@@ -9943,10 +9943,14 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F795 — A repeat-this take still recording when the drill goes is never deleted
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/drill/kinds/RepeatThisView.tsx:72
+- where: apps/mobile/src/drill/kinds/RepeatThisView.tsx:77
 - note: Found 2026-10-06 while closing F793. RepeatThisView records with useAudioRecorder and declares no effect, so no app code stops or deletes a take when the view unmounts with the microphone on, as when the learner leaves the drill mid-take. expo-audio's release stops the recording on iOS and leaves the file in the app's cache, where only clearing the learner's data sweeps it (storage/attemptAudio.native.ts), although speech/discardRecording.ts holds that every exit from an attempt removes its recording, not just the good one. Its stop path also reads recorder.uri inside a try, so a stop that finishes after the release loses the path and leaves the file. It is F793's shape without a cleanup at all, so the fix is SoundCheckScreen's: keep the path from prepare, read it through recorderUri, and add an unmount cleanup that stops and discards an unfinished take. The stand-in React and recorder in recorderRelease.test.ts can drive it once they stand in for DrillScreen's imports. practice-ux-engineer's territory.
 - note: Fixed 2026-11-24 on claude/review-m4a: RepeatThisView keeps the take's path from before and after prepare, and its unmount cleanup, when the microphone is still held, deletes the take's file (the recorder itself is stopped by expo-audio's own release, which runs first; stopping it again would touch a released recorder, which audioRelease.test.ts forbids) read through recorderUri. RepeatThisView is in recorderRelease.test.ts's SCREENS; the recording, preparing and failing endings run on iOS and Android. AppState and focus handling stay out of scope, so the 'blurred' ending is not run for it.
+- note: Push-check round, 2026-11-24 (/code-review): the cleanup never deletes the file of the take last handed to onSpoke, until the next take records, so leaving while a second take starts cannot delete a take DrillScreen is still scoring (Android names the old file until prepare renames it, iOS reuses one path). The stop path reads the path through recorderUri, so a stop that throws still deletes its file. The start branch checks the view is still there after each await and puts the audio mode back if not, so leaving mid-start no longer leaves the session in record mode (an older bug, fixed here).
 - verified-by: `a repeat-this take still recording when the drill goes is deleted`
+- verified-by: `leaving the Say drill while a second take is being prepared leaves the first take's file alone`
+- verified-by: `a Say take whose stop throws still deletes its recording`
+- verified-by: `leaving the Say drill while it switches into record mode puts the audio mode back`
 
 ### F796 — The data-boundary proof can fail when a quota check straddles a minute boundary
 - severity: P2
@@ -14310,30 +14314,32 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1151 — A practice sitting pays clean XP for a right answer after a miss
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/practice/completion.ts:379
+- where: apps/mobile/src/practice/completion.ts:381
 - note: LEARN-017 and PEDAGOGY "Practice answer disclosure" settle it; the drill route already used firstTry. Fixed 2026-11-24 on claude/review-m4a: the sitting's XP comes from `firstTry`, so only first-try answers pay.
 - verified-by: `a practice sitting pays no clean XP for a right answer after a miss`
 
 ### F1152 — A practice answer after help is paid as a clean answer
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/practice/completion.ts:379
-- note: PRODUCT, Q1. Founder, 2026-11-24: no XP, the same as after a miss. Fixed on claude/review-m4a: answers whose exercise id is in the sitting's `assisted` list are left out before `firstTry` counts.
+- where: apps/mobile/src/practice/completion.ts:380
+- note: PRODUCT, Q1. Founder, 2026-11-24: no XP, the same as after a miss. Fixed on claude/review-m4a: every answer to a phrase that had help on any of its exercises is left out before `firstTry` counts, matching how practiceCardGrades counts help for grades (per phrase, coordinator's ruling in the push-check round).
 - verified-by: `a practice answer given after help earns what the founder chose`
+- verified-by: `help on one exercise of a phrase pays no clean XP for another exercise of it`
 
 ### F1153 — A card missed with Again then marked Got it is graded as unaided recall
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/ReviewScreen.tsx:233
+- where: apps/mobile/src/ReviewScreen.tsx:236
 - note: PRODUCT, Q2. Founder, 2026-11-24: back tomorrow, same stage. Fixed on claude/review-m4a: `sittingGrade` (review/gradeGuard.ts) takes the ids missed this sitting and turns Got it or Easy on one of them into an assisted Got it, so the card does not step up, earns no recall evidence and returns tomorrow. Easy is treated the same way, because the scheduler's Easy has no assisted path. The screen counts no recall, and so no review XP, for it.
 - verified-by: `a card answered right after Again in the same sitting is graded assisted`
 
 ### F1154 — Review spins forever when the deck cannot be read
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/ReviewScreen.tsx:189
-- note: no rejection handler; reuse the Drill unread treatment. Fixed 2026-11-24 on claude/review-m4a: a failed read sets `unread`, which draws the existing DRILL_UNREAD words with a Done. No new copy, and no Retry (out of scope).
+- where: apps/mobile/src/ReviewScreen.tsx:192
+- note: no rejection handler; reuse the Drill unread treatment. Fixed 2026-11-24 on claude/review-m4a: a `.catch` after the read sets `unread`, so a failed read or a throw while dealing the cards draws the existing DRILL_UNREAD words in the end-card layout, with Review's Done. A packs cache that cannot be read falls back to no packs, so it costs only the context lines and never blocks the deck. No new copy, and no Retry (out of scope).
 - verified-by: `review shows a way out when the deck cannot be read`
+- verified-by: `a corrupt packs cache does not stop the deck from being reviewed`
 
 ### F1172 — Fifteen learner-facing lines name Progress, Tutor or Home, which the tab bar calls Journey, Speak and Today
 - severity: P2

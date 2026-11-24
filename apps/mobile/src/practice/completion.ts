@@ -374,9 +374,11 @@ async function completeNow(input: CompletePracticeInput): Promise<PracticeComple
   };
   if (!isPracticeEvent(event)) return result('failed', input.sittingId, { outcomes });
 
-  // XP pays first-try answers only (LEARN-017), and nothing after help (founder, 2026-11-24).
+  // XP pays first-try answers only (LEARN-017), and nothing for a phrase that
+  // had help (founder, 2026-11-24), counted per phrase as the grades count it.
   const helped = new Set(input.assisted ?? []);
-  const first = firstTry({ answered: input.state.answered.filter((a) => !helped.has(a.id)) });
+  const helpedPhrases = new Set(input.state.answered.filter((a) => helped.has(a.id)).map((a) => a.phraseKey));
+  const first = firstTry({ answered: input.state.answered.filter((a) => !helpedPhrases.has(a.phraseKey)) });
   const xp = drillXp({ clean: first.clean, typoCorrected: first.typos });
 
   if (moved(bound)) return result('account-changed', input.sittingId, { outcomes, xp });

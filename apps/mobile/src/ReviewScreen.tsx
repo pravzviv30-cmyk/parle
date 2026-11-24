@@ -172,7 +172,10 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     let cancelled = false;
     void loadDrillBank().then((exercises) => { if (!cancelled) setBank(exercises); }, () => {});
-    void Promise.all([loadDeck(), loadConversationPacks()]).then(([deck, packs]) => {
+    // A packs cache that cannot be read costs only the context lines, never
+    // the deck. A deck that cannot be read, or a card that cannot be dealt,
+    // shows the unread card instead of a spinner (F1154).
+    void Promise.all([loadDeck(), loadConversationPacks().catch(() => [])]).then(([deck, packs]) => {
       if (cancelled) return;
       const now = Date.now();
       dealtAt.current = now;
@@ -186,7 +189,7 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       setFragments(Object.fromEntries(sitting.cards.map(card => [card.id, conversationContext(card, packs)])));
       setQueue(sitting.cards);
       setOpener(sitting.opener);
-    }, () => {
+    }).catch(() => {
       if (!cancelled) setUnread(true);
     });
     return () => {
@@ -248,8 +251,10 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
   if (unread) {
     return (
       <ScrollScreen footer={<EndActions done={{ label: 'Done', onPress: onDone }} />}>
-        <Text accessibilityRole="header" style={[type19, { color: t.text, textAlign: 'center' }]}>{DRILL_UNREAD.title}</Text>
-        <Text style={[bType.line16, { color: t.muted, textAlign: 'center', marginTop: space(3) }]}>{DRILL_UNREAD.body}</Text>
+        <View style={st.ending}>
+          <Text accessibilityRole="header" style={[type19, { color: t.text, textAlign: 'center' }]}>{DRILL_UNREAD.title}</Text>
+          <Text style={[bType.line16, { color: t.muted, textAlign: 'center' }]}>{DRILL_UNREAD.body}</Text>
+        </View>
       </ScrollScreen>
     );
   }

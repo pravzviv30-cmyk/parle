@@ -478,6 +478,25 @@ describe('practice completion — what a sitting is allowed to claim', () => {
     assert.equal(plain.xp, 4);
     assert.equal(helped.xp, 2, 'the helped answer still paid XP');
   });
+
+  test('help on one exercise of a phrase pays no clean XP for another exercise of it', async () => {
+    // Help counts per phrase, as practiceCardGrades counts it for grades.
+    seedDeck(disk, dueDeck());
+    const p = phraseKeyOf(PHRASES[0]!);
+    const state: DrillSessionState = {
+      queue: [], missesById: {}, startedAt: NOW, finished: true,
+      answered: [
+        { id: 'e1', phraseKey: p, outcome: 'good', attempts: 1 },
+        { id: 'e2', phraseKey: p, outcome: 'good', attempts: 1 },
+      ],
+    };
+    const t: PracticeTarget[] = [{ phraseKey: p, source: { kind: 'pack', packId: PACK }, exerciseId: 'e1', scheduled: true }];
+    const result = await completePracticeSitting({
+      sittingId: 's-twins', state, targets: t, exercises: BANK, exposed: false, assisted: ['e1'], now: NOW,
+    });
+    assert.equal(result.status, 'completed');
+    assert.equal(result.xp, 0, 'the second exercise of a helped phrase still paid XP');
+  });
 });
 
 describe('practice session — same-device resume', () => {

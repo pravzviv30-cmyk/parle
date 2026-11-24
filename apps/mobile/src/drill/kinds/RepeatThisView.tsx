@@ -69,12 +69,19 @@ export function RepeatThisView({
   // Where the take is written, read before and after prepare: once the view
   // goes, expo has released the recorder and its uri throws (F795).
   const preparedUri = useRef<string | null>(null);
+  // The last take handed to onSpoke, until the next take records. Its file is
+  // DrillScreen's to score, so leaving mid-start never deletes it (Android
+  // still names the old file until prepare renames it; iOS reuses one path).
+  const handedOn = useRef<string | null>(null);
+  const mounted = useRef(true);
   useEffect(() => () => {
+    mounted.current = false;
     if (!letGoOfMic()) return;
     void leaveRecording().catch(() => undefined);
     // A take still recording or being prepared goes with the drill (F795).
     // expo's release, which runs first, has stopped it; only the file is left.
-    discardRecording(recorderUri(recorder, preparedUri.current));
+    const uri = recorderUri(recorder, preparedUri.current);
+    if (uri !== handedOn.current) discardRecording(uri);
   }, [letGoOfMic, recorder]);
 
   const toggleRecord = useCallback(async () => {
@@ -92,12 +99,7 @@ export function RepeatThisView({
         // Where it was written, asked for on its own. A stop that threw can
         // still have left bytes on disk, and reading the path is the only way
         // to reach them; if even that fails there is nothing to name.
-        let uri: string | null = null;
-        try {
-          uri = recorder.uri;
-        } catch {
-          uri = null;
-        }
+        let uri = recorderUri(recorder, preparedUri.current);
         if (lost) {
           // Unscorable, so it travels no further, and unscorable is exactly
           // when a file would otherwise be left behind for good.
@@ -108,9 +110,11 @@ export function RepeatThisView({
         letGoOfMic();
         void leaveRecording().catch(() => undefined);
         setMic('armed');
+        handedOn.current = uri;
         onSpoke(uri);
       } else {
         const permission = await AudioModule.requestRecordingPermissionsAsync();
+        if (!mounted.current) return;
         if (!permission.granted) {
           setMic('silent');
           return;
@@ -119,10 +123,14 @@ export function RepeatThisView({
         letGoOfMic();
         micHold.current = holdMic();
         await enterRecording();
+        // The drill went during the await: its cleanup has run, so put the mode back here.
+        if (!mounted.current) return void leaveRecording().catch(() => undefined);
         preparedUri.current = recorderUri(recorder, preparedUri.current);
         await recorder.prepareToRecordAsync();
+        if (!mounted.current) return void leaveRecording().catch(() => undefined);
         preparedUri.current = recorderUri(recorder, preparedUri.current);
         recorder.record();
+        handedOn.current = null;
         setMic('live');
       }
     } catch {
