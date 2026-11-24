@@ -187,10 +187,16 @@ describe('what the sweep deleted stays deleted', () => {
     'apps/mobile/assets/rive/account.riv',
     'apps/mobile/assets/bold-rhythm/stills.json',
     'scripts/build-onboarding-rive.py',
+    // 2026-11-24 (F1149): unread since their last importers went.
+    'apps/mobile/src/tutor/TutorMark.tsx',
+    'apps/mobile/src/tutor/continuity.ts',
+    'apps/mobile/src/tutor/continuity.test.ts',
   ];
   const NAMES = [
     'QUIET_DOOR', 'showQuietDoor', 'OPEN_MIC_LABEL', 'SpeakerSlowGlyph', 'ContinuityCard', 'continuityRow',
     'OnboardingScene', 'RiveSceneRenderer', 'boldSceneFiles', 'boldSceneAssets',
+    'TutorMark', 'continuityFrom', 'continuityHeadline',
+    'launchAccessibilityLabel', 'launchNotice', 'orbStatusLabel', 'LAUNCH_NOTICE',
   ];
 
   test('the removed files and assets are not restored', () => {
@@ -211,7 +217,7 @@ describe('what the sweep deleted stays deleted', () => {
 
   test('no production source imports a removed module', () => {
     // A static import or re-export, a require() or a dynamic import(), in either quote style.
-    const importing = /(?:\bfrom\s+|\brequire\(\s*|\bimport\(\s*)(['"])[^'"]*\/(?:ContinuityCard|RiveSceneRenderer|SceneStill|boldSceneFiles|boldSceneAssets|onboardingRiveStills)(?:\.\w+)*\1/;
+    const importing = /(?:\bfrom\s+|\brequire\(\s*|\bimport\(\s*)(['"])[^'"]*\/(?:ContinuityCard|RiveSceneRenderer|SceneStill|boldSceneFiles|boldSceneAssets|onboardingRiveStills|TutorMark|continuity)(?:\.\w+)*\1/;
     const found = PRODUCTION.filter((file) => importing.test(stripComments(read(file)))).map((f) => path.relative(APP, f));
     assert.deepEqual(found, [], 'a file imports a module that was deleted');
   });

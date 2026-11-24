@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { describe, test } from 'node:test';
+import { beforeEach, describe, test } from 'node:test';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SYNC_EXCLUSIONS } from '../sync/policy.ts';
-import { USER_KEY_SUFFIXES } from '../storage/scope.ts';
-import { MAX_MOMENTS, withMoment, type RealMoment } from './momentsStore.ts';
+import { USER_KEY_SUFFIXES, setActiveUser } from '../storage/scope.ts';
+import { MAX_MOMENTS, loadMoments, saveMoment, withMoment, type RealMoment } from './momentsStore.ts';
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
 
@@ -33,5 +34,38 @@ describe('the moments a learner brought, kept on this phone (F549)', () => {
     assert.ok(exclusion, 'moments is not excluded from sync, so a line about somebody\'s job hunt would ride the account envelope');
     assert.ok(exclusion!.reason.length > 40, 'the exclusion states no real reason');
     assert.match(exclusion!.reason, /phone/, 'the reason does not say the text stays on the phone');
+  });
+
+  describe('the store itself (F1148)', () => {
+    const disk = new Map<string, string>();
+    beforeEach(() => {
+      disk.clear();
+      const shared = AsyncStorage as unknown as Record<string, unknown>;
+      shared.getItem = async (name: string): Promise<string | null> => disk.get(name) ?? null;
+      shared.setItem = async (name: string, value: string): Promise<void> => { disk.set(name, value); };
+      setActiveUser('11111111-1111-4111-8111-000000001148');
+    });
+
+    test('saveMoment keeps 20, newest first, and a repeat moves up rather than duplicating', async () => {
+      for (let i = 0; i < MAX_MOMENTS + 5; i += 1) {
+        await saveMoment('interview', `line ${i}`, 1_000 + i);
+      }
+      let moments = await loadMoments();
+      assert.equal(moments.length, MAX_MOMENTS, 'the stored list grows past its cap');
+      assert.equal(moments[0]!.detail, `line ${MAX_MOMENTS + 4}`, 'the newest stored moment is not first');
+      assert.ok(!moments.some((moment) => moment.detail === 'line 0'), 'the least recently rehearsed survived the cap on disk');
+      assert.match(moments[0]!.id, /^m[0-9a-z]+\.[0-9a-z]+$/, 'a stored id lost its random suffix');
+
+      const first = await saveMoment('interview', 'line 10', 5_000);
+      moments = await loadMoments();
+      assert.equal(moments.length, MAX_MOMENTS, 'a repeat added a second row');
+      assert.equal(moments.filter((moment) => moment.detail === 'line 10').length, 1, 'the same moment is stored twice');
+      assert.equal(moments[0]!.detail, 'line 10', 'a repeat did not move to the front');
+      assert.equal(moments[0]!.at, 1_010, 'a repeat forgot when it was first brought');
+      assert.equal(first.id, moments[0]!.id, 'a repeat was given a new id');
+
+      // One home for the rule: the shipped path is the tested helper.
+      assert.match(read('./momentsStore.ts'), /saveMoment[\s\S]*withMoment\(current,/, 'saveMoment keeps its own copy of the cap rule');
+    });
   });
 });
