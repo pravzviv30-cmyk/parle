@@ -213,6 +213,12 @@ first ask, a typo included) or "Still settling". The learner may practise the
 ones still settling straight away; that sitting is assisted and records
 nothing, no grade, XP, first-try count or evidence, and offers no second retry
 (LEARN-018). Tomorrow's review stays the real test.
+A practice sitting pays XP the same way: only first-try answers, and a phrase
+that had help earns no XP in that sitting, the same as an answer after a miss
+(founder, 2026-11-24, F1152).
+In Review, a card marked Again comes back in the same sitting; Got it or Easy
+on it then counts as helped recall: no step up, no recall count and no XP, and
+it returns tomorrow at the same stage (founder, 2026-11-24, F1153).
 Changing items starts a fresh count. A correct answer completes immediately.
 French choice exercises do not display English glosses that solve the question.
 Translation prompts and pronunciation references remain visible where they are

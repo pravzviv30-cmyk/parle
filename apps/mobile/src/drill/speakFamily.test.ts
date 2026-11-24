@@ -33,10 +33,20 @@ describe('the speak family, drill B v2', () => {
     assert.match(mic, /<LevelRing level=\{voice\.level\} size=\{size\} color=\{ring\} \/>/);
   });
 
+  test('the Say drill mic is named by the word it shows', () => {
+    // F1050, after F951: the spoken name starts with the visible Speak or Done.
+    const say = read('./kinds/RepeatThisView.tsx');
+    const label = say.match(/accessibilityLabel=\{mic === 'live' \? '([^']+)' : '([^']+)'\}/);
+    const shown = say.match(/\{mic === 'live' \? '([^']+)' : '([^']+)'\}<\/Text>/);
+    assert.ok(label && shown, 'the Say mic label or its visible word moved');
+    assert.ok(label[1]!.startsWith(shown[1]!), `"${label[1]}" does not start with "${shown[1]}"`);
+    assert.ok(label[2]!.startsWith(shown[2]!), `"${label[2]}" does not start with "${shown[2]}"`);
+  });
+
   test('every speak drill uses the one mic with Cloud, and keeps its labels and its typed way out', () => {
     const say = read('./kinds/RepeatThisView.tsx');
     assert.match(say, /<SpeakMic live=\{mic === 'live'\} voice=\{voice\} size=\{SPEAK\} ring=\{colour\.mint\}> <SpeakCircle/);
-    assert.match(say, /accessibilityLabel=\{mic === 'live' \? 'Stop recording' : 'Record yourself saying it'\}/);
+    assert.match(say, /accessibilityLabel=\{mic === 'live' \? 'Done, stop recording' : 'Speak, record yourself saying it'\}/);
     assert.match(say, /<PillButton label="Type instead"/);
     const own = read('./SpokenAttempt.tsx');
     assert.match(own, /<SpeakMic live=\{recording\} voice=\{voice\} size=\{SPEAK\} ring=\{colour\.mint\} cloud> <SpeakCircle/);
