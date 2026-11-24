@@ -14292,3 +14292,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/RecapScreen.tsx:293
 - note: M1b-3, M3a-2, M3a-10, M4b-2, M4b-3, M5b-8. Supersedes F632. Wording per founder Q1 (2026-11-24, "Real tab, plain Back"): name the tab the learner really lands on, and plain "Back" where a button only goes back. `legal/policy.ts:153` and `legal/dist/privacy.html:60` stay with PR #28, which should adopt the same answer; they sit on the test's shrinking allowlist until it lands. The undrawn `PROGRESS_ROW` and `MY_FRENCH_ROW` in settings/profileView.ts are deleted.
 - verified-by: `no learner-facing string names a destination the tab bar does not have`
+
+### F1327 — "Back to Today" on the unread-lesson screen goes back, which is not always Today
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/nav/RootNavigator.tsx:315
+- note: Found by the M5-copy judge, 2026-11-24. The button calls backOrTabs(nav), so a lesson opened from Speak or Practice whose history read fails returns there, not to Today. Q1's own rule says plain "Back" where a button only goes back, but the Q1 table approved "Back to Today". Founder to choose: plain "Back", or reset to the Today tab.
+- verified-by: `the unread-lesson leave button names only where it really lands`
+
