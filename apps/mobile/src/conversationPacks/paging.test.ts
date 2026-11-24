@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { buildConversationPack, phraseKeyOf } from '@luvani/core';
+import { buildConversationPack, isConversationPack, phraseKeyOf } from '@luvani/core';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
 import { setActiveUser, userKey } from '../storage/scope.ts';
 import { loadDrillBank } from '../drill/store.ts';
 import { loadDeck } from '../review/store.ts';
 import { refreshConversationPacks, loadConversationPacks, loadConversationPackForLearner, replaceConversationPacks, deleteConversationPackForLearner } from './store.ts';
+import { packExercisesFor } from './packExercises.ts';
 const disk=new Map<string,string>();
 let refuse='';
 const storage=AsyncStorage as unknown as Record<string,unknown>;
@@ -106,4 +107,62 @@ test('weighted pages progress with partial row counts and exceptional entries re
   assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,unavailable.id,async()=>new Response(null,{status:413})),{ok:false,reason:'oversize'});
   for(const value of [[{...unavailable,payloadBytes:1}],[{...unavailable,reason:'unknown'}],[{...unavailable,id:full.id}]])assert.deepEqual(await refreshConversationPacks(user(uid),adapter,reply({packs:[full],unavailable:value,nextCursor:cursor(8001)})),{ok:false});
   const next=await refreshConversationPacks(user(uid),adapter,reply({packs:[pack(uid,9000)],unavailable:[],nextCursor:null}),cursor(8001));assert.equal(next.ok,true);
+});
+test('one exercise without a no-mic twin does not fail the rest of the batch',async()=>{
+  const uid='skip-invalid';setActiveUser(uid);
+  const good=pack(uid,1),host=pack(uid,2);
+  const repeat=packExercisesFor({...host,corrections:[{quote:'je veux',better:'Je voudrais un café',betterEn:'I would like a coffee',why:'Softer.'}]}).find(item=>item.kind==='repeat-this')!;
+  const {noMicTwin:_twin,...bare}=repeat as typeof repeat&{noMicTwin:unknown};
+  const broken={...host,exercises:[...host.exercises,bare]};assert.equal(isConversationPack(broken),false);
+  const result=await refreshConversationPacks(user(uid),adapter,reply({packs:[good,broken],nextCursor:null}));
+  assert.equal(result.ok,true);if(result.ok)assert.deepEqual(result.packs.map(row=>row.id),[good.id]);
+  assert.deepEqual((await loadConversationPacks()).map(row=>row.id),[good.id]);
+  assert.ok((await loadDeck()).some(item=>item.id===phraseKeyOf(`Un café ${word(1)}.`)),'the valid pack was not banked');
+  assert.deepEqual(await refreshConversationPacks(user(uid),adapter,reply({packs:[good,{...broken,learnerId:'foreign'}],nextCursor:null})),{ok:false},'another learner\'s pack must still refuse the page');
+});
+test('conversation practice opens from the device cache when the server cannot be reached on Supabase builds',async()=>{
+  const uid='offline-owner';setActiveUser(uid);const held=pack(uid,1);await replaceConversationPacks([held]);
+  const down:typeof fetch=async()=>{throw new TypeError('Network request failed');};
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,held.id,down),{ok:true,pack:held});
+  const noToken={kind:'supabase',getAccessToken:async()=>null} as unknown as AuthAdapter;
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),noToken,held.id,down),{ok:true,pack:held});
+  const tokenThrows={kind:'supabase',getAccessToken:async()=>{throw new Error('offline refresh');}} as unknown as AuthAdapter;
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),tokenThrows,held.id,down),{ok:true,pack:held});
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,id(2),down),{ok:false},'an uncached pack is not invented offline');
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,held.id,async()=>new Response(null,{status:404})),{ok:true,pack:null},'a 404 still means deleted');
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,held.id,async()=>new Response(null,{status:413})),{ok:false,reason:'oversize'});
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,held.id,async()=>new Response('{',{status:200})),{ok:false},'a bad body is not a lost connection');
+  await replaceConversationPacks([held]);
+  setActiveUser('offline-other');
+  assert.deepEqual(await loadConversationPackForLearner(user('offline-other'),adapter,held.id,down),{ok:false},'another account never reads this cache');
+});
+test('a pack the server answered 404 for is not served from the cache offline afterwards',async()=>{
+  const uid='deleted-elsewhere';setActiveUser(uid);const gone=pack(uid,1),kept=pack(uid,2);await replaceConversationPacks([gone,kept]);
+  const down:typeof fetch=async()=>{throw new TypeError('Network request failed');};
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,gone.id,async()=>new Response(null,{status:404})),{ok:true,pack:null});
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,gone.id,down),{ok:false});
+  const noToken={kind:'supabase',getAccessToken:async()=>null} as unknown as AuthAdapter;
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),noToken,gone.id,down),{ok:false});
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,kept.id,down),{ok:true,pack:kept},'only that pack leaves the cache');
+});
+test('an account change during the offline read or the 404 eviction never serves or writes this cache',async()=>{
+  const uid='guard-owner',other='guard-other';setActiveUser(uid);const held={...pack(uid,1),summary:'GUARD_SCOPE_MARKER'};await replaceConversationPacks([held]);
+  const key=userKey('conversationPacks'),before=disk.get(key);let armed=false;
+  const originalGet=storage.getItem;storage.getItem=async(name:string)=>{if(armed){armed=false;setActiveUser(other);}return disk.get(name)??null;};
+  try{
+    const noToken={kind:'supabase',getAccessToken:async()=>{armed=true;return null;}} as unknown as AuthAdapter;
+    assert.deepEqual(await loadConversationPackForLearner(user(uid),noToken,held.id),{ok:false},'the cached pack is served after the account changed');
+    setActiveUser(uid);
+    assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,held.id,async()=>{armed=true;return new Response(null,{status:404});}),{ok:false});
+    assert.equal(disk.get(key),before,'the eviction wrote after the account changed');
+    assert.ok([...disk.entries()].filter(([name])=>name.startsWith(`luvani.u.${other}.`)).every(([,value])=>!value.includes('GUARD_SCOPE_MARKER')));
+  }finally{storage.getItem=originalGet;}
+});
+test('a cached pack the server now sends in a shape this build rejects is dropped, not kept stale',async()=>{
+  const uid='stale-skip';setActiveUser(uid);const old=pack(uid,1),fresh=pack(uid,2);await replaceConversationPacks([old]);
+  const rejected={...old,version:2};assert.equal(isConversationPack(rejected),false);
+  assert.equal((await refreshConversationPacks(user(uid),adapter,reply({packs:[rejected,fresh],nextCursor:null}))).ok,true);
+  assert.deepEqual((await loadConversationPacks()).map(item=>item.id),[fresh.id]);
+  const down:typeof fetch=async()=>{throw new TypeError('Network request failed');};
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,old.id,down),{ok:false});
 });

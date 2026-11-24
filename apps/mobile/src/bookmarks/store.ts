@@ -39,7 +39,7 @@ const VERSION = 2;
  *
  * The pool is large and every un-save keeps a row, so this store grows with
  * taps rather than with saves and needs a bound of its own. The discard rule is
- * the oldest decision: a row nobody has touched in two hundred taps is the one
+ * the oldest decision: a row nobody has touched in three thousand taps is the one
  * a learner is least likely to notice going.
  */
 export const MAX_BOOKMARKS = 3000;

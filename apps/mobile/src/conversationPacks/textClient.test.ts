@@ -7,7 +7,7 @@ const conversation = { sessionId: '11111111-1111-4111-8111-111111111111', title:
 const user = { id: 'owner' };
 function shipped(state: { generation: number; owner: string }) {
   const source = stripTypeScriptTypes(readFileSync(new URL('./textClient.ts', import.meta.url), 'utf8').split('\n').filter(line => !line.startsWith('import ')).join('\n').replace(/^export /gm, ''));
-  return new Function('conversationTextCursor', 'isConversationText', 'isSavedConversationText', 'activeUserId', 'scopeGeneration', 'TOKEN_SERVER', source + '\nreturn {saveText,listText,deleteText};')(conversationTextCursor, isConversationText, isSavedConversationText, () => state.owner, () => state.generation, 'https://tokens.invalid');
+  return new Function('conversationTextCursor', 'isConversationText', 'isSavedConversationText', 'activeUserId', 'scopeGeneration', 'TOKEN_SERVER', source + '\nreturn {saveText,listText,deleteText,findText};')(conversationTextCursor, isConversationText, isSavedConversationText, () => state.owner, () => state.generation, 'https://tokens.invalid');
 }
 test('explicit text save retries pending completion with one immutable payload and stops on a deletion fence', async () => {
   const state = { generation: 0, owner: 'owner' };
@@ -70,4 +70,27 @@ test('older text pages carry only a validated cursor and reject non-progressing 
   for (const payload of [{ conversations: [saved], nextCursor: cursor }, { conversations: [], nextCursor: cursor }, { conversations: [saved], nextCursor: 'invalid' }]) {
     assert.equal((await client.listText(user, adapter, async () => Response.json(payload), cursor)).ok, false);
   }
+});
+
+test('saved text lookup pages at most five pages for one conversation', async () => {
+  const state = { generation: 0, owner: 'owner' };
+  const client = shipped(state);
+  const adapter = { kind: 'supabase', getSession: async () => user, getAccessToken: async () => 'token' };
+  const row = (n: number) => ({ ...conversation, sessionId: `11111111-1111-4111-8111-${String(n).padStart(12, '0')}`, savedAt: `2026-10-02T12:00:${String(59 - n).padStart(2, '0')}Z` });
+  const pages = (count: number) => { let calls = 0; const request = async (url: string) => {
+    const after = new URL(url).searchParams.get('after');
+    const n = after === null ? 0 : Number(JSON.parse(after).sessionId.slice(-12));
+    calls++; const saved = row(n + 1);
+    return Response.json({ conversations: [saved], nextCursor: n + 1 < count ? JSON.stringify({ savedAt: saved.savedAt, sessionId: saved.sessionId }) : null });
+  }; return { request, calls: () => calls }; };
+  const third = pages(10);
+  assert.deepEqual(await client.findText(user, adapter, row(3).sessionId, third.request), { ok: true, value: row(3) });
+  assert.equal(third.calls(), 3, 'paging went on past the conversation');
+  const far = pages(10);
+  assert.deepEqual(await client.findText(user, adapter, row(6).sessionId, far.request), { ok: true, value: null }, 'past five pages lands on the list');
+  assert.equal(far.calls(), 5);
+  const short = pages(2);
+  assert.deepEqual(await client.findText(user, adapter, row(9).sessionId, short.request), { ok: true, value: null });
+  assert.equal(short.calls(), 2, 'paging went on past the last page');
+  assert.equal((await client.findText(user, adapter, row(1).sessionId, async () => Response.json({}, { status: 503 }))).ok, false);
 });
