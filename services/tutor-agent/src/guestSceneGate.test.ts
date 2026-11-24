@@ -219,6 +219,37 @@ describe('the scene hard stop', () => {
       mock.timers.tick(2_000); await Promise.resolve(); assert.equal(disconnected, 1, 'once only');
     } finally { mock.timers.reset(); }
   });
+  // F1107: the lifecycle stop at the cap arms this seam with both set to its 5 s ceiling.
+  test('a stop at the cap publishes the time-limit line and settles before the room disconnects', async () => {
+    mock.timers.enable({ apis: ['setTimeout'] });
+    try {
+      const events: string[] = [];
+      let answer: () => void = () => {};
+      armSceneHardStop({ remainingMillis: 5_000, graceMillis: 5_000,
+        notify: () => { events.push('line'); }, stopPaidWork: () => { events.push('stop'); },
+        settle: () => new Promise<void>((resolve) => { answer = () => { events.push('recap'); resolve(); }; }),
+        disconnect: () => { events.push('disconnect'); } });
+      mock.timers.tick(1); for (let n = 0; n < 5; n++) await Promise.resolve();
+      assert.deepEqual(events, ['line', 'stop'], 'the room is still open while settlement runs');
+      answer(); for (let n = 0; n < 5; n++) await Promise.resolve();
+      assert.deepEqual(events, ['line', 'stop', 'recap', 'stop', 'disconnect']);
+      mock.timers.tick(5_000); await Promise.resolve();
+      assert.equal(events.filter((e) => e === 'disconnect').length, 1, 'once only');
+    } finally { mock.timers.reset(); }
+  });
+  test('a stop at the cap disconnects at the ceiling when settlement never answers', async () => {
+    mock.timers.enable({ apis: ['setTimeout'] });
+    try {
+      let disconnected = 0, lines = 0;
+      armSceneHardStop({ remainingMillis: 5_000, graceMillis: 5_000, notify: () => { lines++; }, stopPaidWork: () => {},
+        settle: () => new Promise<never>(() => {}), disconnect: () => { disconnected++; } });
+      mock.timers.tick(4_999); for (let n = 0; n < 5; n++) await Promise.resolve();
+      assert.equal(lines, 1);
+      assert.equal(disconnected, 0);
+      mock.timers.tick(1); for (let n = 0; n < 5; n++) await Promise.resolve();
+      assert.equal(disconnected, 1);
+    } finally { mock.timers.reset(); }
+  });
 });
 
 describe('agent.ts wiring for scenes (tripwires: agent.ts cannot be imported)', () => {
