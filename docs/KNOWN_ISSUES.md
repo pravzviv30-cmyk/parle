@@ -14488,6 +14488,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: M2b-5 and the import half of M2b-6; comments only.
 - note: 2026-11-24, M2b: comments corrected in terms.ts, TermsScreen.tsx, company.ts, Acknowledgements.tsx and PolicyScreen.tsx; unused `View` (launch/LaunchScreen.tsx) and `paper` (legal/TermsScreen.tsx) imports removed.
 - note: 2026-11-24, M2b judge round 1: terms.ts still called the Terms screen "the one screen that opens a browser", but auth/AccountDeletedNotice.tsx also opens a link; the sentence now claims only the fixed address. company.ts names profile/appVersion.ts, where `appVersionLine` lives.
+- note: comments and imports only, so no behaviour test can pin them: they were checked by review and by `tsc --noUnusedLocals` on the touched files. The verified-by test guards the Terms screen's licence line, which these comments describe.
 - verified-by: `the terms screen names apple's licence rather than reproducing it`
 
 ### F1142 — Founder question: the Terms name two of the three actions that record the age declaration
