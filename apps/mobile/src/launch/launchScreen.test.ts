@@ -158,7 +158,7 @@ describe('the launch opens wherever the app was already going', () => {
 
   test('the app renders beneath the launch, and the launch is drawn on top until it is done', () => {
     const app = APP.slice(APP.indexOf('export default function App()'));
-    assert.match(app, /\{loaded \? \(/, 'the app no longer waits for Outfit before its first screen');
+    assert.match(app, /\{loaded \|\| error \? \(/, 'the app no longer waits for Outfit, or for its failure (F1165), before its first screen');
     assert.match(app, /<Gate \/>/, 'the door is gone from beneath the launch');
     assert.match(app, /\{!launched && <LaunchScreen onDone=\{finishLaunch\} \/>\}/, 'the launch is not drawn until it says it is done');
     assert.ok(app.indexOf('<Gate />') < app.indexOf('<LaunchScreen'), 'the launch is drawn beneath the app instead of over it');

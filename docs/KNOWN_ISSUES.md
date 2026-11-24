@@ -11149,9 +11149,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F861 — Today's fix card copies the drill's exercise-picking rule
 - severity: P3
-- status: [ ]
-- where: apps/mobile/src/home/todayView.ts:197
+- status: [x]
+- where: apps/mobile/src/home/todayView.ts:347
 - note: Found 2026-10-20 in B6. `oneFix` calls `buildDrillSession(..., { only: [key] })` and checks `hidesAnswer` on the first exercise, so the card's promise ("the French stays hidden until you try") holds only while DrillScreen opens the same node the same way. If DrillScreen changes how it builds the sitting for a fix node, the card can promise a hidden answer the drill shows. Share one function for "the exercise a fix node opens on" between DrillScreen and todayView, or pin the two together with a test.
+- note: Pinned 2026-11-24 on claude/review-m5a, test-only. The test reads DrillScreen's build steps from its source (scoped by `node.phraseKeys`, then only `mix` and `suppressMic` touch the sitting), so a new step there fails it. It then checks that the fix route asks for no mix and scopes one phrase, that the sitting it opens holds exactly one exercise, and that the drill opens on the exercise the card read across topic splits, mixed or not. A two-phrase control shows the mix does move a wider sitting's opening. One exercise per sitting is why no reorder can diverge; `suppressMic` swaps only a line to repeat, which the card never opens on.
+- note: Known gap, not fixed here: the card reads the deck, bank and clock Today loaded on focus, while DrillScreen re-reads `loadDeck()`, `loadDrillBank()` and a fresh `Date.now()`. A write that lands while Today stays focused can change the exercise between render and tap. Filed as F1168.
 - verified-by: `Today's fix card and the drill agree on the exercise a fix opens on`
 
 ### F862 — Unused code is kept alive only by its own tests
@@ -14270,6 +14272,28 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Fixed 2026-11-19 on claude/review-b3b-b: the set, its three functions, REPORTED_SESSIONS_KEPT, REPLAYED_SESSION_MESSAGE, the refused field and every read in both tutors are gone, with the two tests and their cleanup calls. The tutor-agent suite went from 1050 to 1048 (main had grown since the contract's 1044). F77 points at the durable claim's test, and voice-repro.mjs and voice-result.json no longer measure the set.
 - verified-by: `claim validates the owner fence and rejects a reused or oversized reservation`
 - verified-by: `a claim the database refuses throws before any provider is built`
+
+### F1165 — A font load that fails leaves the app on a spinner for good
+- severity: P1
+- status: [x]
+- where: apps/mobile/App.tsx:899
+- note: M5a-3. `useFonts` returns an error and `loaded` stays false, so `<Loading />` never leaves and the learner is stranded before sign-in with no retry. It is P1 by the plan's stranding rule, filed on the branch only. Mainly the web build, since native bundles the faces.
+- note: Fixed 2026-11-24 on claude/review-m5a (founder approved: the app opens on the phone's own font when ours fails to load). App.tsx keeps `useFonts`' error and renders the shell on `loaded || error`, so a missing Outfit face falls back to the platform's own. The test is a source check. Push-check browser evidence, 2026-11-24: with every .ttf request blocked on the web build, the welcome screen draws at 375 and 320, light and dark, with no page errors (captures in reviews/push-check/2026-11-24-review-m5a/). Before the fix the same blocked load stayed blank at 30 s.
+- verified-by: `a font load that fails still opens the app on the system face`
+
+### F1167 — A failed font load on web falls back to the browser's serif, not a system sans
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/theme.ts:31
+- note: Found 2026-11-24 by the F1165 judge. With every .ttf blocked on the web build, text draws in Times because the Outfit family names carry no fallback. Give web a system-ui fallback so the failure path reads as the device's own face, as the founder's "the phone's own font" intends. Native falls back to the system face already.
+- verified-by: `a missing Outfit face on web falls back to the system sans`
+
+### F1168 — Today's fix card can promise an exercise the drill no longer opens on
+- severity: P3
+- status: [ ]
+- where: apps/mobile/src/home/todayView.ts:347
+- note: Found 2026-11-24 in the M5a push-check (F861 follow-up). `oneFix` reads the deck, bank and `now` HomeTab loaded on focus; DrillScreen re-reads `loadDeck()`, `loadDrillBank()` and `Date.now()` on open. A deck or bank write that lands while Today stays focused (a review sync, a bank refresh) can move the phrase to a stage whose exercise shows the French first, so the card's "shows after you try" is broken by the drill. Rare, and nothing strands the learner, hence P3. Fix shape: pass the card's opening exercise id through the route, or have the drill re-check `hidesAnswer` and fall back.
+- verified-by: `the drill opens on the exercise Today's card promised, even after the deck changes`
 
 ### F1138 — M2a dead code: the unreachable voice sheet, orphan onboarding modules and dead auth modules
 - severity: P2
