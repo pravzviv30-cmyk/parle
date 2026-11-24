@@ -16,11 +16,11 @@ export function TermsAcceptance({ context, onTerms, onPrivacy }: {
       {`By ${action}, you agree to the Terms and acknowledge the Privacy Policy.`}
     </Text>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: centered ? 'center' : 'flex-start' }}>
-      <Press onPress={onTerms} accessibilityRole="button" accessibilityLabel="Read Terms of Use"
+      <Press onPress={onTerms} accessibilityRole="button" accessibilityLabel="Terms of Use"
         style={{ flex: 1, minWidth: 120, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={[boldType.label, { color: c.violet }]}>Terms of Use</Text>
       </Press>
-      <Press onPress={onPrivacy} accessibilityRole="button" accessibilityLabel="Read Privacy Policy"
+      <Press onPress={onPrivacy} accessibilityRole="button" accessibilityLabel="Privacy Policy"
         style={{ flex: 1, minWidth: 120, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={[boldType.label, { color: c.violet }]}>Privacy Policy</Text>
       </Press>
