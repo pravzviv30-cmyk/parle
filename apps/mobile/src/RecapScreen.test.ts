@@ -108,7 +108,7 @@ describe('the recap is a keepsake', () => {
 describe('the conversation closes with something useful', () => {
   test('the exact visible keepsake is durable before the recap calls it saved', () => {
     assert.match(screen, /onSave\(\{ fr: keptPhrase\.fr, en: keptPhrase\.en, situation \}\)/);
-    assert.match(screen, /saveState === 'saved'[\s\S]*\? 'Saved to Progress on this phone'/);
+    assert.match(screen, /saveState === 'saved'[\s\S]*\? 'Saved to Journey on this phone'/);
     assert.match(screen, /saveState === 'failed'[\s\S]*\? 'Not saved yet'/);
     assert.match(keepsake, /const acknowledged = await addPhrases\(/);
     assert.match(keepsake, /return acknowledged === 'durable'/);

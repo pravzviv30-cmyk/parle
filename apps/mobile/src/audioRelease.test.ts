@@ -413,10 +413,6 @@ test('no screen touches a sound player or recorder in a cleanup that runs after 
   // a new sound raises the count freely, and one that disappears has either
   // been removed on purpose, which lowers this by hand, or slipped past the walk.
   assert.ok(made.length + previewOwners >= 14, `only ${made.length + previewOwners} sound objects were found, so the walk lost one or a screen's sound was removed:\n${made.join('\n')}`);
-  assert.ok(
-    made.some((label) => label.startsWith('player from useAudioPlayer at src/onboarding/PreAccountOnboarding.tsx:')),
-    `the walk no longer reads pre-account onboarding's player, where F792 was found:\n${made.join('\n')}`,
-  );
   assert.deepEqual(
     late.map((entry) => entry.touch),
     [],

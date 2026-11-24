@@ -43,7 +43,6 @@ const aliases = {
 } as const;
 
 export type C2SceneKind = keyof typeof manifest.scenes | keyof typeof aliases;
-export type C2Goal = keyof typeof manifest.goals;
 
 /** Aliases retain callers' lifecycle states; the current C2 drawing owns the art. */
 export function c2Scene(kind: C2SceneKind): C2SceneDefinition {

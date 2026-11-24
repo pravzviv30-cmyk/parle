@@ -99,7 +99,6 @@ describe('one module owns the audio session', () => {
       'daily/DailyCard.tsx',
       'daily/DailyPracticeScreen.tsx',
       'missions/ListeningPreview.tsx',
-      'onboarding/PreAccountOnboarding.tsx',
       'practice/recordedPlayer.ts',
       'recap/PrivatePractice.tsx',
       'speech/tutorVoice.ts',
@@ -159,7 +158,7 @@ describe('one module owns the audio session', () => {
 
     // Each sample enters voice playback first in the text and in time (the native order), and
     // hands its play to the rule with the platform it runs on.
-    for (const name of ['tabs/TutorTab.tsx', 'tabs/ProfileTab.tsx', 'onboarding/PreAccountOnboarding.tsx']) {
+    for (const name of ['tabs/TutorTab.tsx', 'tabs/ProfileTab.tsx']) {
       const code = named(name).code;
       const flat = code.replace(/\s+/g, ' ');
       assert.match(code, /^import \{ startVoiceLine \} from '\.\.\/sound\/voiceLine\.ts';$/m, `${name} plays its sample without the web rule`);

@@ -3,64 +3,46 @@ import { FirstLivePractice } from './FirstLivePractice.tsx';
 import { isAccountHandoffRefusal, startRefusalCopy } from './guestScene.ts';
 import { FirstSessionCelebration, FirstSessionSummary } from './FirstSessionResult.tsx';
 import { guestPracticeDays } from './guestModel.ts';
-import { dayKeyOf, tutorSampleLine } from '@luvani/core';
+import { dayKeyOf } from '@luvani/core';
 import { STARTER_AI, STARTER_LOCAL } from './disclosure.ts';
 import { TermsAcceptance } from '../legal/TermsAcceptance.tsx';
 import { TermsScreen } from '../legal/TermsScreen.tsx';
 import type { C2QuestionPage } from './c2QuestionScenes.ts';
 /** Personal answers lead into one live session; recorded results drive the summary and account handoff. */
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, AppState, BackHandler, type ScrollView as ScrollViewHandle, Text, View, Platform, findNodeHandle } from 'react-native';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { enterVoicePlayback } from '../sound/audioSession.ts';
-import { useVoiceHold } from '../sound/useVoiceHold.ts';
-import { startVoiceLine } from '../sound/voiceLine.ts';
+import { AccessibilityInfo, Animated, BackHandler, type ScrollView as ScrollViewHandle, Text, View, Platform, findNodeHandle } from 'react-native';
 import { play as playSfx } from '../sound/sfx.ts';
 import { tutorVoice } from '@luvani/core';
 import { useReduceMotion } from '../motion.ts';
 
-import { ChoiceNudge } from './firstRun/ChoiceNudge.tsx';
 import { NextButton } from './NextButton.tsx';
 import { FULL_SETUP, FIVE_SETUP, nextSetupLabel, previousStep } from './flow.ts';
 import { historyGuard, webHistory } from './stepHistory.ts';
 import { tutorStep } from './tutorStep.ts';
 import { LOOK_AROUND } from './micPrimer.ts';
 import { GhostButton, IconAction, IconActionRow, PillButton, Press, Sheet } from '../components.tsx';
-import { Screen, readingColumn, useCompactPhone, useFontScale, useLayoutClass } from '../layout.tsx';
-import { paper, radius, space } from '../theme.ts';
+import { Screen, readingColumn, useCompactPhone } from '../layout.tsx';
+import { paper, space } from '../theme.ts';
 import { boldType as type, c } from './boldRhythm.ts';
 import { BoldButton } from './BoldButton.tsx';
 import { BOLD_QUESTIONS, BOLD_GOALS, INTERESTS } from './boldChoices.ts';
 import { Illustration } from '../art/flat/Illustration.tsx';
-import { TUTOR_VOICE_OPTIONS } from '../tutor/tutorVoice.ts';
-import { voiceSample } from '../tutor/voiceSamples.ts';
 
 import { soft, tapSettled } from '../motion/haptics.ts';
-import { Glint } from '../motion/Glint.tsx';
-
-import { IconTile } from '../icons/IconTile.tsx';
-
-import { SwitchRow } from '../settings/SwitchRow.tsx';
-
 import { cancelReminder } from '../reminders/schedule.ts';
 
 import { POLICY_SECTIONS, POLICY_TITLE } from '../legal/policy.ts';
 
 import { REASONS, START_LEVELS, CONFIDENCE_OPTIONS, FOCUS_OPTIONS, minutesOf } from './plan.ts';
-import { REASON_LABELS } from './story.ts';
 import { GUEST_PAGES, resumePage } from './guestProgress.ts';
 import { freshPreAccountDraft, startLevelChange, type PreAccountOnboardingDraft, type PreAccountPage } from './preAccountDraft.ts';
 import { trackGuestMetric, clearGuestPractice, loadGuestPractice, saveGuestPractice, startGuestPractice, type GuestPractice } from './guestPractice.ts';
 import { Choice } from './ChoiceCard.tsx';
-import { ChoiceArt } from './ChoiceArt.tsx';
 import { PlanEditRow } from './PlanEditRow.tsx';
 
 import { useLaunchHold } from '../launch/useLaunch.ts';
 
 import { FIRST_RUN_COPY } from './firstRun/copy.ts';
-import { GOAL_TIERS, suggestedMinutes } from './firstRun/planModel.ts';
-
-import { TILES_WRAP_AT } from './firstRun/PlanReveal.tsx';
 import { PersonalPlan } from './PersonalPlan.tsx';
 import { TutorSelection } from './TutorSelection.tsx';
 import { useTutorPreview } from '../tutor/useTutorPreview.ts';
@@ -69,8 +51,6 @@ import { onboardingProgress } from './onboardingProgress.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { loadSetupDraft, saveSetupDraft, clearSetupDraft } from './onboardingDraftStore.ts';
 
-import { GoalTile } from './firstRun/GoalTile.tsx';
-import { ConsentFacts } from './firstRun/ConsentFacts.tsx';
 import { useB } from '../main/bTheme.tsx';
 import { bType } from '../theme.ts';
 import { BArt } from '../art/BArt.tsx';
@@ -79,17 +59,11 @@ import { planChips } from './planChips.ts';
 
 type Surface =
   | 'plan'
-  | 'voice'
   | 'start'
   | 'privacy'
   | 'policy'
   | 'terms'
   | null;
-const goals = [...REASONS].sort(
-  (a, b) =>
-    ['food', 'family', 'trip', 'moving', 'work', 'because'].indexOf(a.key) -
-    ['food', 'family', 'trip', 'moving', 'work', 'because'].indexOf(b.key),
-);
 const headingFor = (page: PreAccountPage) =>
   (
     ({
@@ -128,7 +102,6 @@ export function PreAccountOnboarding({
   // 2026-10-21 UI-008, artboards B-OB-*: onboarding is pinned light, so these are b.light.
   const t = useB();
   const compact = useCompactPhone();
-  const regular = useLayoutClass() === 'regular';
   const [choiceNudge, setChoiceNudge] = useState({ page: '', event: 0 });
   const [draft, setDraft] = useState<PreAccountOnboardingDraft>(() => ({ ...(initialDraft ?? freshPreAccountDraft()), onboardingVariant: initialDraft?.onboardingVariant ?? (process.env.EXPO_PUBLIC_ONBOARDING_VARIANT === 'five' ? 'five' : 'full') }));
   const questionOrder = draft.onboardingVariant === 'five' ? FIVE_SETUP : FULL_SETUP;
@@ -166,18 +139,6 @@ export function PreAccountOnboarding({
   const heading = useRef<Text>(null);
   const scroll = useRef<ScrollViewHandle>(null);
   const offsets = useRef<Record<string, number>>({});
-  useEffect(() => {
-    const app = AppState.addEventListener('change', state => {
-      if (state !== 'active') { hearTicket.current += 1; player.pause(); }
-    });
-    return () => app.remove();
-  }, []);
-  const player = useAudioPlayer();
-  const playback = useAudioPlayerStatus(player);
-  const playing = playback.playing;
-  useVoiceHold(playing);
-  // Every Hear and every stop spends the ticket, so a stop during the mode change wins.
-  const hearTicket = useRef(0);
   const patch = (change: Partial<PreAccountOnboardingDraft>) => {
     const next = { ...draftRef.current, ...change };
     draftRef.current = next;
@@ -190,8 +151,6 @@ export function PreAccountOnboarding({
     return next;
   };
   const stopSound = () => {
-    hearTicket.current += 1;
-    player.pause();
     preview.stop();
   };
   useEffect(() => {
@@ -253,9 +212,6 @@ export function PreAccountOnboarding({
       }
       setLoaded(true);
     });
-    // The player is left alone on the way out. useAudioPlayer's own cleanup
-    // runs before this one, and it has already stopped and released the
-    // player, so a call here throws on iOS and empties the screen (F792).
     return () => {
       current.current = false;
       generation.current++;
@@ -341,28 +297,6 @@ export function PreAccountOnboarding({
     const reveal = () => { setSurface(next); setIssue(''); };
     if (next === 'start') pageMotion.transition(reveal);
     else reveal();
-  };
-  const hear = (asset: number | undefined, replace = false) => {
-    if (playing && !replace) {
-      stopSound();
-      return;
-    }
-    if (asset == null) {
-      setIssue('This phrase has no recording yet. You can still read it and practise.');
-      return;
-    }
-    const ticket = ++hearTicket.current;
-    // A full voice mode first, so the line is heard with the silent switch on (F723). The web has
-    // no modes and plays only inside the tap, so there it starts at once (sound/voiceLine.ts).
-    startVoiceLine(enterVoicePlayback().catch(() => undefined), () => {
-      if (ticket !== hearTicket.current || !current.current || (Platform.OS !== 'web' && AppState.currentState !== 'active' && AppState.currentState !== null)) return;
-      try {
-        player.replace(asset);
-        player.play();
-      } catch {
-        setIssue('Audio could not play. The words are still here.');
-      }
-    }, Platform.OS === 'web');
   };
   const metric = (
     name: Parameters<typeof trackGuestMetric>[2],
@@ -541,8 +475,6 @@ export function PreAccountOnboarding({
           : page === 'focus'
             ? draft.practiceFocus
             : draft.minutes;
-  const suggested = suggestedMinutes(draft);
-  const drinksWrap = useFontScale() >= TILES_WRAP_AT;
   const blue = page === 'hear-it';
   // 2026-10-21 UI-008, artboard B-OB-Welcome: the welcome is the brand page; the plan is cream under its sun band (B-OB-Plan).
   const ground = refused ? c.paper : blue ? t.brand : c.paper;
@@ -552,9 +484,7 @@ export function PreAccountOnboarding({
   const band = question && !refused ? bandColours(t, QUESTION_BANDS[page as C2QuestionPage].tone) : null;
   const statusBar = refused ? 'dark' : blue ? 'light' : band ? band.statusBar : page === 'choose-tutor' ? 'light' : 'dark';
   const progress = onboardingProgress({ page, completed: draft.onboardingCompletedSteps, five, signedIn, skipped: [...(draft.onboardingSkippedSteps ?? []), ...(draft.quickStart ? ['reason', 'interests', 'start-level', 'confidence', 'focus', 'time'] : [])] });
-  const reasonGrid = !drinksWrap;
   const tutorName = tutorVoice(draft.tutorVoice).persona.name;
-  const goalGrid = !drinksWrap;
   const closeSheet = () => {
     if (busy) return false;
     stopSound();
@@ -598,28 +528,23 @@ export function PreAccountOnboarding({
     <PillButton label={FIRST_RUN_COPY.saveMyProgress} disabled={busy} onPress={() => void saveAccount()} />
   ) : null;
   const sheetFooter =
-    surface === 'plan' || surface === 'voice' ? (
+    surface === 'plan' ? (
       <View style={{ gap: 4, paddingTop: 12 }}>
         <PillButton
           label="Done"
           onPress={() => {
-            if (surface === 'voice') {
-              patch({ tutorVoice: edit.tutorVoice });
-              closeSheet();
-            } else {
-              patch({
-                reason: edit.reason,
-                interests: [...(edit.interests ?? [])],
-                speakingConfidence: edit.speakingConfidence,
-                practiceFocus: edit.practiceFocus,
-                ...startLevelChange(draftRef.current, edit.startLevel),
-                minutes: edit.minutes,
-                quickStart: false,
-              });
-              setSurface(null);
+            patch({
+              reason: edit.reason,
+              interests: [...(edit.interests ?? [])],
+              speakingConfidence: edit.speakingConfidence,
+              practiceFocus: edit.practiceFocus,
+              ...startLevelChange(draftRef.current, edit.startLevel),
+              minutes: edit.minutes,
+              quickStart: false,
+            });
+            setSurface(null);
 
-              planReady();
-            }
+            planReady();
           }}
         />
         <GhostButton label="Cancel" onPress={closeSheet} />
@@ -777,9 +702,7 @@ export function PreAccountOnboarding({
             ? planField
               ? BOLD_QUESTIONS[planField]?.title ?? headingFor(planField)!
               : 'Change plan'
-            : surface === 'voice'
-              ? 'Choose tutor'
-              : surface === 'start'
+            : surface === 'start'
                 ? 'Start your practice'
                 : surface === 'terms' ? 'Terms of Use' : surface === 'policy' ? POLICY_TITLE : 'Your practice and privacy'
         }
@@ -835,34 +758,6 @@ export function PreAccountOnboarding({
             {issue}
           </Text>
         ) : null}
-        {surface === 'voice' && (
-          <>
-            {TUTOR_VOICE_OPTIONS.map((v) => (
-              <View key={v.value} style={{ gap: 4 }}>
-                <Choice
-                  ground={paper.ground}
-                  title={tutorVoice(v.value).persona.name}
-                  selected={edit.tutorVoice === v.value}
-                  onPress={() => {
-                    stopSound();
-                    setEdit({ ...edit, tutorVoice: v.value });
-                  }}
-                />
-                {edit.tutorVoice === v.value && (
-                  <>
-                    <Text style={type.small}>{tutorSampleLine(v.value)}</Text>
-                    <IconAction
-                      icon="speaker"
-                      layout="inline"
-                      label={playing ? 'Stop' : `Hear ${tutorVoice(v.value).persona.name}`}
-                      onPress={() => hear(voiceSample(v.value))}
-                    />
-                  </>
-                )}
-              </View>
-            ))}
-          </>
-        )}
         {surface === 'terms' && <TermsScreen onBack={() => setSurface('start')} />}
         {surface === 'privacy' && (
           <>

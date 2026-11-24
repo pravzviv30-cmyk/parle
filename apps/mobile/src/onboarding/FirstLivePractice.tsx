@@ -7,7 +7,7 @@ import { onColour } from '../palette.ts';
 import { GUEST_ROOM_ENDED, GUEST_SCENE, GUEST_SCENE_LESSON_ID, guestSceneMode } from './guestScene.ts';
 import { IconAction, Sheet } from '../components.tsx';
 import { paper } from '../theme.ts';
-import { boldType as type, c } from './boldRhythm.ts';
+import { boldType as type } from './boldRhythm.ts';
 import { BoldButton as PillButton } from './BoldButton.tsx';
 import { useLiveSession } from '../live/useLiveSession.ts';
 import { failureCopy } from '../live/failure.ts';

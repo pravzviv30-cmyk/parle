@@ -1078,7 +1078,7 @@ export function ConvoScreen({
     );
   }
 
-  if (walkRefused) return <RoomWait title="Walk mode is unavailable" body="The audio interruption check could not start. Return to Tutor for an ordinary scene." stage="No Walk session started" leaveLabel="Back to Tutor" onLeave={leaveNow} />;
+  if (walkRefused) return <RoomWait title="Walk mode is unavailable" body="The audio interruption check could not start. Go back and pick an ordinary scene." stage="No Walk session started" leaveLabel="Back" onLeave={leaveNow} />;
 
   if (live.status.phase === 'connecting' || live.status.phase === 'idle') {
     // The longest silence in the product, and it used to be one unchanging
@@ -1115,7 +1115,7 @@ export function ConvoScreen({
         tutorName={tutorName}
         transcriptVisible={transcriptVisible}
         onTranscriptVisibility={setTranscriptVisible}
-        message={walkMode ? "Walk mode cannot continue. Return to Tutor to try another scene or start a typed conversation." : live.status.message}
+        message={walkMode ? "Walk mode cannot continue. Go back to try another scene or start a typed conversation." : live.status.message}
         settlementMessage={live.settlement ? sessionSettlementCopy(live.settlement) : null}
         restartAsText={live.settlement !== null}
         retryBlocked={live.settlement?.kind === 'pending' || live.settlement?.kind === 'reconciliation'}

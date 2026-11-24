@@ -7,7 +7,7 @@ import { File } from 'expo-file-system';
 import { authHeaders } from '../auth/adapter.ts';
 import { installationId } from '../auth/installation.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
-import { checkStarter, type StarterFeedback, type StarterTask } from '@luvani/core';
+import { checkStarter, type StarterTask } from '@luvani/core';
 import type { PreAccountOnboardingDraft } from './preAccountDraft.ts';
 const KEY = '@luvani/guest-practice/v2';
 import { repairGuestPractice, type GuestPractice, type GuestAttempt } from './guestModel.ts';

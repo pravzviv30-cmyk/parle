@@ -876,13 +876,7 @@ describe('the first run is readable by more than the eye — F110, F114', () => 
     for (const { where } of FIRST_RUN) {
       const body = named(where);
       let widthBody = body;
-      if (where === 'onboarding/firstRun/ChoiceNudge.tsx') {
-        // Zero permits flexing words to shrink; it does not impose a phone width.
-        // This one wrapper must claim the row before its choice label is laid out.
-        assert.match(body, /width\?: `\$\{number\}%`/, 'ChoiceNudge accepts a fixed width instead of a percentage');
-        assert.match(body, /width: width \?\? '100%', minWidth: 0/, 'the choice wrapper can shrink-wrap its label again');
-        widthBody = body.replace(/\bminWidth: 0\b/, '');
-      } else if (where === 'auth/SignInScreen.tsx') {
+      if (where === 'auth/SignInScreen.tsx') {
         assert.match(body, /door: \{ flex: 1, minWidth: 0 \}/, 'the sign-in providers cannot shrink within their row');
         widthBody = body.replace(/door: \{ flex: 1, minWidth: 0 \}/, 'door: { flex: 1 }');
       } else if (where === 'auth/SignUpScreen.tsx') {

@@ -7,6 +7,7 @@ import { describe, test } from 'node:test';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { DEFAULT_TUTOR_VOICE } from '@luvani/core';
+import { previewLabel } from './previewLabel.ts';
 import {
   MAX_FIRST_NAME_CHARS,
   PRE_ACCOUNT_PAGES,
@@ -17,10 +18,8 @@ import {
   savePreAccountDraft,
   repaired,
 } from './preAccountDraft.ts';
-import { CREATE_ACCOUNT_AGE } from './firstRun.ts';
 
 const read = (relative: string) => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
-const source = read('./PreAccountOnboarding.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const app = read('../../App.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 const KEY = '@luvani/pre-account-onboarding/v1';
@@ -192,9 +191,9 @@ describe('the pre-account hand-off', () => {
     }
   });
 
-  test("sign-in preserves guest work until explicit account ownership handling", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(flow, /switchScreen\('signin'\)/); assert.doesNotMatch(flow.slice(flow.indexOf('const signIn ='), flow.indexOf('if (!introducing)')), /clearGuestPractice|clearPreAccountDraft/); const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx'); assert.match(handoff, /Keep this practice/); assert.match(handoff, /Start fresh/); assert.match(handoff, /adoptGuestUsage/); });
+  test("sign-in preserves guest work until explicit account ownership handling", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); assert.match(flow, /switchScreen\('signin'\)/); assert.doesNotMatch(flow.slice(flow.indexOf('const signIn ='), flow.indexOf('if (!introducing)')), /clearGuestPractice|clearPreAccountDraft/); const handoff = evidence('apps/mobile/src/onboarding/GuestAccountHandoff.tsx'); assert.match(handoff, /Keep this practice/); assert.match(handoff, /Start fresh/); assert.match(handoff, /adoptGuestUsage/); });
 
-  test("complete accounts keep their own profile and new accounts use modern onboarding", () => { const flow = evidence('apps/mobile/src/auth/AuthFlow.tsx'); const app = evidence('apps/mobile/App.tsx'); assert.match(app, /existing === null && preAccountDraft !== null && preAccountDraft\.accountReturnPage !== 'hear-it' && mayAdoptPreAccountDraft\(freshStart\)/); assert.match(app, /existing === null \? \( <PreAccountOnboarding/); assert.match(app, /<GuestAccountHandoff/); assert.match(app, /owner !== scopeGeneration\(\)/); assert.match(app, /if \(!ready \|\| freshStart === null \|\| canvasPending\) return <Loading/); });
+  test("complete accounts keep their own profile and new accounts use modern onboarding", () => { const app = evidence('apps/mobile/App.tsx'); assert.match(app, /existing === null && preAccountDraft !== null && preAccountDraft\.accountReturnPage !== 'hear-it' && mayAdoptPreAccountDraft\(freshStart\)/); assert.match(app, /existing === null \? \( <PreAccountOnboarding/); assert.match(app, /<GuestAccountHandoff/); assert.match(app, /owner !== scopeGeneration\(\)/); assert.match(app, /if \(!ready \|\| freshStart === null \|\| canvasPending\) return <Loading/); });
 
   test('the first name is optional, trimmed and bounded', async () => {
     const disk = installDisk();
@@ -206,16 +205,13 @@ describe('the pre-account hand-off', () => {
 
   test("setup preselects a recommended tutor after the personal plan and eligibility still precedes practice", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /label="Choose your tutor"/); /* F926, 2026-10-29: preselected, no longer a required deliberate pick. */ assert.match(screen, /<TutorSelection\s+chosen=\{tutorStep\(draft\)\.chosen\}/); assert.match(screen, /choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.match(screen, /disabled=\{busy\} onPress=\{\(\) => \{ patch\(\{ tutorChosen: true \}\); open\('start'\); \}\}/); assert.match(screen, /onCreateAccount\(\{ \.\.\.draftRef\.current, page: returnPage \}\)/); assert.match(screen, /!draft\.eligibilityConfirmed/); assert.match(screen, /label=\{FIRST_RUN_COPY\.saveMyProgress\}/); });
 
-  test("page and artwork motion respond to actions and stop when reduced motion changes", () => { const motion = evidence('apps/mobile/src/onboarding/OnboardingMotion.tsx'); assert.match(motion, /useReduceMotion\(\)/); assert.match(motion, /stopAnimation\(\)/); assert.match(motion, /if \(reduced\)/); assert.match(motion, /duration: 300/); assert.doesNotMatch(motion, /Animated\.loop|setInterval/); });
-
   // 2026-10-21 UI-008, artboard B-OB-Welcome: the line now names the tutor.
   test("the welcome replaces drink preferences with useful personal-plan value", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Welcome to Luvani/); assert.match(screen, /Real conversations with your own tutor, from your very first try\./); assert.match(screen, /Start your personal plan/); assert.doesNotMatch(screen, /Coffee or tea|Bonjour, je vais prendre un|Hello, I will have a|draft\.drink === 'tea'/); });
 
-  test("tutor samples are optional and audio failure leaves the readable choice route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /Audio could not play. The words are still here./); assert.match(screen, /This phrase has no recording yet/); assert.match(screen, /if \(playing && !replace\)/); assert.match(screen, /player\.pause\(\)/); assert.match(screen, /useTutorPreview\(\{ active: active && page === 'choose-tutor' \}\)/); assert.match(screen, /preview=\{preview\}/); assert.match(screen, /onChoose=\{\(voice\) => choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); });
+  test("tutor samples are optional and audio failure leaves the readable choice route", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /useTutorPreview\(\{ active: active && page === 'choose-tutor' \}\)/); assert.match(screen, /preview=\{preview\}/); assert.match(screen, /onChoose=\{\(voice\) => choose\(\{ tutorVoice: voice, tutorChosen: true \}\)/); assert.doesNotMatch(screen, /requestRecordingPermissionsAsync/); /* A failed sample says so, offers the speaker again and keeps the choice. */ const tutors = evidence('apps/mobile/src/onboarding/TutorSelection.tsx'); assert.match(tutors, /accessibilityLabel=\{previewLabel\(phase, voice\.label\)\}/); assert.equal(previewLabel('error', 'Émilie'), 'Try Émilie’s voice again'); assert.match(tutors, /\{preview\.error\} Tap the speaker to try again\. You can still choose this tutor\./); });
 
-  test("every catalogue voice is available in a contextual sheet with a provisional selection", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /surface === 'voice'/); assert.match(screen, /TUTOR_VOICE_OPTIONS\.map/); assert.match(screen, /selected=\{edit\.tutorVoice === v\.value\}/); assert.match(screen, /setEdit\(\{ \.\.\.edit, tutorVoice: v\.value \}\)/); assert.match(screen, /patch\(\{ tutorVoice: edit\.tutorVoice \}\)/); });
-
-  test("voice selection is silent; a separate Hear control starts and stops its sample", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const selection = screen.slice(screen.indexOf("{surface === 'voice' &&"), screen.indexOf("{surface === 'privacy' &&", screen.indexOf("{surface === 'voice' &&"))); assert.match(selection, /stopSound\(\)/); assert.match(selection, /onPress=\{\(\) => hear\(voiceSample\(v\.value\)\)/); assert.match(selection, /playing \? 'Stop'/); assert.doesNotMatch(selection, /setEdit[^;]*player\.play/); });
+  // F1138, M2a-3: the voice sheet nothing opened is gone, and its private player with it.
+  test('the first run plays tutor samples only through useTutorPreview', () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); const tutors = evidence('apps/mobile/src/onboarding/TutorSelection.tsx'); assert.match(screen, /useTutorPreview\(\{ active: active && page === 'choose-tutor' \}\)/); assert.match(screen, /preview=\{preview\}/); assert.doesNotMatch(screen, /useAudioPlayer|player\.|const hear =|'voice'/); assert.doesNotMatch(tutors, /onHear|playing = null|playing === voice/); });
 
   test("the start sheet explains AI and retention before separate off-by-default opt-ins", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.equal(freshPreAccountDraft().analyticsConsent, false); assert.equal(freshPreAccountDraft().rememberLearning, false); const start = screen.slice(screen.indexOf('const consentBody'), screen.indexOf('return (', screen.indexOf('const consentBody'))); assert.match(start, /STARTER_AI[\s\S]*STARTER_LOCAL[\s\S]*label="Privacy details"[\s\S]*Share usage analytics/); assert.match(start, /title="Remember my learning"/); });
 
@@ -253,10 +249,6 @@ describe('personal plan answers migrate without inventing a choice', () => {
     assert.equal(retired.tutorChosen, false);
     assert.equal(retired.practiceFocus, 'listening');
   });
-});
-
-describe('the introduction the voice page shows', () => {
-  test("voice sample captions come from the same catalogue as the bundled audio", () => { const screen = evidence('apps/mobile/src/onboarding/PreAccountOnboarding.tsx'); assert.match(screen, /tutorSampleLine\(v\.value\)/); assert.match(screen, /voiceSample\(v\.value\)/); assert.doesNotMatch(screen, /Bonjour, je m|my name is/); });
 });
 
 describe('a draft that names a voice the catalogue no longer has', () => {

@@ -119,6 +119,14 @@ test('an unread prior lesson has retry and leave routes without guessing the ope
   await new Promise<void>(resolve => setImmediate(resolve));
   assert.deepEqual(states, [false, true]);
   assert.match(lesson, /if \(historyFailed\) return/);
-  assert.match(lesson, /label="Try again"/); assert.match(lesson, /label="Back to Home"/);
+  assert.match(lesson, /label="Try again"/); assert.match(lesson, /label="Back"/);
   assert.match(lesson, /historySaveFailed=\{historySaveFailed\}/);
+});
+
+test('the unread-lesson leave button names only where it really lands', () => {
+  // F1327: leave goes back, which can be Speak or Practice as well as Today,
+  // so the button says the plain word (founder, 2026-11-24).
+  assert.match(lesson, /const leave = \(\) => backOrTabs\(nav\);/);
+  const failed = lesson.slice(lesson.indexOf('if (historyFailed) return'), lesson.indexOf('if (startRung === null)'));
+  assert.match(failed, /<IconAction layout="inline" icon="back" label="Back" onPress=\{leave\} \/>/);
 });

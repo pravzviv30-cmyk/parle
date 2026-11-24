@@ -209,7 +209,6 @@ function mount(path: string, exported: string, platform: Platform) {
     './SpeakMic.tsx': { SpeakMic: 'SpeakMic' },
     '../speech/useRecorderLevel.ts': { useRecorderLevel: () => ({ metered: false, level: 0 }) },
     './firstRun/copy.ts': { FIRST_RUN_COPY: {}, TAKE_CAP_SECONDS: 20 },
-    './firstRun/micLevel.ts': { meterLevel: () => 0 },
     './firstRun/MicMeter.tsx': { MicMeter: 'MicMeter' },
   };
   if (!compiled.has(path)) {
