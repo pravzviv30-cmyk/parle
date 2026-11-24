@@ -290,10 +290,10 @@ export function RecapScreen({
 
   const saveLine =
     saveState === 'saved'
-      ? 'Saved to Progress on this phone'
+      ? 'Saved to Journey on this phone'
       : saveState === 'failed'
         ? 'Not saved yet'
-        : 'Saving to Progress';
+        : 'Saving to Journey';
 
   const mission = completedMissionId ? getMission(completedMissionId) : undefined;
   const canDo = context === null ? null : recapCanDo(context.progress, completedMissionId);

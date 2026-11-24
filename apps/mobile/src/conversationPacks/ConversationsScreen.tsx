@@ -236,7 +236,7 @@ export function ConversationsScreen({
             : undefined
         }
         onDeleteOne={async (pack) => {
-          if (!user) return { ok: false, message: 'Please sign in again before changing your Tutor history.' };
+          if (!user) return { ok: false, message: 'Please sign in again before changing your conversations.' };
           const result = await deleteConversationPackForLearner(user, adapter, pack.id);
           if (currentOwner !== scopeGeneration() || currentUserId !== activeUserId()) return { ok: false, message: 'Account changed. Reopen your conversations.' };
           if (result.ok) {
@@ -249,7 +249,7 @@ export function ConversationsScreen({
           return result;
         }}
         onDeleteAll={async () => {
-          if (!user) return { ok: false, message: 'Please sign in again before changing your Tutor history.' };
+          if (!user) return { ok: false, message: 'Please sign in again before changing your conversations.' };
           const result = await deleteAllConversationPacksForLearner(user, adapter);
           if (currentOwner !== scopeGeneration() || currentUserId !== activeUserId()) return { ok: false, message: 'Account changed. Reopen your conversations.' };
           if (result.ok) {
