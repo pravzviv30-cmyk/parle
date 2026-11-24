@@ -14435,3 +14435,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Findings M1b-6 and the unpinned half of M1b-7. No test dies.
 - note: Fixed 2026-11-24 on claude/review-m1b: `closureFromPack`, `isSamplePack`, `SAVED_SITUATIONS_LABEL`, `SAVED_SITUATION_ACTION`, `OUT_OF_TIME_COPY` and planStatus's re-export of `freeBackLine`, `freshMinutesLine` and `PERIOD_LINES` are gone, with the unused `GhostButton` imports in `ConversationPracticeScreen.tsx` and `SaveTextChoice.tsx`. The comments at `featureLocks.ts:85` (pack drills, per REV-003) and `bookmarks/store.ts:42` (3000) now match the code. The closure test runs on `closureOf`, title kept; no floor moved.
 - verified-by: `a closure carries three phrases, one repair, one focus, one next mission and up to three wins, from the pack and nothing invented`
+
+### F1330 — A conversation the server answered 404 for still opened from the cache offline
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/conversationPacks/store.ts:240
+- note: 2026-11-24 (M1b judge): loadConversationPackForLearner returned pack null on a 404 but left the pack in the device cache, so the F855 offline fallback served it on the next offline open. A 404 now evicts it from this account's cache.
+- verified-by: `a pack the server answered 404 for is not served from the cache offline afterwards`

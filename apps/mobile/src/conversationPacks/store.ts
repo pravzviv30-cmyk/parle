@@ -237,7 +237,15 @@ export function loadConversationPackForLearner(user:AuthUser,adapter:AuthAdapter
         .catch(error=>{if(reached)throw error;return null;});
       if(!current()) return {ok:false};
       if(reply===null) return cached();
-      if(reply.status===404) return {ok:true,pack:null};
+      if(reply.status===404) {
+        // Deleted elsewhere: drop it here too, or the offline path serves it again (F1330).
+        await serialised(async(key,owner)=>{
+          const held=await readCache(key);
+          if(!current() || held.pendingBanking?.includes(packId)) return;
+          await writeCache(key,owner,{...held,packs:held.packs.filter(item=>item.id!==packId)});
+        }).catch(()=>undefined);
+        return current()?{ok:true,pack:null}:{ok:false};
+      }
       if(reply.status===413) return {ok:false,reason:'oversize'};
       const pack=(reply.body as {pack?:unknown}|null)?.pack;
       if(reply.status!==200 || !isConversationPack(pack) || pack.learnerId!==user.id || pack.id!==packId) return {ok:false};

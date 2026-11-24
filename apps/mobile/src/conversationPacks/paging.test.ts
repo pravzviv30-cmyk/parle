@@ -132,6 +132,16 @@ test('conversation practice opens from the device cache when the server cannot b
   assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,held.id,async()=>new Response(null,{status:404})),{ok:true,pack:null},'a 404 still means deleted');
   assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,held.id,async()=>new Response(null,{status:413})),{ok:false,reason:'oversize'});
   assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,held.id,async()=>new Response('{',{status:200})),{ok:false},'a bad body is not a lost connection');
+  await replaceConversationPacks([held]);
   setActiveUser('offline-other');
   assert.deepEqual(await loadConversationPackForLearner(user('offline-other'),adapter,held.id,down),{ok:false},'another account never reads this cache');
+});
+test('a pack the server answered 404 for is not served from the cache offline afterwards',async()=>{
+  const uid='deleted-elsewhere';setActiveUser(uid);const gone=pack(uid,1),kept=pack(uid,2);await replaceConversationPacks([gone,kept]);
+  const down:typeof fetch=async()=>{throw new TypeError('Network request failed');};
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,gone.id,async()=>new Response(null,{status:404})),{ok:true,pack:null});
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,gone.id,down),{ok:false});
+  const noToken={kind:'supabase',getAccessToken:async()=>null} as unknown as AuthAdapter;
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),noToken,gone.id,down),{ok:false});
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,kept.id,down),{ok:true,pack:kept},'only that pack leaves the cache');
 });
