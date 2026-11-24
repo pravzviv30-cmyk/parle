@@ -14276,6 +14276,8 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a provider reauthentication that returns another account deletes nothing`
 - verified-by: `both provider branches prove the same account before reporting success`
 - verified-by: `the different-account line is announced on the sign-in door and keeps the copy rules`
+- verified-by: `a sign-out that fails leaves no claim that the switch was undone`
+
 ### F1326 — On web, a provider re-sign-in that returns another account is not noticed
 - severity: P2
 - status: [ ]

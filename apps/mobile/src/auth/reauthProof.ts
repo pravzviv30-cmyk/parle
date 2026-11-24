@@ -7,9 +7,11 @@
  * current bearer, so without this check it removes the other account and tells
  * the learner theirs is gone.
  *
- * On a different id the other account is signed out on this phone only (its
- * server session is not ours to revoke), the adapter's listener is told so the
- * sign-in door can say what happened, and nothing is deleted or exported.
+ * On a different id the other account is signed out with the local scope: this
+ * phone's session is cleared and that one session is revoked on the server,
+ * while the other account's sessions elsewhere are left alone. Only once the
+ * session is really gone is the adapter's listener told, so the sign-in door
+ * can say what happened. Nothing is deleted or exported either way.
  */
 
 import type { AuthResult } from './types.ts';
@@ -38,8 +40,11 @@ export async function proveSameAccount(
   try {
     await client.auth.signOut({ scope: 'local' });
   } catch {
-    // The refusal below must still be returned; deletion never runs on it.
+    // A failed chunk delete in secureSessionStorage can throw here. The
+    // refusal below must still be returned; deletion never runs on it.
   }
+  // The sheet says the switch was undone, so it is raised only when it was.
+  if ((await client.auth.getSession()).data.session) return { ok: false, message: reauthenticationLine(purpose) };
   accountChanged(purpose);
   return { ok: false, message: differentAccountLine(purpose) };
 }

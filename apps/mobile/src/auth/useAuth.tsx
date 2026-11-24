@@ -56,10 +56,6 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
 
   useEffect(() => adapter.onEmailLinkFailure?.(() => setEmailLinkFailed(true)), [adapter]);
   useEffect(() => adapter.onAccountChanged?.(setAccountChanged), [adapter]);
-  // The live region below is Android-only; VoiceOver hears the line from here.
-  useEffect(() => {
-    if (accountChanged && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(differentAccountLine(accountChanged));
-  }, [accountChanged]);
 
   useEffect(() => {
     return observeSession(adapter, (next) => {
@@ -76,7 +72,8 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
         footer={<PillButton label="Continue" onPress={() => setEmailLinkFailed(false)} />}>
         <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{EMAIL_LINK_FAILED}</Text>
       </Sheet>
-      <Sheet visible={accountChanged !== null} title="Different account" onClose={() => setAccountChanged(null)}
+      {/* The live region is Android-only. VoiceOver hears the line once the sheet has shown, after Sheet moves focus to its heading. */}
+      <Sheet visible={accountChanged !== null} title="Different account" onShow={() => { if (accountChanged && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(differentAccountLine(accountChanged)); }} onClose={() => setAccountChanged(null)}
         footer={<PillButton label="Continue" onPress={() => setAccountChanged(null)} />}>
         {accountChanged && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{differentAccountLine(accountChanged)}</Text>}
       </Sheet>

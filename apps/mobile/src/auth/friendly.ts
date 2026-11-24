@@ -205,9 +205,10 @@ export function reauthenticationLine(purpose: 'deletion' | 'export', provider?: 
 }
 
 /**
- * The provider re-sign-in came back as someone else (F1324). Nothing happened
- * to either account; the other one is signed out on this phone. Founder copy,
- * 2026-11-24.
+ * The provider re-sign-in came back as someone else (F1324). Nothing was
+ * deleted or exported, and the other account is signed out on this phone. The
+ * sign-in itself can still have created that account on the server, empty, and
+ * its screens can mount briefly before the sign-out. Founder copy, 2026-11-24.
  */
 export function differentAccountLine(purpose: 'deletion' | 'export'): string {
   return purpose === 'export'
