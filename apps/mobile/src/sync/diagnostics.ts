@@ -55,7 +55,7 @@ import type { SyncEvent } from './engine.ts';
 declare const SYNC_TOKEN: unique symbol;
 
 /**
- * A short word from a closed charset. The only kind of string this module stores.
+ * A short word from a closed charset. The only kind of string this module prints.
  *
  * Branded so that a `SyncDiagnostic` cannot be assembled out of raw strings anywhere
  * else in the app: the brand is unforgeable outside this file, and `token()` is the

@@ -19,7 +19,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -93,7 +93,8 @@ const TEST = /\.test\.tsx?$/;
 test('no tracked source file carries a control character that hides it from grep', () => {
   const files = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
     .split('\u0000')
-    .filter((file) => SOURCE.test(file) && !TEST.test(file));
+    // A file deleted but not yet staged is still listed; it carries no bytes to check.
+    .filter((file) => SOURCE.test(file) && !TEST.test(file) && existsSync(path.join(ROOT, file)));
   assert.ok(files.length > 200, `expected to find the repo's source, found ${files.length}`);
 
   const offenders: string[] = [];

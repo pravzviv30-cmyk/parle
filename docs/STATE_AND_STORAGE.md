@@ -725,7 +725,8 @@ actually removed, and that nothing in the app still reads a key the sweep delete
 
 Since Phase 2, the account rather than the device is the durable home for most
 stores; `sync/policy.ts` is the count of record (fifteen synced, nineteen excluded after
-the device-local first-live arrival receipt, the launch wall receipt and the appearance choice joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
+the device-local first-live arrival receipt, the speech dataset choice, the launch wall receipt
+and the appearance choice joined). `apps/mobile/src/sync/` holds a **state-based reconciler**:
 the stores write to disk locally first, exactly as before, and afterwards a
 background engine pushes the whole current blob to `learner_state` with a
 compare-and-swap on the `revision` column. Losing the swap means another device

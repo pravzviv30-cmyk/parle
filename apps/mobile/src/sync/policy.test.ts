@@ -427,7 +427,7 @@ function blobFor(namespace: string, seed: number): unknown {
 // ──────────────────────────────────────────────────────────────────── tests
 
 // Stage 4 (2026-09-25): twenty-three, with goalSteps synced.
-describe('the per-domain conflict policy — twenty-three namespaces, three classes, nine exclusions', () => {
+describe('the per-domain conflict policy', () => {
   test('every synced namespace has an explicit merge policy and every excluded one an explicit reason', () => {
     const suffixes = userKeySuffixes().filter((suffix) => suffix !== SYNC_STATE_SUFFIX);
     assert.ok(suffixes.length > 0, 'the scan read no suffixes out of scope.ts, so it is checking nothing');
