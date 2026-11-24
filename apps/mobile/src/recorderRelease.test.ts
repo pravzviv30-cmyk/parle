@@ -36,7 +36,7 @@ import { recorderUri } from './daily/recorderUri.ts';
 import * as ownWordsCopy from './drill/ownWordsCopy.ts';
 
 type Platform = 'ios' | 'android';
-type Screen = 'drill';
+type Screen = keyof typeof SCREENS;
 type Leave = keyof typeof ENDINGS;
 type Element = { props: Record<string, unknown> };
 type Component = (props: Record<string, unknown>) => Element;
@@ -148,7 +148,7 @@ function mount(path: string, exported: string, platform: Platform) {
       },
     },
     'react/jsx-runtime': { jsx: element, jsxs: element, Fragment: 'Fragment' },
-    'react-native': { StyleSheet: { create: (styles: unknown) => styles }, AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) }, Text: 'Text', View: 'View' },
+    'react-native': { StyleSheet: { create: (styles: unknown) => styles }, AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) }, Text: 'Text', View: 'View', Pressable: 'Pressable' },
     '@react-navigation/native': { useIsFocused: () => focused },
     'expo-audio': {
       AudioModule: { requestRecordingPermissionsAsync: async () => ({ granted: true }) },
@@ -166,6 +166,23 @@ function mount(path: string, exported: string, platform: Platform) {
       },
     },
     '../components.tsx': { IconAction: 'IconAction', GhostButton: 'GhostButton', MicGlyph: 'MicGlyph', Press: 'Press', SpeakCircle: 'SpeakCircle' },
+    // The Say drill (drill/kinds/RepeatThisView.tsx), one folder deeper (F795).
+    '../../components.tsx': { IconAction: 'IconAction', PillButton: 'PillButton', SpeakCircle: 'SpeakCircle' },
+    '../../theme.ts': { colour: {}, decorative: {}, type: {}, space: (n: number) => n * 4 },
+    '../../main/bTheme.tsx': { useB: () => ({ muted: 'muted', text: 'text', mode: 'light' }), useThemedStyles: () => ({}) },
+    '../DrillFrame.tsx': { DrillFrame: 'DrillFrame' },
+    '../drillStage.ts': { drillStage: () => ({}) },
+    '../SpeakMic.tsx': { SpeakMic: 'SpeakMic', ListeningCloud: 'ListeningCloud' },
+    '../speakFoot.ts': { RING_ROOM: 0 },
+    '../../speech/useRecorderLevel.ts': { useRecorderLevel: () => ({ metered: false, level: 0 }) },
+    '../../art/flat/Illustration.tsx': { Illustration: 'Illustration' },
+    '../../speech/tutorVoice.ts': { stop: () => {} },
+    '../../sound/audioFocus.ts': { holdMic: () => { mutes++; let released = false; return () => { if (!released) mutes--; released = true; }; } },
+    '../../speech/discardRecording.ts': { discardRecording: (uri: string | null) => { if (uri) disk.delete(uri); } },
+    '../../sound/audioSession.ts': { enterRecording: async () => {}, leaveRecording: async () => {} },
+    '../../daily/recorderUri.ts': { recorderUri },
+    './shared.tsx': { CAN_RECORD: true, HearRow: 'HearRow', METERED_TAKE: {} },
+    './styles.ts': { SPEAK: 108, makeDs: () => ({}) },
     '../theme.ts': { colour: {}, paper: {}, type: {}, space: (n: number) => n * 4 },
     // 2026-10-21 UI-008: the drill's spoken attempt reads its words colour from the theme.
     '../main/bTheme.tsx': { useB: () => ({ muted: 'muted', text: 'text' }) },
@@ -246,7 +263,8 @@ function press(tree: unknown, label: string): void {
     if (Array.isArray(node)) return node.map(find).find(Boolean);
     if (!node || typeof node !== 'object' || !('props' in node)) return undefined;
     const element = node as Element;
-    return element.props.accessibilityLabel === label ? element : find(element.props.children);
+    // The Say drill pins its mic in DrillFrame's `primary` slot.
+    return element.props.accessibilityLabel === label ? element : find(element.props.children) ?? find(element.props.primary);
   };
   const control = find(tree);
   assert.ok(control && typeof control.props.onPress === 'function', `no control is labelled "${label}"`);
@@ -260,6 +278,7 @@ async function settle(): Promise<void> {
 
 const SCREENS = {
   drill: { path: './drill/SpokenAttempt.tsx', exported: 'SpokenAttempt', start: 'Record your French', finish: 'Stop recording' },
+  say: { path: './drill/kinds/RepeatThisView.tsx', exported: 'RepeatThisView', start: 'Speak, record yourself saying it', finish: 'Done, stop recording' },
 } as const;
 
 /** Records one take on a screen and ends it the way `leave` says, or on screen when it is null. */
@@ -269,6 +288,13 @@ async function take(screen: Screen, platform: Platform, leave: Leave | null) {
   const sent: (string | null)[] = [];
   const props = {
     busy: false,
+    // The Say drill's own props; SpokenAttempt ignores them.
+    locked: false,
+    exercise: { kind: 'repeat-this', reference: 'Merci', referenceEn: 'Thanks', ipa: null },
+    shell: {},
+    onAnswer: () => {},
+    onNoMic: () => {},
+    onSpoke: (uri: string | null) => { sent.push(uri); },
     onTyping: () => {},
     onRecordingChange: () => {},
     // As PreAccountOnboarding does, a guest take moves onboarding on to its recap
@@ -352,8 +378,28 @@ test('a guest or drill take that ends after its screen has gone still deletes it
 
 test('a guest or drill take finished on its screen is handed on, and only the guest screen deletes it afterwards', async () => {
   for (const platform of ['ios', 'android'] as const) {
-    const drill = await take('drill', platform, null);
-    assert.deepEqual(drill.sent, [drill.file], `the drill take was not handed on, on ${platform}`);
-    assert.deepEqual(drill.left, [drill.file], `the drill screen deleted a take its consumer owns, on ${platform}`);
+    for (const screen of ['drill', 'say'] as const) {
+      const drill = await take(screen, platform, null);
+      assert.deepEqual(drill.sent, [drill.file], `the ${screen} take was not handed on, on ${platform}`);
+      assert.deepEqual(drill.left, [drill.file], `the ${screen} screen deleted a take its consumer owns, on ${platform}`);
+    }
+  }
+});
+
+test('a repeat-this take still recording when the drill goes is deleted', async () => {
+  // F795. The Say drill has no focus or AppState handling (out of scope), so
+  // 'blurred' is not run, and 'sent' is skipped as it is for the drill above.
+  for (const platform of ['ios', 'android'] as const) {
+    for (const leave of ['recording', 'preparing', 'failing'] as const) {
+      const run = `a say take that ${ENDINGS[leave]}, on ${platform}`;
+      const { file, sent, left, rejected, recorder, mutes } = await ending('say', platform, leave);
+      assert.ok(file, `${run}: the take never reached the disk, so this proves nothing`);
+      assert.equal(recorder.released, true, `${run}: the recorder was never released`);
+      assert.deepEqual(sent, [], `${run}: the wrong take was handed on`);
+      assert.deepEqual(rejected, [], `${run}: a promise rejected and nobody handled it`);
+      assert.equal(mutes, 0, `${run}: the microphone hold outlived the drill`);
+      const unnamed = platform === 'android' && leave !== 'recording';
+      if (!unnamed) assert.deepEqual(left, [], `${run}: the recording was left on the device`);
+    }
   }
 });

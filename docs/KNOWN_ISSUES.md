@@ -2799,12 +2799,13 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F147 — The typed lesson eats the first tap when the keyboard is up
 - severity: P2
-- status: [ ]
-- where: apps/mobile/src/SessionView.tsx:1
+- status: [x]
+- where: apps/mobile/src/SessionView.tsx:355
 - note: the screen's `ScrollView` has no `keyboardShouldPersistTaps`, and `SessionView.tsx` is
   absent from `TYPING_SCREENS` in `keyboardTaps.test.ts` — the same omission-from-the-list shape
   that let the `lesson-text` microphone bug ship. In a typed lesson with the keyboard open, the
   first tap on an option card dismisses the keyboard instead of choosing.
+- note: Closed 2026-11-24 as already fixed (Phase 4 wave 3, M4a): SessionView is built on `ScrollScreen avoidKeyboard`, whose scroll view sets `keyboardShouldPersistTaps="handled"` (layout.tsx), and SessionView.tsx is in `TYPING_SCREENS`. The named test passes.
 - verified-by: `a typed lesson takes the first tap with the keyboard open`
 
 ### F148 — The contract's false-positive tier is missing its two named lines, and the bath sentence still stops
@@ -9937,9 +9938,10 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F795 — A repeat-this take still recording when the drill goes is never deleted
 - severity: P2
-- status: [ ]
-- where: apps/mobile/src/DrillScreen.tsx:546
+- status: [x]
+- where: apps/mobile/src/drill/kinds/RepeatThisView.tsx:72
 - note: Found 2026-10-06 while closing F793. RepeatThisView records with useAudioRecorder and declares no effect, so no app code stops or deletes a take when the view unmounts with the microphone on, as when the learner leaves the drill mid-take. expo-audio's release stops the recording on iOS and leaves the file in the app's cache, where only clearing the learner's data sweeps it (storage/attemptAudio.native.ts), although speech/discardRecording.ts holds that every exit from an attempt removes its recording, not just the good one. Its stop path also reads recorder.uri inside a try, so a stop that finishes after the release loses the path and leaves the file. It is F793's shape without a cleanup at all, so the fix is SoundCheckScreen's: keep the path from prepare, read it through recorderUri, and add an unmount cleanup that stops and discards an unfinished take. The stand-in React and recorder in recorderRelease.test.ts can drive it once they stand in for DrillScreen's imports. practice-ux-engineer's territory.
+- note: Fixed 2026-11-24 on claude/review-m4a: RepeatThisView keeps the take's path from before and after prepare, and its unmount cleanup, when the microphone is still held, stops the recorder and deletes the file read through recorderUri. RepeatThisView is in recorderRelease.test.ts's SCREENS; the recording, preparing and failing endings run on iOS and Android. AppState and focus handling stay out of scope, so the 'blurred' ending is not run for it.
 - verified-by: `a repeat-this take still recording when the drill goes is deleted`
 
 ### F796 — The data-boundary proof can fail when a quota check straddles a minute boundary
@@ -10344,7 +10346,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F761 — A finished review and an empty deck look the same
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/ReviewScreen.tsx:176
+- where: apps/mobile/src/ReviewScreen.tsx:189
 - note: A sitting with grades shows "Review complete." with its end card; a deck with nothing due still says "Nothing waiting." and plays nothing.
 - note 2026-10-06: fixed on ca/p3-core-loop (step P3-A). review/sittingEnd.ts tells the pages apart by what was dealt: a sitting with grades says "Review complete." with its end card once the settle has read it back; a deck with nothing due keeps "Nothing waiting." and settles, counts and plays nothing; the sitting is still marked banked before it is written. The title failed without the change.
 - verified-by: `a finished review is told apart from a review with nothing waiting`
@@ -14285,3 +14287,37 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-11-24 by the F1324 builder and judge. On web the redirect returns signed in as account B, and the recency check compares claims.sub with the same swapped session, so it passes for B. Nothing is deleted without a second confirmation, but the learner is never told the account changed and can delete or export B believing it is A. Needs the expected id carried across the redirect and the F1324 sheet shown.
 - verified-by: `a web provider redirect that returns another account says so and deletes nothing`
 
+### F1050 — The Say drill mic's spoken name does not match the visible Speak or Done
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/drill/kinds/RepeatThisView.tsx:162
+- note: Found in the plan (docs/changes/cast.md) and filed by Phase 4 wave 3, M4a. The circle was named "Record yourself saying it" and "Stop recording" while it showed Speak and Done, so Voice Control could not reach it by the word on screen (F951's rule). Fixed 2026-11-24 on claude/review-m4a: the names are "Speak, record yourself saying it" and "Done, stop recording"; speakFamily.test.ts pins them.
+- verified-by: `the Say drill mic is named by the word it shows`
+
+### F1151 — A practice sitting pays clean XP for a right answer after a miss
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/practice/completion.ts:379
+- note: LEARN-017 and PEDAGOGY "Practice answer disclosure" settle it; the drill route already used firstTry. Fixed 2026-11-24 on claude/review-m4a: the sitting's XP comes from `firstTry`, so only first-try answers pay.
+- verified-by: `a practice sitting pays no clean XP for a right answer after a miss`
+
+### F1152 — A practice answer after help is paid as a clean answer
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/practice/completion.ts:379
+- note: PRODUCT, Q1. Founder, 2026-11-24: no XP, the same as after a miss. Fixed on claude/review-m4a: answers whose exercise id is in the sitting's `assisted` list are left out before `firstTry` counts.
+- verified-by: `a practice answer given after help earns what the founder chose`
+
+### F1153 — A card missed with Again then marked Got it is graded as unaided recall
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/ReviewScreen.tsx:233
+- note: PRODUCT, Q2. Founder, 2026-11-24: back tomorrow, same stage. Fixed on claude/review-m4a: `sittingGrade` (review/gradeGuard.ts) takes the ids missed this sitting and turns Got it or Easy on one of them into an assisted Got it, so the card does not step up, earns no recall evidence and returns tomorrow. Easy is treated the same way, because the scheduler's Easy has no assisted path. The screen counts no recall, and so no review XP, for it.
+- verified-by: `a card answered right after Again in the same sitting is graded assisted`
+
+### F1154 — Review spins forever when the deck cannot be read
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/ReviewScreen.tsx:189
+- note: no rejection handler; reuse the Drill unread treatment. Fixed 2026-11-24 on claude/review-m4a: a failed read sets `unread`, which draws the existing DRILL_UNREAD words with a Done. No new copy, and no Retry (out of scope).
+- verified-by: `review shows a way out when the deck cannot be read`

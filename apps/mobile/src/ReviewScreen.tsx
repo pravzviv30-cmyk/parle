@@ -60,11 +60,12 @@ import { EmptyStateCard } from './empty/EmptyStateCard.tsx';
 import { Cloud } from './art/mascots/Cloud.tsx';
 import { conversationContext, fromLine } from './review/context.ts';
 import { alsoFine } from './review/alsoFine.ts';
-import { firstGradeAt } from './review/gradeGuard.ts';
+import { firstGradeAt, sittingGrade } from './review/gradeGuard.ts';
 import { loadDrillBank } from './drill/store.ts';
 import { loadConversationPacks } from './conversationPacks/store.ts';
 import { loadDeck, gradeCard } from './review/store.ts';
 import { dealForTier } from './review/freeTier.ts';
+import { DRILL_UNREAD } from './practice/mix.ts';
 import {
   CARD_START,
   REVIEW_COPY,
@@ -92,6 +93,8 @@ const SPEAKER = 48;
 export function ReviewScreen({ onDone }: { onDone: () => void }) {
   // The sitting: dealt once on mount. Null while the deck is still loading.
   const [queue, setQueue] = useState<ReviewCard[] | null>(null);
+  // The deck could not be read: a way out instead of a spinner (F1154, F449).
+  const [unread, setUnread] = useState(false);
   const [fragments, setFragments] = useState<Record<string, ReturnType<typeof conversationContext>>>({});
   const [index, setIndex] = useState(0);
   const [turn, setTurn] = useState<ReviewTurn>(CARD_START);
@@ -183,6 +186,8 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       setFragments(Object.fromEntries(sitting.cards.map(card => [card.id, conversationContext(card, packs)])));
       setQueue(sitting.cards);
       setOpener(sitting.opener);
+    }, () => {
+      if (!cancelled) setUnread(true);
     });
     return () => {
       cancelled = true;
@@ -213,6 +218,8 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
 
   // The position already graded, so a second quick tap on the same card is ignored.
   const gradedAt = useRef<number | null>(null);
+  // Cards missed with Again in this sitting: a later Got it on one is helped recall (F1153).
+  const missed = useRef(new Set<string>());
   const handleGrade = useCallback(
     (grade: ReviewGrade) => {
       if (!card || !view) return;
@@ -223,9 +230,11 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
       // Persist in the background; the sitting itself never waits on a disk.
       // The context is what the view knows and nothing more: an attempt that
       // came before the answer, or, on an introduction, no claim at all.
-      void gradeCard(card.id, grade, view.gradeContext);
+      const given = sittingGrade(card.id, grade, view.gradeContext, missed.current);
+      void gradeCard(card.id, given.grade, given.context);
       graded.current += 1;
-      if (grade === 'good' || grade === 'easy') recalled.current += 1;
+      if ((grade === 'good' || grade === 'easy') && given.context.assisted !== true) recalled.current += 1;
+      if (grade === 'again') missed.current.add(card.id);
       // A missed card rejoins the end of this sitting rather than hiding until
       // its ten-minute retry — the learner meets it again while it is warm.
       if (grade === 'again') setQueue((q) => (q ? [...q, card] : q));
@@ -235,6 +244,15 @@ export function ReviewScreen({ onDone }: { onDone: () => void }) {
     },
     [card, view, clock, index],
   );
+
+  if (unread) {
+    return (
+      <ScrollScreen footer={<EndActions done={{ label: 'Done', onPress: onDone }} />}>
+        <Text accessibilityRole="header" style={[type19, { color: t.text, textAlign: 'center' }]}>{DRILL_UNREAD.title}</Text>
+        <Text style={[bType.line16, { color: t.muted, textAlign: 'center', marginTop: space(3) }]}>{DRILL_UNREAD.body}</Text>
+      </ScrollScreen>
+    );
+  }
 
   if (queue === null) {
     return (

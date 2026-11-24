@@ -449,6 +449,35 @@ describe('practice completion — what a sitting is allowed to claim', () => {
     assert.deepEqual(practiceCardGrades(state, t, false), [{ id: 'phrase:x', grade: 'good' }]);
     assert.deepEqual(practiceCardGrades(state, t, false, ['rt-x-silent']), []);
   });
+
+  test('a practice sitting pays no clean XP for a right answer after a miss', async () => {
+    seedDeck(disk, dueDeck());
+    const built = buildPracticeSession(targets(), BANK, dueDeck(), NOW);
+    let state = built.state;
+    let missed = false;
+    for (let guard = 0; guard < 20 && !state.finished; guard += 1) {
+      const head = state.queue[0] as { fr: string; phraseKey: string };
+      const miss = head.phraseKey === phraseKeyOf(PHRASES[0]!) && !missed;
+      if (miss) missed = true;
+      state = answerCurrent(state, miss ? 'zzz' : head.fr).state;
+    }
+    assert.ok(state.finished && missed, 'the fixture sitting did not finish with one miss');
+    const result = await completePracticeSitting({
+      sittingId: 's-retry', state, targets: built.targets, exercises: BANK, exposed: false, now: NOW,
+    });
+    assert.equal(result.status, 'completed');
+    assert.equal(result.xp, 4, 'only the two first-try answers pay, 2 XP each');
+  });
+
+  test('a practice answer given after help earns what the founder chose', async () => {
+    // Founder, 2026-11-24 (Q1): no XP, the same as an answer after a miss.
+    seedDeck(disk, dueDeck());
+    const plain = await finish(disk, { sittingId: 's-plain' });
+    seedDeck(disk, dueDeck());
+    const helped = await finish(disk, { sittingId: 's-helped', assisted: [BANK[0]!.id] });
+    assert.equal(plain.xp, 4);
+    assert.equal(helped.xp, 2, 'the helped answer still paid XP');
+  });
 });
 
 describe('practice session — same-device resume', () => {

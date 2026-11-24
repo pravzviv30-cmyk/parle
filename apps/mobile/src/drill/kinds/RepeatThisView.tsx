@@ -15,6 +15,7 @@ import { Illustration } from '../../art/flat/Illustration.tsx';
 import * as tutorVoice from '../../speech/tutorVoice.ts';
 import { holdMic } from '../../sound/audioFocus.ts';
 import { discardRecording } from '../../speech/discardRecording.ts';
+import { recorderUri } from '../../daily/recorderUri.ts';
 import { enterRecording, leaveRecording } from '../../sound/audioSession.ts';
 import { CAN_RECORD, HearRow, METERED_TAKE } from './shared.tsx';
 import { SPEAK, makeDs } from './styles.ts';
@@ -65,9 +66,16 @@ export function RepeatThisView({
     release();
     return true;
   }, []);
+  // Where the take is written, read before and after prepare: once the view
+  // goes, expo has released the recorder and its uri throws (F795).
+  const preparedUri = useRef<string | null>(null);
   useEffect(() => () => {
-    if (letGoOfMic()) void leaveRecording().catch(() => undefined);
-  }, [letGoOfMic]);
+    if (!letGoOfMic()) return;
+    void leaveRecording().catch(() => undefined);
+    // A take still recording or being prepared goes with the drill (F795).
+    // expo's release, which runs first, has stopped it; only the file is left.
+    discardRecording(recorderUri(recorder, preparedUri.current));
+  }, [letGoOfMic, recorder]);
 
   const toggleRecord = useCallback(async () => {
     if (busyRef.current || locked) return;
@@ -111,7 +119,9 @@ export function RepeatThisView({
         letGoOfMic();
         micHold.current = holdMic();
         await enterRecording();
+        preparedUri.current = recorderUri(recorder, preparedUri.current);
         await recorder.prepareToRecordAsync();
+        preparedUri.current = recorderUri(recorder, preparedUri.current);
         recorder.record();
         setMic('live');
       }
@@ -147,7 +157,7 @@ export function RepeatThisView({
               active={mic === 'live'}
               disabled={locked}
               size={SPEAK}
-              accessibilityLabel={mic === 'live' ? 'Stop recording' : 'Record yourself saying it'}
+              accessibilityLabel={mic === 'live' ? 'Done, stop recording' : 'Speak, record yourself saying it'}
             />
           </SpeakMic>
           <Text style={[type.label, { color: bt.text }]}>{mic === 'live' ? 'Done' : 'Speak'}</Text>
