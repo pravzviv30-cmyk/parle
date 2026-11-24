@@ -21,7 +21,7 @@ export function c2FloatAmount(phase: number): number {
   let low = 0;
   let high = 1;
   let u = triangular;
-  // Enough precision for offset gestures to keep the same velocity at the seam.
+  // Enough precision to keep the same velocity at the seam.
   for (let i = 0; i < 24; i++) {
     const x = 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u;
     if (x < triangular) low = u;
@@ -29,12 +29,4 @@ export function c2FloatAmount(phase: number): number {
     u = (low + high) / 2;
   }
   return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
-}
-
-/** Phase offsets retain the authored still pose, including under Reduce Motion. */
-export function c2GestureAmount(phase: number, offset = 0): number {
-  'worklet';
-  const start = ((offset % 1) + 1) % 1;
-  if (phase <= 0 || phase >= 1) return 0;
-  return c2FloatAmount((phase + start) % 1) - c2FloatAmount(start);
 }

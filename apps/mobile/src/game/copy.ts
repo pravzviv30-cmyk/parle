@@ -206,7 +206,7 @@ export const GAME_COPY = {
     goal: (minutes: number | string, goal: number): string => `Daily goal: ${minutes} of ${goal} minutes practised today. Opens your streak.`,
     minutes: (minutes: number | string): string => `${minutes} minutes practised today. Opens your streak.`,
     level: (level: number, total: number, toNext: number): string =>
-      `XP level ${level}, ${total} XP, ${toNext} to the next. Opens Progress.`,
+      `XP level ${level}, ${total} XP, ${toNext} to the next. Opens Journey.`,
   },
 
   badge: {

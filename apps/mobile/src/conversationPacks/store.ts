@@ -247,7 +247,7 @@ async function authorisedDelete(
 ): Promise<ConversationPackMutation> {
   const owner = scopeGeneration();
   const owned = () => activeUserId() === user.id && owner === scopeGeneration();
-  const switched = (): ConversationPackMutation => ({ok:false,message:'The account changed. Open your Tutor history again.'});
+  const switched = (): ConversationPackMutation => ({ok:false,message:'The account changed. Open your conversations again.'});
   if (!owned()) return switched();
   const current = await loadConversationPacks();
   if (!owned()) return switched();
@@ -264,14 +264,14 @@ async function authorisedDelete(
   }
   const token = await adapter.getAccessToken();
   if (!owned()) return switched();
-  if (!token) return { ok: false, message: 'Please sign in again before changing your Tutor history.' };
+  if (!token) return { ok: false, message: 'Please sign in again before changing your conversations.' };
   try {
     const response = await request(`${TOKEN_SERVER}${path}`, {
       method: 'DELETE',
       headers: { authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(8_000),
     });
-    if (!response.ok) return { ok: false, message: 'Your Tutor history was not changed. Please try again.' };
+    if (!response.ok) return { ok: false, message: 'Your conversations were not changed. Please try again.' };
     if (!owned()) return switched();
     const packs = locally(current).filter((pack) => pack.learnerId === user.id);
     await replaceCache(packs, true);
@@ -280,7 +280,7 @@ async function authorisedDelete(
     if (!owned()) return switched();
     return { ok: true, packs };
   } catch {
-    return { ok: false, message: 'Your Tutor history was not changed. Check your connection and try again.' };
+    return { ok: false, message: 'Your conversations were not changed. Check your connection and try again.' };
   }
 }
 
@@ -294,7 +294,7 @@ export function deleteConversationPackForLearner(
   const owner = scopeGeneration();
   return pull(() => owner === scopeGeneration()
     ? authorisedDelete(user, adapter, `/conversation-packs/${encodeURIComponent(packId)}`, (packs) => packs.filter((pack) => pack.id !== packId), request)
-    : Promise.resolve({ok:false,message:'The account changed. Open your Tutor history again.'}));
+    : Promise.resolve({ok:false,message:'The account changed. Open your conversations again.'}));
 }
 
 /** Delete all curated conversation history while leaving earned drills intact. */
@@ -306,7 +306,7 @@ export function deleteAllConversationPacksForLearner(
   const owner = scopeGeneration();
   return pull(() => owner === scopeGeneration()
     ? authorisedDelete(user, adapter, '/conversation-packs', () => [], request, true)
-    : Promise.resolve({ok:false,message:'The account changed. Open your Tutor history again.'}));
+    : Promise.resolve({ok:false,message:'The account changed. Open your conversations again.'}));
 }
 
 onUserScopeReset(() => {

@@ -44,6 +44,6 @@ test('Walk uses an explicit primer, default dark native capability and a monoton
 
 test('Walk error recovery describes a new session and offers no in-room typed twin', () => {
   const screen = read('../ConvoScreen.tsx');
-  assert.match(screen, /message=\{walkMode \? "Walk mode cannot continue\. Return to Tutor to try another scene or start a typed conversation\." : live.status.message\}/);
+  assert.match(screen, /message=\{walkMode \? "Walk mode cannot continue\. Go back to try another scene or start a typed conversation\." : live.status.message\}/);
   assert.match(screen, /onType=\{!walkMode && typedDoorFor/);
 });

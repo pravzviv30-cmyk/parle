@@ -26,7 +26,7 @@ describe('a reloaded conversation waits to be asked — F923', () => {
     assert.equal(reloadedIntoConvo({ platform: 'ios', coldPath: null, consumed: false }), false);
     assert.equal(reloadedIntoConvo({ platform: 'web', coldPath: null, consumed: false }), false);
 
-    assert.deepEqual(RELOAD_INTRO, { title: 'Your last conversation ended.', start: 'Start again', back: 'Back to Tutor' });
+    assert.deepEqual(RELOAD_INTRO, { title: 'Your last conversation ended.', start: 'Start again', back: 'Back' });
     assert.doesNotMatch(Object.values(RELOAD_INTRO).join(' '), /—/);
 
     // The mode the address carried, as strings, survives into the new start.

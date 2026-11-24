@@ -115,7 +115,7 @@ function pagesFor(persona: TutorPersona) {
   {
     key: 'after',
     title: 'Leave with something useful',
-    body: 'Your recap keeps the lines you said, one phrase to take with you and one sound, and says what comes next time. Saved phrases wait in Progress.',
+    body: 'Your recap keeps the lines you said, one phrase to take with you and one sound, and says what comes next time. Saved phrases wait in Journey.',
     note: null,
   },
   {

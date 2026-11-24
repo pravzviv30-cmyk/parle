@@ -194,7 +194,6 @@ const LEGACY_ANIMATED = [
   'motion.ts',
   'motion/Feedback.tsx',
   'onboarding/NextButton.tsx',
-  'onboarding/OnboardingMotion.tsx',
   'tutor/VoiceOrb.tsx',
   // Preserve main's independently shipped Hum launch on its existing engine.
   'launch/LaunchScreen.tsx',
