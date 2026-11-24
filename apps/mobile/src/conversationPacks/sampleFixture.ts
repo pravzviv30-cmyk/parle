@@ -55,16 +55,16 @@ export interface SampleEnvironment {
   EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT?: string;
 }
 
+/** Read member by member: Expo inlines only written-out `process.env.EXPO_PUBLIC_*` reads (F1135). */
+function defaultEnv(): SampleEnvironment {
+  return { NODE_ENV: process.env.NODE_ENV, EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT: process.env.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT };
+}
+
 /** Whether the sample may be offered at all. Every condition, or none. */
-export function sampleAllowed(adapter: Pick<AuthAdapter, 'kind'>, env: SampleEnvironment = process.env): boolean {
+export function sampleAllowed(adapter: Pick<AuthAdapter, 'kind'>, env: SampleEnvironment = defaultEnv()): boolean {
   if (env.NODE_ENV === 'production') return false;
   if (env.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT !== '1') return false;
   return adapter.kind === 'mock';
-}
-
-/** Whether a pack is the sample, so every surface can label it. */
-export function isSamplePack(pack: Pick<ConversationPack, 'id'>): boolean {
-  return pack.id === SAMPLE_PACK_ID;
 }
 
 /**
@@ -103,7 +103,7 @@ export async function loadSampleConversation(
   user: Pick<AuthUser, 'id'>,
   adapter: Pick<AuthAdapter, 'kind'>,
   now: number = Date.now(),
-  env: SampleEnvironment = process.env,
+  env: SampleEnvironment = defaultEnv(),
 ): Promise<SampleLoad> {
   if (!sampleAllowed(adapter, env)) return { ok: false, reason: 'not-allowed' };
   // Captured before the first await. Every write below is for this account.

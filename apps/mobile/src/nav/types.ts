@@ -265,7 +265,7 @@ export type RootStackParamList = {
    * longer here simply opens the list.
    */
   Conversations: { packId?: string } | undefined;
-  SavedConversationText: undefined;
+  SavedConversationText: { sessionId?: string } | undefined;
   /**
    * `stage` opens the warm-up on listening (B3, 2026-10-20). Anything else,
    * a web address included, opens on matching.

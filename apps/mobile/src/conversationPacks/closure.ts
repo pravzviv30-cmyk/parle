@@ -25,7 +25,6 @@ import {
   evidenceStateOf,
   phraseKeyOf,
   suggestedMission,
-  type ConversationPack,
   type MissionProgress,
   type RecapPayload,
   type ReviewCard,
@@ -146,20 +145,6 @@ export function closureOf(parts: ClosureParts, ctx: ClosureContext | null): Clos
     focus: focusFor(parts, ctx),
     nextMission: ctx === null ? null : suggestedMission(ctx.progress),
   };
-}
-
-export function closureFromPack(pack: ConversationPack, ctx: ClosureContext | null): Closure {
-  return closureOf(
-    {
-      title: pack.title.en,
-      summary: pack.summary,
-      wins: pack.wins,
-      phrases: pack.keyPhrases,
-      corrections: pack.corrections,
-      clarity: pack.tutorGoal,
-    },
-    ctx,
-  );
 }
 
 export function closureFromRecap(recap: RecapPayload, ctx: ClosureContext | null): Closure {

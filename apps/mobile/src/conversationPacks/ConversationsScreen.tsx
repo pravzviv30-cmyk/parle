@@ -235,6 +235,7 @@ export function ConversationsScreen({
                 })
             : undefined
         }
+        onSavedText={adapter.kind === 'supabase' ? (pack) => nav.navigate('SavedConversationText', { sessionId: pack.sessionId }) : undefined}
         onDeleteOne={async (pack) => {
           if (!user) return { ok: false, message: 'Please sign in again before changing your conversations.' };
           const result = await deleteConversationPackForLearner(user, adapter, pack.id);

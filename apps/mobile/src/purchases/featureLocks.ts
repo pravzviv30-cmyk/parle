@@ -82,8 +82,9 @@ export const LOCKED_ROUTES: Readonly<Record<string, LockedFeature>> = {
  * The feature a focused route belongs to, or null when it is free.
  *
  * Drill is locked only when its params say it is a sitting on one saved
- * conversation (`practice: 'pack'` with a packId): that is review of
- * conversation phrases. The recommended sitting, a resumed one, a node of the
+ * conversation (`practice: 'pack'` with a packId): that is a drill of a whole
+ * conversation pack, which REV-003 keeps paid while spaced review of its
+ * phrases is free. The recommended sitting, a resumed one, a node of the
  * path, a made phrase and the ordinary deck stay free. Review takes no params,
  * so it cannot say what it reviews, and it stays free. Convo, DailyPractice
  * and FirstScene are free. Lesson (the café pronunciation lesson) is locked

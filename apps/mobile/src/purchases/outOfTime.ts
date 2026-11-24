@@ -126,5 +126,3 @@ export function untimedOutOfTimeWords(reason: string): { title: string; message:
 export function endsOutOfTime(line: string): boolean {
   return line.endsWith(OUT_OF_TIME_WORDS.offline) || line.endsWith(OUT_OF_TIME_WORDS.offlineUntimed);
 }
-
-export const OUT_OF_TIME_COPY: readonly string[] = Object.values(OUT_OF_TIME_WORDS);
