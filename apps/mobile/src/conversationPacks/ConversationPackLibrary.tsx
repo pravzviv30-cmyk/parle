@@ -40,6 +40,7 @@ export function ConversationPackLibrary({
   onBack,
   onReview,
   onContinue,
+  onSavedText,
   continueArc,
   onDeleteOne,
   onDeleteAll,
@@ -79,6 +80,8 @@ export function ConversationPackLibrary({
    * the door is not drawn at all rather than drawn and refused.
    */
   onContinue?: (pack: ConversationPack) => void;
+  /** This conversation's saved text. Omitted on builds with no saved text, and then not drawn (F860). */
+  onSavedText?: (pack: ConversationPack) => void;
   /** The plan's continueArc capability, so "Included in Max" is said only when the plan opens it (F935). */
   continueArc?: boolean;
   onDeleteOne: (pack: ConversationPack) => Promise<DeleteResult>;
@@ -262,6 +265,7 @@ export function ConversationPackLibrary({
           </Card>
         )}
 
+        {onSavedText !== undefined && <IconAction layout="inline" icon="document" label="Saved conversation text" disabled={busy} onPress={() => onSavedText(selected)} />}
         {message !== null && <Text style={[type.small, { color: t.text, marginTop: space(4) }]}>{message}</Text>}
         <View style={st.delete}>
           {confirming === selected.id ? (

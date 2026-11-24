@@ -33,7 +33,7 @@ import type { BillingStatus } from './billingStatus.ts';
 import { dayAndMonthOf, endsOutOfTime, freshMinutesLine, outOfTimeWords, PERIOD_LINES, type OutOfTimeWords } from './outOfTime.ts';
 
 // Said in `outOfTime.ts`, a leaf, so the two never import each other (F911).
-export { dayAndMonthOf, freeBackLine, freshMinutesLine, PERIOD_LINES } from './outOfTime.ts';
+export { dayAndMonthOf } from './outOfTime.ts';
 import type { StoreHeldPlan, StoreOffering, StoreProduct } from './contract.ts';
 
 export type PlanBand = 'plenty' | 'a-little' | 'none';

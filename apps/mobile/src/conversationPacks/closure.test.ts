@@ -3,7 +3,11 @@ import { describe, test } from 'node:test';
 import { buildConversationPack, missionStates, phraseKeyOf, type RecapPayload, type ReviewCard } from '@luvani/core';
 
 import type { SoundCheckEvidence } from '../soundcheck/model.ts';
-import { MAX_CLOSURE_PHRASES, closureFromPack, closureFromRecap } from './closure.ts';
+import type { ConversationPack } from '@luvani/core';
+import { MAX_CLOSURE_PHRASES, closureFromRecap, closureOf, type ClosureContext } from './closure.ts';
+
+const closureFromPack = (pack: ConversationPack, ctx: ClosureContext | null) =>
+  closureOf({ title: pack.title.en, summary: pack.summary, wins: pack.wins, phrases: pack.keyPhrases, corrections: pack.corrections, clarity: pack.tutorGoal }, ctx);
 
 const NOW = Date.parse('2026-09-12T20:00:00.000Z');
 

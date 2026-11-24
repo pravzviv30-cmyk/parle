@@ -34,12 +34,6 @@
 import type { DailyScenario } from '@luvani/core';
 import type { BookmarkItem } from './store.ts';
 
-/** My French's heading over the saved list. */
-export const SAVED_SITUATIONS_LABEL = 'Saved situations';
-
-/** The verb on a saved row, which opens the situation as a conversation. */
-export const SAVED_SITUATION_ACTION = 'Start';
-
 /**
  * The Bookmark button's word.
  *

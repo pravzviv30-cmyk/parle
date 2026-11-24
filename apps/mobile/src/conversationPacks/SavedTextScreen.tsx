@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { SavedConversationText } from '@luvani/core';
 import { useAuth } from '../auth/useAuth.tsx';
 import { IconAction, GhostButton, Ledger, LedgerRow } from '../components.tsx';
@@ -8,12 +8,15 @@ import { ScrollScreen, ScreenHeader, ConfirmSheet } from '../layout.tsx';
 import { space, type, frenchText } from '../theme.ts';
 import { useHardwareBack } from '../nav/useHardwareBack.ts';
 import { scopeGeneration } from '../storage/scope.ts';
-import { deleteText, listText } from './textClient.ts';
+import { deleteText, findText, listText } from './textClient.ts';
 import { useB } from '../main/bTheme.tsx';
 
 export function SavedTextScreen() {
   const t = useB();
   const nav = useNavigation<{ goBack: () => void }>();
+  const route = useRoute<{ key: string; name: string; params?: { sessionId?: string } }>();
+  // Opened for one conversation: shown once, then the list stays one step back (F860).
+  const opening = useRef(route.params?.sessionId);
   const { user, adapter } = useAuth();
   const [rows, setRows] = useState<SavedConversationText[] | null>(null);
   const [selected, setSelected] = useState<SavedConversationText | null>(null);
@@ -33,9 +36,14 @@ export function SavedTextScreen() {
     const issued = ++ticket.current;
     setRows(null); setSelected(null); setConfirming(false); setMessage(null); setNextCursor(null); loadingMore.current = false; setMoreBusy(false); setBusy(false);
     if (!user || scope !== scopeGeneration()) return;
-    void listText(user, adapter).then(result => {
+    const wanted = opening.current;
+    void (wanted ? findText(user, adapter, wanted) : Promise.resolve(null)).then(found => {
       if (issued !== ticket.current || scope !== scopeGeneration()) return;
-      if (result.ok) { setRows(result.value.conversations); setNextCursor(result.value.nextCursor); } else setMessage(result.message);
+      if (found?.ok) { opening.current = undefined; if (found.value) setSelected(found.value); }
+      return listText(user, adapter).then(result => {
+        if (issued !== ticket.current || scope !== scopeGeneration()) return;
+        if (result.ok) { setRows(result.value.conversations); setNextCursor(result.value.nextCursor); } else setMessage(result.message);
+      });
     }).catch(() => { if (issued === ticket.current && scope === scopeGeneration()) setMessage('Saved text could not be loaded. Try again.'); });
     return () => { ticket.current++; };
   }, [user, adapter, attempt, scope]));
@@ -76,7 +84,7 @@ export function SavedTextScreen() {
     </> : rows === null ? <Text style={[type.body, { color: t.muted }]}>{message ? 'The saved text could not be loaded.' : 'Loading saved text…'}</Text> : rows.length === 0 ? <Text style={[type.body, { color: t.muted }]}>No conversation text saved. After a conversation, you can choose Save conversation text on the last recap page.</Text> : <Ledger>{rows.map(row => <LedgerRow key={row.sessionId} title={row.title} gloss={`${new Date(row.savedAt).toLocaleDateString()}${row.lines[0] ? `, ${row.lines[0].frWritten ?? row.lines[0].fr}` : ''}`} onPress={() => setSelected(row)} />)}</Ledger>}
     {message !== '' && message != null && <Text accessibilityLiveRegion="polite" style={[type.small, { color: t.muted, marginTop: space(3) }]}>{message}</Text>}
     {!selected && nextCursor !== null && <IconAction layout="inline" icon="chevron-down" label={moreBusy ? 'Loading…' : 'Load older conversations'} disabled={moreBusy} onPress={more} />}
-    {!selected && rows === null && message !== '' && <IconAction layout="inline" icon="refresh" label="Try again" onPress={() => setAttempt(value => value + 1)} />}
+    {!selected && rows === null && message != null && <IconAction layout="inline" icon="refresh" label="Try again" onPress={() => setAttempt(value => value + 1)} />}
     <ConfirmSheet visible={confirming} title="Delete this conversation text?" body="The saved words are permanently removed. Your curated phrases, corrections and practice stay. This text cannot be saved again from this session." confirmLabel={busy ? 'Deleting…' : 'Delete text permanently'} cancelLabel="Keep this text" onConfirm={remove} onCancel={() => { if (!busy) setConfirming(false); }} />
   </ScrollScreen>;
 }
