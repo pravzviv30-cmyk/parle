@@ -11,8 +11,6 @@ import assert from 'node:assert/strict';
 import type { DailyScenario } from '@luvani/core';
 import type { BookmarkItem } from './store.ts';
 import {
-  SAVED_SITUATIONS_LABEL,
-  SAVED_SITUATION_ACTION,
   bookmarkAccessibilityLabel,
   bookmarkLabel,
   bookmarkControl,
@@ -95,8 +93,6 @@ describe('the situations a learner saved to come back to — F394', () => {
 
     // Every word this module can say.
     const lines = [
-      SAVED_SITUATIONS_LABEL,
-      SAVED_SITUATION_ACTION,
       bookmarkLabel(true),
       bookmarkLabel(false),
       bookmarkAccessibilityLabel(true, 'A seat on the terrace'),

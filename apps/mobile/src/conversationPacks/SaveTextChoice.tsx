@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import type { ConversationText } from '@luvani/core';
 import { useAuth } from '../auth/useAuth.tsx';
-import { IconAction, GhostButton } from '../components.tsx';
+import { IconAction } from '../components.tsx';
 import { space, type } from '../theme.ts';
 import { scopeGeneration } from '../storage/scope.ts';
 import { saveText } from './textClient.ts';
