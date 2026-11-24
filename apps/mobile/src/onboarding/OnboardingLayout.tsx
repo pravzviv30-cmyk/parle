@@ -232,7 +232,7 @@ export function useOnboardingTransition() {
         Animated.timing(opacity, { toValue: 1, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
         Animated.timing(shift, { toValue: 0, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
       ]);
-      animation.current.start(() => { locked.current = false; });
+      animation.current.start(() => { opacity.setValue(1); shift.setValue(0); locked.current = false; });
     });
     return true;
   };

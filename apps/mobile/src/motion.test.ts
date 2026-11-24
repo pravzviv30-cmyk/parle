@@ -756,3 +756,18 @@ describe('one door to the engine', () => {
     assert.deepEqual(offenders, [], `A test reaches a module Node cannot load:\n${offenders.join('\n')}`);
   });
 });
+
+describe('the onboarding transition always ends on a visible page — F1331', () => {
+  test('a learner whose fade-in is cut short still sees the next page, never a blank one', () => {
+    const body = file('onboarding/OnboardingLayout.tsx').body;
+    const hook = body.slice(body.indexOf('export function useOnboardingTransition'));
+    const fadeIn = hook.slice(hook.indexOf('Animated.parallel'));
+    const done = /animation\.current\.start\(\(\) => \{([^}]*)\}\)/.exec(fadeIn);
+    assert.ok(done, 'the fade-in has no completion to read');
+    // Switching AuthFlow between its restart page and its frame unmounts the
+    // last view bound to opacity and shift; Animated detaches them and stops
+    // the fade-in at opacity 0. The stop callback must put the page back.
+    assert.match(done[1] ?? "", /opacity\.setValue\(1\)/, 'a stopped fade-in leaves the sign-up page at opacity 0');
+    assert.match(done[1] ?? "", /shift\.setValue\(0\)/, 'a stopped fade-in leaves the sign-up page shifted down');
+  });
+});
