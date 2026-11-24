@@ -109,16 +109,6 @@ export const KEEP_ROWS = {
 } as const;
 
 /**
- * What a screen reader hears for the week strip: the days of this week the
- * phone saw a practice finished, by name. A week without one says so plainly.
- */
-export function weekLabel(practised: readonly string[]): string {
-  if (practised.length === 0) return 'This week has no practice days yet.';
-  const list = practised.length === 1 ? practised[0]! : `${practised.slice(0, -1).join(', ')} and ${practised[practised.length - 1]!}`;
-  return `This week you practised on ${list}.`;
-}
-
-/**
  * The hand-off's time with the tutor (row 11), from the server's answer and
  * nothing else. `free` is true on the free allowance, false on a plan, and null
  * when only the balance is known. Nothing at all when no time is held: the
@@ -178,10 +168,6 @@ export const FIRST_RUN_LINES: readonly string[] = [
   KEEP_ROWS.plan('Order a coffee', null),
   KEEP_ROWS.tutor('Sam'),
   KEEP_ROWS.reminder('6:00 pm'),
-  weekLabel([]),
-  weekLabel(['Monday']),
-  weekLabel(['Monday', 'Tuesday']),
-  weekLabel(['Monday', 'Tuesday', 'Wednesday']),
   ...[30, 59, 60, 61, 1800]
     .flatMap((seconds) => [true, false, null].map((free) => tutorTimeLine(seconds, free)))
     .filter((line): line is string => line !== null),

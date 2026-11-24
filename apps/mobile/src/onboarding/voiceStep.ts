@@ -46,7 +46,7 @@
  * from `tutor/tutorVoice.ts` already answers that for the Profile sheet.
  */
 
-import { DEFAULT_TUTOR_VOICE, type TutorVoiceKey } from '@luvani/core';
+import { type TutorVoiceKey } from '@luvani/core';
 import { withTutorVoice, type StoredProfile } from '../profile/store.ts';
 import { DEFAULT_TUTOR_PERSONA } from '../tutor/tutorName.ts';
 import { TUTOR_VOICE_OPTIONS, tutorVoiceOf } from '../tutor/tutorVoice.ts';
@@ -116,6 +116,3 @@ export function withChosenVoice(profile: StoredProfile, chosen: TutorVoiceKey | 
 export function voiceAfterStep(profile: StoredProfile | null, chosen: TutorVoiceKey | null): TutorVoiceKey {
   return chosen ?? tutorVoiceOf(profile);
 }
-
-/** The voice a learner gets for skipping, named so the copy and the code agree. */
-export const VOICE_STEP_DEFAULT: TutorVoiceKey = DEFAULT_TUTOR_VOICE;

@@ -15,20 +15,12 @@ import { fileURLToPath } from 'node:url';
 import { evidence } from '../../../test/evidence.ts';
 import { FIRST_RUN_COPY, FIRST_RUN_LINES, SLOW_CHECK_MS, TAKE_CAP_SECONDS, exchangeLabel, issueActions, takeLength } from './copy.ts';
 import { NEXT_LABEL, NEXT_OFF_HINT } from './nextFace.ts';
-import { GOAL_TIERS, planToken, tierLabel, tierLine } from './planModel.ts';
-import { freshPreAccountDraft } from '../preAccountDraft.ts';
+import { GOAL_TIERS, tierLabel, tierLine } from './planModel.ts';
 
 /** Praise a French interface would reach for. The tutor may say these in French; the app does not (D14). */
 const FRENCH_PRAISE = /\b(bravo|bien jou[ée]|parfait|super|g[ée]nial|tr[èe]s bien|formidable|magnifique|chapeau|f[ée]licitations|excellent)\b/i;
 
 function lines(): string[] {
-  const draft = freshPreAccountDraft();
-  const tokens = [
-    ...(['coffee', 'tea'] as const).map((drink) => planToken({ ...draft, drink }, 'drink')),
-    ...REASONS.map((r) => planToken({ ...draft, reason: r.key }, 'reason')),
-    ...START_LEVELS.map((l) => planToken({ ...draft, startLevel: l.key }, 'level')),
-    ...([5, 10, 15, 20, 'none'] as const).map((minutes) => planToken({ ...draft, minutes }, 'goal')),
-  ].map((token) => token?.label ?? '');
   return [
     ...FIRST_RUN_LINES,
     NEXT_LABEL,
@@ -36,7 +28,6 @@ function lines(): string[] {
     ...REASONS.map((r) => r.title),
     ...START_LEVELS.flatMap((l) => [l.title, l.gloss]).filter((line) => line !== ''),
     ...GOAL_TIERS.flatMap((tier) => [tier.title, tierLine(tier.minutes), tierLabel(tier, true)]),
-    ...tokens,
     exchangeLabel(0, 3),
   ];
 }

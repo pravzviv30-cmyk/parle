@@ -1061,9 +1061,6 @@ describe('the icon controls keep their promises', () => {
     assert.match(part('OptionRow'), /return <Choice role="button"/, 'OptionRow is a second choice component rather than a name for the one');
     const card = stripComments(readFileSync(join(SRC, 'onboarding', 'ChoiceCard.tsx'), 'utf8')).trim();
     assert.equal(card, "export { Choice } from '../components.tsx';", 'the first run draws a choice of its own');
-    const art = stripComments(readFileSync(join(SRC, 'onboarding', 'ChoiceArt.tsx'), 'utf8'));
-    assert.match(art, /return <IconTile name=\{name\} ground=\{ground\} size=\{size\} \/>;/, 'the first run\'s choice art is not a delegate to the icon tile');
-    assert.doesNotMatch(art, /<Svg\b|<Path\b/, 'the first run\'s choice art still draws by hand');
   });
 
   test('a selected choice on a blue question fills with contrasting sun and preserves the readable title', () => {

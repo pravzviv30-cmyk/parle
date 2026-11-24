@@ -29,18 +29,16 @@ type Preview = {
   progressSource?: TutorPreviewProgressSource;
 };
 
-export function TutorSelection({ chosen, preview, playing = null, onChoose, onHear }: {
+export function TutorSelection({ chosen, preview, onChoose }: {
   chosen: TutorVoiceKey | null;
-  preview?: Preview;
-  playing?: TutorVoiceKey | null;
+  preview: Preview;
   onChoose: (voice: TutorVoiceKey) => void;
-  onHear?: (voice: TutorVoiceKey) => void;
 }) {
   const t = useB();
   return <View accessibilityRole="radiogroup" accessibilityLabel="Meet your tutor" style={st.cards}>
     {TUTOR_VOICE_OPTIONS.map(voice => {
       const selected = chosen === voice.value;
-      const phase = preview?.voice === voice.value ? preview.phase : playing === voice.value ? 'playing' : 'idle';
+      const phase = preview?.voice === voice.value ? preview.phase : 'idle';
       const ink = selected ? t.onBrand : t.text;
       return <View key={voice.value} style={[st.card, { backgroundColor: t.card }, selected && { backgroundColor: c.violet, borderColor: c.violet }]}>
         <Press haptic="selection" accessibilityRole="radio" accessibilityState={{ checked: selected }}
@@ -54,7 +52,7 @@ export function TutorSelection({ chosen, preview, playing = null, onChoose, onHe
         </Press>
         <Press haptic="light" accessibilityLabel={previewLabel(phase, voice.label)}
           accessibilityState={{ busy: phase === 'loading' }}
-          onPress={() => preview ? preview.toggle(voice.value) : onHear?.(voice.value)}
+          onPress={() => preview.toggle(voice.value)}
           style={[st.listen, { backgroundColor: selected ? t.card : t.lavender }]}>
           {phase === 'playing' || phase === 'loading'
             ? <AnimatedIcon kind={phase === 'loading' ? 'refresh-spin' : 'speaker-waves'} size={18} color={t.brand} active />

@@ -51,7 +51,7 @@ test('selected tutor paint does not change the row footprint or couple listening
   const selectedPaint = source.match(/selected && \{ backgroundColor: c\.violet, borderColor: c\.violet \}/)![0];
   assert.doesNotMatch(selectedPaint, /borderWidth|padding|height|width/);
   assert.match(source, /onPress=\{\(\) => onChoose\(voice\.value\)\}/);
-  assert.match(source, /onPress=\{\(\) => preview \? preview\.toggle\(voice\.value\) : onHear\?\.\(voice\.value\)\}/);
+  assert.match(source, /onPress=\{\(\) => preview\.toggle\(voice\.value\)\}/);
   assert.doesNotMatch(source, /onChoose\(voice\.value\);\s*(preview|onHear)/);
 });
 

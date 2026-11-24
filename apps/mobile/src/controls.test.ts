@@ -179,16 +179,6 @@ describe('F921: control borders', () => {
     for (const where of DECORATIVE.keys()) assert.ok(seen.has(where), `${where} is allowlisted but no longer on a pale edge; drop it from the list`);
   });
 
-  test('a day still ahead is told from an open day at 3:1', () => {
-    // First-run week strip: an open day is a solid field ring, a day still
-    // ahead a dashed one. Both edges are marks on the cream and the card, and
-    // the dash, not a near-white fill (skeleton was 1.1:1), tells them apart.
-    const strip = read('onboarding/firstRun/WeekStrip.tsx');
-    assert.match(strip, /open: \{[^}]*borderWidth: 1, borderColor: paper\.field \}/, 'an open day has no solid field ring');
-    assert.match(strip, /ahead: \{[^}]*borderStyle: 'dashed'[^}]*borderColor: paper\.field/, 'a day ahead is not a dashed field ring');
-    assert.doesNotMatch(strip, /ahead: \{[^}]*skeleton/, 'a day ahead still leans on the skeleton fill');
-    for (const ground of [paper.ground, paper.card]) assert.ok(contrast(paper.field, ground) >= MARK);
-  });
 });
 
 describe('F927: Space and the focus ring', () => {

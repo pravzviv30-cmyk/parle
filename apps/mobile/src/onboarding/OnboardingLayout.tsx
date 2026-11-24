@@ -4,7 +4,7 @@ import { Animated, AppState, Easing, Keyboard, KeyboardAvoidingView, Platform, S
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useReduceMotion } from '../motion.ts';
-import { colour, decorative, paper, space } from '../theme.ts';
+import { decorative, paper, space } from '../theme.ts';
 import { c } from './boldRhythm.ts';
 import { sheetRunsUnder } from '../components.tsx';
 import { footerHeightLatch, footerInScroll } from '../responsiveLayout.ts';
