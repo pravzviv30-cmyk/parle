@@ -317,4 +317,11 @@ describe('sound effects ship only heard and play only when nothing else needs th
     assert.deepEqual(exportsOf('sound/sfx.native.ts'), exportsOf('sound/sfx.ts'));
     assert.deepEqual(exportsOf('sound/sfx.web.ts'), exportsOf('sound/sfx.ts'));
   });
+
+  test('a voice line pauses the sound effects on the web seam too', () => {
+    // F1147: quietSfx() pauses whatever the seam registered, and the web never registered one.
+    const web = stripComments(read('sound/sfx.web.ts'));
+    assert.match(web, /^import \{[^}]*\bsetSfxPause\b[^}]*\} from '\.\/audioSession\.ts';$/m);
+    assert.match(web, /^setSfxPause\(core\.pauseAll\);$/m, 'a voice line or a recording plays over an effect in the browser');
+  });
 });

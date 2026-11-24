@@ -15,6 +15,7 @@
 import { AppState } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
 
+import { setSfxPause } from './audioSession.ts';
 import { createSfxCore } from './sfxCore.ts';
 import { setSfxAppActive } from './sfxGate.ts';
 import type { SfxId } from './sfxIds.ts';
@@ -64,6 +65,7 @@ const core = createSfxCore({
   },
 });
 
+setSfxPause(core.pauseAll);
 AppState.addEventListener('change', (state) => {
   setSfxAppActive(state === 'active');
   if (state !== 'active') core.pauseAll();

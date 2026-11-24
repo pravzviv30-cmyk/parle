@@ -19,7 +19,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getMission } from '@luvani/core';
 
 import { MouthGuide } from '../practice/MouthGuide.tsx';
-import { IconAction, Card, GhostButton, Label, Ledger, LedgerRow } from '../components.tsx';
+import { IconAction, Card, Label, Ledger, LedgerRow } from '../components.tsx';
 import { WaveformGlyph } from '../glyphs.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { HIT, space, type } from '../theme.ts';

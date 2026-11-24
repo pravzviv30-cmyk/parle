@@ -44,3 +44,61 @@ describe('the owned sound-check read', () => {
       'a new recording can race the previous account’s cleanup');
   });
 });
+
+describe('one take, one score, and only the learner on the mic', () => {
+  test('a second tap while the take is stopping scores and saves it once', () => {
+    // F1144: `phase` only moves after the awaited stop, so without a guard a
+    // second tap reads the same recorder.uri, uploads it and persists it again.
+    const toggle = flat.match(/const toggle = useCallback\(async \(\) => \{[\s\S]*?\}, \[reference, phase/)?.[0] ?? '';
+    assert.match(toggle, /^const toggle = useCallback\(async \(\) => \{ if \(busyRef\.current \|\| !reference [^;]*?\) return; const mine = \{\}; busyRef\.current = mine; try \{/,
+      'the guard is set before the first await of either path');
+    assert.match(toggle, /\} finally \{ if \(busyRef\.current === mine\) \{ busyRef\.current = null; setStarting\(false\); \} \} \}, \[reference, phase/,
+      'an early return or a throw must clear the guard, or the mic locks; an old take must not clear a new one');
+    assert.equal(toggle.match(/await /g)?.length, toggle.slice(toggle.indexOf('try {')).match(/await /g)?.length,
+      'an await runs before the guard is taken');
+  });
+
+  test('Hear it is quiet while the take is recording', () => {
+    // F1146: the tutor's line played into the open mic is mixed into a scored take,
+    // and the start path awaits permission, the mode and prepare while phase is still 'ready'.
+    assert.match(flat, /const hearQuiet = shownPhase === 'recording' \|\| starting;/);
+    assert.match(flat, /return; \} try \{ setStarting\(true\); if \(cleanupRef\.current\) await cleanupRef\.current;/,
+      'the start window opens before its first await');
+    const hear = flat.match(/<Pressable onPress=\{\(\) => \{ if \(ownsReadNow\(\)[\s\S]*?<\/Pressable>/)?.[0] ?? '';
+    assert.match(hear, /onPress=\{\(\) => \{ if \(ownsReadNow\(\) && !hearQuiet\) tutorVoice\.speak\(shownReference\); \}\}/);
+    assert.match(hear, /disabled=\{hearQuiet\}/);
+    assert.match(hear, /accessibilityState=\{\{ disabled: hearQuiet \}\}/);
+    // DESIGN.md: an icon control says off in colour rather than opacity.
+    assert.doesNotMatch(hear, /opacity: 0\.5/);
+    assert.match(hear, /hearQuiet && \{ backgroundColor: t\.skeleton \}/);
+    assert.match(hear, /<EarGlyph size=\{16\} color=\{hearQuiet \? t\.muted : t\.text\} \/>/);
+    assert.match(hear, /<Text style=\{\[type\.label, \{ color: hearQuiet \? t\.muted : t\.text \}\]\}>Hear it<\/Text>/);
+  });
+
+  test('a new read never finds the mic held by an old take', () => {
+    // A retry or a new mission or learner restarts the read; a guard left by the old take would leave the mic dead.
+    assert.match(flat, /const owner = \{ scope: scopeGeneration\(\), userId, missionId \};[^}]*?setPhase\('loading'\); busyRef\.current = null; setStarting\(false\); void Promise\.resolve\(\)\.then\(\(\) => loadSoundChecks/);
+  });
+
+  test('a self-guided tap while the take is stopping saves nothing more', () => {
+    // F1328: inside the stop or the start window, toggle owns the take and saves it once.
+    assert.match(flat, /const selfGuidedTap = useCallback\(\(\) => \{ if \(busyRef\.current\) return;/);
+    assert.match(flat, /<IconAction layout="inline" icon="tick-circle" label="I said it without assessment" disabled=\{shownPhase === 'scoring'\} onPress=\{selfGuidedTap\} \/>/);
+  });
+
+  test('I said it without assessment during a take stops the mic and removes the take', () => {
+    // F1329: choosing self-guided mid-take used to leave the recorder running, the mic held and the file on disk.
+    const tap = flat.match(/const selfGuidedTap = useCallback\(\(\) => \{[\s\S]*?\}, \[/)?.[0] ?? '';
+    assert.match(tap, /if \(phase === 'recording'\) \{ const abandoned = recorderUri\(recorder, preparedUri\.current\); preparedUri\.current = null; const work = abandonSoundCheckRecording\( recorder, stopRecorder, abandoned, discardRecording, resetRecordingAudio, \)\.finally\(\(\) => \{ if \(cleanupRef\.current === work\) cleanupRef\.current = null; \}\); cleanupRef\.current = work; \} selfGuided\(\);/,
+      'the take is stopped, discarded and the mic released through the leave path');
+  });
+
+  test("the sound check's hear control is named by the word it shows", () => {
+    // F951 rule: Voice Control finds a control by its visible words.
+    const hear = flat.match(/<Pressable onPress=\{\(\) => \{ if \(ownsReadNow\(\)[\s\S]*?<\/Pressable>/)?.[0] ?? '';
+    const label = hear.match(/accessibilityLabel="([^"]*)"/)?.[1];
+    const shown = hear.match(/<Text [^>]*>([^<]*)<\/Text>/)?.[1];
+    assert.equal(shown, 'Hear it');
+    assert.equal(label, shown);
+  });
+});
