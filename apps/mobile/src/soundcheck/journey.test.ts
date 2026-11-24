@@ -14,14 +14,11 @@ import { getMission } from '@luvani/core';
 
 import { guiltIn } from '../copy/guilt.ts';
 import { MIC_DENIED, SELF_GUIDED, type SoundCheckEvidence, type SoundCheckKind } from './model.ts';
-import { SOUND_FINGERPRINT_OPEN } from '../myfrench/sounds.ts';
 import {
   JOURNEY_COPY,
-  SOUND_JOURNEY_OPEN,
   againLabel,
   calledOutLine,
   checkOpensOn,
-  soundDoorLabel,
   soundJourney,
 } from './journey.ts';
 
@@ -189,7 +186,7 @@ describe('which sound, how often, and where', () => {
 });
 
 describe('what the journey is allowed to say', () => {
-  const lines = [...Object.values(JOURNEY_COPY), SOUND_JOURNEY_OPEN, calledOutLine(1, CAFE.titleEn), calledOutLine(3, CAFE.titleEn)];
+  const lines = [...Object.values(JOURNEY_COPY), calledOutLine(1, CAFE.titleEn), calledOutLine(3, CAFE.titleEn)];
 
   test('no score, no mastery, no trend, no scold', () => {
     for (const line of lines) {
@@ -201,7 +198,6 @@ describe('what the journey is allowed to say', () => {
 
   test('the only digit the journey ever shows is a count of measured attempts', () => {
     for (const line of Object.values(JOURNEY_COPY)) assert.doesNotMatch(line, /\d/, `"${line}" carries a digit`);
-    assert.doesNotMatch(SOUND_JOURNEY_OPEN, /\d/);
     assert.equal(calledOutLine(1, CAFE.titleEn), `Called out once, on a line from ${CAFE.titleEn}.`);
     assert.equal(calledOutLine(3, CAFE.titleEn), `Called out 3 times, most recently on a line from ${CAFE.titleEn}.`);
     assert.deepEqual(calledOutLine(12, CAFE.titleEn).match(/\d+/g), ['12']);
@@ -241,14 +237,5 @@ describe('the check door only promises the line it will open on', () => {
 
     assert.equal(checkOpensOn('mission:moon', flaggedA), null);
     assert.equal(againLabel({ missionId: 'mission:moon', reference: A }, flaggedA), JOURNEY_COPY.againSituation);
-  });
-});
-
-describe('the My French door says where it goes', () => {
-  test('the sound row names the journey when it opens the journey, and the check otherwise', () => {
-    const journey = soundJourney([focus(NOW - 2 * DAY), clear(NOW - DAY)], NOW);
-    assert.equal(soundDoorLabel(journey), SOUND_JOURNEY_OPEN);
-    assert.equal(soundDoorLabel(null), SOUND_FINGERPRINT_OPEN);
-    assert.notEqual(SOUND_JOURNEY_OPEN, SOUND_FINGERPRINT_OPEN);
   });
 });

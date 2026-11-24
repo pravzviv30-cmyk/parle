@@ -44,3 +44,35 @@ describe('the owned sound-check read', () => {
       'a new recording can race the previous account’s cleanup');
   });
 });
+
+describe('one take, one score, and only the learner on the mic', () => {
+  test('a second tap while the take is stopping scores and saves it once', () => {
+    // F1144: `phase` only moves after the awaited stop, so without a guard a
+    // second tap reads the same recorder.uri, uploads it and persists it again.
+    const toggle = flat.match(/const toggle = useCallback\(async \(\) => \{[\s\S]*?\}, \[reference, phase/)?.[0] ?? '';
+    assert.match(toggle, /^const toggle = useCallback\(async \(\) => \{ if \(busyRef\.current \|\| !reference [^;]*?\) return; busyRef\.current = true; try \{/,
+      'the guard is set before the first await of either path');
+    assert.match(toggle, /\} finally \{ busyRef\.current = false; \} \}, \[reference, phase/,
+      'an early return or a throw must clear the guard, or the mic locks');
+    assert.equal(toggle.match(/await /g)?.length, toggle.slice(toggle.indexOf('try {')).match(/await /g)?.length,
+      'an await runs before the guard is taken');
+  });
+
+  test('Hear it is quiet while the take is recording', () => {
+    // F1146: the tutor's line played into the open mic is mixed into a scored take.
+    const hear = flat.match(/<Pressable onPress=\{\(\) => \{ if \(ownsReadNow\(\)[\s\S]*?<\/Pressable>/)?.[0] ?? '';
+    assert.match(hear, /onPress=\{\(\) => \{ if \(ownsReadNow\(\) && shownPhase !== 'recording'\) tutorVoice\.speak\(shownReference\); \}\}/);
+    assert.match(hear, /disabled=\{shownPhase === 'recording'\}/);
+    assert.match(hear, /accessibilityState=\{\{ disabled: shownPhase === 'recording' \}\}/);
+    assert.match(hear, /shownPhase === 'recording' && \{ opacity: 0\.5 \}/);
+  });
+
+  test("the sound check's hear control is named by the word it shows", () => {
+    // F951 rule: Voice Control finds a control by its visible words.
+    const hear = flat.match(/<Pressable onPress=\{\(\) => \{ if \(ownsReadNow\(\)[\s\S]*?<\/Pressable>/)?.[0] ?? '';
+    const label = hear.match(/accessibilityLabel="([^"]*)"/)?.[1];
+    const shown = hear.match(/<Text [^>]*>([^<]*)<\/Text>/)?.[1];
+    assert.equal(shown, 'Hear it');
+    assert.equal(label, shown);
+  });
+});

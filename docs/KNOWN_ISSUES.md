@@ -7208,6 +7208,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
   `soundFingerprint` and `soundDoorLabel`. The screen-side guard now bans the tab from branching on
   any check kind, since measured evidence belongs to sounds.ts and notebook.ts. It no longer names
   `checkLine` or `latestCheck` by hand.
+- note: 2026-11-24 (F1150): `soundDoorLabel` had no production caller and is removed. The My French row
+  names itself from its own title and detail.
 - verified-by: `the sounds map lays the inventory out example word first, and marks only what a measured check called out`
 - verified-by: `every kind of check has a sentence, and none of them is a number`
 
@@ -14285,3 +14287,44 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found 2026-11-24 by the F1324 builder and judge. On web the redirect returns signed in as account B, and the recency check compares claims.sub with the same swapped session, so it passes for B. Nothing is deleted without a second confirmation, but the learner is never told the account changed and can delete or export B believing it is A. Needs the expected id carried across the redirect and the F1324 sheet shown.
 - verified-by: `a web provider redirect that returns another account says so and deletes nothing`
 
+
+### F1144 — Two quick taps score and save one sound-check take twice
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:166
+- note: `phase` only changes after the awaited stop, so a second tap re-enters, reads the same `recorder.uri`, uploads again and persists again. Fails today: no re-entry guard exists.
+- note: Fixed 2026-11-24 on claude/review-m3b: `toggle` takes a `busyRef` before its first await and clears it in `finally`, as `RepeatThisView` does, so the early `selfGuided()` returns cannot lock the mic.
+- verified-by: `a second tap while the take is stopping scores and saves it once`
+
+### F1145 — The score upload has no time limit
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/speech/scoreAttempt.ts:32
+- note: React Native's Android client sets every timeout to zero, so a stalled scorer never settles and `consumeRecording` never discards. Fails today: the fetch receives no `signal`.
+- note: Fixed 2026-11-24 on claude/review-m3b: the upload carries `signal: AbortSignal.timeout(12_000)`, matching `judgeAttempt.ts`. A stalled scorer ends as null, and the take is discarded.
+- verified-by: `a scoring upload that never answers ends as no verdict and the take is removed`
+
+### F1146 — Hear it plays into the open mic and is not named by its word
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/soundcheck/SoundCheckScreen.tsx:284
+- note: no phase check, so the tutor's line is mixed into a scored take; the spoken name "Hear the reference line" does not contain "Hear it" (F951 rule).
+- note: Fixed 2026-11-24 on claude/review-m3b: while `shownPhase === 'recording'` the control does nothing, is marked disabled and sits at opacity 0.5. Its spoken name is "Hear it". It stays live during scoring, when the mic is already released.
+- verified-by: `Hear it is quiet while the take is recording`
+- verified-by: `the sound check's hear control is named by the word it shows`
+
+### F1147 — The web sound seam never registers its pause
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/sound/sfx.web.ts:67
+- note: `quietSfx()` pauses nothing in the browser preview; native is unaffected.
+- note: Fixed 2026-11-24 on claude/review-m3b: `sfx.web.ts` calls `setSfxPause(core.pauseAll)`, as `sfx.native.ts` does.
+- verified-by: `a voice line pauses the sound effects on the web seam too`
+
+### F1150 — Dead names in soundcheck and scenes
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/soundcheck/journey.ts:87
+- note: M3b-5 and M3b-6. One test dies and five are added in the same PR.
+- note: Fixed 2026-11-24 on claude/review-m3b: `SOUND_JOURNEY_OPEN`, `soundDoorLabel`, `SCENE_PREVIEW_TITLE` and the unused `GhostButton` import in `SoundJourneyScreen.tsx` are gone, with the one test that only exercised them. No test floor was lowered.
+- verified-by: `no score, no mastery, no trend, no scold`

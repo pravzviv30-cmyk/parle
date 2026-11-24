@@ -60,6 +60,9 @@ export function SoundCheckScreen({
   const preparedUri = useRef<string | null>(recorderUri(recorder, null));
   const cleanupRef = useRef<Promise<void> | null>(null);
   const stopping = useRef<Promise<void> | null>(null);
+  // A take's stop and start run one at a time: a second tap inside the stop
+  // would score and save the same take twice (F1144, as in RepeatThisView).
+  const busyRef = useRef(false);
   const stopRecorder = useCallback((): Promise<void> => {
     if (stopping.current) return stopping.current;
     const work = (async () => { await recorder.stop(); })().finally(() => { if (stopping.current === work) stopping.current = null; });
@@ -164,62 +167,67 @@ export function SoundCheckScreen({
   );
 
   const toggle = useCallback(async () => {
-    if (!reference || !ownsReadNow() || phase === 'scoring' || phase === 'loading' || phase === 'unread') return;
-    if (phase === 'recording') {
-      let lost = false;
-      try {
-        await stopRecorder();
-      } catch {
-        // It was still spoken; only assessment goes without.
-        lost = true;
-      }
-      // Where it was written, asked for on its own. A stop that threw can still
-      // have left bytes on disk, and the path is the only way to reach them.
-      const uri = recorderUri(recorder, preparedUri.current);
-      preparedUri.current = null;
-      void resetRecordingAudio().catch(() => undefined);
-      if (!ownsReadNow()) { discardRecording(uri); return; }
-      if (lost || !uri) {
-        // Nothing here can be assessed, so nothing here should be kept either.
-        discardRecording(uri);
-        return selfGuided();
-      }
-      setPhase('scoring');
-      const score = await consumeRecording(uri, (recorded) => scoreRecordedAttempt(userId, recorded, reference));
-      if (!ownsReadNow()) return;
-      const decision = soundCheckDecision(score?.observations.length ?? 0, score?.report ?? null);
-      setResult(decision);
-      setPhase('result');
-      persist(decision);
-      return;
-    }
-
+    if (busyRef.current || !reference || !ownsReadNow() || phase === 'scoring' || phase === 'loading' || phase === 'unread') return;
+    busyRef.current = true;
     try {
-      if (cleanupRef.current) await cleanupRef.current;
-      if (!ownsReadNow()) return;
-      const permission = await AudioModule.requestRecordingPermissionsAsync();
-      if (!ownsReadNow()) return;
-      // Refused access is explained, not silently turned into practice.
-      if (!permission.granted) return selfGuided(MIC_DENIED);
-      tutorVoice.stop();
-      micHold.current?.();
-      micHold.current = holdMic();
-      await enterRecording();
-      if (!ownsReadNow()) { await resetRecordingAudio(); return; }
-      preparedUri.current = recorderUri(recorder, preparedUri.current);
-      await recorder.prepareToRecordAsync();
-      preparedUri.current = recorderUri(recorder, preparedUri.current);
-      if (!ownsReadNow()) {
-        await abandonSoundCheckRecording(recorder, stopRecorder, preparedUri.current, discardRecording,
-          resetRecordingAudio);
+      if (phase === 'recording') {
+        let lost = false;
+        try {
+          await stopRecorder();
+        } catch {
+          // It was still spoken; only assessment goes without.
+          lost = true;
+        }
+        // Where it was written, asked for on its own. A stop that threw can still
+        // have left bytes on disk, and the path is the only way to reach them.
+        const uri = recorderUri(recorder, preparedUri.current);
         preparedUri.current = null;
+        void resetRecordingAudio().catch(() => undefined);
+        if (!ownsReadNow()) { discardRecording(uri); return; }
+        if (lost || !uri) {
+          // Nothing here can be assessed, so nothing here should be kept either.
+          discardRecording(uri);
+          return selfGuided();
+        }
+        setPhase('scoring');
+        const score = await consumeRecording(uri, (recorded) => scoreRecordedAttempt(userId, recorded, reference));
+        if (!ownsReadNow()) return;
+        const decision = soundCheckDecision(score?.observations.length ?? 0, score?.report ?? null);
+        setResult(decision);
+        setPhase('result');
+        persist(decision);
         return;
       }
-      recorder.record();
-      setPhase('recording');
-    } catch {
-      void resetRecordingAudio().catch(() => undefined);
-      selfGuided();
+
+      try {
+        if (cleanupRef.current) await cleanupRef.current;
+        if (!ownsReadNow()) return;
+        const permission = await AudioModule.requestRecordingPermissionsAsync();
+        if (!ownsReadNow()) return;
+        // Refused access is explained, not silently turned into practice.
+        if (!permission.granted) return selfGuided(MIC_DENIED);
+        tutorVoice.stop();
+        micHold.current?.();
+        micHold.current = holdMic();
+        await enterRecording();
+        if (!ownsReadNow()) { await resetRecordingAudio(); return; }
+        preparedUri.current = recorderUri(recorder, preparedUri.current);
+        await recorder.prepareToRecordAsync();
+        preparedUri.current = recorderUri(recorder, preparedUri.current);
+        if (!ownsReadNow()) {
+          await abandonSoundCheckRecording(recorder, stopRecorder, preparedUri.current, discardRecording,
+            resetRecordingAudio);
+          preparedUri.current = null;
+          return;
+        }
+        recorder.record();
+        setPhase('recording');
+      } catch {
+        void resetRecordingAudio().catch(() => undefined);
+        selfGuided();
+      }
+    } finally {
+      busyRef.current = false;
     }
   }, [reference, phase, recorder, stopRecorder, selfGuided, userId, persist, ownsReadNow, resetRecordingAudio]);
 
@@ -282,10 +290,12 @@ export function SoundCheckScreen({
         <Card tone="journal" style={st.line}>
           <Text {...frenchText} style={[fitDisplay(shownReference), { color: t.text, textAlign: 'center' }]}>{shownReference}</Text>
           <Pressable
-            onPress={() => { if (ownsReadNow()) tutorVoice.speak(shownReference); }}
+            onPress={() => { if (ownsReadNow() && shownPhase !== 'recording') tutorVoice.speak(shownReference); }}
+            disabled={shownPhase === 'recording'}
             accessibilityRole="button"
-            accessibilityLabel="Hear the reference line"
-            style={({ pressed }) => [st.hear, pressed && { opacity: 0.7 }]}
+            accessibilityState={{ disabled: shownPhase === 'recording' }}
+            accessibilityLabel="Hear it"
+            style={({ pressed }) => [st.hear, pressed && { opacity: 0.7 }, shownPhase === 'recording' && { opacity: 0.5 }]}
           >
             <EarGlyph size={16} color={t.text} />
             <Text style={[type.label, { color: t.text }]}>Hear it</Text>

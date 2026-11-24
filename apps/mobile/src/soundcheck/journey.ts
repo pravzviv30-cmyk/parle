@@ -33,7 +33,7 @@
 
 import { getMission, type MissionId } from '@luvani/core';
 
-import { SOUND_FINGERPRINT_OPEN, isMeasuredCheck, timeless } from '../myfrench/sounds.ts';
+import { isMeasuredCheck, timeless } from '../myfrench/sounds.ts';
 import { soundExampleWord } from '../tutor/soundExample.ts';
 import { nextSoundCheckReference, type SoundCheckEvidence } from './model.ts';
 
@@ -83,14 +83,6 @@ export const JOURNEY_COPY = {
   /** The empty state's way on, in the sound check's own cold-state words. */
   choose: 'Choose a situation',
 } as const;
-
-/** What a screen reader hears on My French's sound row when it opens the journey. */
-export const SOUND_JOURNEY_OPEN = 'Open your focus sound';
-
-/** The sound row's accessible name, for whichever screen it opens. */
-export function soundDoorLabel(journey: SoundJourney | null): string {
-  return journey === null ? SOUND_FINGERPRINT_OPEN : SOUND_JOURNEY_OPEN;
-}
 
 /** "Called out once, on a line from …" or "Called out 3 times, most recently on a line from …". */
 export function calledOutLine(times: number, situation: string): string {

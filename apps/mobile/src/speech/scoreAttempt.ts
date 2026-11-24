@@ -31,6 +31,7 @@ export async function scoreRecordedAttempt(
     // because a header must be ASCII and French has accented letters.
     const res = await fetch(`${TOKEN_SERVER}/drill/score`, {
       method: 'POST',
+      signal: AbortSignal.timeout(12_000),
       headers: {
         'content-type': 'application/octet-stream',
         'x-luvani-user': encodeURIComponent(userId),

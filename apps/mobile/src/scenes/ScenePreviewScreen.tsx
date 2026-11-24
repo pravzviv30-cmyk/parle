@@ -38,8 +38,6 @@ import { useExploreAccess } from '../purchases/useExploreAccess.ts';
 import { PREVIEW_COPY, scenePreview, soundLabel, startLabel, type PreviewLine } from './scenePreview.ts';
 import { useHear } from './useHear.ts';
 
-export const SCENE_PREVIEW_TITLE = 'Scene preview';
-
 export function ScenePreviewScreen() {
   const t = useB();
   const st = useThemedStyles(makeStyles);
