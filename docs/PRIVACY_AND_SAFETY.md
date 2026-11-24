@@ -754,6 +754,9 @@ only the verified caller, never a user id supplied by the client. Before it does
 unless the account really signed in within the last five minutes, because a
 refreshed bearer is not reauthentication and a stolen session must not be able to
 erase somebody. Deletion is rate limited to 3 per account and 20 per IP per day.
+On iOS and Android, a Google or Apple re-sign-in that comes back as a different
+account deletes and exports nothing: the app signs that account out on the phone
+and says so (F1324).
 
 **What the delete removes.** The Supabase user, and by `on delete cascade`:
 `learner_state`, `product_events`, `entitlements`, `session_usage`, `session_grants`, `billing_events`

@@ -24,6 +24,7 @@ import { friendly, deletionFailure, reauthenticationLine, GOOGLE_NOT_CONFIGURED,
 import { createProviderAvailability } from './providerStatus.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
 import { createSecureSessionStorage } from './secureSessionStorage.ts';
+import { proveSameAccount } from './reauthProof.ts';
 import { clearOnFreshInstall } from './freshInstall.ts';
 import { installationId } from './installation.ts';
 import { ensureAuthRandom } from './cryptoRandom.ts';
@@ -69,6 +70,8 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
     },
   });
   const emailLinkFailures = new Set<() => void>();
+  const accountChanges = new Set<(purpose: 'deletion' | 'export') => void>();
+  const accountChanged = (purpose: 'deletion' | 'export') => { for (const changed of accountChanges) changed(purpose); };
   const providers = createProviderAvailability(url, anonKey);
   void providers.prefetch();
 
@@ -117,6 +120,11 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
     onEmailLinkFailure(cb) {
       emailLinkFailures.add(cb);
       return () => { emailLinkFailures.delete(cb); };
+    },
+
+    onAccountChanged(cb) {
+      accountChanges.add(cb);
+      return () => { accountChanges.delete(cb); };
     },
 
     async signUpWithPassword(email, password): Promise<AuthResult> {
@@ -195,7 +203,8 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         if (Platform.OS === 'web' && result.ok) {
           return { ok: false, message: reauthenticationLine(purpose, 'google') };
         }
-        return result;
+        // Native swapped the session to whoever the chooser returned (F1324).
+        return proveSameAccount(client, user.id, result, purpose, accountChanged);
       }
       if (user.app_metadata?.provider === 'apple') {
         // Native returns here with a session in hand; web has already left for
@@ -205,7 +214,7 @@ export function createSupabaseAdapter(url: string, anonKey: string): AuthAdapter
         if (Platform.OS === 'web' && result.ok) {
           return { ok: false, message: reauthenticationLine(purpose, 'apple') };
         }
-        return result;
+        return proveSameAccount(client, user.id, result, purpose, accountChanged);
       }
       if (!user.email || !secret) {
         return { ok: false, message: 'Enter your password to confirm it is you.' };

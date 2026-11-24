@@ -96,7 +96,7 @@ are not, and finding either is a P0.
 | D7 | Google sign-in over the `luvani://auth/callback` deep link | not run | not run |
 | D8 | Password reset from the email link | not run | not run |
 | D9 | Deletion demands a recent password reauthentication | not run | not run |
-| D10 | Deletion demands a recent Google reauthentication | not run | not run |
+| D10 | Deletion demands a recent Google reauthentication, and refuses a different account | not run | not run |
 | D11 | A failed local wipe is reported honestly, not swallowed | not run | not run |
 | D12 | No bearer token in logs, in AsyncStorage, or in the bundle | not run | not run |
 | D13 | Two accounts on one device never see each other's learning | not run | not run |
@@ -325,12 +325,30 @@ refresh the sign-in timestamp, and it is a real defect rather than a test error.
 
 **Expect:** the sheet explains that Google will ask you to sign in again, the
 Google sheet opens, and after completing it the deletion goes through. On native
-`reauthenticateForDeletion` returns the result of `startGoogleSignIn` directly, so
-the flow finishes in one pass.
+`reauthenticateForDeletion` passes the result of `startGoogleSignIn` to
+`proveSameAccount`, which lets it through when the session is still the same
+account, so the flow finishes in one pass.
 
 **Fail looks like:** the deletion proceeding without the Google sheet at all, or
 the sheet completing and the delete then failing with the recent-authentication
 message.
+
+**The wrong account (F1324).** Use a phone whose browser also holds a second
+Google account, B, that is not the one signed in to Luvani, A.
+
+1. Signed in as A, Profile → Settings → Delete account, and confirm.
+2. In Google's account chooser, pick B.
+
+**Expect:** a "Different account" sheet over the sign-in screen saying *You signed
+in with a different account, so nothing was deleted.* followed by the sign-in
+line. VoiceOver reads it on iOS (`onAccountChanged` raises the sheet, and the
+line is announced). Signing back in as A finds A's account and history intact,
+and B, if it was a real Luvani account, is intact too. Repeat with Download my
+data: the same sheet says nothing was downloaded, and no share sheet opens. Repeat
+with Apple on Android, or on an iPhone whose Apple ID is not the one A used.
+
+**Fail looks like:** "Your account has been deleted." after picking B, A still
+signing in with its history, or the app left signed in as B.
 
 ### D11 — a failed local wipe is reported honestly
 

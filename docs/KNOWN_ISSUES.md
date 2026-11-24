@@ -14266,3 +14266,13 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Fixed 2026-11-19 on claude/review-b3b-b: the set, its three functions, REPORTED_SESSIONS_KEPT, REPLAYED_SESSION_MESSAGE, the refused field and every read in both tutors are gone, with the two tests and their cleanup calls. The tutor-agent suite went from 1050 to 1048 (main had grown since the contract's 1044). F77 points at the durable claim's test, and voice-repro.mjs and voice-result.json no longer measure the set.
 - verified-by: `claim validates the owner fence and rejects a reused or oversized reservation`
 - verified-by: `a claim the database refuses throws before any provider is built`
+
+### F1324 — A provider re-sign-in that returns another account must delete nothing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:193
+- note: native reauthentication accepts any returned account, so deletion removes the wrong one and reports success; refuse, sign out locally, and say so on the sign-in door.
+- note: Fixed 2026-11-24 on claude/review-m2a1: both native provider branches of `reauthenticateForDeletion` pass their result to `proveSameAccount` (auth/reauthProof.ts), which compares the session id with the one captured before the sign-in. A different id signs out locally, fires `onAccountChanged`, and returns the founder's line, so `deleteAccount` never runs and export makes no file. AuthProvider draws a "Different account" sheet, announced on iOS. Not device-verified: DEVICE_VERIFICATION.md D10. The web branch is a separate follow-up.
+- verified-by: `a provider reauthentication that returns another account deletes nothing`
+- verified-by: `both provider branches prove the same account before reporting success`
+- verified-by: `the different-account line is announced on the sign-in door and keeps the copy rules`

@@ -7,10 +7,11 @@
  */
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Text } from 'react-native';
+import { AccessibilityInfo, Platform, Text } from 'react-native';
 import { PillButton, Sheet } from '../components.tsx';
 import { paper, type } from '../theme.ts';
 import { EMAIL_LINK_FAILED } from './emailCallback.ts';
+import { differentAccountLine } from './friendly.ts';
 import type { AuthAdapter, AuthUser } from './types.ts';
 import { trackedEmailSignup } from './signupCompletion.ts';
 import { observeSession } from './sessionBootstrap.ts';
@@ -37,6 +38,7 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
   const [user, setUser] = useState<AuthUser | null>(null);
   const [recovering, setRecovering] = useState(false);
   const [emailLinkFailed, setEmailLinkFailed] = useState(false);
+  const [accountChanged, setAccountChanged] = useState<'deletion' | 'export' | null>(null);
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [newAccountUserId, setNewAccountUserId] = useState<string | null>(null);
   const mounted = useRef(true);
@@ -53,6 +55,11 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
   }), [adapter]);
 
   useEffect(() => adapter.onEmailLinkFailure?.(() => setEmailLinkFailed(true)), [adapter]);
+  useEffect(() => adapter.onAccountChanged?.(setAccountChanged), [adapter]);
+  // The live region below is Android-only; VoiceOver hears the line from here.
+  useEffect(() => {
+    if (accountChanged && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(differentAccountLine(accountChanged));
+  }, [accountChanged]);
 
   useEffect(() => {
     return observeSession(adapter, (next) => {
@@ -68,6 +75,10 @@ export function AuthProvider({ adapter, children }: { adapter: AuthAdapter; chil
       <Sheet visible={emailLinkFailed} title="Email link" onClose={() => setEmailLinkFailed(false)}
         footer={<PillButton label="Continue" onPress={() => setEmailLinkFailed(false)} />}>
         <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{EMAIL_LINK_FAILED}</Text>
+      </Sheet>
+      <Sheet visible={accountChanged !== null} title="Different account" onClose={() => setAccountChanged(null)}
+        footer={<PillButton label="Continue" onPress={() => setAccountChanged(null)} />}>
+        {accountChanged && <Text accessibilityLiveRegion="polite" style={[type.body, { color: paper.ink }]}>{differentAccountLine(accountChanged)}</Text>}
       </Sheet>
     </AuthContext.Provider>
   );
