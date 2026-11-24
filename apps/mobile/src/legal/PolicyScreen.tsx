@@ -22,9 +22,9 @@
  * line wraps and the column grows.
  *
  * There is also deliberately no `flexGrow: 1` wrapper around the sections. That
- * is not a style preference. `MyFrenchTab` has one inside its `ScrollScreen` and
- * at the largest reading size the whole tab below the subtitle disappears and
- * the screen will not scroll past it, which is open defect F383. The frame's own
+ * is not a style preference. `MyFrenchTab` had one inside its `ScrollScreen` and
+ * at the largest reading size the whole tab below the subtitle disappeared and
+ * the screen would not scroll past it, which was defect F383. The frame's own
  * ScrollView already carries the `flexGrow` that keeps a short page filling the
  * column; a second one inside it is the bug. This screen puts its sections
  * straight into the scroll body with nothing between.

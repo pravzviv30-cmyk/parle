@@ -6,7 +6,7 @@
  * and both are drawn from data: `legal/policy.ts` carries the privacy notice,
  * assembled from docs/PRIVACY_AND_SAFETY.md, and `legal/terms.ts` names Apple's
  * standard licence rather than reproducing a document that is theirs. Neither
- * has been read by a lawyer, and both keep saying so.
+ * has been read by a lawyer yet.
  *
  * What is left here is the thing those two do not cover: real font and library
  * licences that genuinely have to be reproduced, so those are reproduced.
@@ -16,7 +16,7 @@
  * what OFL section requires for an application that redistributes the fonts
  * embedded — the full text ships in the bundle at assets/fonts/.
  *
- * It opens in place from Profile rather than as a stack route, so it answers
+ * It opens in place from Settings rather than as a stack route, so it answers
  * the hardware back itself and takes its frame from the shared `ScrollScreen`.
  */
 
@@ -78,7 +78,7 @@ const NOTICES: readonly Notice[] = [
 export function Acknowledgements({ onBack }: { onBack: () => void }) {
   const t = useB();
   // Opened in place, so Android's hardware back closes it rather than popping
-  // whatever pushed Profile.
+  // whatever pushed Settings.
   useHardwareBack(true, onBack);
   return (
     <ScrollScreen header={<ScreenHeader back={{ onPress: onBack }} />}>

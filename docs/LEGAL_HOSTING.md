@@ -103,6 +103,10 @@ page has a list of section links. The live site needs the whole `dist` folder, `
 uploaded again through Part C. This is the founder's manual step; until it is done the hosted
 pages show the system font.
 
+**Re-upload owed (2026-11-24, F1139):** `support.html` now links to the privacy notice at
+`/privacy` instead of `privacy.html`, which answers 308. Until the `dist` folder is uploaded
+again through Part C, the hosted support page still uses the old link.
+
 ---
 
 ## Part C: Cloudflare Pages, by direct upload

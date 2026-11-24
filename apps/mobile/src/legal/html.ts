@@ -185,7 +185,7 @@ export function supportHtml(facts: CompanyFacts = COMPANY): string {
   for (const { question, answer } of SUPPORT_ANSWERS) {
     body.push(`<h2>${escape(question)}</h2>`, `<p>${escape(answer)}</p>`);
   }
-  body.push('<h2>Privacy</h2>', '<p><a href="privacy.html">What Luvani keeps about you</a></p>');
+  body.push('<h2>Privacy</h2>', `<p><a href="${escape(hosted('privacy.html'))}">What Luvani keeps about you</a></p>`);
   return page(SUPPORT_TITLE, body, facts);
 }
 
