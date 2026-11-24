@@ -14276,3 +14276,10 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - verified-by: `a provider reauthentication that returns another account deletes nothing`
 - verified-by: `both provider branches prove the same account before reporting success`
 - verified-by: `the different-account line is announced on the sign-in door and keeps the copy rules`
+### F1326 — On web, a provider re-sign-in that returns another account is not noticed
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:197
+- note: Found 2026-11-24 by the F1324 builder and judge. On web the redirect returns signed in as account B, and the recency check compares claims.sub with the same swapped session, so it passes for B. Nothing is deleted without a second confirmation, but the learner is never told the account changed and can delete or export B believing it is A. Needs the expected id carried across the redirect and the F1324 sheet shown.
+- verified-by: `a web provider redirect that returns another account says so and deletes nothing`
+
