@@ -37,14 +37,18 @@ export function SavedTextScreen() {
     setRows(null); setSelected(null); setConfirming(false); setMessage(null); setNextCursor(null); loadingMore.current = false; setMoreBusy(false); setBusy(false);
     if (!user || scope !== scopeGeneration()) return;
     const wanted = opening.current;
-    void (wanted ? findText(user, adapter, wanted) : Promise.resolve(null)).then(found => {
+    // The list loads first, so the conversation only ever opens over a loaded list.
+    void listText(user, adapter).then(async result => {
       if (issued !== ticket.current || scope !== scopeGeneration()) return;
-      if (found?.ok) { opening.current = undefined; if (found.value) setSelected(found.value); }
-      return listText(user, adapter).then(result => {
-        if (issued !== ticket.current || scope !== scopeGeneration()) return;
-        if (result.ok) { setRows(result.value.conversations); setNextCursor(result.value.nextCursor); } else setMessage(result.message);
-      });
-    }).catch(() => { if (issued === ticket.current && scope === scopeGeneration()) setMessage('Saved text could not be loaded. Try again.'); });
+      if (!result.ok) { setMessage(result.message); return; }
+      setRows(result.value.conversations); setNextCursor(result.value.nextCursor);
+      if (!wanted) return;
+      const here = result.value.conversations.find(row => row.sessionId === wanted);
+      const found = here ? { ok: true as const, value: here } : await findText(user, adapter, wanted);
+      const value = found.ok ? found.value : null;
+      if (issued === ticket.current && scope === scopeGeneration() && value) setSelected(current => current ?? value);
+    }).catch(() => { if (issued === ticket.current && scope === scopeGeneration()) setMessage('Saved text could not be loaded. Try again.'); })
+      .finally(() => { if (opening.current === wanted) opening.current = undefined; });
     return () => { ticket.current++; };
   }, [user, adapter, attempt, scope]));
   const more = () => {
@@ -66,7 +70,7 @@ export function SavedTextScreen() {
     setBusy(true); setMessage(null);
     void deleteText(user, adapter, sessionId).then(result => {
       if (issued !== ticket.current || scope !== scopeGeneration()) return;
-      if (result.ok) { setRows(current => current?.filter(row => row.sessionId !== sessionId) ?? []); setSelected(null); setConfirming(false); }
+      if (result.ok) { setRows(current => current?.filter(row => row.sessionId !== sessionId) ?? null); setSelected(null); setConfirming(false); }
       else setMessage(result.message);
     }).catch(() => { if (issued === ticket.current && scope === scopeGeneration()) setMessage('Deletion could not finish. Try again.'); }).finally(() => { if (issued === ticket.current && scope === scopeGeneration()) setBusy(false); });
   };

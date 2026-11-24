@@ -33,8 +33,19 @@ test("a conversation's saved text opens on that conversation", () => {
   assert.match(routes, /SavedConversationText: \{ sessionId\?: string \} \| undefined;/);
   assert.match(screen, /route\.params\?\.sessionId/, 'the screen ignores which conversation it was opened for');
   assert.match(screen, /findText\(user, adapter, wanted\)/);
-  assert.match(screen, /if \(found\.value\) setSelected\(found\.value\)/, 'a found conversation does not open');
+  assert.match(screen, /&& value\) setSelected\(current => current \?\? value\)/, 'a found conversation does not open');
   assert.match(screen, /const exit = \(\) => \{ if \(selected\) \{ setSelected\(null\)/, 'back from the conversation goes to the list');
   assert.match(library, /onSavedText !== undefined && <IconAction layout="inline" icon="document" label="Saved conversation text"[^>]*onPress=\{\(\) => onSavedText\(selected\)\}/, 'the opened conversation has no door to its saved text');
   assert.match(conversations, /onSavedText=\{adapter\.kind === 'supabase' \? \(pack\) => nav\.navigate\('SavedConversationText', \{ sessionId: pack\.sessionId \}\) : undefined\}/, 'the door is drawn on a build with no saved text');
+});
+
+test('a conversation opens only over a loaded list, so a list failure keeps Try again and a delete never invents an empty list', () => {
+  const list = screen.indexOf('listText(user, adapter).then'), rowsSet = screen.indexOf('setRows(result.value.conversations)');
+  const find = screen.indexOf('findText(user, adapter, wanted)'), select = screen.indexOf('setSelected(current => current ?? value)');
+  assert.ok(list > -1 && rowsSet > list && find > rowsSet && select > find, 'the conversation must open only after page 1 of the list is set');
+  assert.match(screen, /current\?\.filter\(row => row\.sessionId !== sessionId\) \?\? null/, 'a delete with no loaded list must leave it unloaded, not empty');
+});
+
+test('the requested conversation opens once: any finished lookup clears it, so a refocus shows the list', () => {
+  assert.match(screen, /\.finally\(\(\) => \{ if \(opening\.current === wanted\) opening\.current = undefined; \}\)/);
 });

@@ -177,12 +177,13 @@ async function recoverPending(current:()=>boolean): Promise<boolean> {
   });
   return current();
 }
-async function cacheAndBank(packs: readonly ConversationPack[], current:()=>boolean): Promise<boolean> {
+async function cacheAndBank(packs: readonly ConversationPack[], current:()=>boolean, skipped: readonly unknown[] = []): Promise<boolean> {
   if (!current() || packs.length>CONVERSATION_PAGE_SIZE) return false;
   await serialised(async(key,owner)=>{
     const held=await readCache(key);
     if (!current() || (held.pendingBanking?.length ?? 0)>0) throw new Error('conversation recovery pending');
-    const ids=new Set(packs.map(pack=>pack.id));
+    // A pack skipped on this page also drops its older cached copy (pending is empty here).
+    const ids=new Set<unknown>([...packs.map(pack=>pack.id),...skipped]);
     const merged=[...packs,...held.packs.filter(pack=>!ids.has(pack.id))].slice(0,MAX_CACHED_CONVERSATION_PACKS);
     await writeCache(key,owner,{version:VERSION,packs:normaliseConversationPacks(merged),pendingBanking:packs.map(pack=>pack.id)});
   });
@@ -208,7 +209,7 @@ export function refreshConversationPacks(user:AuthUser,adapter:AuthAdapter,reque
         || (page.nextCursor!==null && (page.packs.length+unavailable.length===0 || page.nextCursor===after))) return {ok:false};
       // A pack this build's validator rejects is skipped alone, not the page (F1052).
       const packs=normaliseConversationPacks(page.packs.filter(isConversationPack)).map(withKnownPracticeStatus);
-      if (!(await cacheAndBank(packs,current)) || !current()) return {ok:false};
+      if (!(await cacheAndBank(packs,current,page.packs.filter(pack=>!isConversationPack(pack)).map(pack=>(pack as {id?:unknown}).id))) || !current()) return {ok:false};
       return {ok:true,packs,unavailable,nextCursor:page.nextCursor as string|null};
     } catch {return {ok:false};}
   });

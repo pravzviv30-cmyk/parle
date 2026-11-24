@@ -145,3 +145,24 @@ test('a pack the server answered 404 for is not served from the cache offline af
   assert.deepEqual(await loadConversationPackForLearner(user(uid),noToken,gone.id,down),{ok:false});
   assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,kept.id,down),{ok:true,pack:kept},'only that pack leaves the cache');
 });
+test('an account change during the offline read or the 404 eviction never serves or writes this cache',async()=>{
+  const uid='guard-owner',other='guard-other';setActiveUser(uid);const held={...pack(uid,1),summary:'GUARD_SCOPE_MARKER'};await replaceConversationPacks([held]);
+  const key=userKey('conversationPacks'),before=disk.get(key);let armed=false;
+  const originalGet=storage.getItem;storage.getItem=async(name:string)=>{if(armed){armed=false;setActiveUser(other);}return disk.get(name)??null;};
+  try{
+    const noToken={kind:'supabase',getAccessToken:async()=>{armed=true;return null;}} as unknown as AuthAdapter;
+    assert.deepEqual(await loadConversationPackForLearner(user(uid),noToken,held.id),{ok:false},'the cached pack is served after the account changed');
+    setActiveUser(uid);
+    assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,held.id,async()=>{armed=true;return new Response(null,{status:404});}),{ok:false});
+    assert.equal(disk.get(key),before,'the eviction wrote after the account changed');
+    assert.ok([...disk.entries()].filter(([name])=>name.startsWith(`luvani.u.${other}.`)).every(([,value])=>!value.includes('GUARD_SCOPE_MARKER')));
+  }finally{storage.getItem=originalGet;}
+});
+test('a cached pack the server now sends in a shape this build rejects is dropped, not kept stale',async()=>{
+  const uid='stale-skip';setActiveUser(uid);const old=pack(uid,1),fresh=pack(uid,2);await replaceConversationPacks([old]);
+  const rejected={...old,version:2};assert.equal(isConversationPack(rejected),false);
+  assert.equal((await refreshConversationPacks(user(uid),adapter,reply({packs:[rejected,fresh],nextCursor:null}))).ok,true);
+  assert.deepEqual((await loadConversationPacks()).map(item=>item.id),[fresh.id]);
+  const down:typeof fetch=async()=>{throw new TypeError('Network request failed');};
+  assert.deepEqual(await loadConversationPackForLearner(user(uid),adapter,old.id,down),{ok:false});
+});

@@ -11110,7 +11110,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F855 — Conversation practice needs the network on Supabase builds
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/conversationPacks/store.ts:186
+- where: apps/mobile/src/conversationPacks/store.ts:187
 - note: Found 2026-10-20 in B3 (B-Practice). The artboard's "Works offline once unlocked" was checked against the code: `loadConversationPackForLearner` reads the server on a Supabase build and never falls back to the device's cached pack, so ConversationPractice says "This conversation isn't available here." offline even though Practice drew the conversation from the cache. The line is not drawn on Practice until this is true. Fix: fall back to the owned cached pack when the server cannot be reached (not on a 404, which means deleted).
 - note: 2026-11-23, founder: "Work offline". loadConversationPackForLearner falls back to the owned cached pack when the server cannot be reached, but not on a 404, which means deleted. Practice may then draw "Works offline once unlocked" (practice/practiceTabView.ts:16). Built with wave 3 M1 (conversationPacks).
 - note: Fixed 2026-11-24 on claude/review-m1b: when the request throws before a reply, or no token can be had, the lookup returns this account's cached pack. A 404 is still `pack: null`; 413 and a bad body are unchanged; an uncached pack is still `ok: false`.
@@ -14450,7 +14450,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1052 — One pack the app's validator rejects refuses the whole server page
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/conversationPacks/store.ts:206
+- where: apps/mobile/src/conversationPacks/store.ts:207
 - note: A page of up to 20 packs was refused when one pack held one exercise this build rejects, so older history could not be reached while online. Skip the invalid pack; another learner's pack still refuses the page.
 - note: Fixed 2026-11-24 on claude/review-m1b: `refreshConversationPacks` drops packs that fail `isConversationPack` one by one. A pack whose `learnerId` is not the learner's still refuses the page. Skipped packs are not listed under `unavailable`, whose copy says "too large".
 - verified-by: `one exercise without a no-mic twin does not fail the rest of the batch`
@@ -14458,7 +14458,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1133 — Saved text shows Try again while it is still loading
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/conversationPacks/SavedTextScreen.tsx:79
+- where: apps/mobile/src/conversationPacks/SavedTextScreen.tsx:91
 - note: `message` starts null and `null !== ''` is true.
 - note: Fixed 2026-11-24 on claude/review-m1b: Try again uses the message line's own guard, `message != null`.
 - verified-by: `saved text offers Try again only after a read failed`
@@ -14474,7 +14474,7 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1136 — M1b dead and stale: six unused exports, two unused imports, two wrong comments
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/conversationPacks/closure.ts:151
+- where: apps/mobile/src/conversationPacks/closure.ts:150
 - note: Findings M1b-6 and the unpinned half of M1b-7. No test dies.
 - note: Fixed 2026-11-24 on claude/review-m1b: `closureFromPack`, `isSamplePack`, `SAVED_SITUATIONS_LABEL`, `SAVED_SITUATION_ACTION`, `OUT_OF_TIME_COPY` and planStatus's re-export of `freeBackLine`, `freshMinutesLine` and `PERIOD_LINES` are gone, with the unused `GhostButton` imports in `ConversationPracticeScreen.tsx` and `SaveTextChoice.tsx`. The comments at `featureLocks.ts:85` (pack drills, per REV-003) and `bookmarks/store.ts:42` (3000) now match the code. The closure test runs on `closureOf`, title kept; no floor moved.
 - verified-by: `a closure carries three phrases, one repair, one focus, one next mission and up to three wins, from the pack and nothing invented`
@@ -14482,6 +14482,6 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 ### F1330 — A conversation the server answered 404 for still opened from the cache offline
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/conversationPacks/store.ts:240
+- where: apps/mobile/src/conversationPacks/store.ts:241
 - note: 2026-11-24 (M1b judge): loadConversationPackForLearner returned pack null on a 404 but left the pack in the device cache, so the F855 offline fallback served it on the next offline open. A 404 now evicts it from this account's cache.
 - verified-by: `a pack the server answered 404 for is not served from the cache offline afterwards`
