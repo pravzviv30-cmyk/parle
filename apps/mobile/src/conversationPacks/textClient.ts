@@ -1,5 +1,5 @@
 /** Explicit saved-text requests. No disk cache, background upload or automatic save. */
-import { conversationTextCursor, isConversationText, isSavedConversationText, type ConversationText, type ConversationTextPage } from '@luvani/core';
+import { conversationTextCursor, isConversationText, isSavedConversationText, type ConversationText, type ConversationTextPage, type SavedConversationText } from '@luvani/core';
 import type { AuthAdapter, AuthUser } from '../auth/types.ts';
 import { activeUserId, scopeGeneration } from '../storage/scope.ts';
 import { TOKEN_SERVER } from '../live/serverUrl.ts';
@@ -51,6 +51,18 @@ export async function listText(user: AuthUser, adapter: AuthAdapter, request: ty
     }
     return { ok: true, value: { conversations: rows, nextCursor: nextCursor as string | null } };
   } catch { return failure(); }
+}
+/** One conversation's saved text within the first five pages, or null to land on the list (F860). */
+export async function findText(user: AuthUser, adapter: AuthAdapter, sessionId: string, request: typeof fetch = fetch): Promise<TextResult<SavedConversationText | null>> {
+  let after: string | null = null;
+  for (let page = 0; page < 5; page++) {
+    const result = await listText(user, adapter, request, after);
+    if (!result.ok) return result;
+    const found = result.value.conversations.find(row => row.sessionId === sessionId);
+    if (found || result.value.nextCursor === null) return { ok: true, value: found ?? null };
+    after = result.value.nextCursor;
+  }
+  return { ok: true, value: null };
 }
 export async function deleteText(user: AuthUser, adapter: AuthAdapter, sessionId: string, request: typeof fetch = fetch): Promise<TextResult<void>> {
   const scope = scopeGeneration();

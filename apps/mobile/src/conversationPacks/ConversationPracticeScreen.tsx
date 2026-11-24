@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { phraseKeyOf, type ConversationPack } from '@luvani/core';
-import { IconAction, Card, GhostButton, Label, PillButton } from '../components.tsx';
+import { IconAction, Card, Label, PillButton } from '../components.tsx';
 import { ScrollScreen, ScreenHeader } from '../layout.tsx';
 import { corner, radius, space, type, HIT, frenchText } from '../theme.ts';
 import * as voice from '../speech/tutorVoice.ts';

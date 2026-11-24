@@ -4,7 +4,7 @@
  * Two of the three are not supplied yet. That is the whole reason this module
  * exists rather than three strings written into whichever screen needed one:
  * an unset fact has to draw NOTHING, and a screen that spells its own address
- * has no way to be absent. This is `appVersionLine`'s shape (ProfileTab.tsx)
+ * has no way to be absent. This is `appVersionLine`'s shape (profile/appVersion.ts)
  * applied to three facts instead of one, and `company.test.ts` walks the source
  * to keep it that way.
  *
@@ -24,7 +24,7 @@
  *
  * ## Where the paragraph came from
  *
- * `privacyNote` is the Profile footer's own text, kept because it was already
+ * `privacyNote` is the Settings privacy footer's own text, kept because it was already
  * the most honest sentence in the app: it says what is implemented, and it says
  * a reviewed policy is still owing rather than implying one exists. It is also
  * the source of the vendor phrase `onboarding/disclosure.ts` copies character
@@ -129,7 +129,7 @@ export function companyLine(facts: CompanyFacts = COMPANY): string | null {
 /**
  * The sentence that stays true until a lawyer has read the documents.
  *
- * Verbatim from the Profile footer, and pinned by `disclosure.test.ts`. Accurate
+ * Verbatim from the Settings privacy footer, and pinned by `disclosure.test.ts`. Accurate
  * words are not cleared words, and the app should not imply otherwise.
  */
 export const LEGAL_REVIEW_PENDING = 'Our privacy policy and terms still need legal review before Luvani can be released.';
@@ -155,8 +155,9 @@ function bundledBuildProfile(): string | undefined {
 /**
  * The short, honest paragraph about what Luvani keeps.
  *
- * It is the footer's four sentences: what is recorded, where live speech goes,
- * what bounds where anything else can go, and that a review is still owing. The
+ * It is the footer's sentences: what is recorded, where live speech goes, what
+ * the learner controls, what they can export or delete, and, in builds that
+ * show it, that a review is still owing. The
  * contact sentence is added only when there is somewhere to write to, which is
  * the same rule the row follows and the reason this reads the facts at all.
  *
@@ -167,18 +168,18 @@ function bundledBuildProfile(): string | undefined {
  * import would make the check true by construction on the day somebody rewrites
  * only one of the two sentences around it. `disclosure.test.ts` reads this.
  *
- * ## Why the second sentence is a bound and not a denial
+ * ## Why the second sentence names services and not a denial
  *
  * It read "Nothing is shared with anyone else or sold for advertising" until
  * F497. That was defensible while the sentence before it named the only
  * recipients there were, because every one of them was a speech or language
  * service; it stopped being defensible when F481, F484 and F488 established the
  * language model, the rented database, the counter store and the company that
- * takes the payment as recipients too. So this says what the notice says, in
- * fewer words: nothing is sold, and what leaves is bounded by the purposes it
- * leaves for. A count of companies is falsified by the next company. A purpose
- * is not, and a new one is a new word here rather than a lie nobody noticed.
- * `policy.test.ts` holds this sentence against the notice's own bound.
+ * takes the payment as recipients too. So this names the services and what
+ * they process words for, and leaves the bound on what leaves to the notice:
+ * the footer certifies no purpose limit, because provider retention is still
+ * unverified there. A count of companies is falsified by the next company.
+ * `policy.test.ts` holds this sentence to the notice and forbids both shapes.
  */
 export function privacyNote(facts: CompanyFacts = COMPANY, reviewNote: boolean = legalReviewNoteShown()): string {
   const contact = facts.supportEmail === null ? '' : ` You can reach us at ${facts.supportEmail}.`;

@@ -177,12 +177,13 @@ async function recoverPending(current:()=>boolean): Promise<boolean> {
   });
   return current();
 }
-async function cacheAndBank(packs: readonly ConversationPack[], current:()=>boolean): Promise<boolean> {
+async function cacheAndBank(packs: readonly ConversationPack[], current:()=>boolean, skipped: readonly unknown[] = []): Promise<boolean> {
   if (!current() || packs.length>CONVERSATION_PAGE_SIZE) return false;
   await serialised(async(key,owner)=>{
     const held=await readCache(key);
     if (!current() || (held.pendingBanking?.length ?? 0)>0) throw new Error('conversation recovery pending');
-    const ids=new Set(packs.map(pack=>pack.id));
+    // A pack skipped on this page also drops its older cached copy (pending is empty here).
+    const ids=new Set<unknown>([...packs.map(pack=>pack.id),...skipped]);
     const merged=[...packs,...held.packs.filter(pack=>!ids.has(pack.id))].slice(0,MAX_CACHED_CONVERSATION_PACKS);
     await writeCache(key,owner,{version:VERSION,packs:normaliseConversationPacks(merged),pendingBanking:packs.map(pack=>pack.id)});
   });
@@ -203,11 +204,12 @@ export function refreshConversationPacks(user:AuthUser,adapter:AuthAdapter,reque
       const page=reply.body as {packs?:unknown;unavailable?:unknown;nextCursor?:unknown};
       const unavailable=page.unavailable??[];
       if (!Array.isArray(page.packs) || !Array.isArray(unavailable) || unavailable.some(row=>!validUnavailable(row))
-        || page.packs.length+unavailable.length>CONVERSATION_PAGE_SIZE || page.packs.some(pack=>!isConversationPack(pack) || pack.learnerId!==user.id)
+        || page.packs.length+unavailable.length>CONVERSATION_PAGE_SIZE || page.packs.some(pack=>(pack as {learnerId?:unknown}|null)?.learnerId!==user.id)
         || new Set([...page.packs,...unavailable].map(pack=>pack.id)).size!==page.packs.length+unavailable.length || (page.nextCursor!==null && !validCursor(page.nextCursor))
         || (page.nextCursor!==null && (page.packs.length+unavailable.length===0 || page.nextCursor===after))) return {ok:false};
-      const packs=normaliseConversationPacks(page.packs as ConversationPack[]).map(withKnownPracticeStatus);
-      if (!(await cacheAndBank(packs,current)) || !current()) return {ok:false};
+      // A pack this build's validator rejects is skipped alone, not the page (F1052).
+      const packs=normaliseConversationPacks(page.packs.filter(isConversationPack)).map(withKnownPracticeStatus);
+      if (!(await cacheAndBank(packs,current,page.packs.filter(pack=>!isConversationPack(pack)).map(pack=>(pack as {id?:unknown}).id))) || !current()) return {ok:false};
       return {ok:true,packs,unavailable,nextCursor:page.nextCursor as string|null};
     } catch {return {ok:false};}
   });
@@ -223,11 +225,28 @@ export function loadConversationPackForLearner(user:AuthUser,adapter:AuthAdapter
         return current()?{ok:true,pack:packs.find(pack=>pack.id===packId)??null}:{ok:false};
       }
       if (!(await recoverPending(current))) return {ok:false};
-      const token=await adapter.getAccessToken();
-      if(!token || !current()) return {ok:false};
-      const reply=await getReply(`${TOKEN_SERVER}/conversation-packs/${encodeURIComponent(packId)}`,token,request);
+      // Offline, this account's cached pack still opens; only a 404 means deleted (F855).
+      const cached=async():Promise<ConversationPackLookup>=>{
+        const pack=(await loadConversationPacks()).find(item=>item.id===packId);
+        return current() && pack ? {ok:true,pack} : {ok:false};
+      };
+      const token=await adapter.getAccessToken().catch(()=>null);
       if(!current()) return {ok:false};
-      if(reply.status===404) return {ok:true,pack:null};
+      if(!token) return cached();
+      let reached=false;
+      const reply=await getReply(`${TOKEN_SERVER}/conversation-packs/${encodeURIComponent(packId)}`,token,async(...args)=>{const response=await request(...args);reached=true;return response;})
+        .catch(error=>{if(reached)throw error;return null;});
+      if(!current()) return {ok:false};
+      if(reply===null) return cached();
+      if(reply.status===404) {
+        // Deleted elsewhere: drop it here too, or the offline path serves it again (F1330).
+        await serialised(async(key,owner)=>{
+          const held=await readCache(key);
+          if(!current() || held.pendingBanking?.includes(packId)) return;
+          await writeCache(key,owner,{...held,packs:held.packs.filter(item=>item.id!==packId)});
+        }).catch(()=>undefined);
+        return current()?{ok:true,pack:null}:{ok:false};
+      }
       if(reply.status===413) return {ok:false,reason:'oversize'};
       const pack=(reply.body as {pack?:unknown}|null)?.pack;
       if(reply.status!==200 || !isConversationPack(pack) || pack.learnerId!==user.id || pack.id!==packId) return {ok:false};

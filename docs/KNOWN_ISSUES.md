@@ -9341,10 +9341,11 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 
 ### F642 — The privacy notice says the app asks the age question once, but a relaunch after a refusal before an account asks again
 - severity: P2
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/legal/policy.ts:214
 - note: found by the judge of the F637/F639 stage. policy.ts:135 says 'the app asks once' and :214 says 'The app asks once, in plain words, and takes the answer.' PRIVACY_AND_SAFETY.md:560 says 'Onboarding asks once'. Since the founder's 2026-09-30 decision, a relaunch after an under-13 answer before an account asks again, and the doc's Not true yet table says so. Proposed wording, which needs founder sign-off because it is legal copy: :135 'Your answer to the age question. It is a gate rather than a detail we file, and Luvani is for learners of thirteen and over.' :214 'Luvani is for learners of thirteen and over. The app asks in plain words and takes the answer.' Regenerate dist/privacy.html through html.ts, and change PRIVACY_AND_SAFETY.md:560 to match.
 - note: 2026-11-23: no founder question is left. Superseded by F831, now closed: legal/policy.ts no longer says the app asks once, and the verified-by test exists in legal/policy.test.ts. M2 checks that dist/privacy.html was regenerated, then closes this.
+- note: 2026-11-24, closed by M2b. `dist/privacy.html` is byte-identical to `privacyHtml()` (the html.test.ts drift test passes), no "asks once" remains, and the named test at `policy.test.ts:1072` passes.
 - verified-by: `the privacy notice's age section does not promise the question is asked only once`
 
 ### F650 — Two lists still rule their own rows inside the new white list card, so they draw two hairlines between rows
@@ -11114,10 +11115,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F855 — Conversation practice needs the network on Supabase builds
 - severity: P2
-- status: [ ]
-- where: apps/mobile/src/conversationPacks/store.ts:186
+- status: [x]
+- where: apps/mobile/src/conversationPacks/store.ts:187
 - note: Found 2026-10-20 in B3 (B-Practice). The artboard's "Works offline once unlocked" was checked against the code: `loadConversationPackForLearner` reads the server on a Supabase build and never falls back to the device's cached pack, so ConversationPractice says "This conversation isn't available here." offline even though Practice drew the conversation from the cache. The line is not drawn on Practice until this is true. Fix: fall back to the owned cached pack when the server cannot be reached (not on a 404, which means deleted).
 - note: 2026-11-23, founder: "Work offline". loadConversationPackForLearner falls back to the owned cached pack when the server cannot be reached, but not on a 404, which means deleted. Practice may then draw "Works offline once unlocked" (practice/practiceTabView.ts:16). Built with wave 3 M1 (conversationPacks).
+- note: Fixed 2026-11-24 on claude/review-m1b: when the request throws before a reply, or no token can be had, the lookup returns this account's cached pack. A 404 is still `pack: null`; 413 and a bad body are unchanged; an uncached pack is still `ok: false`.
 - verified-by: `conversation practice opens from the device cache when the server cannot be reached on Supabase builds`
 
 ### F856 — Speak calls the next scene on the path "Recommended" when nothing recommended it
@@ -11158,10 +11160,11 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 
 ### F860 — Saved conversation text opens without the conversation it came from
 - severity: P3
-- status: [ ]
+- status: [x]
 - where: apps/mobile/src/conversationPacks/SavedTextScreen.tsx:13
 - note: Found 2026-10-20 in B6. The Codex library port (B3) opens `SavedConversationText` as a list. Codex linked a library row to one conversation's saved text by `sessionId`; that param and link were not ported, so a learner who opens a conversation's text from Practice lands on the whole list. Add the optional `sessionId` route param and scroll or filter to it.
 - note: 2026-11-23, founder: "Open that conversation". SavedConversationText takes an optional sessionId (nav/types.ts:268) and opens on that conversation from ConversationsScreen.tsx:279 and PracticeTab.tsx:212. The full list stays one step back. Built with wave 3 M1 (conversationPacks).
+- note: Fixed 2026-11-24 on claude/review-m1b: the route takes `{ sessionId?: string }`. An opened conversation in the library draws "Saved conversation text" (Supabase builds only, founder M1 Q3), which opens on that conversation when `findText` finds it within five pages (50 rows), and otherwise on the list. Back goes to the list. The two generic entry points (ConversationsScreen header, PracticeTab) name no conversation and still open the list.
 - verified-by: `a conversation's saved text opens on that conversation`
 
 ### F861 — Today's fix card copies the drill's exercise-picking rule
@@ -14469,6 +14472,85 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - note: Found by the M5-copy judge, 2026-11-24. The button calls backOrTabs(nav), so a lesson opened from Speak or Practice whose history read fails returns there, not to Today. Q1's own rule says plain "Back" where a button only goes back, but the Q1 table approved "Back to Today". Founder to choose: plain "Back", or reset to the Today tab.
 - note (2026-11-24, founder): plain "Back". The button reads "Back" with the back glyph, and the test pins that it is the plain word on a button whose onPress is `leave = () => backOrTabs(nav)`.
 - verified-by: `the unread-lesson leave button names only where it really lands`
+
+### F1139 — The support page links to privacy.html, which answers 308
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/legal/html.ts:188
+- note: the one link that bypasses hosted().
+- note: 2026-11-24, M2b: the link goes through hosted('privacy.html'), and dist/support.html was regenerated by `npm run legal:html`. The founder re-uploads dist/ by hand.
+- verified-by: `the support page links to the privacy notice at its clean address, not the file name`
+
+### F1140 — The Terms and Privacy controls are spoken with a word the screen does not show
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/legal/TermsAcceptance.tsx:19
+- note: the F951 rule; nothing else pins the old labels.
+- note: 2026-11-24, M2b: the labels are now "Terms of Use" and "Privacy Policy", the visible words.
+- verified-by: `the terms and privacy controls are spoken by their visible words`
+
+### F1141 — Legal and launch headers state facts the code contradicts, plus two unused imports
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/legal/terms.ts:12
+- note: M2b-5 and the import half of M2b-6; comments only.
+- note: 2026-11-24, M2b: comments corrected in terms.ts, TermsScreen.tsx, company.ts, Acknowledgements.tsx and PolicyScreen.tsx; unused `View` (launch/LaunchScreen.tsx) and `paper` (legal/TermsScreen.tsx) imports removed.
+- note: 2026-11-24, M2b judge round 1: terms.ts still called the Terms screen "the one screen that opens a browser", but auth/AccountDeletedNotice.tsx also opens a link; the sentence now claims only the fixed address. company.ts names profile/appVersion.ts, where `appVersionLine` lives.
+- note: comments and imports only, so no behaviour test can pin them: they were checked by review and by `tsc --noUnusedLocals` on the touched files. The verified-by test guards the Terms screen's licence line, which these comments describe.
+- verified-by: `the terms screen names apple's licence rather than reproducing it`
+
+### F1142 — Founder question: the Terms name two of the three actions that record the age declaration
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/legal/terms.ts:21
+- note: Q2. Built after the answer, legal review and PR #28, which edits the pin in policy.test.ts.
+- verified-by: `the terms name every action that records the minimum-age declaration`
+
+### F1143 — Founder question: toqr's MIT text is generated but never shown, beside a retired Kokoro entry
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/legal/dailyLicences.ts:1
+- note: Q3. Held; no file changes until answered.
+- verified-by: `no licence module ships that nothing renders`
+
+### F1052 — One pack the app's validator rejects refuses the whole server page
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/conversationPacks/store.ts:207
+- note: A page of up to 20 packs was refused when one pack held one exercise this build rejects, so older history could not be reached while online. Skip the invalid pack; another learner's pack still refuses the page.
+- note: Fixed 2026-11-24 on claude/review-m1b: `refreshConversationPacks` drops packs that fail `isConversationPack` one by one. A pack whose `learnerId` is not the learner's still refuses the page. Skipped packs are not listed under `unavailable`, whose copy says "too large".
+- verified-by: `one exercise without a no-mic twin does not fail the rest of the batch`
+
+### F1133 — Saved text shows Try again while it is still loading
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/conversationPacks/SavedTextScreen.tsx:91
+- note: `message` starts null and `null !== ''` is true.
+- note: Fixed 2026-11-24 on claude/review-m1b: Try again uses the message line's own guard, `message != null`.
+- verified-by: `saved text offers Try again only after a read failed`
+
+### F1135 — The sample loader reads process.env whole, so its flag is unset in a bundle
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/conversationPacks/sampleFixture.ts:59
+- note: Expo inlines only literal reads. Dev only, and it fails closed.
+- note: Fixed 2026-11-24 on claude/review-m1b: the default env is built from literal `process.env.NODE_ENV` and `process.env.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT` reads, as `dev/canvasLearner.ts` does.
+- verified-by: `the sample loader reads its flags by literal access`
+
+### F1136 — M1b dead and stale: six unused exports, two unused imports, two wrong comments
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/conversationPacks/closure.ts:150
+- note: Findings M1b-6 and the unpinned half of M1b-7. No test dies.
+- note: Fixed 2026-11-24 on claude/review-m1b: `closureFromPack`, `isSamplePack`, `SAVED_SITUATIONS_LABEL`, `SAVED_SITUATION_ACTION`, `OUT_OF_TIME_COPY` and planStatus's re-export of `freeBackLine`, `freshMinutesLine` and `PERIOD_LINES` are gone, with the unused `GhostButton` imports in `ConversationPracticeScreen.tsx` and `SaveTextChoice.tsx`. The comments at `featureLocks.ts:85` (pack drills, per REV-003) and `bookmarks/store.ts:42` (3000) now match the code. The closure test runs on `closureOf`, title kept; no floor moved.
+- verified-by: `a closure carries three phrases, one repair, one focus, one next mission and up to three wins, from the pack and nothing invented`
+
+### F1330 — A conversation the server answered 404 for still opened from the cache offline
+- severity: P2
+- status: [x]
+- where: apps/mobile/src/conversationPacks/store.ts:241
+- note: 2026-11-24 (M1b judge): loadConversationPackForLearner returned pack null on a 404 but left the pack in the device cache, so the F855 offline fallback served it on the next offline open. A 404 now evicts it from this account's cache.
+- verified-by: `a pack the server answered 404 for is not served from the cache offline afterwards`
 
 ### F1130 — M1a dead and stale: the diagnostics ring nobody reads, wrong sync counts, a rotted citation
 - severity: P2

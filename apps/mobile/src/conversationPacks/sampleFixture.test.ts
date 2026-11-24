@@ -18,7 +18,6 @@ import { loadDrillBank } from '../drill/store.ts';
 import {
   SAMPLE_LABEL,
   SAMPLE_PACK_ID,
-  isSamplePack,
   loadSampleConversation,
   sampleAllowed,
   sampleExercises,
@@ -26,6 +25,8 @@ import {
   withSample,
 } from './sampleFixture.ts';
 import { practicePackOf } from '../practice/recommendation.ts';
+
+const isSamplePack = (pack: Pick<ConversationPack, 'id'>) => pack.id === SAMPLE_PACK_ID;
 
 const LOCAL = { NODE_ENV: 'development', EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT: '1' };
 const NOW = Date.UTC(2026, 8, 24, 12);
@@ -118,5 +119,13 @@ describe('the development sample conversation', () => {
       const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
       assert.ok(!code.includes(forbidden), `the sample reaches for ${forbidden}, which would make it a claim about the learner`);
     }
+  });
+
+  test('the sample loader reads its flags by literal access', () => {
+    // Expo inlines only written-out `process.env.EXPO_PUBLIC_*` reads; `process.env` whole reads as unset in a bundle.
+    const code = readFileSync(fileURLToPath(new URL('./sampleFixture.ts', import.meta.url)), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    assert.doesNotMatch(code, /process\.env(?!\.)/, 'process.env is passed whole');
+    assert.match(code, /process\.env\.NODE_ENV/);
+    assert.match(code, /process\.env\.EXPO_PUBLIC_LUVANI_LOCAL_DEVELOPMENT/);
   });
 });
