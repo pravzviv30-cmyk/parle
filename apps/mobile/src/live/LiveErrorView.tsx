@@ -29,7 +29,7 @@ import { openPhoneSettings } from '../settings/phoneSettings.ts';
 import { space, boldType as type, HIT } from '../theme.ts';
 import { useB } from '../main/bTheme.tsx';
 import { Screen } from '../layout.tsx';
-import { IconAction, Label, PillButton, Press } from '../components.tsx';
+import { IconAction, PillButton, Press } from '../components.tsx';
 import { failureCopy, type LiveFailure } from './failure.ts';
 
 function Row({ name, value }: { name: string; value: string }) {

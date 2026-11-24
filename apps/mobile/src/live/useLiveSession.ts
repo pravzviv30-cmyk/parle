@@ -158,7 +158,7 @@ function readConsent(guest: boolean): Promise<Awaited<ReturnType<typeof loadCons
  */
 async function abandonSession(userId: string, sessionId: string): Promise<void> {
   try {
-    const [headers, consent] = await Promise.all([authHeaders(), readConsent(false)]);
+    const headers = await authHeaders();
     const res = await fetch(`${TOKEN_SERVER}/session/abandon`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...headers },

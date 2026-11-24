@@ -19,7 +19,7 @@ import type { CorrectionReasonId } from '@luvani/core';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, AccessibilityInfo, Platform } from 'react-native';
-import { accent, frenchText, paper, space, type, radius, HAIRLINE, HIT, corner } from '../theme.ts';
+import { accent, frenchText, paper, space, type, radius, HIT, corner } from '../theme.ts';
 import { EarGlyph, Highlight, Label } from '../components.tsx';
 import type { TurnLine } from '../live/turns.ts';
 import { useReduceMotion } from '../motion.ts';

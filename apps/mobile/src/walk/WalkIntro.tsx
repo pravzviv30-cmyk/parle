@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import { ScrollScreen } from '../layout.tsx';
-import { IconAction, GhostButton, PillButton, RoundButton } from '../components.tsx';
+import { IconAction, PillButton, RoundButton } from '../components.tsx';
 import { paper, space, type } from '../theme.ts';
 import { WALK_AVAILABLE } from './observer.ts';
 export function WalkIntro({ onStart, onBack }: { onStart: () => void; onBack: () => void }) {
