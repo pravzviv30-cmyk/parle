@@ -203,3 +203,15 @@ export function reauthenticationLine(purpose: 'deletion' | 'export', provider?: 
     : 'Finish signing in with Apple, then return here and delete the account again.';
   return purpose === 'export' ? 'Sign in again before downloading your data.' : 'Sign in again before deleting your account.';
 }
+
+/**
+ * The provider re-sign-in came back as someone else (F1324). Nothing was
+ * deleted or exported, and the other account is signed out on this phone. The
+ * sign-in itself can still have created that account on the server, empty, and
+ * its screens can mount briefly before the sign-out. Founder copy, 2026-11-24.
+ */
+export function differentAccountLine(purpose: 'deletion' | 'export'): string {
+  return purpose === 'export'
+    ? 'You signed in with a different account, so nothing was downloaded. Sign in with the account you want, then download your data again.'
+    : 'You signed in with a different account, so nothing was deleted. Sign in with the account you want to delete, then delete it again.';
+}

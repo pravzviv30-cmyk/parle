@@ -14290,3 +14290,22 @@ October 2026 come-alive supersession: founder decisions D1 to D17 (docs/come-ali
 - where: apps/mobile/src/home/todayView.ts:347
 - note: Found 2026-11-24 in the M5a push-check (F861 follow-up). `oneFix` reads the deck, bank and `now` HomeTab loaded on focus; DrillScreen re-reads `loadDeck()`, `loadDrillBank()` and `Date.now()` on open. A deck or bank write that lands while Today stays focused (a review sync, a bank refresh) can move the phrase to a stage whose exercise shows the French first, so the card's "shows after you try" is broken by the drill. Rare, and nothing strands the learner, hence P3. Fix shape: pass the card's opening exercise id through the route, or have the drill re-check `hidesAnswer` and fall back.
 - verified-by: `the drill opens on the exercise Today's card promised, even after the deck changes`
+
+### F1324 — A provider re-sign-in that returns another account must delete nothing
+- severity: P1
+- status: [x]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:193
+- note: native reauthentication accepts any returned account, so deletion removes the wrong one and reports success; refuse, sign out locally, and say so on the sign-in door.
+- note: Fixed 2026-11-24 on claude/review-m2a1: both native provider branches of `reauthenticateForDeletion` pass their result to `proveSameAccount` (auth/reauthProof.ts), which compares the session id with the one captured before the sign-in. A different id signs out locally, fires `onAccountChanged`, and returns the founder's line, so `deleteAccount` never runs and export makes no file. AuthProvider draws a "Different account" sheet, announced on iOS. Not device-verified: DEVICE_VERIFICATION.md D10. The web branch is a separate follow-up.
+- verified-by: `a provider reauthentication that returns another account deletes nothing`
+- verified-by: `both provider branches prove the same account before reporting success`
+- verified-by: `the different-account line is announced on the sign-in door and keeps the copy rules`
+- verified-by: `a sign-out that fails leaves no claim that the switch was undone`
+
+### F1326 — On web, a provider re-sign-in that returns another account is not noticed
+- severity: P2
+- status: [ ]
+- where: apps/mobile/src/auth/supabaseAdapter.ts:197
+- note: Found 2026-11-24 by the F1324 builder and judge. On web the redirect returns signed in as account B, and the recency check compares claims.sub with the same swapped session, so it passes for B. Nothing is deleted without a second confirmation, but the learner is never told the account changed and can delete or export B believing it is A. Needs the expected id carried across the redirect and the F1324 sheet shown.
+- verified-by: `a web provider redirect that returns another account says so and deletes nothing`
+
