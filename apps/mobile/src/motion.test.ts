@@ -770,4 +770,27 @@ describe('the onboarding transition always ends on a visible page — F1331', ()
     assert.match(done[1] ?? "", /opacity\.setValue\(1\)/, 'a stopped fade-in leaves the sign-up page at opacity 0');
     assert.match(done[1] ?? "", /shift\.setValue\(0\)/, 'a stopped fade-in leaves the sign-up page shifted down');
   });
+
+  test('the next page has finished swapping in before it starts to fade in, so no swap can stop its fade', () => {
+    const body = file('onboarding/OnboardingLayout.tsx').body;
+    const hook = body.slice(body.indexOf('export function useOnboardingTransition'));
+    const fadeOut = /animation\.current\.start\(\(\{ finished \}\) => \{([\s\S]*?)\n    \}\);/.exec(hook);
+    assert.ok(fadeOut, 'the fade-out has no completion to read');
+    // AuthFlow binds the motion to one view on its restart page and another in
+    // its frame. Starting the fade-in in the same tick as the commit lets the
+    // unmount of the old view detach the values and stop it; on the native
+    // driver a queued read can then write the stopped value back over any restore.
+    assert.doesNotMatch(fadeOut[1] ?? '', /Animated\.parallel/, 'the fade-in starts before the swapped page has committed');
+    const effects = [...hook.matchAll(/useEffect\(\(\) => \{([\s\S]*?)\n  \}, \[/g)].map((m) => m[1] ?? '');
+    assert.ok(effects.some((e) => /Animated\.parallel/.test(e)), 'the fade-in is not started after the commit has rendered');
+  });
+
+  test('a fade-out that is stopped still leaves the page visible and the learner free to tap', () => {
+    const body = file('onboarding/OnboardingLayout.tsx').body;
+    const hook = body.slice(body.indexOf('export function useOnboardingTransition'));
+    const stopped = /if \(!finished\) \{([^}]*)\}/.exec(hook);
+    assert.ok(stopped, 'a stopped fade-out returns without putting the page back');
+    assert.match(stopped[1] ?? '', /opacity\.setValue\(1\)/, 'a stopped fade-out leaves the page part-faded');
+    assert.match(stopped[1] ?? '', /locked\.current = false/, 'a stopped fade-out leaves every button locked');
+  });
 });
