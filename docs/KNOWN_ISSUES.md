@@ -8418,7 +8418,7 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 ### F546 — The tutor remembers, and no screen says so
 - severity: P2
 - status: [x]
-- where: apps/mobile/src/tutor/continuity.ts:1
+- where: apps/mobile/src/tabs/TutorTab.tsx:5
 - note: the brain stores an opener for next time, the packs store what the last conversation was
   about, and the progress store knows a scene left part way. `continuity.ts` reads them in that
   priority and hands one line to Home and Tutor, and it invents nothing: a new learner gets null.
