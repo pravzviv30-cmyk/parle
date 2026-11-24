@@ -197,20 +197,30 @@ export function useOnboardingTransition() {
   const locked = useRef(false);
   const animation = useRef<Animated.CompositeAnimation | null>(null);
   const pending = useRef<(() => void) | null>(null);
+  // The fade-in starts once the committed page has rendered, so a swap of the bound view cannot detach and stop it.
+  const [entering, setEntering] = useState<object | null>(null);
+  useEffect(() => {
+    if (!entering || !locked.current) return;
+    animation.current = Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(shift, { toValue: 0, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
+    ]);
+    animation.current.start(() => { opacity.setValue(1); shift.setValue(0); locked.current = false; });
+  }, [entering, opacity, shift]);
   useEffect(() => {
     if (!reduced) return;
-    animation.current?.stop();
     const commit = pending.current;
     pending.current = null;
+    animation.current?.stop();
     commit?.();
     opacity.setValue(1); shift.setValue(0); locked.current = false;
   }, [reduced, opacity, shift]);
   useEffect(() => {
     const app = AppState.addEventListener('change', state => {
       if (state === 'active') return;
-      animation.current?.stop();
       const commit = pending.current;
       pending.current = null;
+      animation.current?.stop();
       commit?.();
       opacity.setValue(1); shift.setValue(0); locked.current = false;
     });
@@ -223,16 +233,12 @@ export function useOnboardingTransition() {
     pending.current = commit;
     animation.current = Animated.timing(opacity, { toValue: 0, duration: 100, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' });
     animation.current.start(({ finished }) => {
-      if (!finished) return;
+      if (!finished) { pending.current = null; opacity.setValue(1); shift.setValue(0); locked.current = false; return; }
       const next = pending.current;
       pending.current = null;
-      next?.();
       shift.setValue(backward ? -12 : 12);
-      animation.current = Animated.parallel([
-        Animated.timing(opacity, { toValue: 1, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
-        Animated.timing(shift, { toValue: 0, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }),
-      ]);
-      animation.current.start(() => { locked.current = false; });
+      next?.();
+      setEntering({});
     });
     return true;
   };
