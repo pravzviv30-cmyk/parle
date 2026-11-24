@@ -65,7 +65,8 @@ describe('the moments a learner brought, kept on this phone (F549)', () => {
       assert.equal(first.id, moments[0]!.id, 'a repeat was given a new id');
 
       // One home for the rule: the shipped path is the tested helper.
-      assert.match(read('./momentsStore.ts'), /saveMoment[\s\S]*withMoment\(current,/, 'saveMoment keeps its own copy of the cap rule');
+      const saveBody = read('./momentsStore.ts').split('export function saveMoment(')[1]!.split('\nexport ')[0]!;
+      assert.match(saveBody, /withMoment\(current,/, 'saveMoment keeps its own copy of the cap rule');
     });
   });
 });

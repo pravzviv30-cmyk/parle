@@ -8420,8 +8420,8 @@ That is the whole discipline: a goal you can check beats a goal you can argue ab
 - status: [x]
 - where: apps/mobile/src/tabs/TutorTab.tsx:5
 - note: the brain stores an opener for next time, the packs store what the last conversation was
-  about, and the progress store knows a scene left part way. `continuity.ts` reads them in that
-  priority and hands one line to Home and Tutor, and it invents nothing: a new learner gets null.
+  about, and the progress store knows a scene left part way. `continuity.ts` was written to read
+  them in that priority and hand one line to Home and Tutor, inventing nothing (see the next note).
 - note: 2026-11-24 (F1149, founder: "Delete it"): no screen ever imported `continuity.ts`, so it and
   its test are deleted. The thread a learner can pick up reaches the Tutor tab as the Recommended
   conversation, gated by the plan, and that is what this entry is now verified by.
